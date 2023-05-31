@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	flags = "-falign-labels=16 -falign-jumps=16 -falign-functions=16 -ffixed-x22 -ffixed-x20 -ffixed-x21"
+	flags = "-falign-labels=16 -falign-jumps=16 -falign-functions=16 -ffixed-x20 -ffixed-x21"
 )
 
 func run(command string) {

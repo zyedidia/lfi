@@ -18,9 +18,8 @@ import (
 // function return speculation.
 
 const (
-	segmentMask = "x20"
-	sandboxReg  = "x21"
-	segmentId   = "x22"
+	segmentId  = "x20"
+	sandboxReg = "x21"
 
 	bundleMask = "#0x0f"
 )
@@ -85,8 +84,7 @@ func isolate(out *bytes.Buffer, in string) {
 			// load/store before the next jump, then we don't have to do this since
 			// that access will insure that the modified reg is valid.
 			fmt.Fprintf(out, "mov %s, %s\n", sandboxReg, modified)
-			fmt.Fprintf(out, "and %s, %s, %s\n", sandboxReg, sandboxReg, segmentMask)
-			fmt.Fprintf(out, "orr %s, %s, %s\n", sandboxReg, sandboxReg, segmentId)
+			fmt.Fprintf(out, "bfi %s, %s, #32, #32\n", sandboxReg, segmentId)
 			fmt.Fprintf(out, "mov %s, %s\n", modified, sandboxReg)
 		}
 	}
@@ -94,9 +92,8 @@ func isolate(out *bytes.Buffer, in string) {
 
 func isolateRet(out *bytes.Buffer, in string) {
 	fmt.Fprintln(out, ".p2align 4")
-	fmt.Fprintf(out, "and lr, lr, %s\n", segmentMask)
+	fmt.Fprintf(out, "bfi lr, %s, #32, #32\n", segmentId)
 	fmt.Fprintf(out, "bic lr, lr, %s\n", bundleMask)
-	fmt.Fprintf(out, "orr lr, lr, %s\n", segmentId)
 	fmt.Fprintln(out, "ret")
 }
 
@@ -105,9 +102,9 @@ func isolateBrBlr(out *bytes.Buffer, in string) {
 	ensure(len(fields) >= 2)
 	op, reg := fields[0], fields[1]
 	fmt.Fprintln(out, ".p2align 4")
-	fmt.Fprintf(out, "and %s, %s, %s\n", reg, reg, segmentMask)
+	fmt.Fprintf(out, "bfi %s, %s, #32, #32\n", reg, segmentId)
 	fmt.Fprintf(out, "bic %s, %s, %s\n", reg, reg, bundleMask)
-	fmt.Fprintf(out, "orr %s, %s, %s\n", reg, reg, segmentId)
+	fmt.Fprintln(out, "nop")
 	fmt.Fprintf(out, "%s %s\n", op, reg)
 }
 
@@ -145,8 +142,7 @@ func isolateLdrStr(out *bytes.Buffer, in string) {
 	addr := parseAddr(parts[1])
 	if !sandboxRegs[addr.Reg] {
 		fmt.Fprintln(out, ".p2align 4")
-		fmt.Fprintf(out, "and %s, %s, %s\n", addr.Reg, addr.Reg, segmentMask)
-		fmt.Fprintf(out, "orr %s, %s, xzr\n", addr.Reg, addr.Reg)
+		fmt.Fprintf(out, "bfi %s, %s, #32, #32\n", addr.Reg, segmentId)
 	}
 	fmt.Fprintln(out, in)
 }
