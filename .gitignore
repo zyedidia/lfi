@@ -1,4 +1,6 @@
 *.s
 *.o
 *.list
+*.elf
+*.bin
 /isolator

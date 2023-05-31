@@ -18,16 +18,16 @@ import (
 // function return speculation.
 
 const (
-	segmentMask = "x20"
-	sandboxReg  = "x21"
-	segmentId   = "x22"
+	segmentId  = "0xffc0"
+	sandboxReg = "x20"
+	ctrlReg    = "x21"
 
-	bundleMask = "#0x0f"
+	bundleMask = "#0x03"
 )
 
 var sandboxRegs = map[string]bool{
-	"sp": true,
-	"fp": true,
+	"sp":  true,
+	"x30": true,
 }
 
 // Instructions that may modify sp/fp and will be appropriately sandboxed. If
@@ -44,6 +44,7 @@ var modifyInsns = map[string]bool{
 	"movz": true,
 	"mvn":  true,
 	"ldr":  true,
+	"ldp":  true,
 }
 
 func ensure(b bool) {
@@ -80,23 +81,30 @@ func isolate(out *bytes.Buffer, in string) {
 	}
 	if modifyInsns[fields[0]] && len(fields) > 1 {
 		modified = strings.Trim(fields[1], " ,")
-		if sandboxRegs[modified] {
-			// TODO: optimization: if the modified reg is accessed with a
-			// load/store before the next jump, then we don't have to do this since
-			// that access will insure that the modified reg is valid.
-			fmt.Fprintf(out, "mov %s, %s\n", sandboxReg, modified)
-			fmt.Fprintf(out, "and %s, %s, %s\n", sandboxReg, sandboxReg, segmentMask)
-			fmt.Fprintf(out, "orr %s, %s, %s\n", sandboxReg, sandboxReg, segmentId)
-			fmt.Fprintf(out, "mov %s, %s\n", modified, sandboxReg)
+		// TODO: optimization: if the modified reg is accessed with a
+		// load/store before the next jump, then we don't have to do this since
+		// that access will insure that the modified reg is valid.
+		if fields[0] == "ldp" {
+			modified2 := strings.Trim(fields[2], " ,")
+			if modified == "x30" || modified2 == "x30" {
+				fmt.Fprintf(out, "movk x30, %s, lsl #32\n", segmentId)
+				fmt.Fprintf(out, "bic x30, x30, %s\n", bundleMask)
+			}
+		} else {
+			switch modified {
+			case "sp":
+				fmt.Fprintf(out, "mov %s, sp\n", sandboxReg)
+				fmt.Fprintf(out, "movk %s, %s, lsl #32\n", sandboxReg, segmentId)
+				fmt.Fprintf(out, "mov sp, %s\n", modified)
+			case "x30":
+				fmt.Fprintf(out, "movk x30, %s, lsl #32\n", segmentId)
+				fmt.Fprintf(out, "bic x30, x30, %s\n", bundleMask)
+			}
 		}
 	}
 }
 
 func isolateRet(out *bytes.Buffer, in string) {
-	fmt.Fprintln(out, ".p2align 4")
-	fmt.Fprintf(out, "and lr, lr, %s\n", segmentMask)
-	fmt.Fprintf(out, "bic lr, lr, %s\n", bundleMask)
-	fmt.Fprintf(out, "orr lr, lr, %s\n", segmentId)
 	fmt.Fprintln(out, "ret")
 }
 
@@ -104,19 +112,16 @@ func isolateBrBlr(out *bytes.Buffer, in string) {
 	fields := strings.Fields(in)
 	ensure(len(fields) >= 2)
 	op, reg := fields[0], fields[1]
-	fmt.Fprintln(out, ".p2align 4")
-	fmt.Fprintf(out, "and %s, %s, %s\n", reg, reg, segmentMask)
-	fmt.Fprintf(out, "bic %s, %s, %s\n", reg, reg, bundleMask)
-	fmt.Fprintf(out, "orr %s, %s, %s\n", reg, reg, segmentId)
-	fmt.Fprintf(out, "%s %s\n", op, reg)
+	fmt.Fprintf(out, "bic %s, %s, %s\n", ctrlReg, reg, bundleMask)
+	fmt.Fprintln(out, ".p2align 3")
+	fmt.Fprintf(out, "movk %s, %s, lsl #32\n", ctrlReg, segmentId)
+	fmt.Fprintf(out, "%s %s\n", op, ctrlReg)
 }
 
 func isolateBl(out *bytes.Buffer, in string) {
 	// TODO: optimization: may not have to insert as many nops if we track when
 	// the last p2align was
-	fmt.Fprintln(out, ".p2align 4")
-	fmt.Fprintln(out, "nop")
-	fmt.Fprintln(out, "nop")
+	fmt.Fprintln(out, ".p2align 3")
 	fmt.Fprintln(out, "nop")
 	fmt.Fprintln(out, in)
 }
@@ -144,9 +149,8 @@ func isolateLdrStr(out *bytes.Buffer, in string) {
 	ensure(len(parts) > 1)
 	addr := parseAddr(parts[1])
 	if !sandboxRegs[addr.Reg] {
-		fmt.Fprintln(out, ".p2align 4")
-		fmt.Fprintf(out, "and %s, %s, %s\n", addr.Reg, addr.Reg, segmentMask)
-		fmt.Fprintf(out, "orr %s, %s, xzr\n", addr.Reg, addr.Reg)
+		fmt.Fprintln(out, ".p2align 3")
+		fmt.Fprintf(out, "movk %s, %s, lsl #32\n", addr.Reg, segmentId)
 	}
 	fmt.Fprintln(out, in)
 }
