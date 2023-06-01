@@ -18,3 +18,7 @@ int global;
 int f4() {
     return global;
 }
+
+int f5() {
+    return f4();
+}

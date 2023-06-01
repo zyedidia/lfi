@@ -9,4 +9,4 @@ test.o: test_iso.s
 test_iso.s: test.s
 	isolator $< > $@
 test.s: test.c
-	aarch64-none-elf-gcc -S $< -o $@ -falign-labels=8 -falign-jumps=8 -falign-functions=8 -ffixed-x20 -ffixed-x21
+	aarch64-none-elf-gcc -S $< -o $@ -ffixed-x21 -ffixed-x22

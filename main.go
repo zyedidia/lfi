@@ -18,11 +18,13 @@ import (
 // function return speculation.
 
 const (
-	segmentId  = "0xffc0"
-	sandboxReg = "x20"
-	ctrlReg    = "x21"
+	segmentId = "0xffc0"
+	ctrlReg   = "x21"
+	loCtrlReg = "w21"
+	dataReg   = "x22"
+	loDataReg = "w22"
 
-	bundleMask = "#0x03"
+	bundleMask = "#0x07"
 )
 
 var sandboxRegs = map[string]bool{
@@ -87,18 +89,17 @@ func isolate(out *bytes.Buffer, in string) {
 		if fields[0] == "ldp" {
 			modified2 := strings.Trim(fields[2], " ,")
 			if modified == "x30" || modified2 == "x30" {
-				fmt.Fprintf(out, "movk x30, %s, lsl #32\n", segmentId)
-				fmt.Fprintf(out, "bic x30, x30, %s\n", bundleMask)
+				fmt.Fprintf(out, "bic %s, w30, %s\n", loCtrlReg, bundleMask)
+				fmt.Fprintf(out, "mov x30, %s\n", ctrlReg)
 			}
 		} else {
 			switch modified {
 			case "sp":
-				fmt.Fprintf(out, "mov %s, sp\n", sandboxReg)
-				fmt.Fprintf(out, "movk %s, %s, lsl #32\n", sandboxReg, segmentId)
-				fmt.Fprintf(out, "mov sp, %s\n", modified)
+				fmt.Fprintf(out, "mov %s, wsp\n", loDataReg)
+				fmt.Fprintf(out, "mov sp, %s\n", dataReg)
 			case "x30":
-				fmt.Fprintf(out, "movk x30, %s, lsl #32\n", segmentId)
-				fmt.Fprintf(out, "bic x30, x30, %s\n", bundleMask)
+				fmt.Fprintf(out, "mov %s, w30\n", loCtrlReg)
+				fmt.Fprintf(out, "mov x30, %s\n", ctrlReg)
 			}
 		}
 	}
@@ -108,21 +109,19 @@ func isolateRet(out *bytes.Buffer, in string) {
 	fmt.Fprintln(out, "ret")
 }
 
+func loReg(r string) string {
+	return "w" + r[1:]
+}
+
 func isolateBrBlr(out *bytes.Buffer, in string) {
 	fields := strings.Fields(in)
 	ensure(len(fields) >= 2)
 	op, reg := fields[0], fields[1]
-	fmt.Fprintf(out, "bic %s, %s, %s\n", ctrlReg, reg, bundleMask)
-	fmt.Fprintln(out, ".p2align 3")
-	fmt.Fprintf(out, "movk %s, %s, lsl #32\n", ctrlReg, segmentId)
+	fmt.Fprintf(out, "mov %s, %s\n", loCtrlReg, loReg(reg))
 	fmt.Fprintf(out, "%s %s\n", op, ctrlReg)
 }
 
 func isolateBl(out *bytes.Buffer, in string) {
-	// TODO: optimization: may not have to insert as many nops if we track when
-	// the last p2align was
-	fmt.Fprintln(out, ".p2align 3")
-	fmt.Fprintln(out, "nop")
 	fmt.Fprintln(out, in)
 }
 
@@ -149,10 +148,11 @@ func isolateLdrStr(out *bytes.Buffer, in string) {
 	ensure(len(parts) > 1)
 	addr := parseAddr(parts[1])
 	if !sandboxRegs[addr.Reg] {
-		fmt.Fprintln(out, ".p2align 3")
-		fmt.Fprintf(out, "movk %s, %s, lsl #32\n", addr.Reg, segmentId)
+		fmt.Fprintf(out, "mov %s, %s\n", loDataReg, loReg(addr.Reg))
+		fmt.Fprintln(out, strings.Replace(in, addr.Reg, dataReg, -1))
+	} else {
+		fmt.Fprintln(out, in)
 	}
-	fmt.Fprintln(out, in)
 }
 
 func isolateLdp(out *bytes.Buffer, in string) {
