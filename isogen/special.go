@@ -4,7 +4,6 @@ var special = map[string]bool{
 	"lr":  true,
 	"fp":  true,
 	"x30": true,
-	"x29": true,
 }
 
 func sandboxSp(next []Inst) []Inst {
@@ -20,18 +19,11 @@ func sandboxLr(next []Inst) []Inst {
 	return next
 }
 
-func sandboxFp(next []Inst) []Inst {
-	next = append(next, &Movk{"x29", segmentId})
-	return next
-}
-
 func sandboxDest(dest string, next []Inst) []Inst {
 	if dest == "sp" {
 		next = sandboxSp(next)
 	} else if dest == "lr" || dest == "x30" {
 		next = sandboxLr(next)
-	} else if dest == "fp" || dest == "x29" {
-		next = sandboxFp(next)
 	}
 	return next
 }

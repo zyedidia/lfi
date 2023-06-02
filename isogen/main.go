@@ -14,6 +14,7 @@ import (
 
 const (
 	resReg     = "x20"
+	branchReg  = "x21"
 	bundleMask = "0x07"
 	segmentId  = "0xffc0"
 	p2align    = ".p2align 3"

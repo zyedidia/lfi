@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var isoflags = []string{"-ffixed-x20", "-falign-labels=8", "-falign-jumps=8", "-falign-functions=8"}
+var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-falign-labels=8", "-falign-jumps=8", "-falign-functions=8"}
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
@@ -112,7 +112,7 @@ func main() {
 	run(cc, stage1...)
 	iso := temp()
 
-	// run("cp", asm, iso)
+	run("cp", asm, iso)
 	run("isogen", asm, "-o", iso)
 
 	if !*assemble {

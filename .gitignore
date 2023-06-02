@@ -7,3 +7,5 @@
 /isocc/isocc
 /isogen/isogen
 /isoverify/isoverify
+a.out
+arm64/arm64asm/testdata/

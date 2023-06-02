@@ -13,12 +13,12 @@ func branchPass(insts []Inst) []Inst {
 				next = append(next, &Branch{Op: "bl", Target: b.Target})
 			} else {
 				// br/blr
-				next = append(next, &Modify3{"bic", resReg, b.Target, bundleMask})
+				next = append(next, &Modify3{"bic", branchReg, b.Target, bundleMask})
 				if b.Op == "blr" {
 					next = append(next, &Directive{p2align})
 				}
-				next = append(next, &Movk{resReg, segmentId})
-				next = append(next, &Branch{Op: b.Op, Target: resReg})
+				next = append(next, &Movk{branchReg, segmentId})
+				next = append(next, &Branch{Op: b.Op, Target: branchReg})
 			}
 			continue
 		}

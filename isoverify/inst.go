@@ -1,8 +1,46 @@
 package main
 
 import (
-	arm "golang.org/x/arch/arm64/arm64asm"
+	arm "github.com/zyedidia/isolator/arm64/arm64asm"
 )
+
+const (
+	branchReg  = arm.X21
+	resReg     = arm.X20
+	retReg     = arm.X30
+	segmentId  = 0xffc0
+	bundleMask = uint64(0x07)
+)
+
+var dataRegs = map[arm.Reg]bool{
+	resReg: true,
+	arm.SP: true,
+}
+
+var ctrlRegs = map[arm.Reg]bool{
+	branchReg: true,
+	retReg:    true,
+}
+
+var restrictedRegs = map[arm.Reg]bool{
+	arm.X30: true,
+	arm.W30: true,
+	arm.H30: true,
+	arm.B30: true,
+
+	arm.X21: true,
+	arm.W21: true,
+	arm.H21: true,
+	arm.B21: true,
+
+	arm.X20: true,
+	arm.W20: true,
+	arm.H20: true,
+	arm.B20: true,
+
+	arm.SP:  true,
+	arm.WSP: true,
+}
 
 // list of permitted instructions
 var allowed = map[arm.Op]bool{
@@ -181,8 +219,8 @@ var allowed = map[arm.Op]bool{
 	// arm.LDAXRB:    true,
 	// arm.LDAXRH:    true,
 	// arm.LDNP:      true,
-	// arm.LDP:       true,
-	// arm.LDPSW:     true,
+	arm.LDP:   true,
+	arm.LDPSW: true,
 	arm.LDR:   true,
 	arm.LDRB:  true,
 	arm.LDRH:  true,
@@ -473,4 +511,30 @@ var allowed = map[arm.Op]bool{
 	// arm.YIELD:     true,
 	arm.ZIP1: true,
 	arm.ZIP2: true,
+}
+
+var stores = map[arm.Op]bool{
+	arm.STP:   true,
+	arm.STR:   true,
+	arm.STRB:  true,
+	arm.STRH:  true,
+	arm.STUR:  true,
+	arm.STURB: true,
+	arm.STURH: true,
+}
+
+var branches = map[arm.Op]bool{
+	arm.RET:  true,
+	arm.BLR:  true,
+	arm.BL:   true,
+	arm.BR:   true,
+	arm.TBZ:  true,
+	arm.TBNZ: true,
+	arm.CBZ:  true,
+	arm.CBNZ: true,
+	arm.B:    true,
+}
+
+var nomodify = map[arm.Op]bool{
+	arm.NOP: true,
 }
