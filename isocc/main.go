@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var isoflags = []string{"-ffixed-x21", "-ffixed-x22"}
+var isoflags = []string{"-ffixed-x20", "-falign-labels=8", "-falign-jumps=8", "-falign-functions=8"}
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
@@ -74,8 +74,8 @@ func main() {
 
 	target := args[0]
 	base := strings.TrimSuffix(target, filepath.Ext(target))
-	targetasm := filepath.Base(base) + ".s"
-	targeto := filepath.Base(base) + ".o"
+	targetasm := base + ".s"
+	targeto := base + ".o"
 
 	cc := os.Getenv("ISOCC")
 	if cc == "" {
@@ -112,7 +112,8 @@ func main() {
 	run(cc, stage1...)
 	iso := temp()
 
-	run("cp", asm, iso)
+	// run("cp", asm, iso)
+	run("isogen", asm, "-o", iso)
 
 	if !*assemble {
 		if *compile {
