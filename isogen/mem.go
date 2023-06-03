@@ -26,6 +26,7 @@ func fixAddr(a AddrMode, inst Inst, op, reg string, next []Inst) []Inst {
 				SrcB: m.Reg2,
 			})
 		}
+		stats.AddrModeFixups++
 		next = append(next, &Load{
 			Op:   op,
 			Dest: reg,
@@ -54,7 +55,7 @@ func fixAddrModesPass(insts []Inst) []Inst {
 	return next
 }
 
-func sandboxAddr(a AddrMode, inst Inst, next []Inst) []Inst {
+func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 	if !a.SingleReg() {
 		fmt.Println("warning: bad addressing mode", inst)
 		return next
@@ -64,6 +65,11 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst) []Inst {
 	}
 	next = append(next, &Directive{p2align})
 	next = append(next, &Movk{a.GetReg(), segmentId})
+	if load {
+		stats.LoadMasks++
+	} else {
+		stats.StoreMasks++
+	}
 	return next
 }
 
@@ -73,13 +79,13 @@ func memoryPass(insts []Inst) []Inst {
 		inst := insts[i]
 		switch m := inst.(type) {
 		case *Store:
-			next = sandboxAddr(m.Addr, inst, next)
+			next = sandboxAddr(m.Addr, inst, next, false)
 		case *StoreM:
-			next = sandboxAddr(m.Addr, inst, next)
+			next = sandboxAddr(m.Addr, inst, next, false)
 		case *Load:
-			next = sandboxAddr(m.Addr, inst, next)
+			next = sandboxAddr(m.Addr, inst, next, true)
 		case *LoadM:
-			next = sandboxAddr(m.Addr, inst, next)
+			next = sandboxAddr(m.Addr, inst, next, true)
 		}
 		next = append(next, inst)
 	}

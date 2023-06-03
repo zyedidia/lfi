@@ -127,6 +127,7 @@ func parseInsts(in io.Reader, name string) ([]Inst, error) {
 }
 
 func main() {
+	showstat := pflag.BoolP("stats", "s", false, "show stats")
 	out := pflag.StringP("output", "o", "", "output assembly file")
 	dotest := pflag.BoolP("test", "t", false, "test")
 
@@ -177,6 +178,10 @@ func main() {
 
 	for _, inst := range insts {
 		fmt.Fprintln(w, inst.String())
+	}
+
+	if *showstat {
+		fmt.Fprint(os.Stderr, stats)
 	}
 }
 

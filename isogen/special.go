@@ -10,12 +10,14 @@ func sandboxSp(next []Inst) []Inst {
 	next = append(next, &Modify2{"mov", resReg, "sp"})
 	next = append(next, &Movk{resReg, segmentId})
 	next = append(next, &Modify2{"mov", "sp", resReg})
+	stats.ResMasks++
 	return next
 }
 
 func sandboxLr(next []Inst) []Inst {
 	next = append(next, &Movk{"x30", segmentId})
 	next = append(next, &Modify3{"bic", "x30", "x30", bundleMask})
+	stats.ResMasks++
 	return next
 }
 

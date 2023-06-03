@@ -19,6 +19,7 @@ func branchPass(insts []Inst) []Inst {
 				}
 				next = append(next, &Movk{branchReg, segmentId})
 				next = append(next, &Branch{Op: b.Op, Target: branchReg})
+				stats.BranchMasks++
 			}
 			continue
 		}
