@@ -29,7 +29,7 @@ func run(command string, args ...string) {
 }
 
 func temp(dir string) string {
-	tmp, err := os.CreateTemp(dir, ".isocc.*.S")
+	tmp, err := os.CreateTemp(dir, ".isocc.*.s")
 	if err != nil {
 		fatal(err)
 	}
@@ -70,7 +70,7 @@ func main() {
 	}
 
 	base := strings.TrimSuffix(target, filepath.Ext(target))
-	targetasm := base + ".S"
+	targetasm := base + ".s"
 	targeto := base + ".o"
 	targetdir := filepath.Dir(target)
 
@@ -87,7 +87,13 @@ func main() {
 	}
 
 	asm := target
-	if filepath.Ext(target) != ".s" && filepath.Ext(target) != ".S" {
+	if filepath.Ext(target) == ".S" {
+		asm = temp(targetdir)
+		run("cpp", "-o", asm, target)
+		if !keep {
+			defer os.Remove(asm)
+		}
+	} else if filepath.Ext(target) != ".s" {
 		asm = temp(targetdir)
 		stage1 := []string{
 			"-S",
@@ -107,8 +113,8 @@ func main() {
 	if !keep {
 		defer os.Remove(iso)
 	}
-	run("cp", asm, iso)
-	// run("isogen", asm, "-o", iso)
+	// run("cp", asm, iso)
+	run("isogen", asm, "-o", iso)
 
 	if !assemble {
 		if compile && out == "" {

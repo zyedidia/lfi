@@ -8,8 +8,8 @@ import (
 )
 
 var armLexer = lexer.MustSimple([]lexer.SimpleRule{
-	{`Ident`, `[:_@.a-zA-Z][:.a-zA-Z_\-\d+]*`},
-	{`Number`, `[-+]?(0x)?[.0-9a-fA-F+-]+\b`},
+	{`Ident`, `[_@.a-zA-Z][.a-zA-Z_\-\d+]*`},
+	{`Number`, `[-+]?(0x)?[.0-9a-fA-F+\-:][.0-9a-zA-Z_+\-:]*\b`},
 	{`Punct`, `[,:()\[\]#!]`},
 	{`Newline`, `\r?\n`},
 	{"comment", `//.*|/\*.*?\*/`},
@@ -64,7 +64,7 @@ func (a *ExtendArg) String() string {
 // [Xn{, #i}]
 type MemArg1 struct {
 	Reg string  `"[" @Ident`
-	Imm *string `("," "#"? @(Number | Ident))? "]"`
+	Imm *string `("," "#"? @(Number))? "]"`
 }
 
 func (m *MemArg1) String() string {
@@ -78,7 +78,7 @@ func (m *MemArg1) String() string {
 // [Xn], #i
 type MemArg2 struct {
 	Reg string `"[" @Ident "]"`
-	Imm string `"," "#"? @(Number | Ident)`
+	Imm string `"," "#"? @(Number)`
 }
 
 func (m *MemArg2) String() string {
@@ -88,7 +88,7 @@ func (m *MemArg2) String() string {
 // [Xn, #i]!
 type MemArg3 struct {
 	Reg string `"[" @Ident`
-	Imm string `"," "#"? @(Number | Ident) "]" "!"`
+	Imm string `"," "#"? @(Number) "]" "!"`
 }
 
 func (m *MemArg3) String() string {
