@@ -12,6 +12,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// TODO: handle this sequence:
+// adrp	x21, :got:__preinit_array_start
+// ldr	x21, [x21, :got_lo12:__preinit_array_start]
+
 const (
 	resReg     = "x20"
 	branchReg  = "x21"
@@ -27,7 +31,7 @@ func parseInst(in string, loc string) Inst {
 			Name: in[:len(in)-1],
 		}
 	}
-	if strings.HasPrefix(in, ".") {
+	if strings.HasPrefix(in, ".") || strings.HasPrefix(in, "#") || strings.HasPrefix(in, "\\") {
 		return &Directive{
 			Val: in,
 		}

@@ -86,10 +86,6 @@ func main() {
 		log.SetOutput(io.Discard)
 	}
 
-	// TODO: pass the flags directly and just look for files ending in .S, .o, or .c for the input (excluding ones that come after -o)
-	// TODO: put the temp file in the same directory as the target
-	// TODO: in parser, skip lines beginning with # or \ (make them opaque or directives or something)
-
 	asm := target
 	if filepath.Ext(target) != ".s" && filepath.Ext(target) != ".S" {
 		asm = temp(targetdir)

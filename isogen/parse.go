@@ -8,8 +8,8 @@ import (
 )
 
 var armLexer = lexer.MustSimple([]lexer.SimpleRule{
-	{`Ident`, `[:_@.a-zA-Z][:.a-zA-Z_\d+]*`},
-	{`Number`, `[-+]?(0x)?[0-9a-fA-F]+\b`},
+	{`Ident`, `[:_@.a-zA-Z][:.a-zA-Z_\-\d+]*`},
+	{`Number`, `[-+]?(0x)?[.0-9a-fA-F+-]+\b`},
 	{`Punct`, `[,:()\[\]#!]`},
 	{`Newline`, `\r?\n`},
 	{"comment", `//.*|/\*.*?\*/`},
@@ -49,7 +49,7 @@ func getAddrMode(a *Arg) AddrMode {
 }
 
 type ExtendArg struct {
-	Op  string  `@("lsl" | "lsr" | "uxtw" | "sxth" | "sxtw" | "sxtx" | "sxtb" | "uxth" | "uxtb" | "uxtx")`
+	Op  string  `@("lsl" | "lsr" | "msl" | "asr" | "uxtw" | "sxth" | "sxtw" | "sxtx" | "sxtb" | "uxth" | "uxtb" | "uxtx")`
 	Imm *string `  @("#"? Number)?`
 }
 
@@ -137,7 +137,7 @@ func (m *MemArg5) GetReg() string {
 }
 
 type NormalArg struct {
-	Name *string `@Ident`
+	Name *string `@(Ident ("[" Number "]")?)`
 	Imm  *string `| "#"? @Number`
 }
 
