@@ -120,7 +120,8 @@ type Movk struct {
 }
 
 func (i *Movk) String() string {
-	return fmt.Sprintf("movk %s, %s, lsl #32", i.Dest, i.Imm)
+	// return fmt.Sprintf("movk %s, %s, lsl #32", i.Dest, i.Imm)
+	return "nop"
 }
 
 type Opaque struct {

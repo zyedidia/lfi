@@ -101,6 +101,7 @@ func main() {
 			target,
 		}
 		stage1 = append(stage1, args...)
+		stage1 = append(stage1, isoflags...)
 
 		run(cc, stage1...)
 
@@ -131,6 +132,7 @@ func main() {
 			stage2 = append(stage2, "-c")
 		}
 		stage2 = append(stage2, args...)
+		stage2 = append(stage2, isoflags...)
 		run(cc, stage2...)
 	} else {
 		run("cp", iso, targetasm)
