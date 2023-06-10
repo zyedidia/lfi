@@ -135,6 +135,18 @@ func (m *MemArg3) GetReg() string {
 func (m *MemArg5) GetReg() string {
 	return m.Reg1
 }
+func (m *MemArg1) SetReg(r string) {
+	m.Reg = r
+}
+func (m *MemArg2) SetReg(r string) {
+	m.Reg = r
+}
+func (m *MemArg3) SetReg(r string) {
+	m.Reg = r
+}
+func (m *MemArg5) SetReg(r string) {
+	m.Reg1 = r
+}
 
 type NormalArg struct {
 	Name *string `@(Ident ("[" Number "]")?)`

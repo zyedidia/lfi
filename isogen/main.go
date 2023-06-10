@@ -18,11 +18,12 @@ import (
 
 const (
 	resReg     = "x20"
-	branchReg  = "x21"
-	bundleMask = "0x07"
-	segmentId  = "0xffc0"
-	p2align    = ".p2align 3"
+	segmentReg = "x21"
 )
+
+func loReg(r string) string {
+	return "w" + r[1:]
+}
 
 func parseInst(in string, loc string) Inst {
 	in = strings.TrimSpace(in)

@@ -2,21 +2,18 @@ package main
 
 var special = map[string]bool{
 	"lr":  true,
-	"fp":  true,
 	"x30": true,
 }
 
 func sandboxSp(next []Inst) []Inst {
-	next = append(next, &Modify2{"mov", resReg, "sp"})
-	next = append(next, &Movk{resReg, segmentId})
-	next = append(next, &Modify2{"mov", "sp", resReg})
+	next = append(next, &Modify2{"mov", loReg(resReg), "wsp"})
+	next = append(next, &AddUxtw{"sp", segmentReg, loReg(resReg)})
 	stats.ResMasks++
 	return next
 }
 
 func sandboxLr(next []Inst) []Inst {
-	next = append(next, &Movk{"x30", segmentId})
-	next = append(next, &Modify3{"bic", "x30", "x30", bundleMask})
+	next = append(next, &AddUxtw{"x30", segmentReg, "w30"})
 	stats.ResMasks++
 	return next
 }

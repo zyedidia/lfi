@@ -63,8 +63,8 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 	if special[a.GetReg()] || a.GetReg() == "sp" {
 		return next
 	}
-	next = append(next, &Directive{p2align})
-	next = append(next, &Movk{a.GetReg(), segmentId})
+	next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+	a.SetReg(resReg)
 	if load {
 		stats.LoadMasks++
 	} else {

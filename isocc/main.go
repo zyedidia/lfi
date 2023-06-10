@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-falign-labels=8", "-falign-jumps=8", "-falign-functions=8"}
+var isoflags = []string{"-ffixed-x20", "-ffixed-x21"}
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)

@@ -77,7 +77,7 @@ func (i *StoreM) String() string {
 	return fmt.Sprintf("%s %s, %s, %s", i.Op, i.SrcA, i.SrcB, i.Addr)
 }
 
-// xx dest, srca, srcb, src
+// xx dest, srca, srcb, srcc
 type Modify4 struct {
 	Op   string
 	Dest string
@@ -113,6 +113,17 @@ func (i *Modify2) String() string {
 	return fmt.Sprintf("%s %s, %s", i.Op, i.Dest, i.Src)
 }
 
+// add Xn, Xm, Wn, uxtw
+type AddUxtw struct {
+	Dest string
+	SrcA string
+	SrcB string
+}
+
+func (i *AddUxtw) String() string {
+	return fmt.Sprintf("add %s, %s, %s, uxtw", i.Dest, i.SrcA, i.SrcB)
+}
+
 // movk dest, imm, lsl #32
 type Movk struct {
 	Dest string
@@ -142,4 +153,5 @@ type AddrMode interface {
 	String() string
 	GetReg() string
 	SingleReg() bool
+	SetReg(r string)
 }

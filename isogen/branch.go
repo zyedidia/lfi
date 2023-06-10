@@ -6,21 +6,10 @@ func branchPass(insts []Inst) []Inst {
 		inst := insts[i]
 		switch b := inst.(type) {
 		case *Branch:
-			if b.Op == "bl" {
-				// bl
-				next = append(next, &Directive{p2align})
-				next = append(next, &Opaque{Val: "nop"})
-				next = append(next, &Branch{Op: "bl", Target: b.Target})
-			} else {
-				// br/blr
-				next = append(next, &Modify3{"bic", branchReg, b.Target, bundleMask})
-				if b.Op == "blr" {
-					next = append(next, &Directive{p2align})
-				}
-				next = append(next, &Movk{branchReg, segmentId})
-				next = append(next, &Branch{Op: b.Op, Target: branchReg})
-				stats.BranchMasks++
-			}
+			// br/blr
+			next = append(next, &AddUxtw{resReg, segmentReg, loReg(b.Target)})
+			next = append(next, &Branch{Op: b.Op, Target: resReg})
+			stats.BranchMasks++
 			continue
 		}
 		next = append(next, inst)
