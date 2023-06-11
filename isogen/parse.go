@@ -76,6 +76,7 @@ func (m *MemArg1) String() string {
 }
 
 // [Xn], #i
+// Xn += i after access
 type MemArg2 struct {
 	Reg string `"[" @Ident "]"`
 	Imm string `"," "#"? @(Number)`
@@ -86,6 +87,7 @@ func (m *MemArg2) String() string {
 }
 
 // [Xn, #i]!
+// Xn += i before access
 type MemArg3 struct {
 	Reg string `"[" @Ident`
 	Imm string `"," "#"? @(Number) "]" "!"`

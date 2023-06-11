@@ -58,12 +58,20 @@ func fixAddrModesPass(insts []Inst) []Inst {
 func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 	if !a.SingleReg() {
 		fmt.Println("warning: bad addressing mode", inst)
+		next = append(next, inst)
 		return next
 	}
 	if special[a.GetReg()] || a.GetReg() == "sp" {
+		next = append(next, inst)
 		return next
 	}
 	next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+	next = append(next, inst)
+	switch a.(type) {
+	case *MemArg2, *MemArg3:
+		next = append(next, &Modify2{"mov", a.GetReg(), resReg})
+		stats.PostAddrMoves++
+	}
 	a.SetReg(resReg)
 	if load {
 		stats.LoadMasks++
@@ -86,8 +94,9 @@ func memoryPass(insts []Inst) []Inst {
 			next = sandboxAddr(m.Addr, inst, next, true)
 		case *LoadM:
 			next = sandboxAddr(m.Addr, inst, next, true)
+		default:
+			next = append(next, inst)
 		}
-		next = append(next, inst)
 	}
 	return next
 }

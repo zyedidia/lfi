@@ -6,11 +6,13 @@ func branchPass(insts []Inst) []Inst {
 		inst := insts[i]
 		switch b := inst.(type) {
 		case *Branch:
-			// br/blr
-			next = append(next, &AddUxtw{resReg, segmentReg, loReg(b.Target)})
-			next = append(next, &Branch{Op: b.Op, Target: resReg})
-			stats.BranchMasks++
-			continue
+			if b.Op == "br" || b.Op == "blr" {
+				// br/blr
+				next = append(next, &AddUxtw{resReg, segmentReg, loReg(b.Target)})
+				next = append(next, &Branch{Op: b.Op, Target: resReg})
+				stats.BranchMasks++
+				continue
+			}
 		}
 		next = append(next, inst)
 	}
