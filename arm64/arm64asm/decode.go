@@ -2635,78 +2635,78 @@ func handle_ExtendedRegister(x uint32, has_width bool) Arg {
 	var rea RegExtshiftAmount
 	if has_width {
 		if option&0x3 != 0x3 {
-			rea.reg = W0 + Reg(rm)
+			rea.Reg = W0 + Reg(rm)
 		} else {
-			rea.reg = X0 + Reg(rm)
+			rea.Reg = X0 + Reg(rm)
 		}
 	} else {
-		rea.reg = W0 + Reg(rm)
+		rea.Reg = W0 + Reg(rm)
 	}
 	switch option {
 	case 0:
-		rea.extShift = uxtb
+		rea.ExtShift = Uxtb
 	case 1:
-		rea.extShift = uxth
+		rea.ExtShift = Uxth
 	case 2:
 		if is_32bit && (rn == 31 || (s == 0 && rd == 31)) {
 			if imm3 != 0 {
-				rea.extShift = lsl
+				rea.ExtShift = Lsl
 			} else {
-				rea.extShift = ExtShift(0)
+				rea.ExtShift = ExtShift(0)
 			}
 		} else {
-			rea.extShift = uxtw
+			rea.ExtShift = Uxtw
 		}
 	case 3:
 		if !is_32bit && (rn == 31 || (s == 0 && rd == 31)) {
 			if imm3 != 0 {
-				rea.extShift = lsl
+				rea.ExtShift = Lsl
 			} else {
-				rea.extShift = ExtShift(0)
+				rea.ExtShift = ExtShift(0)
 			}
 		} else {
-			rea.extShift = uxtx
+			rea.ExtShift = Uxtx
 		}
 	case 4:
-		rea.extShift = sxtb
+		rea.ExtShift = Sxtb
 	case 5:
-		rea.extShift = sxth
+		rea.ExtShift = Sxth
 	case 6:
-		rea.extShift = sxtw
+		rea.ExtShift = Sxtw
 	case 7:
-		rea.extShift = sxtx
+		rea.ExtShift = Sxtx
 	}
 	rea.show_zero = false
-	rea.amount = uint8(imm3)
+	rea.Amount = uint8(imm3)
 	return rea
 }
 
 func handle_ImmediateShiftedRegister(x uint32, max uint8, is_w, has_ror bool) Arg {
 	var rsa RegExtshiftAmount
 	if is_w {
-		rsa.reg = W0 + Reg((x>>16)&(1<<5-1))
+		rsa.Reg = W0 + Reg((x>>16)&(1<<5-1))
 	} else {
-		rsa.reg = X0 + Reg((x>>16)&(1<<5-1))
+		rsa.Reg = X0 + Reg((x>>16)&(1<<5-1))
 	}
 	switch (x >> 22) & 0x3 {
 	case 0:
-		rsa.extShift = lsl
+		rsa.ExtShift = Lsl
 	case 1:
-		rsa.extShift = lsr
+		rsa.ExtShift = Lsr
 	case 2:
-		rsa.extShift = asr
+		rsa.ExtShift = Asr
 	case 3:
 		if has_ror {
-			rsa.extShift = ror
+			rsa.ExtShift = Ror
 		} else {
 			return nil
 		}
 	}
 	rsa.show_zero = true
-	rsa.amount = uint8((x >> 10) & (1<<6 - 1))
-	if rsa.amount == 0 && rsa.extShift == lsl {
-		rsa.extShift = ExtShift(0)
-	} else if rsa.amount > max {
+	rsa.Amount = uint8((x >> 10) & (1<<6 - 1))
+	if rsa.Amount == 0 && rsa.ExtShift == Lsl {
+		rsa.ExtShift = ExtShift(0)
+	} else if rsa.Amount > max {
 		return nil
 	}
 	return rsa
@@ -2726,13 +2726,13 @@ func handle_MemExtend(x uint32, mult uint8, absent bool) Arg {
 	default:
 		return nil
 	case 2:
-		extend = uxtw
+		extend = Uxtw
 	case 3:
-		extend = lsl
+		extend = Lsl
 	case 6:
-		extend = sxtw
+		extend = Sxtw
 	case 7:
-		extend = sxtx
+		extend = Sxtx
 	}
 	amount := (uint8((x >> 12) & 1)) * mult
 	return MemExtend{Rn, Rm, extend, amount, absent}

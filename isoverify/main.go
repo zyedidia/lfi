@@ -22,27 +22,15 @@ func fail(i Inst, msg string) {
 	failed = true
 }
 
-func mustBranchReg(reg arm.Reg, inst Inst) {
-	if reg != branchReg {
-		fail(inst, fmt.Sprintf("must use reserved branch register %s", branchReg))
+func mustResReg(reg arm.Reg, inst Inst) {
+	if reg != resReg {
+		fail(inst, fmt.Sprintf("must use reserved register %s", resReg))
 	}
 }
 
 func mustRetReg(reg arm.Reg, inst Inst) {
 	if reg != retReg {
-		fail(inst, fmt.Sprintf("must use reserved return register %s", branchReg))
-	}
-}
-
-func mustAligned(loc int64, align int64, inst Inst) {
-	if loc%align != 0 {
-		fail(inst, fmt.Sprintf("address must be aligned to %d", align))
-	}
-}
-
-func mustNotAligned(loc int64, align int64, inst Inst) {
-	if loc%align == 0 {
-		fail(inst, fmt.Sprintf("address must not be aligned to %d", align))
+		fail(inst, fmt.Sprintf("must use reserved return register %s", retReg))
 	}
 }
 
@@ -58,43 +46,36 @@ func mustArgs(n int, inst Inst) {
 	}
 }
 
-func must(b bool, inst Inst, msg string) {
+func must(b bool, inst Inst, msg string) bool {
 	if !b {
 		fail(inst, msg)
+		return false
 	}
+	return true
 }
 
-func checkMov(mov Inst, target arm.RegSP, src arm.RegSP, inst Inst) {
-	// check for 'mov target, src'
-	must(mov.Op == arm.MOV, inst, "must be a mov")
-	if mov.Op != arm.MOV {
+func checkMov(inst Inst, dest, src arm.Reg) {
+	if !must(inst.Op == arm.MOV, inst, "op must be mov") {
 		return
 	}
-	must(mov.Args[0].(arm.RegSP) == target, inst, fmt.Sprintf("associated mov must store to %s", target))
-	must(mov.Args[1].(arm.RegSP) == src, inst, fmt.Sprintf("associated mov must read from %s", src))
+	must(inst.Args[0].(arm.RegSP) == arm.RegSP(dest), inst, fmt.Sprintf("dest must be %s", dest))
+	must(inst.Args[1].(arm.RegSP) == arm.RegSP(src), inst, fmt.Sprintf("src must be %s", src))
 }
 
-func checkBic(bic Inst, target arm.Reg, src arm.Reg, inst Inst) {
-	// check for 'bic target, src, bundleMask'
-	must(bic.Op == arm.AND, inst, fmt.Sprintf("must be a bic, but got %s", bic.Op))
-	if bic.Op != arm.AND {
+func checkAddUxtw(inst Inst, target arm.Reg, src arm.Reg, checksrc bool) {
+	if !must(inst.Op == arm.ADD, inst, fmt.Sprintf("must be add uxtw, but got %s", inst.Op)) {
 		return
 	}
-	must(bic.Args[0].(arm.RegSP) == arm.RegSP(target), inst, "associated bic must store to target register")
-	must(bic.Args[1].(arm.Reg) == src, inst, "associated bic must read from source register")
-	must(bic.Args[2].(arm.Imm64).Imm == ^bundleMask, inst, fmt.Sprintf("control reg mask must be %x", ^bundleMask))
-}
-
-func checkMovk(movk Inst, target arm.Reg, inst Inst) {
-	// check for correct movk (movk reg, segmentId, lsl #32)
-	must(movk.Op == arm.MOVK, movk, "must be a movk")
-	if movk.Op != arm.MOVK {
-		return
+	must(inst.Args[1].(arm.RegSP) == arm.RegSP(segmentReg), inst, "second argument must be segment reg")
+	if r, ok := inst.Args[2].(arm.RegExtshiftAmount); !ok {
+		fail(inst, "third argument must use uxtw")
+	} else {
+		must(r.ExtShift == arm.Uxtw, inst, "third argument must use uxtw")
+		must(loRegs[r.Reg], inst, "third argument must be W-register")
+		if checksrc {
+			must(r.Reg == src, inst, fmt.Sprintf("third argument must be %s", src))
+		}
 	}
-	must(movk.Args[0].(arm.Reg) == target, inst, "associated movk must store to target register")
-	immsh := movk.Args[1].(arm.ImmShift)
-	must(immsh.Imm == segmentId, inst, fmt.Sprintf("associated movk must move segment ID (%x)", segmentId))
-	must(immsh.Shift == 32, inst, "associated movk must shift by 32")
 }
 
 func checkMem(mem arm.Arg, inst Inst, prevInst *Inst) {
@@ -104,17 +85,8 @@ func checkMem(mem arm.Arg, inst Inst, prevInst *Inst) {
 			fail(inst, "cannot use post register addressing mode")
 		}
 		if !dataRegs[arm.Reg(arg.Base)] {
-			// cannot be a ctrlReg
-			if ctrlRegs[arm.Reg(arg.Base)] {
-				fail(inst, "cannot use a reserved control register for memory operation")
-			}
-			// needs movk and cannot be 8-aligned
-			mustNotAligned(inst.Addr, 8, inst)
-			if prevInst != nil && prevInst.Op == arm.MOVK {
-				checkMovk(*prevInst, arm.Reg(arg.Base), inst)
-			} else {
-				fail(inst, "load of user reg requires preceding movk")
-			}
+			// must be a data register
+			fail(inst, fmt.Sprintf("must use data register (sp or %s) for memory access", resReg))
 		}
 	case arm.MemExtend:
 		fail(inst, "cannot use extended addressing mode")
@@ -122,54 +94,56 @@ func checkMem(mem arm.Arg, inst Inst, prevInst *Inst) {
 }
 
 func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
+	var next1, next2 *Inst
+	if i+1 < len(insts) {
+		next1 = &insts[i+1]
+	}
+	if i+2 < len(insts) {
+		next2 = &insts[i+2]
+	}
 	if restrictedRegs[modReg] {
-		var nextInst *Inst
-		if i+1 < len(insts) {
-			nextInst = &insts[i+1]
-			for j := i + 2; j < len(insts) && nextInst.Op == arm.NOP; j++ {
-				nextInst = &insts[j]
+		if modReg == segmentReg {
+			// it is never valid to modify the segment ID register
+			fail(inst, "modifying the segment ID register is disallowed")
+		} else if couldSp && modReg == arm.SP {
+			if inst.Op == arm.ADD && inst.Args[1].(arm.RegSP) == arm.RegSP(segmentReg) {
+				if r, ok := inst.Args[2].(arm.RegExtshiftAmount); ok {
+					if r.ExtShift == arm.Uxtw && r.Reg == loResReg {
+						return
+					}
+				}
 			}
-		}
-		// TODO: check that the sp modification sequence is complete
-		if nextInst != nil && modReg == branchReg {
-			if inst.Op == arm.AND {
-				// must be 'bic modReg, Xn, bundleMask'
-				// and must be followed by movk/nop movk
-				checkBic(inst, branchReg, inst.Args[1].(arm.Reg), inst)
-				checkMovk(*nextInst, branchReg, inst)
+
+			// next two instructions must be
+			// mov loResReg, wsp
+			// add sp, segmentReg, loResReg, uxtw
+			if next1 == nil || next2 == nil {
+				fail(inst, "must be followed by guards")
+			} else {
+				checkMov(*next1, loResReg, arm.WSP)
+				checkAddUxtw(*next2, arm.SP, loResReg, true)
+			}
+			return
+		} else if inst.Op == arm.ADD {
+			// must be 'add restricted, segmentReg, loReg, uxtw'
+			var r arm.Reg
+			checkAddUxtw(inst, modReg, r, false)
+			return
+		} else if modReg == loResReg {
+			// mov resReg, wsp is allowed
+			checkMov(inst, loResReg, arm.WSP)
+			if inst.Op == arm.MOV && inst.Args[1].(arm.RegSP) == arm.RegSP(arm.WSP) {
 				return
 			}
-		}
-		if nextInst != nil && modReg == retReg {
-			if inst.Op == arm.AND {
-				checkBic(inst, retReg, retReg, inst)
-			} else if inst.Op == arm.MOVK {
-				// must be followed by 'bic retReg, retReg, bundleMask'
-				checkBic(*nextInst, retReg, retReg, inst)
+			fail(inst, "modifying restricted register without appropriate guards")
+		} else if modReg == retReg {
+			// must be followed by
+			// add retReg, segmentReg, loRetReg, uxtw
+			if next1 == nil {
+				fail(inst, "must be followed by guard instruction")
 			} else {
-				// must be followed by 'movk retReg, segmentId, lsl #32'
-				checkMovk(*nextInst, retReg, inst)
+				checkAddUxtw(*next1, retReg, loRetReg, true)
 			}
-			return
-		}
-		if couldSp && modReg == arm.SP {
-			// must be 'mov sp, resReg' or be followed by 'mov resReg, sp'
-			if inst.Op == arm.MOV {
-				checkMov(inst, arm.RegSP(arm.SP), arm.RegSP(resReg), inst)
-			} else if nextInst != nil && nextInst.Op == arm.MOV {
-				checkMov(*nextInst, arm.RegSP(resReg), arm.RegSP(arm.SP), inst)
-			} else {
-				fail(inst, "modification to SP is not guarded")
-			}
-			return
-		}
-		if inst.Op == arm.MOVK {
-			checkMovk(inst, modReg, inst)
-			return
-		}
-		if nextInst != nil && modReg == resReg {
-			// must be followed by movk
-			checkMovk(*nextInst, resReg, inst)
 			return
 		}
 
@@ -212,7 +186,8 @@ func main() {
 		data = data[4:]
 	}
 
-	for i, inst := range insts {
+	for i := 0; i < len(insts); i++ {
+		inst := insts[i]
 		if !allowed[inst.Op] {
 			fail(inst, "instruction disallowed")
 			continue
@@ -223,22 +198,16 @@ func main() {
 		} else {
 			prevInst = &insts[i-1]
 		}
-		// * make sure BLR and BL have aligned return addresses
-		// * make sure BLR/BR use the branch reg
-		// * make sure loads/stores either use the dedicated reg, or have a
-		//   movk immediately before (if they use a user reg, make sure the access
-		//   is aligned properly)
+		// * make sure BLR/BR use the reserved reg
+		// * make sure loads/stores use the reserved reg
 		// * make sure loads/stores do not use fancy addressing modes
 		switch inst.Op {
 		case arm.BLR:
-			mustBranchReg(inst.Args[0].(arm.Reg), inst)
-			mustAligned(inst.Addr+4, 8, inst)
+			mustResReg(inst.Args[0].(arm.Reg), inst)
 		case arm.BR:
-			mustBranchReg(inst.Args[0].(arm.Reg), inst)
+			mustResReg(inst.Args[0].(arm.Reg), inst)
 		case arm.RET:
 			mustRetReg(inst.Args[0].(arm.Reg), inst)
-		case arm.BL:
-			mustAligned(inst.Addr+4, 8, inst)
 		case arm.LDR, arm.LDRB, arm.LDRH, arm.LDRSB, arm.LDRSH, arm.LDRSW,
 			arm.LDUR, arm.LDURB, arm.LDURH, arm.LDURSH, arm.LDURSW, arm.STR,
 			arm.STRB, arm.STRH, arm.STUR, arm.STURB, arm.STURH:
@@ -250,12 +219,12 @@ func main() {
 		}
 
 		if stores[inst.Op] || branches[inst.Op] || nomodify[inst.Op] {
-			// stores cannot modify restricted registers in bad ways (we
-			// already check if they modify ctrlRegs)
+			// stores cannot modify restricted registers in bad ways
 			// branches do not modify their operands
 			continue
 		}
 
+		// make sure instructions do not modify reserved registers in bad ways
 		var modReg arm.Reg
 		couldSp := false
 		switch r := inst.Args[0].(type) {

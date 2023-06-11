@@ -552,35 +552,35 @@ func plan9Arg(inst *Inst, pc uint64, symname func(uint64) (string, uint64), arg 
 		return fmt.Sprintf("R%d", regno)
 
 	case RegExtshiftAmount:
-		reg := plan9gpr(a.reg)
+		reg := plan9gpr(a.Reg)
 		extshift := ""
 		amount := ""
-		if a.extShift != ExtShift(0) {
-			switch a.extShift {
+		if a.ExtShift != ExtShift(0) {
+			switch a.ExtShift {
 			default:
-				extshift = "." + a.extShift.String()
+				extshift = "." + a.ExtShift.String()
 
-			case lsl:
+			case Lsl:
 				extshift = "<<"
-				amount = fmt.Sprintf("%d", a.amount)
+				amount = fmt.Sprintf("%d", a.Amount)
 				return reg + extshift + amount
 
-			case lsr:
+			case Lsr:
 				extshift = ">>"
-				amount = fmt.Sprintf("%d", a.amount)
+				amount = fmt.Sprintf("%d", a.Amount)
 				return reg + extshift + amount
 
-			case asr:
+			case Asr:
 				extshift = "->"
-				amount = fmt.Sprintf("%d", a.amount)
+				amount = fmt.Sprintf("%d", a.Amount)
 				return reg + extshift + amount
-			case ror:
+			case Ror:
 				extshift = "@>"
-				amount = fmt.Sprintf("%d", a.amount)
+				amount = fmt.Sprintf("%d", a.Amount)
 				return reg + extshift + amount
 			}
-			if a.amount != 0 {
-				amount = fmt.Sprintf("<<%d", a.amount)
+			if a.Amount != 0 {
+				amount = fmt.Sprintf("<<%d", a.Amount)
 			}
 		}
 		return reg + extshift + amount
@@ -613,7 +613,7 @@ func plan9Arg(inst *Inst, pc uint64, symname func(uint64) (string, uint64), arg 
 		}
 		indexreg := plan9gpr(a.Index)
 
-		if a.Extend == lsl {
+		if a.Extend == Lsl {
 			// Refer to ARM reference manual, for byte load/store(register), the index
 			// shift amount must be 0, encoded in "S" as 0 if omitted, or as 1 if present.
 			// a.Amount indicates the index shift amount, encoded in "S" field.

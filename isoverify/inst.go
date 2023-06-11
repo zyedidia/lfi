@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	branchReg  = arm.X21
 	resReg     = arm.X20
+	loResReg   = arm.W20
+	segmentReg = arm.X21
 	retReg     = arm.X30
-	segmentId  = 0xffc0
-	bundleMask = uint64(0x07)
+	loRetReg   = arm.W30
 )
 
 var dataRegs = map[arm.Reg]bool{
@@ -17,9 +17,38 @@ var dataRegs = map[arm.Reg]bool{
 	arm.SP: true,
 }
 
-var ctrlRegs = map[arm.Reg]bool{
-	branchReg: true,
-	retReg:    true,
+var loRegs = map[arm.Reg]bool{
+	arm.W0:  true,
+	arm.W1:  true,
+	arm.W2:  true,
+	arm.W3:  true,
+	arm.W4:  true,
+	arm.W5:  true,
+	arm.W6:  true,
+	arm.W7:  true,
+	arm.W8:  true,
+	arm.W9:  true,
+	arm.W10: true,
+	arm.W11: true,
+	arm.W12: true,
+	arm.W13: true,
+	arm.W14: true,
+	arm.W15: true,
+	arm.W16: true,
+	arm.W17: true,
+	arm.W18: true,
+	arm.W19: true,
+	arm.W20: true,
+	arm.W21: true,
+	arm.W22: true,
+	arm.W23: true,
+	arm.W24: true,
+	arm.W25: true,
+	arm.W26: true,
+	arm.W27: true,
+	arm.W28: true,
+	arm.W29: true,
+	arm.W30: true,
 }
 
 var restrictedRegs = map[arm.Reg]bool{

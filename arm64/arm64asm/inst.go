@@ -398,79 +398,79 @@ type ExtShift uint8
 
 const (
 	_ ExtShift = iota
-	uxtb
-	uxth
-	uxtw
-	uxtx
-	sxtb
-	sxth
-	sxtw
-	sxtx
-	lsl
-	lsr
-	asr
-	ror
+	Uxtb
+	Uxth
+	Uxtw
+	Uxtx
+	Sxtb
+	Sxth
+	Sxtw
+	Sxtx
+	Lsl
+	Lsr
+	Asr
+	Ror
 )
 
 func (extShift ExtShift) String() string {
 	switch extShift {
-	case uxtb:
+	case Uxtb:
 		return "UXTB"
 
-	case uxth:
+	case Uxth:
 		return "UXTH"
 
-	case uxtw:
+	case Uxtw:
 		return "UXTW"
 
-	case uxtx:
+	case Uxtx:
 		return "UXTX"
 
-	case sxtb:
+	case Sxtb:
 		return "SXTB"
 
-	case sxth:
+	case Sxth:
 		return "SXTH"
 
-	case sxtw:
+	case Sxtw:
 		return "SXTW"
 
-	case sxtx:
+	case Sxtx:
 		return "SXTX"
 
-	case lsl:
+	case Lsl:
 		return "LSL"
 
-	case lsr:
+	case Lsr:
 		return "LSR"
 
-	case asr:
+	case Asr:
 		return "ASR"
 
-	case ror:
+	case Ror:
 		return "ROR"
 	}
 	return ""
 }
 
 type RegExtshiftAmount struct {
-	reg       Reg
-	extShift  ExtShift
-	amount    uint8
+	Reg       Reg
+	ExtShift  ExtShift
+	Amount    uint8
 	show_zero bool
 }
 
 func (RegExtshiftAmount) isArg() {}
 
 func (rea RegExtshiftAmount) String() string {
-	buf := rea.reg.String()
-	if rea.extShift != ExtShift(0) {
-		buf += ", " + rea.extShift.String()
-		if rea.amount != 0 {
-			buf += fmt.Sprintf(" #%d", rea.amount)
+	buf := rea.Reg.String()
+	if rea.ExtShift != ExtShift(0) {
+		buf += ", " + rea.ExtShift.String()
+		if rea.Amount != 0 {
+			buf += fmt.Sprintf(" #%d", rea.Amount)
 		} else {
 			if rea.show_zero == true {
-				buf += fmt.Sprintf(" #%d", rea.amount)
+				buf += fmt.Sprintf(" #%d", rea.Amount)
 			}
 		}
 	}
@@ -556,7 +556,7 @@ func (m MemExtend) String() string {
 		if m.Amount != 0 {
 			return fmt.Sprintf("[%s,%s,%s #0]", Rbase, RIndex, m.Extend.String())
 		} else {
-			if m.Extend != lsl {
+			if m.Extend != Lsl {
 				return fmt.Sprintf("[%s,%s,%s]", Rbase, RIndex, m.Extend.String())
 			} else {
 				return fmt.Sprintf("[%s,%s]", Rbase, RIndex)
@@ -566,7 +566,7 @@ func (m MemExtend) String() string {
 		if m.Amount != 0 {
 			return fmt.Sprintf("[%s,%s,%s #%d]", Rbase, RIndex, m.Extend.String(), m.Amount)
 		} else {
-			if m.Extend != lsl {
+			if m.Extend != Lsl {
 				return fmt.Sprintf("[%s,%s,%s]", Rbase, RIndex, m.Extend.String())
 			} else {
 				return fmt.Sprintf("[%s,%s]", Rbase, RIndex)
