@@ -115,7 +115,7 @@ func main() {
 		defer os.Remove(iso)
 	}
 	// run("cp", asm, iso)
-	run("isogen", asm, "-o", iso)
+	run("isogen", asm, "-o", iso, "-S", "/tmp/isocc.stats")
 
 	if !assemble {
 		if compile && out == "" {

@@ -129,6 +129,7 @@ func parseInsts(in io.Reader, name string) ([]Inst, error) {
 
 func main() {
 	showstat := pflag.BoolP("stats", "s", false, "show stats")
+	accumstat := pflag.StringP("statsf", "S", "", "accumulate stats to file")
 	out := pflag.StringP("output", "o", "", "output assembly file")
 	dotest := pflag.BoolP("test", "t", false, "test")
 
@@ -183,6 +184,9 @@ func main() {
 
 	if *showstat {
 		fmt.Fprint(os.Stderr, stats)
+	}
+	if *accumstat != "" {
+		stats.AccumulateTo(*accumstat)
 	}
 }
 
