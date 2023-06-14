@@ -60,8 +60,7 @@ func main() {
 			keep = true
 		default:
 			switch {
-			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"),
-				strings.HasSuffix(arg, ".o"), strings.HasSuffix(arg, ".c"):
+			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"):
 				target = arg
 			default:
 				args = append(args, arg)
@@ -69,15 +68,28 @@ func main() {
 		}
 	}
 
-	base := strings.TrimSuffix(target, filepath.Ext(target))
-	targetasm := base + ".s"
-	targeto := base + ".o"
-	targetdir := filepath.Dir(target)
-
 	cc := os.Getenv("ISOCC")
 	if cc == "" {
 		cc = "aarch64-none-elf-gcc"
 	}
+
+	if target == "" {
+		if out == "" {
+			out = "a.out"
+		}
+		all := []string{
+			"-o", out,
+		}
+		all = append(all, args...)
+		all = append(all, isoflags...)
+		run(cc, all...)
+		return
+	}
+
+	base := strings.TrimSuffix(target, filepath.Ext(target))
+	targetasm := base + ".s"
+	targeto := base + ".o"
+	targetdir := filepath.Dir(target)
 
 	if verbose {
 		log.SetOutput(os.Stdout)
