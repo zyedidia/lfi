@@ -71,6 +71,7 @@ func checkAddUxtw(inst Inst, target arm.Reg, src arm.Reg, checksrc bool) {
 		fail(inst, "third argument must use uxtw")
 	} else {
 		must(r.ExtShift == arm.Uxtw, inst, "third argument must use uxtw")
+		must(r.Amount == 0, inst, "uxtw must not have a shift immediate")
 		must(loRegs[r.Reg], inst, "third argument must be W-register")
 		if checksrc {
 			must(r.Reg == src, inst, fmt.Sprintf("third argument must be %s", src))
