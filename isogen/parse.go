@@ -49,7 +49,7 @@ func getAddrMode(a *Arg) AddrMode {
 }
 
 type ExtendArg struct {
-	Op  string  `@("lsl" | "lsr" | "msl" | "asr" | "uxtw" | "sxth" | "sxtw" | "sxtx" | "sxtb" | "uxth" | "uxtb" | "uxtx")`
+	Op  string  `@("lsl" | "lsr" | "msl" | "asr" | "ror" | "uxtw" | "sxth" | "sxtw" | "sxtx" | "sxtb" | "uxth" | "uxtb" | "uxtx")`
 	Imm *string `  @("#"? Number)?`
 }
 
