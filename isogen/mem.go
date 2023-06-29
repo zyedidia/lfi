@@ -67,10 +67,14 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 	}
 	next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
 	next = append(next, inst)
-	switch a.(type) {
+	switch m := a.(type) {
 	case *MemArg2, *MemArg3:
 		next = append(next, &Modify2{"mov", a.GetReg(), resReg})
 		stats.PostAddrMoves++
+	case *MemArg1:
+		if m.Imm == nil {
+			stats.SingleRegAddrs++
+		}
 	}
 	a.SetReg(resReg)
 	if load {

@@ -7,4 +7,4 @@ test.elf: test.o
 test.o: test.s
 	aarch64-none-elf-as $< -o $@
 test.s: test.c
-	isocc -S $< -o $@
+	isocc -O2 -S $< -o $@

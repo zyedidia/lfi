@@ -16,6 +16,7 @@ type Stats struct {
 	AddrModeFixups int
 	PostAddrMoves  int
 	ResMasks       int
+	SingleRegAddrs int
 }
 
 func (s Stats) String() string {
@@ -26,6 +27,7 @@ func (s Stats) String() string {
 	fmt.Fprintf(b, "addr mode fixups: %d\n", s.AddrModeFixups)
 	fmt.Fprintf(b, "post addr moves: %d\n", s.PostAddrMoves)
 	fmt.Fprintf(b, "reserved reg masks: %d\n", s.ResMasks)
+	fmt.Fprintf(b, "single reg addrs: %d\n", s.SingleRegAddrs)
 	return b.String()
 }
 
@@ -51,6 +53,7 @@ func (s Stats) AccumulateFrom(file string) (Stats, error) {
 		AddrModeFixups: s.AddrModeFixups + old.AddrModeFixups,
 		PostAddrMoves:  s.PostAddrMoves + old.PostAddrMoves,
 		ResMasks:       s.ResMasks + old.ResMasks,
+		SingleRegAddrs: s.SingleRegAddrs + old.SingleRegAddrs,
 	}
 	return s, nil
 }
