@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-ffixed-x20", "-ffixed-x21"}
+var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-ffixed-x22"}
 
 // var isoflags = []string{}
 

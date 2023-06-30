@@ -124,6 +124,12 @@ func (i *AddUxtw) String() string {
 	return fmt.Sprintf("add %s, %s, %s, uxtw", i.Dest, i.SrcA, i.SrcB)
 }
 
+type Svc struct{}
+
+func (i *Svc) String() string {
+	return "svc #0"
+}
+
 // movk dest, imm, lsl #32
 type Movk struct {
 	Dest string
@@ -131,8 +137,7 @@ type Movk struct {
 }
 
 func (i *Movk) String() string {
-	// return fmt.Sprintf("movk %s, %s, lsl #32", i.Dest, i.Imm)
-	return "nop"
+	return fmt.Sprintf("movk %s, %s, lsl #32", i.Dest, i.Imm)
 }
 
 type Opaque struct {

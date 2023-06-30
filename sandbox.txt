@@ -1,0 +1,41 @@
+reserved registers:
+x20: always contains a valid address
+x21: segment ID
+x22: system call entrypoint
+
+load/store transformations:
+    ldr _, [x0]
+    ->
+    ldr _, [x21, w0, uxtw]
+
+
+    ldr _, [x0, #n]
+    ->
+    add x20, x0, #n
+    ldr _, [x21, w20, uxtw]
+
+    ldr _, [x0], #n
+    ->
+    ldr _, [x21, w0, uxtw]
+    add x0, x0, #n
+
+    ldr _, [x0, #n]!
+    ->
+    add x0, x0, #n
+    ldr _, [x21, w0, uxtw]
+
+    ldr _, [x0, x1]
+    ->
+    add x20, x0, x1
+    ldr _, [x21, w20, uxtw]
+
+branch transformations:
+    br x0
+    ->
+    add x20, w0, uxtw
+    br x20
+
+    blr x0
+    ->
+    add x20, w0, uxtw
+    blr x20

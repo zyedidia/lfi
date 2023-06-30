@@ -15,6 +15,7 @@ import (
 const (
 	resReg     = "x20"
 	segmentReg = "x21"
+	syscallReg = "x22"
 )
 
 func loReg(r string) string {
@@ -87,6 +88,8 @@ func parseInst(in string, loc string) Inst {
 			Src:  *ast.Args[0].Na.Name,
 			Addr: getAddrMode(ast.Args[1]),
 		}
+	case "svc":
+		return &Svc{}
 	case "add", "sub", "and", "orr":
 		if len(ast.Args) == 4 {
 			srcc := ""
@@ -165,6 +168,7 @@ func main() {
 	insts = specialRegPass(insts)
 	insts = fixAddrModesPass(insts)
 	insts = memoryPass(insts)
+	insts = syscallPass(insts)
 
 	var w io.Writer
 	if *out != "" {
