@@ -65,16 +65,48 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 		next = append(next, inst)
 		return next
 	}
+	switch m := a.(type) {
+	case *MemArg1:
+		if m.Imm == nil {
+			if i, ok := inst.(*Load); ok {
+				stats.SingleRegAddrs++
+				next = append(next, &Load{
+					Op:   i.Op,
+					Dest: i.Dest,
+					Addr: &MemArg5{
+						Reg1: segmentReg,
+						Reg2: loReg(a.GetReg()),
+						Extend: &ExtendArg{
+							Op:  "uxtw",
+							Imm: nil,
+						},
+					},
+				})
+				return next
+			} else if i, ok := inst.(*Store); ok {
+				stats.SingleRegAddrs++
+				next = append(next, &Store{
+					Op:  i.Op,
+					Src: i.Src,
+					Addr: &MemArg5{
+						Reg1: segmentReg,
+						Reg2: loReg(a.GetReg()),
+						Extend: &ExtendArg{
+							Op:  "uxtw",
+							Imm: nil,
+						},
+					},
+				})
+				return next
+			}
+		}
+	}
 	next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
 	next = append(next, inst)
-	switch m := a.(type) {
+	switch a.(type) {
 	case *MemArg2, *MemArg3:
 		next = append(next, &Modify2{"mov", a.GetReg(), resReg})
 		stats.PostAddrMoves++
-	case *MemArg1:
-		if m.Imm == nil {
-			stats.SingleRegAddrs++
-		}
 	}
 	a.SetReg(resReg)
 	if load {

@@ -12,6 +12,8 @@ import (
 
 var isoflags = []string{"-ffixed-x20", "-ffixed-x21"}
 
+// var isoflags = []string{}
+
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
 	os.Exit(1)
