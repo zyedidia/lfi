@@ -29,6 +29,15 @@ load/store transformations:
     add x20, x0, x1
     ldr _, [x21, w20, uxtw]
 
+    ldp _, _, [x0]
+    ->
+    add x20, x21, w0, uxtw
+    ldp _, _, [x20]
+    
+    mov x20, x0
+    bfi x20, x22, #64, #32
+    ldp _, _, [x20]
+
 branch transformations:
     br x0
     ->
@@ -39,3 +48,8 @@ branch transformations:
     ->
     add x20, w0, uxtw
     blr x20
+
+alternative sandbox:
+* movk (possible to implement a version that doesn't reserve any registers and
+  thus works on unmodified static-pie XoM binaries?)
+* version that uses BFI and can support larger/smaller boxes

@@ -12,6 +12,8 @@ import (
 
 var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-ffixed-x22"}
 
+// var isoflags = []string{"-ffixed-x22"}
+
 // var isoflags = []string{}
 
 func fatal(err ...interface{}) {

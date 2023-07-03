@@ -147,7 +147,7 @@ func (m *MemArg3) SetReg(r string) {
 	m.Reg = r
 }
 func (m *MemArg5) SetReg(r string) {
-	m.Reg1 = r
+	m.Reg2 = r
 }
 
 type NormalArg struct {

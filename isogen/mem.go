@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 func fixAddr(a AddrMode, inst Inst, op, reg string, next []Inst) []Inst {
 	if a.SingleReg() {
@@ -65,50 +68,87 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 		next = append(next, inst)
 		return next
 	}
+
+	var safeAccess Inst
+	var safeMemAddr *MemArg5
+	switch i := inst.(type) {
+	case *Load:
+		safeMemAddr = &MemArg5{
+			Reg1: segmentReg,
+			Reg2: loReg(a.GetReg()),
+			Extend: &ExtendArg{
+				Op:  "uxtw",
+				Imm: nil,
+			},
+		}
+		safeAccess = &Load{
+			Op:   i.Op,
+			Dest: i.Dest,
+			Addr: safeMemAddr,
+		}
+	case *Store:
+		safeMemAddr = &MemArg5{
+			Reg1: segmentReg,
+			Reg2: loReg(a.GetReg()),
+			Extend: &ExtendArg{
+				Op:  "uxtw",
+				Imm: nil,
+			},
+		}
+		safeAccess = &Store{
+			Op:   i.Op,
+			Src:  i.Src,
+			Addr: safeMemAddr,
+		}
+	case *LoadM, *StoreM:
+		next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+		next = append(next, inst)
+		switch a.(type) {
+		case *MemArg2, *MemArg3:
+			next = append(next, &Modify2{"mov", a.GetReg(), resReg})
+			stats.PostAddrMoves++
+		}
+		a.SetReg(resReg)
+		return next
+	}
+
 	switch m := a.(type) {
 	case *MemArg1:
 		if m.Imm == nil {
-			if i, ok := inst.(*Load); ok {
-				stats.SingleRegAddrs++
-				next = append(next, &Load{
-					Op:   i.Op,
-					Dest: i.Dest,
-					Addr: &MemArg5{
-						Reg1: segmentReg,
-						Reg2: loReg(a.GetReg()),
-						Extend: &ExtendArg{
-							Op:  "uxtw",
-							Imm: nil,
-						},
-					},
-				})
-				return next
-			} else if i, ok := inst.(*Store); ok {
-				stats.SingleRegAddrs++
-				next = append(next, &Store{
-					Op:  i.Op,
-					Src: i.Src,
-					Addr: &MemArg5{
-						Reg1: segmentReg,
-						Reg2: loReg(a.GetReg()),
-						Extend: &ExtendArg{
-							Op:  "uxtw",
-							Imm: nil,
-						},
-					},
-				})
+			next = append(next, safeAccess)
+		} else {
+			x, err := strconv.Atoi(*m.Imm)
+			if err != nil || x >= 4096 {
+				next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+				next = append(next, inst)
+				switch a.(type) {
+				case *MemArg2, *MemArg3:
+					next = append(next, &Modify2{"mov", a.GetReg(), resReg})
+					stats.PostAddrMoves++
+				}
+				a.SetReg(resReg)
 				return next
 			}
+			next = append(next, &Modify3{"add", resReg, m.Reg, *m.Imm})
+			safeMemAddr.Reg2 = loReg(resReg)
+			next = append(next, safeAccess)
 		}
+	case *MemArg2:
+		next = append(next, safeAccess)
+		next = append(next, &Modify3{"add", m.Reg, m.Reg, m.Imm})
+	case *MemArg3:
+		next = append(next, &Modify3{"add", m.Reg, m.Reg, m.Imm})
+		next = append(next, safeAccess)
+	case *MemArg5:
+		// TODO: add x20, x0, x1 could be bad because it sets x20 to a non-valid thing
+		if m.Extend == nil {
+			next = append(next, &Modify3{"add", resReg, m.Reg1, m.Reg2})
+		} else {
+			next = append(next, &Modify4{"add", resReg, m.Reg1, m.Reg2, m.Extend.String()})
+		}
+		safeMemAddr.Reg2 = loReg(resReg)
+		next = append(next, safeAccess)
 	}
-	next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
-	next = append(next, inst)
-	switch a.(type) {
-	case *MemArg2, *MemArg3:
-		next = append(next, &Modify2{"mov", a.GetReg(), resReg})
-		stats.PostAddrMoves++
-	}
-	a.SetReg(resReg)
 	if load {
 		stats.LoadMasks++
 	} else {
