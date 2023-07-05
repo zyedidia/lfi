@@ -13,6 +13,7 @@ import (
 
 func main() {
 	loader := flag.Bool("loader", false, "run program with loader")
+	prefix := flag.String("prefix", "", "custom prefix")
 
 	flag.Parse()
 	cmdsdat, err := io.ReadAll(os.Stdin)
@@ -28,6 +29,8 @@ func main() {
 		var cmd *exec.Cmd
 		if *loader {
 			cmd = exec.Command("sh", "-c", "loader "+c)
+		} else if *prefix != "" {
+			cmd = exec.Command("sh", "-c", *prefix+" "+c)
 		} else {
 			cmd = exec.Command("sh", "-c", c)
 		}
