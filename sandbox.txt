@@ -4,6 +4,9 @@ x21: segment ID
 x22: system call entrypoint
 x23: scratch register
 
+sp: special
+fp: special (TODO)
+
 load/store transformations:
     ldr _, [x0]
     ->
@@ -16,7 +19,6 @@ load/store transformations:
     -- OR -- (if range analysis didn't help)
     add x23, x0, #n
     ldr _, [x21, w23, uxtw]
-
 
     ldr _, [x0], #n
     ->
@@ -50,6 +52,19 @@ load/store transformations:
     mov x20, x0
     bfi x20, x21, #64, #32
     ldp _, _, [x20]
+
+    ldur _, [x0, #n]
+    ->
+    add x20, x21, w0, uxtw
+    ldur _, [x20, #n]
+    -- OR -- (if range analysis didn't help)
+    add x23, x0, #n
+    ldr _, [x21, w23, uxtw]
+
+    TODO:
+    ldur, stur
+    staxr, ldaxr, etc...
+    ld1, st1, etc...
 
 branch transformations:
     br x0
