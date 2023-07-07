@@ -48,6 +48,13 @@ func main() {
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch arg {
+		case "-MT":
+			args = append(args, arg)
+			if i+1 >= len(os.Args) {
+				fatal("-MT needs an argument")
+			}
+			args = append(args, os.Args[i+1])
+			i++
 		case "-o":
 			if i+1 >= len(os.Args) {
 				fatal("-o needs an argument")
@@ -64,7 +71,7 @@ func main() {
 			keep = true
 		default:
 			switch {
-			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"):
+			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"), strings.HasSuffix(arg, ".cxx"), strings.HasSuffix(arg, ".cc"), strings.HasSuffix(arg, ".cpp"), strings.HasSuffix(arg, ".c++"):
 				target = arg
 			default:
 				args = append(args, arg)
@@ -72,9 +79,9 @@ func main() {
 		}
 	}
 
-	cc := os.Getenv("ISOCC")
+	cc := os.Getenv("ISOCXX")
 	if cc == "" {
-		cc = "aarch64-none-elf-gcc"
+		cc = "aarch64-none-elf-g++"
 	}
 
 	if target == "" {

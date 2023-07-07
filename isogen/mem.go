@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 func fixAddr(a AddrMode, inst Inst, op, reg string, next []Inst) []Inst {
@@ -73,6 +74,18 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 	var safeMemAddr *MemArg5
 	switch i := inst.(type) {
 	case *Load:
+		if strings.HasPrefix(i.Op, "ldur") {
+			next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+			next = append(next, inst)
+			switch a.(type) {
+			case *MemArg2, *MemArg3:
+				next = append(next, &Modify2{"mov", a.GetReg(), resReg})
+				stats.PostAddrMoves++
+			}
+			a.SetReg(resReg)
+			return next
+		}
+
 		safeMemAddr = &MemArg5{
 			Reg1: segmentReg,
 			Reg2: loReg(a.GetReg()),
@@ -87,6 +100,18 @@ func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
 			Addr: safeMemAddr,
 		}
 	case *Store:
+		if strings.HasPrefix(i.Op, "stur") {
+			next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
+			next = append(next, inst)
+			switch a.(type) {
+			case *MemArg2, *MemArg3:
+				next = append(next, &Modify2{"mov", a.GetReg(), resReg})
+				stats.PostAddrMoves++
+			}
+			a.SetReg(resReg)
+			return next
+		}
+
 		safeMemAddr = &MemArg5{
 			Reg1: segmentReg,
 			Reg2: loReg(a.GetReg()),

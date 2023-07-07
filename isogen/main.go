@@ -23,7 +23,8 @@ func loReg(r string) string {
 }
 
 func parseInst(in string, loc string) Inst {
-	in = strings.TrimSpace(in)
+	before, _, _ := strings.Cut(in, "//")
+	in = strings.TrimSpace(before)
 	if strings.HasSuffix(in, ":") {
 		return &Label{
 			Name: in[:len(in)-1],
