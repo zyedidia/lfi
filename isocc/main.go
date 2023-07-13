@@ -103,7 +103,22 @@ func main() {
 	}
 
 	asm := target
-	if filepath.Ext(target) != ".s" {
+	if filepath.Ext(target) == ".S" {
+		asm = temp(targetdir)
+		stage1 := []string{
+			"-E",
+			"-o", asm,
+			target,
+		}
+		stage1 = append(stage1, args...)
+		stage1 = append(stage1, isoflags...)
+
+		run(cc, stage1...)
+
+		if !keep {
+			defer os.Remove(asm)
+		}
+	} else if filepath.Ext(target) != ".s" {
 		asm = temp(targetdir)
 		stage1 := []string{
 			"-S",
