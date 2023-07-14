@@ -124,7 +124,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 	return true
 }
 
-func sandboxMemAddrNoOpt(a *Arg, builder *Builder) {
+func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 	switch m := (*a).(type) {
 	case MemAddr:
 		if m.Reg == spReg {
@@ -160,6 +160,7 @@ func sandboxMemAddrNoOpt(a *Arg, builder *Builder) {
 			Reg: resReg,
 			Imm: m.Imm,
 		}
+		builder.Locate(op)
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
@@ -184,6 +185,7 @@ func sandboxMemAddrNoOpt(a *Arg, builder *Builder) {
 			Reg: resReg,
 			Imm: m.Imm,
 		}
+		builder.Locate(op)
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
@@ -205,12 +207,12 @@ func memPass(ops *OpList) {
 			switch {
 			case basicloads[inst.Name], basicstores[inst.Name]:
 				if !sandboxMemAddr(&inst.Args[1], builder) {
-					sandboxMemAddrNoOpt(&inst.Args[1], builder)
+					sandboxMemAddrNoOpt(op, &inst.Args[1], builder)
 				}
 			case loads[inst.Name], stores[inst.Name]:
-				sandboxMemAddrNoOpt(&inst.Args[1], builder)
+				sandboxMemAddrNoOpt(op, &inst.Args[1], builder)
 			case multiloads[inst.Name], multistores[inst.Name]:
-				sandboxMemAddrNoOpt(&inst.Args[2], builder)
+				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
 			}
 		}
 		op = op.Next
