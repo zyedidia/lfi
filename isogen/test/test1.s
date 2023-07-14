@@ -46,3 +46,5 @@ mov sp,x9 ; br x8
 ldrh w12, [x16, w12, uxtw]
 
 ld1	{ v16.s }[1], [x11]
+
+ldur x0, [x1, 10]
