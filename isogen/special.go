@@ -1,50 +1,70 @@
 package main
 
-var special = map[string]bool{
-	"lr":  true,
-	"x30": true,
+func sandboxSp(builder *Builder) {
+	builder.Add(NewNode(&Inst{
+		Name: "mov",
+		Args: []Arg{
+			loReg(resReg),
+			Reg("wsp"),
+		},
+	}))
+
+	builder.Add(NewNode(&Inst{
+		Name: "add",
+		Args: []Arg{
+			Reg("sp"),
+			segmentReg,
+			loReg(resReg),
+			Extend{Op: "uxtw"},
+		},
+	}))
 }
 
-func sandboxSp(next []Inst) []Inst {
-	next = append(next, &Modify2{"mov", loReg(resReg), "wsp"})
-	next = append(next, &AddUxtw{"sp", segmentReg, loReg(resReg)})
-	stats.ResMasks++
-	return next
+func sandboxLr(builder *Builder) {
+	builder.Add(NewNode(&Inst{
+		Name: "add",
+		Args: []Arg{
+			Reg("x30"),
+			segmentReg,
+			Reg("w30"),
+			Extend{Op: "uxtw"},
+		},
+	}))
 }
 
-func sandboxLr(next []Inst) []Inst {
-	next = append(next, &AddUxtw{"x30", segmentReg, "w30"})
-	stats.ResMasks++
-	return next
-}
-
-func sandboxDest(dest string, next []Inst) []Inst {
-	if dest == "sp" {
-		next = sandboxSp(next)
-	} else if dest == "lr" || dest == "x30" {
-		next = sandboxLr(next)
+func sandboxDest(dest Reg, builder *Builder) {
+	if dest == Reg("sp") {
+		sandboxSp(builder)
+	} else if dest == Reg("x30") || dest == Reg("lr") {
+		sandboxLr(builder)
 	}
-	return next
 }
 
-func specialRegPass(insts []Inst) []Inst {
-	var next []Inst
-	for i := 0; i < len(insts); i++ {
-		inst := insts[i]
-		next = append(next, inst)
-		switch inst := inst.(type) {
-		case *Modify2:
-			next = sandboxDest(inst.Dest, next)
-		case *Modify3:
-			next = sandboxDest(inst.Dest, next)
-		case *Modify4:
-			next = sandboxDest(inst.Dest, next)
-		case *Load:
-			next = sandboxDest(inst.Dest, next)
-		case *LoadM:
-			next = sandboxDest(inst.DestA, next)
-			next = sandboxDest(inst.DestB, next)
+func specialRegPass(ops *OpList) {
+	op := ops.Front
+	builder := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			builder.Locate(op)
+			if loads[inst.Name] {
+				if r, ok := inst.Args[0].(Reg); ok {
+					sandboxDest(r, builder)
+				}
+			} else if multiloads[inst.Name] {
+				if r, ok := inst.Args[0].(Reg); ok {
+					sandboxDest(r, builder)
+				}
+				if r, ok := inst.Args[1].(Reg); ok {
+					sandboxDest(r, builder)
+				}
+			} else if !IsStore(op.Value) && len(inst.Args) > 0 {
+				if r, ok := inst.Args[0].(Reg); ok {
+					sandboxDest(r, builder)
+				}
+			}
+			op = builder.cur
 		}
+
+		op = op.Next
 	}
-	return next
 }

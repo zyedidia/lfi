@@ -1,11 +1,3 @@
-*.s
 *.o
-*.list
-*.elf
-*.bin
-/isolator
-/isocc/isocc
-/isogen/isogen
-/isoverify/isoverify
-a.out
-arm64/arm64asm/testdata/
+xz_r.s
+far.s

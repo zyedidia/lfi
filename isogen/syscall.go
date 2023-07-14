@@ -1,23 +1,41 @@
 package main
 
-func syscallPass(insts []Inst) []Inst {
-	var next []Inst
-	for i := 0; i < len(insts); i++ {
-		inst := insts[i]
-		switch inst.(type) {
-		case *Svc:
-			next = append(next, &Store{Op: "str", Src: "x30", Addr: &MemArg3{
-				Reg: "sp",
-				Imm: "-16",
-			}})
-			next = append(next, &Branch{Op: "blr", Target: syscallReg})
-			next = append(next, &Load{Op: "ldr", Dest: "x30", Addr: &MemArg2{
-				Reg: "sp",
-				Imm: "16",
-			}})
-		default:
-			next = append(next, inst)
+func syscallPass(ops *OpList) {
+	op := ops.Front
+	b := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok && inst.Name == "svc" {
+			b.Locate(op)
+
+			b.Add(NewNode(&Inst{
+				Name: "str",
+				Args: []Arg{
+					Reg("x30"),
+					MemAddrPre{
+						Reg: Reg("sp"),
+						Imm: "-16",
+					},
+				},
+			}))
+
+			b.Add(NewNode(&Inst{
+				Name: "blr",
+				Args: []Arg{syscallReg},
+			}))
+
+			n := b.Add(NewNode(&Inst{
+				Name: "ldr",
+				Args: []Arg{
+					Reg("x30"),
+					MemAddrPost{
+						Reg: Reg("sp"),
+						Imm: "16",
+					},
+				},
+			}))
+			b.list.Remove(op)
+			op = n
 		}
+		op = op.Next
 	}
-	return next
 }

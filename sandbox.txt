@@ -32,6 +32,9 @@ load/store transformations:
 
     ldr _, [x0, x1]
     ->
+    add x20, x21, w0, uxtw
+    ldr _, [x20, w1, sxtw]
+    -- OR -- (if range analysis didn't help)
     add x23, x0, x1
     ldr _, [x21, w23, uxtw]
 

@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-ffixed-x22"}
+var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23"}
 
 // var isoflags = []string{"-ffixed-x22"}
 
@@ -74,7 +74,7 @@ func main() {
 
 	cc := os.Getenv("ISOCC")
 	if cc == "" {
-		cc = "aarch64-none-elf-gcc"
+		cc = "clang"
 	}
 
 	if target == "" {
@@ -135,12 +135,17 @@ func main() {
 		}
 	}
 
+	asmmc := temp(targetdir)
+	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-o", asmmc, asm)
+	// run("cp", asm, asmmc)
+
 	iso := temp(targetdir)
 	if !keep {
 		defer os.Remove(iso)
 	}
-	// run("cp", asm, iso)
-	run("isogen", asm, "-o", iso, "-S", "/tmp/isocc.stats")
+	// run("cp", asmmc, iso)
+	// run("isogen", asmmc, "-o", iso, "-S", "/tmp/isocc.stats")
+	run("isogen", asmmc, "-o", iso)
 
 	if !assemble {
 		if compile && out == "" {

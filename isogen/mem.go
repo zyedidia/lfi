@@ -1,203 +1,218 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"strconv"
-	"strings"
 )
 
-func fixAddr(a AddrMode, inst Inst, op, reg string, next []Inst) []Inst {
-	if a.SingleReg() {
-		// this addressing mode is fine
-		next = append(next, inst)
-		return next
-	}
-	switch m := a.(type) {
-	case *MemArg5:
-		if m.Extend != nil {
-			next = append(next, &Modify4{
-				Op:   "add",
-				Dest: resReg,
-				SrcA: m.Reg1,
-				SrcB: m.Reg2,
-				SrcC: m.Extend.String(),
-			})
-		} else {
-			next = append(next, &Modify3{
-				Op:   "add",
-				Dest: resReg,
-				SrcA: m.Reg1,
-				SrcB: m.Reg2,
-			})
+func sandboxMemAddr(a *Arg, builder *Builder) bool {
+	switch m := (*a).(type) {
+	case MemAddr:
+		if m.Reg == spReg {
+			return true
 		}
-		stats.AddrModeFixups++
-		next = append(next, &Load{
-			Op:   op,
-			Dest: reg,
-			Addr: &MemArg1{
-				Reg: resReg,
-			},
-		})
-	}
-	return next
-}
-
-func fixAddrModesPass(insts []Inst) []Inst {
-	var next []Inst
-	for i := 0; i < len(insts); i++ {
-		inst := insts[i]
-		switch m := inst.(type) {
-		case *Store:
-			next = fixAddr(m.Addr, inst, m.Op, m.Src, next)
-			continue
-		case *Load:
-			next = fixAddr(m.Addr, inst, m.Op, m.Dest, next)
-			continue
-		}
-		next = append(next, inst)
-	}
-	return next
-}
-
-func sandboxAddr(a AddrMode, inst Inst, next []Inst, load bool) []Inst {
-	if !a.SingleReg() {
-		fmt.Println("warning: bad addressing mode", inst)
-		next = append(next, inst)
-		return next
-	}
-	if special[a.GetReg()] || a.GetReg() == "sp" {
-		next = append(next, inst)
-		return next
-	}
-
-	var safeAccess Inst
-	var safeMemAddr *MemArg5
-	switch i := inst.(type) {
-	case *Load:
-		if strings.HasPrefix(i.Op, "ldur") {
-			next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
-			next = append(next, inst)
-			switch a.(type) {
-			case *MemArg2, *MemArg3:
-				next = append(next, &Modify2{"mov", a.GetReg(), resReg})
-				stats.PostAddrMoves++
-			}
-			a.SetReg(resReg)
-			return next
-		}
-
-		safeMemAddr = &MemArg5{
-			Reg1: segmentReg,
-			Reg2: loReg(a.GetReg()),
-			Extend: &ExtendArg{
-				Op:  "uxtw",
-				Imm: nil,
-			},
-		}
-		safeAccess = &Load{
-			Op:   i.Op,
-			Dest: i.Dest,
-			Addr: safeMemAddr,
-		}
-	case *Store:
-		if strings.HasPrefix(i.Op, "stur") {
-			next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
-			next = append(next, inst)
-			switch a.(type) {
-			case *MemArg2, *MemArg3:
-				next = append(next, &Modify2{"mov", a.GetReg(), resReg})
-				stats.PostAddrMoves++
-			}
-			a.SetReg(resReg)
-			return next
-		}
-
-		safeMemAddr = &MemArg5{
-			Reg1: segmentReg,
-			Reg2: loReg(a.GetReg()),
-			Extend: &ExtendArg{
-				Op:  "uxtw",
-				Imm: nil,
-			},
-		}
-		safeAccess = &Store{
-			Op:   i.Op,
-			Src:  i.Src,
-			Addr: safeMemAddr,
-		}
-	case *LoadM, *StoreM:
-		next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
-		next = append(next, inst)
-		switch a.(type) {
-		case *MemArg2, *MemArg3:
-			next = append(next, &Modify2{"mov", a.GetReg(), resReg})
-			stats.PostAddrMoves++
-		}
-		a.SetReg(resReg)
-		return next
-	}
-
-	switch m := a.(type) {
-	case *MemArg1:
 		if m.Imm == nil {
-			next = append(next, safeAccess)
-		} else {
-			x, err := strconv.Atoi(*m.Imm)
-			if err != nil || x >= 4096 {
-				next = append(next, &AddUxtw{resReg, segmentReg, loReg(a.GetReg())})
-				next = append(next, inst)
-				switch a.(type) {
-				case *MemArg2, *MemArg3:
-					next = append(next, &Modify2{"mov", a.GetReg(), resReg})
-					stats.PostAddrMoves++
-				}
-				a.SetReg(resReg)
-				return next
+			*a = MemAddrComplex{
+				Reg1: segmentReg,
+				Reg2: loReg(m.Reg),
+				Extend: &Extend{
+					Op: "uxtw",
+				},
 			}
-			next = append(next, &Modify3{"add", resReg, m.Reg, *m.Imm})
-			safeMemAddr.Reg2 = loReg(resReg)
-			next = append(next, safeAccess)
-		}
-	case *MemArg2:
-		next = append(next, safeAccess)
-		next = append(next, &Modify3{"add", m.Reg, m.Reg, m.Imm})
-	case *MemArg3:
-		next = append(next, &Modify3{"add", m.Reg, m.Reg, m.Imm})
-		next = append(next, safeAccess)
-	case *MemArg5:
-		// TODO: add x20, x0, x1 could be bad because it sets x20 to a non-valid thing
-		if m.Extend == nil {
-			next = append(next, &Modify3{"add", resReg, m.Reg1, m.Reg2})
 		} else {
-			next = append(next, &Modify4{"add", resReg, m.Reg1, m.Reg2, m.Extend.String()})
+			switch i := m.Imm.(type) {
+			case Number:
+				x, err := strconv.Atoi(string(i))
+				if err != nil || x >= 4096 {
+					return false
+				}
+			default:
+				return false
+			}
+			builder.AddBefore(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					scratchReg,
+					m.Reg,
+					m.Imm,
+				},
+			}))
+			*a = MemAddrComplex{
+				Reg1: segmentReg,
+				Reg2: loReg(scratchReg),
+				Extend: &Extend{
+					Op: "uxtw",
+				},
+			}
 		}
-		safeMemAddr.Reg2 = loReg(resReg)
-		next = append(next, safeAccess)
+	case MemAddrPost:
+		if m.Reg == spReg {
+			return true
+		}
+		*a = MemAddrComplex{
+			Reg1: segmentReg,
+			Reg2: loReg(m.Reg),
+			Extend: &Extend{
+				Op: "uxtw",
+			},
+		}
+		builder.Add(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				m.Reg,
+				m.Reg,
+				Number(m.Imm),
+			},
+		}))
+	case MemAddrPre:
+		if m.Reg == spReg {
+			return true
+		}
+		builder.AddBefore(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				m.Reg,
+				m.Reg,
+				Number(m.Imm),
+			},
+		}))
+		*a = MemAddrComplex{
+			Reg1: segmentReg,
+			Reg2: loReg(m.Reg),
+			Extend: &Extend{
+				Op: "uxtw",
+			},
+		}
+	case MemAddrComplex:
+		if m.Extend == nil {
+			builder.AddBefore(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					scratchReg,
+					m.Reg1,
+					m.Reg2,
+				},
+			}))
+			*a = MemAddrComplex{
+				Reg1: segmentReg,
+				Reg2: loReg(scratchReg),
+				Extend: &Extend{
+					Op: "uxtw",
+				},
+			}
+		} else {
+			builder.AddBefore(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					scratchReg,
+					m.Reg1,
+					m.Reg2,
+					m.Extend,
+				},
+			}))
+			*a = MemAddrComplex{
+				Reg1: segmentReg,
+				Reg2: loReg(scratchReg),
+				Extend: &Extend{
+					Op: "uxtw",
+				},
+			}
+		}
+	default:
+		log.Fatal("bad addressing mode")
 	}
-	if load {
-		stats.LoadMasks++
-	} else {
-		stats.StoreMasks++
-	}
-	return next
+	return true
 }
 
-func memoryPass(insts []Inst) []Inst {
-	var next []Inst
-	for i := 0; i < len(insts); i++ {
-		inst := insts[i]
-		switch m := inst.(type) {
-		case *Store:
-			next = sandboxAddr(m.Addr, inst, next, false)
-		case *StoreM:
-			next = sandboxAddr(m.Addr, inst, next, false)
-		case *Load:
-			next = sandboxAddr(m.Addr, inst, next, true)
-		case *LoadM:
-			next = sandboxAddr(m.Addr, inst, next, true)
-		default:
-			next = append(next, inst)
+func sandboxMemAddrNoOpt(a *Arg, builder *Builder) {
+	switch m := (*a).(type) {
+	case MemAddr:
+		if m.Reg == spReg {
+			return
 		}
+		builder.AddBefore(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				resReg,
+				segmentReg,
+				loReg(m.Reg),
+				&Extend{Op: "uxtw"},
+			},
+		}))
+		*a = MemAddr{
+			Reg: resReg,
+			Imm: m.Imm,
+		}
+	case MemAddrPre:
+		if m.Reg == spReg {
+			return
+		}
+		builder.AddBefore(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				resReg,
+				segmentReg,
+				loReg(m.Reg),
+				&Extend{Op: "uxtw"},
+			},
+		}))
+		*a = MemAddrPre{
+			Reg: resReg,
+			Imm: m.Imm,
+		}
+		builder.Add(NewNode(&Inst{
+			Name: "mov",
+			Args: []Arg{
+				m.Reg,
+				resReg,
+			},
+		}))
+	case MemAddrPost:
+		if m.Reg == spReg {
+			return
+		}
+		builder.AddBefore(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				resReg,
+				segmentReg,
+				loReg(m.Reg),
+				&Extend{Op: "uxtw"},
+			},
+		}))
+		*a = MemAddrPost{
+			Reg: resReg,
+			Imm: m.Imm,
+		}
+		builder.Add(NewNode(&Inst{
+			Name: "mov",
+			Args: []Arg{
+				m.Reg,
+				resReg,
+			},
+		}))
+	default:
+		log.Fatal("bad addressing mode")
 	}
-	return next
+}
+
+func memPass(ops *OpList) {
+	op := ops.Front
+	builder := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			builder.Locate(op)
+			switch {
+			case basicloads[inst.Name], basicstores[inst.Name]:
+				if !sandboxMemAddr(&inst.Args[1], builder) {
+					sandboxMemAddrNoOpt(&inst.Args[1], builder)
+				}
+			case loads[inst.Name], stores[inst.Name]:
+				sandboxMemAddrNoOpt(&inst.Args[1], builder)
+			case multiloads[inst.Name], multistores[inst.Name]:
+				sandboxMemAddrNoOpt(&inst.Args[2], builder)
+			}
+		}
+		op = op.Next
+	}
 }

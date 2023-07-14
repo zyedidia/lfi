@@ -1,165 +1,152 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"strings"
 
-	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/zyedidia/isolator/isogen/ast"
 )
 
-var armLexer = lexer.MustSimple([]lexer.SimpleRule{
-	{`Ident`, `[_@.a-zA-Z][.a-zA-Z_\-\d+]*`},
-	{`Number`, `[-+]?(0x)?[.0-9a-fA-F+\-:][.0-9a-zA-Z_+\-:]*\b`},
-	{`Punct`, `[,:()\[\]#!]`},
-	{`Newline`, `\r?\n`},
-	{"comment", `//.*|/\*.*?\*/`},
-	{"whitespace", `\s+`},
-})
-
-var armParser = participle.MustBuild[ArmInst](participle.Lexer(armLexer), participle.Elide("comment", "whitespace"), participle.UseLookahead(100))
-
-type ArmInst struct {
-	Pos lexer.Position
-
-	Name string `@Ident`
-	Args []*Arg `( @@ ( "," @@ )* )? (Newline*|EOF)`
-}
-
-type Arg struct {
-	Ma5 *MemArg5   `  @@`
-	Ma3 *MemArg3   `| @@`
-	Ma2 *MemArg2   `| @@`
-	Ma1 *MemArg1   `| @@`
-	Ea  *ExtendArg `| @@`
-	Na  *NormalArg `| @@`
-}
-
-func getAddrMode(a *Arg) AddrMode {
-	switch {
-	case a.Ma1 != nil:
-		return a.Ma1
-	case a.Ma2 != nil:
-		return a.Ma2
-	case a.Ma3 != nil:
-		return a.Ma3
-	case a.Ma5 != nil:
-		return a.Ma5
+func getImm(imm *ast.Imm) Imm {
+	if imm.Num != nil {
+		return Number(*imm.Num)
+	} else {
+		return Reloc{
+			Type: imm.Reloc.Type,
+			Var:  imm.Reloc.Var,
+		}
 	}
-	panic("unreachable")
 }
 
-type ExtendArg struct {
-	Op  string  `@("lsl" | "lsr" | "msl" | "asr" | "ror" | "uxtw" | "sxth" | "sxtw" | "sxtx" | "sxtb" | "uxth" | "uxtb" | "uxtx")`
-	Imm *string `  @("#"? Number)?`
-}
-
-func (a *ExtendArg) String() string {
-	imm := ""
-	if a.Imm != nil {
-		imm = " " + *a.Imm
+func ParseInst(line string, loc string) (*Label, *Inst, error) {
+	ast, err := ast.Parse(loc, strings.NewReader(line))
+	if err != nil {
+		return nil, nil, err
 	}
-	return fmt.Sprintf("%s%s", a.Op, imm)
-}
-
-// [Xn{, #i}]
-type MemArg1 struct {
-	Reg string  `"[" @Ident`
-	Imm *string `("," "#"? @(Number))? "]"`
-}
-
-func (m *MemArg1) String() string {
-	imm := ""
-	if m.Imm != nil {
-		imm = fmt.Sprintf(", %s", *m.Imm)
+	var label *Label
+	if ast.Label != nil {
+		l := Label(*ast.Label)
+		label = &l
 	}
-	return fmt.Sprintf("[%s%s]", m.Reg, imm)
-}
-
-// [Xn], #i
-// Xn += i after access
-type MemArg2 struct {
-	Reg string `"[" @Ident "]"`
-	Imm string `"," "#"? @(Number)`
-}
-
-func (m *MemArg2) String() string {
-	return fmt.Sprintf("[%s], %s", m.Reg, m.Imm)
-}
-
-// [Xn, #i]!
-// Xn += i before access
-type MemArg3 struct {
-	Reg string `"[" @Ident`
-	Imm string `"," "#"? @(Number) "]" "!"`
-}
-
-func (m *MemArg3) String() string {
-	return fmt.Sprintf("[%s, %s]!", m.Reg, m.Imm)
-}
-
-// [Xn, Wm, {s,u}xtw{ #i|s}]
-// [Xn, Xm sxtx{ #i|s}]
-type MemArg5 struct {
-	Reg1   string     `"[" @Ident`
-	Reg2   string     `"," @Ident`
-	Extend *ExtendArg `("," @@)? "]"`
-}
-
-func (m *MemArg5) String() string {
-	ea := ""
-	if m.Extend != nil {
-		ea = ", " + m.Extend.String()
+	inst := &Inst{
+		Name: ast.Name,
 	}
-	return fmt.Sprintf("[%s, %s%s]", m.Reg1, m.Reg2, ea)
-}
-
-func (m *MemArg1) SingleReg() bool {
-	return true
-}
-func (m *MemArg2) SingleReg() bool {
-	return true
-}
-func (m *MemArg3) SingleReg() bool {
-	return true
-}
-func (m *MemArg5) SingleReg() bool {
-	return false
-}
-func (m *MemArg1) GetReg() string {
-	return m.Reg
-}
-func (m *MemArg2) GetReg() string {
-	return m.Reg
-}
-func (m *MemArg3) GetReg() string {
-	return m.Reg
-}
-func (m *MemArg5) GetReg() string {
-	return m.Reg1
-}
-func (m *MemArg1) SetReg(r string) {
-	m.Reg = r
-}
-func (m *MemArg2) SetReg(r string) {
-	m.Reg = r
-}
-func (m *MemArg3) SetReg(r string) {
-	m.Reg = r
-}
-func (m *MemArg5) SetReg(r string) {
-	m.Reg2 = r
-}
-
-type NormalArg struct {
-	Name *string `@(Ident ("[" Number "]")?)`
-	Imm  *string `| "#"? @Number`
-}
-
-func (a *NormalArg) Get() string {
-	if a.Name != nil {
-		return *a.Name
-	} else if a.Imm != nil {
-		return *a.Imm
+	for _, arg := range ast.Args {
+		if arg.Mem1 != nil {
+			var imm Imm = nil
+			if arg.Mem1.Imm != nil {
+				imm = getImm(arg.Mem1.Imm)
+			}
+			inst.Args = append(inst.Args, MemAddr{
+				Reg: Reg(arg.Mem1.Reg),
+				Imm: imm,
+			})
+		} else if arg.Mem2 != nil {
+			inst.Args = append(inst.Args, MemAddrPost{
+				Reg: Reg(arg.Mem2.Reg),
+				Imm: arg.Mem2.Imm,
+			})
+		} else if arg.Mem3 != nil {
+			inst.Args = append(inst.Args, MemAddrPre{
+				Reg: Reg(arg.Mem3.Reg),
+				Imm: arg.Mem3.Imm,
+			})
+		} else if arg.Mem4 != nil {
+			var ex *Extend = nil
+			if arg.Mem4.Extend != nil {
+				ex = &Extend{
+					Op:  arg.Mem4.Extend.Op,
+					Imm: arg.Mem4.Extend.Imm,
+				}
+			}
+			inst.Args = append(inst.Args, MemAddrComplex{
+				Reg1:   Reg(arg.Mem4.Reg1),
+				Reg2:   Reg(arg.Mem4.Reg2),
+				Extend: ex,
+			})
+		} else if arg.Extend != nil {
+			inst.Args = append(inst.Args, Extend{
+				Op:  arg.Extend.Op,
+				Imm: arg.Extend.Imm,
+			})
+		} else if arg.Vector != nil {
+			v := Vector{}
+			for _, r := range arg.Vector.Vals {
+				if r.Val != nil {
+					v.Vals = append(v.Vals, Reg(*r.Val))
+				} else {
+					v.Vals = append(v.Vals, Reg(*r.Indexed))
+				}
+			}
+			inst.Args = append(inst.Args, v)
+		} else if arg.RegOrLabel != nil {
+			if arg.RegOrLabel.Val != nil {
+				if IsReg(*arg.RegOrLabel.Val) {
+					inst.Args = append(inst.Args, Reg(*arg.RegOrLabel.Val))
+				} else {
+					inst.Args = append(inst.Args, Label(*arg.RegOrLabel.Val))
+				}
+			} else {
+				inst.Args = append(inst.Args, Reg(*arg.RegOrLabel.Indexed))
+			}
+		} else if arg.Imm != nil {
+			inst.Args = append(inst.Args, getImm(arg.Imm))
+		}
 	}
-	return ""
+	return label, inst, nil
+}
+
+func ParseOp(list *OpList, line string, loc string) error {
+	if strings.HasSuffix(line, ":") {
+		list.PushBack(NewNode(Label(line[:len(line)-1])))
+		return nil
+	}
+	if strings.HasPrefix(line, ".") {
+		list.PushBack(NewNode(Directive{
+			Val: line,
+		}))
+		return nil
+	}
+	if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "\\") {
+		list.PushBack(NewNode(Unknown(line)))
+		return nil
+	}
+
+	label, inst, err := ParseInst(line, loc)
+	if err != nil {
+		return err
+	}
+	if label != nil {
+		list.PushBack(NewNode(*label))
+	}
+	list.PushBack(NewNode(inst))
+	return nil
+}
+
+func ParseFile(in io.Reader, name string) (*OpList, error) {
+	var list OpList
+	scanner := bufio.NewScanner(in)
+	n := 1
+	for scanner.Scan() {
+		// TODO: this is hacky
+		line := scanner.Text()
+		if !strings.Contains(line, "\"") {
+			before, _, _ := strings.Cut(scanner.Text(), "//")
+			line = strings.TrimSpace(before)
+		} else {
+			line = strings.TrimSpace(line)
+		}
+		if line == "" || strings.HasPrefix(line, "//") {
+			n++
+			continue
+		}
+		err := ParseOp(&list, line, fmt.Sprintf("%s:%d", name, n))
+		if err != nil {
+			return nil, fmt.Errorf("%s:%d: %w", name, n, err)
+		}
+		n++
+	}
+	return &list, scanner.Err()
 }
