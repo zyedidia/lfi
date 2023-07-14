@@ -28,7 +28,8 @@ type Arg interface {
 type Reg string
 
 type Vector struct {
-	Vals []Reg
+	Vals    []Reg
+	Indexed *string
 }
 
 type Imm interface {
@@ -182,5 +183,8 @@ func (v Vector) String() string {
 		}
 	}
 	b.WriteByte('}')
+	if v.Indexed != nil {
+		b.WriteString(*v.Indexed)
+	}
 	return b.String()
 }

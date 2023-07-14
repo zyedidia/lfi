@@ -44,3 +44,5 @@ mov sp,x9 ; br x8
 .string "hello // world ; sdafkj"
 
 ldrh w12, [x16, w12, uxtw]
+
+ld1	{ v16.s }[1], [x11]

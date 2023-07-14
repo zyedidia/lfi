@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func branchPass(ops *OpList) {
 	op := ops.Front
@@ -41,7 +43,7 @@ func branchFixupPass(ops *OpList) {
 				l := inst.Args[2].(Label)
 
 				if n, ok := labels[l]; ok {
-					if abs(n.IdxEstimate-op.IdxEstimate) >= 16000 {
+					if abs(n.IdxEstimate-op.IdxEstimate) >= 8000 {
 						switch inst.Name {
 						case "tbz":
 							inst.Name = "tbnz"

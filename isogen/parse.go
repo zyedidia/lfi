@@ -80,6 +80,7 @@ func ParseInst(line string, loc string) (*Label, *Inst, error) {
 					v.Vals = append(v.Vals, Reg(*r.Indexed))
 				}
 			}
+			v.Indexed = arg.Vector.Indexed
 			inst.Args = append(inst.Args, v)
 		} else if arg.RegOrLabel != nil {
 			if arg.RegOrLabel.Val != nil {
@@ -128,6 +129,8 @@ func ParseOp(list *OpList, line string, loc string) error {
 func ParseFile(in io.Reader, name string) (*OpList, error) {
 	var list OpList
 	scanner := bufio.NewScanner(in)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
 	n := 1
 	for scanner.Scan() {
 		// TODO: this is hacky

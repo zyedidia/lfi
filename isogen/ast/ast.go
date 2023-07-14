@@ -39,7 +39,8 @@ type Arg struct {
 
 // Vector structure {v1.h, v2.h}
 type Vector struct {
-	Vals []*RegOrLabel `"{" @@ ( "," @@ )* "}"`
+	Vals    []*RegOrLabel `"{" @@ ( "," @@ )* "}"`
+	Indexed *string       `@('[' Number ']')?`
 }
 
 // [Xn{, #i}]

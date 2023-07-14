@@ -40,11 +40,11 @@ func main() {
 
 	MarkLeaders(*ops)
 
-	branchFixupPass(ops)
-	branchPass(ops)
-	syscallPass(ops)
-	specialRegPass(ops)
-	memPass(ops)
+	// branchPass(ops)
+	// syscallPass(ops)
+	// specialRegPass(ops)
+	// memPass(ops)
+	// branchFixupPass(ops)
 
 	var w io.Writer
 	if *out != "" {
