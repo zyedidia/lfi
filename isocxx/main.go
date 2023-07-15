@@ -10,7 +10,9 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-ffixed-x20", "-ffixed-x21", "-ffixed-x22"}
+// var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-gnu", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23", "-ffixed-x30"}
+
+var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt"}
 
 // var isoflags = []string{"-ffixed-x22"}
 
@@ -81,7 +83,7 @@ func main() {
 
 	cc := os.Getenv("ISOCXX")
 	if cc == "" {
-		cc = "aarch64-none-elf-g++"
+		cc = "clang++"
 	}
 
 	if target == "" {
@@ -110,7 +112,22 @@ func main() {
 	}
 
 	asm := target
-	if filepath.Ext(target) != ".s" {
+	if filepath.Ext(target) == ".S" {
+		asm = temp(targetdir)
+		stage1 := []string{
+			"-E",
+			"-o", asm,
+			target,
+		}
+		stage1 = append(stage1, args...)
+		stage1 = append(stage1, isoflags...)
+
+		run(cc, stage1...)
+
+		if !keep {
+			defer os.Remove(asm)
+		}
+	} else if filepath.Ext(target) != ".s" {
 		asm = temp(targetdir)
 		stage1 := []string{
 			"-S",
@@ -127,12 +144,15 @@ func main() {
 		}
 	}
 
+	asmmc := temp(targetdir)
+	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-o", asmmc, asm)
+
 	iso := temp(targetdir)
 	if !keep {
 		defer os.Remove(iso)
 	}
 	// run("cp", asm, iso)
-	run("isogen", asm, "-o", iso, "-S", "/tmp/isocc.stats")
+	run("isogen", asmmc, "-o", iso)
 
 	if !assemble {
 		if compile && out == "" {
