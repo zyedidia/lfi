@@ -59,6 +59,11 @@ var loads = map[string]bool{
 	"ld4": true,
 }
 
+var calls = map[string]bool{
+	"blr": true,
+	"bl":  true,
+}
+
 var stores = map[string]bool{
 	"str":   true,
 	"stur":  true,

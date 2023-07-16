@@ -8,6 +8,8 @@ type Node[V any] struct {
 	Value       V
 	Leader      bool
 	IdxEstimate int
+	memCounts   map[Reg]int
+	rangeReg    Reg
 	Prev, Next  *Node[V]
 }
 
@@ -64,7 +66,8 @@ type OpList = List[Op]
 
 func NewNode(op Op) *OpNode {
 	return &OpNode{
-		Value: op,
+		Value:     op,
+		memCounts: make(map[Reg]int),
 	}
 }
 

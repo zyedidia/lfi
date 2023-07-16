@@ -8,7 +8,7 @@ import (
 func sandboxMemAddr(a *Arg, builder *Builder) bool {
 	switch m := (*a).(type) {
 	case MemAddr:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return true
 		}
 		if m.Imm == nil {
@@ -46,7 +46,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			}
 		}
 	case MemAddrPost:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return true
 		}
 		*a = MemAddrComplex{
@@ -65,7 +65,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			},
 		}))
 	case MemAddrPre:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return true
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -127,7 +127,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 	switch m := (*a).(type) {
 	case MemAddr:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -144,7 +144,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			Imm: m.Imm,
 		}
 	case MemAddrPre:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -169,7 +169,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			},
 		}))
 	case MemAddrPost:
-		if m.Reg == spReg {
+		if sandboxed[m.Reg] {
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{

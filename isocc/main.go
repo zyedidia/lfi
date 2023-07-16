@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt"}
+var isoflags = []string{"--sysroot", "/usr/local/musl", "-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23", "-ffixed-x24", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt"}
 
 // var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-gnu", "-ffixed-x20", "-ffixed-x21", "-ffixed-x22", "-ffixed-x23", "-ffixed-x30"}
 

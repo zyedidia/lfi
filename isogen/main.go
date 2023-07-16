@@ -43,6 +43,7 @@ func main() {
 	branchPass(ops)
 	syscallPass(ops)
 	specialRegPass(ops)
+	rangePass(ops)
 	memPass(ops)
 	branchFixupPass(ops)
 

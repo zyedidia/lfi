@@ -11,6 +11,12 @@ const (
 	spReg      = Reg("sp")
 )
 
+var sandboxed = map[Reg]bool{
+	spReg:  true,
+	resReg: true,
+	optReg: true,
+}
+
 func loReg(r Reg) Reg {
 	if r == Reg("sp") {
 		return Reg("wsp")
