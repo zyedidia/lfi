@@ -1,13 +1,22 @@
 package main
 
 func isMask(inst *Inst, reg Reg) bool {
-	return len(inst.Args) == 4 &&
-		inst.Name == "add" &&
-		inst.Args[0].(Reg) == optReg &&
-		inst.Args[1].(Reg) == segmentReg &&
-		inst.Args[2].(Reg) == loReg(reg) &&
-		inst.Args[3].(*Extend).Op == "uxtw" &&
-		inst.Args[3].(*Extend).Imm == nil
+	if len(inst.Args) != 4 {
+		return false
+	}
+	r1, ok1 := inst.Args[0].(Reg)
+	r2, ok2 := inst.Args[1].(Reg)
+	r3, ok3 := inst.Args[2].(Reg)
+	ex, ok := inst.Args[3].(*Extend)
+	if ok1 && ok2 && ok3 && ok {
+		return inst.Name == "add" &&
+			r1 == optReg &&
+			r2 == segmentReg &&
+			r3 == loReg(reg) &&
+			ex.Op == "uxtw" &&
+			ex.Imm == nil
+	}
+	return false
 }
 
 func isModify(op *OpNode, inst *Inst, reg Reg) bool {
@@ -154,7 +163,7 @@ func rangePass(ops *OpList) {
 			}
 			op.rangeReg = maxReg
 		}
-		if inst, ok := op.Value.(*Inst); ok && curLabel.rangeReg != "" {
+		if inst, ok := op.Value.(*Inst); ok && curLabel != nil && curLabel.rangeReg != "" {
 			builder.Locate(op)
 			switch {
 			case basicloads[inst.Name], basicstores[inst.Name]:
