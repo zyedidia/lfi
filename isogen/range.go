@@ -169,8 +169,13 @@ func rangeAnalysisPass(ops *OpList) {
 	var curLabel *OpNode
 	op := ops.Front
 	for op != nil {
-		if _, ok := op.Value.(Label); ok {
+		switch i := op.Value.(type) {
+		case Label:
 			curLabel = op
+		case *Inst:
+			if calls[i.Name] {
+				curLabel = op
+			}
 		}
 		if inst, ok := op.Value.(*Inst); ok {
 			switch {
@@ -198,7 +203,8 @@ func rangePass(ops *OpList) {
 	var curLabel *OpNode
 
 	for op != nil {
-		if _, ok := op.Value.(Label); ok {
+		switch i := op.Value.(type) {
+		case Label:
 			curLabel = op
 			maxReg := Reg("")
 			max := 2
@@ -212,6 +218,22 @@ func rangePass(ops *OpList) {
 			}
 			op.rangeReg = maxReg
 			op.rangeReg2 = maxReg2
+		case *Inst:
+			if calls[i.Name] {
+				curLabel = op
+				maxReg := Reg("")
+				max := 2
+				maxReg2 := Reg("")
+				for k, v := range op.memCounts {
+					if v >= max {
+						max = v
+						maxReg2 = maxReg
+						maxReg = k
+					}
+				}
+				op.rangeReg = maxReg
+				op.rangeReg2 = maxReg2
+			}
 		}
 		if inst, ok := op.Value.(*Inst); ok && curLabel != nil && curLabel.rangeReg != "" {
 			builder.Locate(op)
