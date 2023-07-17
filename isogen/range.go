@@ -208,12 +208,18 @@ func rangePass(ops *OpList) {
 			curLabel = op
 			maxReg := Reg("")
 			max := 2
+			max2 := 2
 			maxReg2 := Reg("")
 			for k, v := range op.memCounts {
 				if v >= max {
 					max = v
-					maxReg2 = maxReg
 					maxReg = k
+				}
+			}
+			for k, v := range op.memCounts {
+				if v >= max2 && k != maxReg {
+					max2 = v
+					maxReg2 = k
 				}
 			}
 			op.rangeReg = maxReg
