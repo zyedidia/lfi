@@ -7,7 +7,7 @@ const (
 	segmentReg = Reg("x21")
 	syscallReg = Reg("x22")
 	scratchReg = Reg("x14")
-	optReg     = Reg("x13")
+	optReg     = Reg("x24")
 	spReg      = Reg("sp")
 )
 
