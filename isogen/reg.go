@@ -8,13 +8,15 @@ const (
 	syscallReg = Reg("x22")
 	scratchReg = Reg("x14")
 	optReg     = Reg("x24")
+	optReg2    = Reg("x23")
 	spReg      = Reg("sp")
 )
 
 var sandboxed = map[Reg]bool{
-	spReg:  true,
-	resReg: true,
-	optReg: true,
+	spReg:   true,
+	resReg:  true,
+	optReg:  true,
+	optReg2: true,
 }
 
 func hiReg(r Reg) Reg {

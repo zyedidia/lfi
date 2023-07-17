@@ -1,6 +1,6 @@
 package main
 
-func isMask(inst *Inst, reg Reg) bool {
+func isMask(inst *Inst, reg Reg, optReg Reg) bool {
 	if len(inst.Args) != 4 {
 		return false
 	}
@@ -65,7 +65,7 @@ func isModify(op *OpNode, inst *Inst, reg Reg) bool {
 	return false
 }
 
-func rangeMask(op *OpNode, reg Reg, builder *Builder) {
+func rangeMask(op *OpNode, reg Reg, builder *Builder, optReg Reg) {
 	mask := NewNode(&Inst{
 		Name: "add",
 		Args: []Arg{
@@ -84,7 +84,7 @@ loop:
 			builder.Add(mask)
 			break loop
 		case *Inst:
-			if isMask(i, reg) {
+			if isMask(i, reg, optReg) {
 				break loop
 			} else if isModify(n, i, reg) {
 				builder.Locate(n)
@@ -100,22 +100,22 @@ loop:
 	}
 }
 
-func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
+func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg, optReg Reg) bool {
 	switch m := (*a).(type) {
 	case MemAddr:
 		if m.Reg != reg || m.Imm == nil {
-			return
+			return false
 		}
-		rangeMask(op, m.Reg, builder)
+		rangeMask(op, m.Reg, builder, optReg)
 		*a = MemAddr{
 			Reg: optReg,
 			Imm: m.Imm,
 		}
 	case MemAddrComplex:
 		if m.Reg1 != reg || m.Extend == nil {
-			return
+			return false
 		}
-		rangeMask(op, m.Reg1, builder)
+		rangeMask(op, m.Reg1, builder, optReg)
 		if m.Extend == nil {
 			*a = MemAddrComplex{
 				Reg1: optReg,
@@ -148,6 +148,7 @@ func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
 			}
 		}
 	}
+	return true
 }
 
 func getReg(a Arg) (Reg, bool) {
@@ -200,24 +201,33 @@ func rangePass(ops *OpList) {
 		if _, ok := op.Value.(Label); ok {
 			curLabel = op
 			maxReg := Reg("")
-			max := 1
+			max := 2
+			maxReg2 := Reg("")
 			for k, v := range op.memCounts {
-				if v > max {
+				if v >= max {
 					max = v
+					maxReg2 = maxReg
 					maxReg = k
 				}
 			}
 			op.rangeReg = maxReg
+			op.rangeReg2 = maxReg2
 		}
 		if inst, ok := op.Value.(*Inst); ok && curLabel != nil && curLabel.rangeReg != "" {
 			builder.Locate(op)
 			switch {
 			case basicloads[inst.Name], basicstores[inst.Name]:
-				sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg)
+				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
+					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+				}
 			case loads[inst.Name], stores[inst.Name]:
-				sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg)
+				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
+					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+				}
 			case multiloads[inst.Name], multistores[inst.Name]:
-				sandboxMemAddrRange(op, &inst.Args[2], builder, curLabel.rangeReg)
+				if !sandboxMemAddrRange(op, &inst.Args[2], builder, curLabel.rangeReg, optReg) {
+					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+				}
 			}
 		}
 		op = op.Next

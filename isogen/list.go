@@ -10,6 +10,7 @@ type Node[V any] struct {
 	IdxEstimate int
 	memCounts   map[Reg]int
 	rangeReg    Reg
+	rangeReg2   Reg
 	Prev, Next  *Node[V]
 }
 
