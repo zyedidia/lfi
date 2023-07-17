@@ -68,7 +68,7 @@ func isModify(op *OpNode, inst *Inst, reg Reg) bool {
 func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
 	switch m := (*a).(type) {
 	case MemAddr:
-		if m.Reg != reg {
+		if m.Reg != reg || m.Imm == nil {
 			return
 		}
 		mask := NewNode(&Inst{
@@ -113,7 +113,9 @@ func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
 func getReg(a Arg) (Reg, bool) {
 	switch m := a.(type) {
 	case MemAddr:
-		return m.Reg, true
+		if m.Imm != nil {
+			return m.Reg, true
+		}
 	}
 	return "", false
 }
