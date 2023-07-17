@@ -112,7 +112,7 @@ func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
 			Imm: m.Imm,
 		}
 	case MemAddrComplex:
-		if m.Reg1 != reg {
+		if m.Reg1 != reg || m.Extend == nil {
 			return
 		}
 		rangeMask(op, m.Reg1, builder)
@@ -157,7 +157,9 @@ func getReg(a Arg) (Reg, bool) {
 			return m.Reg, true
 		}
 	case MemAddrComplex:
-		return m.Reg1, true
+		if m.Extend != nil {
+			return m.Reg1, true
+		}
 	}
 	return "", false
 }
