@@ -53,10 +53,11 @@ var loads = map[string]bool{
 	"ldtrsh": true,
 	"ldtrsw": true,
 
-	"ld1": true,
-	"ld2": true,
-	"ld3": true,
-	"ld4": true,
+	"ld1":  true,
+	"ld1r": true,
+	"ld2":  true,
+	"ld3":  true,
+	"ld4":  true,
 }
 
 var calls = map[string]bool{

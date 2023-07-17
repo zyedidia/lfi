@@ -65,47 +65,87 @@ func isModify(op *OpNode, inst *Inst, reg Reg) bool {
 	return false
 }
 
+func rangeMask(op *OpNode, reg Reg, builder *Builder) {
+	mask := NewNode(&Inst{
+		Name: "add",
+		Args: []Arg{
+			optReg,
+			segmentReg,
+			loReg(reg),
+			&Extend{Op: "uxtw"},
+		},
+	})
+	n := op.Prev
+loop:
+	for n != nil {
+		switch i := n.Value.(type) {
+		case Label:
+			builder.Locate(n)
+			builder.Add(mask)
+			break loop
+		case *Inst:
+			if isMask(i, reg) {
+				break loop
+			} else if isModify(n, i, reg) {
+				builder.Locate(n)
+				builder.Add(mask)
+				break loop
+			} else if calls[i.Name] {
+				builder.Locate(n)
+				builder.Add(mask)
+				break loop
+			}
+		}
+		n = n.Prev
+	}
+}
+
 func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg) {
 	switch m := (*a).(type) {
 	case MemAddr:
 		if m.Reg != reg || m.Imm == nil {
 			return
 		}
-		mask := NewNode(&Inst{
-			Name: "add",
-			Args: []Arg{
-				optReg,
-				segmentReg,
-				loReg(m.Reg),
-				&Extend{Op: "uxtw"},
-			},
-		})
-		n := op.Prev
-	loop:
-		for n != nil {
-			switch i := n.Value.(type) {
-			case Label:
-				builder.Locate(n)
-				builder.Add(mask)
-				break loop
-			case *Inst:
-				if isMask(i, m.Reg) {
-					break loop
-				} else if isModify(n, i, m.Reg) {
-					builder.Locate(n)
-					builder.Add(mask)
-					break loop
-				} else if calls[i.Name] {
-					builder.Locate(n)
-					builder.Add(mask)
-					break loop
-				}
-			}
-			n = n.Prev
-		}
+		rangeMask(op, m.Reg, builder)
 		*a = MemAddr{
 			Reg: optReg,
 			Imm: m.Imm,
+		}
+	case MemAddrComplex:
+		if m.Reg1 != reg {
+			return
+		}
+		rangeMask(op, m.Reg1, builder)
+		if m.Extend == nil {
+			*a = MemAddrComplex{
+				Reg1: optReg,
+				Reg2: loReg(m.Reg2),
+				Extend: &Extend{
+					Op: "sxtw",
+				},
+			}
+		} else {
+			exop := "sxtw"
+			if m.Extend.Op == "uxtw" {
+				exop = "uxtw"
+			}
+			builder.Locate(op)
+			builder.AddBefore(NewNode(&Inst{
+				Name: "and",
+				Args: []Arg{
+					scratchReg,
+					hiReg(m.Reg2),
+					Number("0x0fffffff"),
+				},
+			}))
+			*a = MemAddrComplex{
+				Reg1: optReg,
+				Reg2: loReg(scratchReg),
+				Extend: &Extend{
+					Op:  exop,
+					Imm: m.Extend.Imm,
+				},
+			}
 		}
 	}
 }
@@ -116,6 +156,8 @@ func getReg(a Arg) (Reg, bool) {
 		if m.Imm != nil {
 			return m.Reg, true
 		}
+	case MemAddrComplex:
+		return m.Reg1, true
 	}
 	return "", false
 }

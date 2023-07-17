@@ -17,6 +17,13 @@ var sandboxed = map[Reg]bool{
 	optReg: true,
 }
 
+func hiReg(r Reg) Reg {
+	if r == Reg("wsp") {
+		return Reg("sp")
+	}
+	return "x" + r[1:]
+}
+
 func loReg(r Reg) Reg {
 	if r == Reg("sp") {
 		return Reg("wsp")

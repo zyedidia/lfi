@@ -84,6 +84,9 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			},
 		}
 	case MemAddrComplex:
+		if sandboxed[m.Reg1] {
+			return true
+		}
 		if m.Extend == nil {
 			builder.AddBefore(NewNode(&Inst{
 				Name: "add",
