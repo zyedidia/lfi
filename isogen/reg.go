@@ -13,10 +13,18 @@ const (
 )
 
 var sandboxed = map[Reg]bool{
-	spReg:   true,
-	resReg:  true,
-	optReg:  true,
-	optReg2: true,
+	spReg:  true,
+	resReg: true,
+	optReg: true,
+	// optReg2: true,
+}
+
+var reserved = map[Reg]bool{
+	resReg:     true,
+	segmentReg: true,
+	syscallReg: true,
+	optReg:     true,
+	// optReg2:    true,
 }
 
 func hiReg(r Reg) Reg {
@@ -67,6 +75,39 @@ var regs = map[string]bool{
 	"x30": true,
 	"x31": true,
 	"sp":  true,
+	"w0":  true,
+	"w1":  true,
+	"w2":  true,
+	"w3":  true,
+	"w4":  true,
+	"w5":  true,
+	"w6":  true,
+	"w7":  true,
+	"w8":  true,
+	"w9":  true,
+	"w10": true,
+	"w11": true,
+	"w12": true,
+	"w13": true,
+	"w14": true,
+	"w15": true,
+	"w16": true,
+	"w17": true,
+	"w18": true,
+	"w19": true,
+	"w20": true,
+	"w21": true,
+	"w22": true,
+	"w23": true,
+	"w24": true,
+	"w25": true,
+	"w26": true,
+	"w27": true,
+	"w28": true,
+	"w29": true,
+	"w30": true,
+	"w31": true,
+	"wsp": true,
 }
 
 func IsReg(r string) bool {

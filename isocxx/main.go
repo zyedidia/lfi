@@ -12,7 +12,7 @@ import (
 
 // var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-gnu", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x14", "-ffixed-x24", "-ffixed-x30"}
 
-var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x24", "-ffixed-x14", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt"}
+var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x24", "-ffixed-x14", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt", "-lc++", "-lunwind", "-lc++abi"}
 
 // var isoflags = []string{"-ffixed-x22"}
 
@@ -73,7 +73,7 @@ func main() {
 			keep = true
 		default:
 			switch {
-			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"), strings.HasSuffix(arg, ".cxx"), strings.HasSuffix(arg, ".cc"), strings.HasSuffix(arg, ".cpp"), strings.HasSuffix(arg, ".c++"):
+			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"), strings.HasSuffix(arg, ".cxx"), strings.HasSuffix(arg, ".cc"), strings.HasSuffix(arg, ".cpp"), strings.HasSuffix(arg, ".c++"), strings.HasSuffix(arg, ".C"):
 				target = arg
 			default:
 				args = append(args, arg)

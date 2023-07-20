@@ -116,7 +116,7 @@ func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg, optReg R
 			return false
 		}
 		rangeMask(op, m.Reg1, builder, optReg)
-		if m.Extend == nil {
+		if m.Extend == nil || m.Extend.Imm == nil {
 			*a = MemAddrComplex{
 				Reg1: optReg,
 				Reg2: loReg(m.Reg2),
@@ -208,36 +208,42 @@ func rangePass(ops *OpList) {
 			curLabel = op
 			maxReg := Reg("")
 			max := 2
-			max2 := 2
-			maxReg2 := Reg("")
 			for k, v := range op.memCounts {
 				if v >= max {
 					max = v
 					maxReg = k
 				}
 			}
+			op.rangeReg = maxReg
+			max2 := 2
+			maxReg2 := Reg("")
 			for k, v := range op.memCounts {
 				if v >= max2 && k != maxReg {
 					max2 = v
 					maxReg2 = k
 				}
 			}
-			op.rangeReg = maxReg
 			op.rangeReg2 = maxReg2
 		case *Inst:
 			if calls[i.Name] {
 				curLabel = op
 				maxReg := Reg("")
 				max := 2
-				maxReg2 := Reg("")
 				for k, v := range op.memCounts {
 					if v >= max {
 						max = v
-						maxReg2 = maxReg
 						maxReg = k
 					}
 				}
 				op.rangeReg = maxReg
+				max2 := 2
+				maxReg2 := Reg("")
+				for k, v := range op.memCounts {
+					if v >= max2 && k != maxReg {
+						max2 = v
+						maxReg2 = k
+					}
+				}
 				op.rangeReg2 = maxReg2
 			}
 		}
@@ -246,15 +252,15 @@ func rangePass(ops *OpList) {
 			switch {
 			case basicloads[inst.Name], basicstores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
-					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+					// sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}
 			case loads[inst.Name], stores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
-					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+					// sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}
 			case multiloads[inst.Name], multistores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[2], builder, curLabel.rangeReg, optReg) {
-					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
+					// sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}
 			}
 		}

@@ -68,3 +68,24 @@ func specialRegPass(ops *OpList) {
 		op = op.Next
 	}
 }
+
+func fixupReservedPass(ops *OpList) {
+	op := ops.Front
+	builder := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			if multiloads[inst.Name] {
+				r1, o1 := inst.Args[0].(Reg)
+				r2, o2 := inst.Args[1].(Reg)
+				if o1 && o2 && reserved[r1] && reserved[r2] {
+					builder.list.Remove(op)
+				} else if o1 && reserved[r1] {
+					inst.Args[0] = Reg("xzr")
+				} else if o2 && reserved[r2] {
+					inst.Args[1] = Reg("xzr")
+				}
+			}
+		}
+		op = op.Next
+	}
+}

@@ -41,6 +41,7 @@ func main() {
 	MarkLeaders(*ops)
 
 	branchPass(ops)
+	fixupReservedPass(ops)
 	syscallPass(ops)
 	specialRegPass(ops)
 	rangePass(ops)
