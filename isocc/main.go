@@ -102,9 +102,9 @@ func main() {
 		all := []string{
 			"-o", out,
 		}
+		all = append(all, objs...)
 		all = append(all, args...)
 		all = append(all, isoflags...)
-		all = append(all, objs...)
 		if !lto {
 			run(cc, all...)
 			return

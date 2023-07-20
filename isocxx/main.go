@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x24", "-ffixed-x14", "-ffixed-x30"}
+var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x24", "-ffixed-x14", "-ffixed-x30", "-fuse-ld=lld"}
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
@@ -96,9 +96,9 @@ func main() {
 		all := []string{
 			"-o", out,
 		}
+		all = append(all, objs...)
 		all = append(all, args...)
 		all = append(all, isoflags...)
-		all = append(all, objs...)
 		if !lto {
 			run(cc, all...)
 			return
