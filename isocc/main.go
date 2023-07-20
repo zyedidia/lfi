@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var isoflags = []string{"--sysroot", "/usr/local/musl", "-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-musl", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x14", "-ffixed-x24", "-ffixed-x30", "-resource-dir", "/home/zyedidia/programming/llvm-project-15.0.7.src/build-compiler-rt", "--rtlib=compiler-rt"}
+var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x14", "-ffixed-x24", "-ffixed-x30", "-fuse-ld=lld"}
 
 // var isoflags = []string{"-mllvm", "--aarch64-enable-compress-jump-tables=false", "-target", "aarch64-linux-gnu", "-ffixed-x15", "-ffixed-x21", "-ffixed-x22", "-ffixed-x14", "-ffixed-x24", "-ffixed-x30"}
 
@@ -45,11 +45,21 @@ func temp(dir string) string {
 
 func main() {
 	var out, target string
-	var compile, assemble, verbose, keep bool
-	var args []string
+	var compile, assemble, verbose, keep, lto bool
+	var args, objs []string
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch arg {
+		case "-flto", "-flto=full", "-flto=thin":
+			lto = true
+			args = append(args, arg)
+		case "-MT":
+			args = append(args, arg)
+			if i+1 >= len(os.Args) {
+				fatal("-MT needs an argument")
+			}
+			args = append(args, os.Args[i+1])
+			i++
 		case "-o":
 			if i+1 >= len(os.Args) {
 				fatal("-o needs an argument")
@@ -68,6 +78,8 @@ func main() {
 			switch {
 			case strings.HasSuffix(arg, ".s"), strings.HasSuffix(arg, ".S"), strings.HasSuffix(arg, ".c"):
 				target = arg
+			case strings.HasSuffix(arg, ".o"):
+				objs = append(objs, arg)
 			default:
 				args = append(args, arg)
 			}
@@ -80,7 +92,11 @@ func main() {
 	}
 
 	if target == "" {
-		if out == "" {
+		var oldout string
+		if lto {
+			oldout = out
+			out = temp(os.TempDir())
+		} else if out == "" {
 			out = "a.out"
 		}
 		all := []string{
@@ -88,8 +104,15 @@ func main() {
 		}
 		all = append(all, args...)
 		all = append(all, isoflags...)
+		all = append(all, objs...)
+		if !lto {
+			run(cc, all...)
+			return
+		}
+		all = append(all, "-Wl,--lto-emit-asm", "-Wl,-plugin-opt=--aarch64-enable-compress-jump-tables=false")
 		run(cc, all...)
-		return
+		target = out
+		out = oldout
 	}
 
 	base := strings.TrimSuffix(target, filepath.Ext(target))
@@ -105,7 +128,20 @@ func main() {
 	}
 
 	asm := target
-	if filepath.Ext(target) == ".S" {
+	if lto && compile {
+		out = targeto
+
+		flags := []string{
+			"-c",
+			"-o", out,
+			target,
+			"-Wno-unused-command-line-argument",
+		}
+		flags = append(flags, args...)
+		flags = append(flags, isoflags...)
+		run(cc, flags...)
+		return
+	} else if filepath.Ext(target) == ".S" {
 		asm = temp(targetdir)
 		stage1 := []string{
 			"-E",
