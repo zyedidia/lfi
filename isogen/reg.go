@@ -20,11 +20,8 @@ var sandboxed = map[Reg]bool{
 }
 
 var reserved = map[Reg]bool{
-	resReg:     true,
 	segmentReg: true,
 	syscallReg: true,
-	optReg:     true,
-	// optReg2:    true,
 }
 
 func hiReg(r Reg) Reg {

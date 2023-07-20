@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 func sandboxSp(builder *Builder) {
 	builder.Add(NewNode(&Inst{
 		Name: "mov",
@@ -75,6 +77,7 @@ func fixupReservedPass(ops *OpList) {
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
 			if multiloads[inst.Name] {
+				builder.Locate(op)
 				r1, o1 := inst.Args[0].(Reg)
 				r2, o2 := inst.Args[1].(Reg)
 				if o1 && o2 && reserved[r1] && reserved[r2] {
@@ -83,6 +86,39 @@ func fixupReservedPass(ops *OpList) {
 					inst.Args[0] = Reg("xzr")
 				} else if o2 && reserved[r2] {
 					inst.Args[1] = Reg("xzr")
+				} else {
+					if o1 && sandboxed[r1] {
+						if r1 == spReg {
+							log.Fatal("error: loading into stack pointer")
+						}
+						builder.Add(NewNode(&Inst{
+							Name: "add",
+							Args: []Arg{
+								r1,
+								segmentReg,
+								loReg(r1),
+								&Extend{
+									Op: "uxtw",
+								},
+							},
+						}))
+					}
+					if o2 && sandboxed[r2] {
+						if r2 == spReg {
+							log.Fatal("error: loading into stack pointer")
+						}
+						builder.Add(NewNode(&Inst{
+							Name: "add",
+							Args: []Arg{
+								r2,
+								segmentReg,
+								loReg(r2),
+								&Extend{
+									Op: "uxtw",
+								},
+							},
+						}))
+					}
 				}
 			}
 		}
