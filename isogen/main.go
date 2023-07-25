@@ -22,6 +22,7 @@ func showOps(w io.Writer, list *OpList) {
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
+	hoist := pflag.BoolP("hoist", "r", true, "apply guard hoisting optimization")
 
 	pflag.Parse()
 	args := pflag.Args()
@@ -38,13 +39,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	MarkLeaders(*ops)
+	// MarkLeaders(*ops)
 
 	branchPass(ops)
 	fixupReservedPass(ops)
 	syscallPass(ops)
 	specialRegPass(ops)
-	rangePass(ops)
+	if *hoist {
+		rangePass(ops)
+	}
 	memPass(ops)
 	branchFixupPass(ops)
 

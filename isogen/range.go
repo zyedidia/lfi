@@ -79,6 +79,12 @@ func rangeMask(op *OpNode, reg Reg, builder *Builder, optReg Reg) {
 loop:
 	for n != nil {
 		switch i := n.Value.(type) {
+		case Directive:
+			if i.Val == ".cfi_remember_state" || i.Val == ".cfi_restore_state" {
+				builder.Locate(n)
+				builder.Add(mask)
+				break loop
+			}
 		case Label:
 			builder.Locate(n)
 			builder.Add(mask)

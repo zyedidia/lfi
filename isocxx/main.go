@@ -39,7 +39,7 @@ func temp(dir string) string {
 
 func main() {
 	var out, target string
-	var compile, assemble, verbose, keep, lto bool
+	var compile, assemble, verbose, keep, lto, norange bool
 	var args, objs []string
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -60,6 +60,8 @@ func main() {
 			}
 			out = os.Args[i+1]
 			i++
+		case "-fno-isolator-hoisting":
+			norange = true
 		case "-c":
 			compile = true
 		case "-S":
@@ -175,7 +177,11 @@ func main() {
 		defer os.Remove(iso)
 	}
 	// run("cp", asm, iso)
-	run("isogen", asmmc, "-o", iso)
+	flags := []string{asmmc, "-o", iso}
+	if norange {
+		flags = append(flags, "--hoist=false")
+	}
+	run("isogen", flags...)
 
 	if !assemble {
 		if compile && out == "" {

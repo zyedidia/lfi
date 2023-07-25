@@ -1,49 +1,55 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
+
+// note: in order to use, you must remove checksum verification from
+// check_important_files in bin/common/setup_common.pl
 
 func main() {
 	loader := os.Getenv("LOADER")
 	spec := os.Getenv("SPEC")
-	specinvoke := filepath.Join(spec, "bin", "specinvoke")
+	specinvoke := filepath.Join(spec, "bin", "specinvoke.orig")
 
-	args := make([]string, len(os.Args))
-	copy(args, os.Args)
-	args = append(args, "-n")
-
-	buf := &bytes.Buffer{}
-	cmd := exec.Command(specinvoke, args...)
-	cmd.Stdout = buf
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
-	}
-	cmds := strings.Split(buf.String(), "\n")
-
-	start := time.Now()
-	for _, c := range cmds {
-		if strings.HasPrefix(c, "#") || strings.HasPrefix(c, "specinvoke exit") || strings.TrimSpace(c) == "" {
-			continue
+	var args []string
+	var cmds string
+	for i := 1; i < len(os.Args); i++ {
+		switch os.Args[i] {
+		case "-f":
+			if i+1 >= len(os.Args) {
+				log.Fatal("-f has no argument")
+			}
+			cmds = os.Args[i+1]
+			i++
+		default:
+			args = append(args, os.Args[i])
 		}
-		cmd := exec.Command("sh", "-c", loader+" "+c)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		fmt.Println(cmd)
-		err := cmd.Run()
+	}
+
+	if cmds != "" {
+		data, err := os.ReadFile(cmds)
 		if err != nil {
 			log.Fatal(err)
 		}
+		str := string(data)
+		str = strings.ReplaceAll(str, "../run_base_", fmt.Sprintf("%s ../run_base_", loader))
+		os.WriteFile(cmds, []byte(str), os.ModePerm)
 	}
-	fmt.Println(time.Since(start))
+
+	args = append(args, "-f", cmds)
+	cmd := exec.Command(specinvoke, args...)
+	fmt.Println("specinvoke running:", cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
