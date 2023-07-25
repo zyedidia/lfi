@@ -1,11 +1,13 @@
 package main
 
 import (
+	"debug/elf"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/zyedidia/isolator/arm64/arm64asm"
 	arm "github.com/zyedidia/isolator/arm64/arm64asm"
 )
 
@@ -130,6 +132,8 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 			var r arm.Reg
 			checkAddUxtw(inst, modReg, r, false)
 			return
+		} else if fixedRegs[modReg] {
+			fail(inst, "modifying fixed register")
 		} else if modReg == loResReg {
 			// mov resReg, wsp is allowed
 			checkMov(inst, loResReg, arm.WSP)
@@ -152,6 +156,15 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 	}
 }
 
+func isZero(arr []byte) bool {
+	for _, b := range arr {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func main() {
 	flag.Parse()
 	args := flag.Args()
@@ -162,29 +175,48 @@ func main() {
 
 	target := args[0]
 
-	data, err := os.ReadFile(target)
+	f, err := os.Open(target)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	addr := int64(0)
+	e, err := elf.NewFile(f)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var insts []Inst
 
-	for len(data) > 0 {
-		inst, err := arm.Decode(data)
-		if err != nil {
-			fmt.Printf("unknown instruction at %x\n", addr)
-			failed = true
-		} else {
-			insts = append(insts, Inst{
-				Inst: inst,
-				Addr: addr,
-			})
+	for _, p := range e.Progs {
+		if p.Type != elf.PT_LOAD || (p.Flags&elf.PF_X == 0) {
+			continue
 		}
-
-		addr += 4
-		data = data[4:]
+		data := make([]byte, p.Filesz)
+		_, err := p.ReadAt(data, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+		addr := p.Vaddr
+		for len(data) > 0 {
+			if !isZero(data[:4]) {
+				inst, err := arm64asm.Decode(data)
+				if err != nil {
+					fmt.Printf("unknown instruction at %x: %v, %s\n", addr, data[:4], err)
+					failed = true
+				} else {
+					insts = append(insts, Inst{
+						Inst: inst,
+						Addr: int64(addr),
+					})
+				}
+				if err != nil {
+					log.Fatalf("%x: %v, %s\n", addr, data[:4], err)
+				}
+				// fmt.Printf("%x: %s\n", addr, arm64asm.GNUSyntax(inst))
+			}
+			addr += 4
+			data = data[4:]
+		}
 	}
 
 	for i := 0; i < len(insts); i++ {
