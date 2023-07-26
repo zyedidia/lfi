@@ -208,6 +208,10 @@ func memPass(ops *OpList) {
 		if inst, ok := op.Value.(*Inst); ok {
 			builder.Locate(op)
 			switch {
+			case exstores[inst.Name]:
+				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
+			case multiexstores[inst.Name]:
+				sandboxMemAddrNoOpt(op, &inst.Args[3], builder)
 			case basicloads[inst.Name], basicstores[inst.Name]:
 				if !sandboxMemAddr(&inst.Args[1], builder) {
 					sandboxMemAddrNoOpt(op, &inst.Args[1], builder)

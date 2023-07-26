@@ -260,7 +260,10 @@ func main() {
 			}
 		}
 
-		if multistores[inst.Op] || multiloads[inst.Op] {
+		if multiexstores[inst.Op] {
+			mustArgs(4, inst)
+			checkMem(inst.Args[3], inst)
+		} else if exstores[inst.Op] || multistores[inst.Op] || multiloads[inst.Op] {
 			mustArgs(3, inst)
 			checkMem(inst.Args[2], inst)
 		} else if stores[inst.Op] || loads[inst.Op] {
@@ -268,7 +271,7 @@ func main() {
 			checkMem(inst.Args[1], inst)
 		}
 
-		if stores[inst.Op] || branches[inst.Op] || nomodify[inst.Op] {
+		if (!exstores[inst.Op] && !multiexstores[inst.Op] && stores[inst.Op]) || branches[inst.Op] || nomodify[inst.Op] {
 			// instructions that cannot modify their operands
 			// since we already checked that stores have a proper base reg,
 			// the post/pre-index addressing modes cannot modify fixed

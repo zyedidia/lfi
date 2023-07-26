@@ -257,6 +257,10 @@ func rangePass(ops *OpList) {
 		if inst, ok := op.Value.(*Inst); ok && curLabel != nil && curLabel.rangeReg != "" {
 			builder.Locate(op)
 			switch {
+			case exstores[inst.Name]:
+				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
+			case multiexstores[inst.Name]:
+				sandboxMemAddrNoOpt(op, &inst.Args[3], builder)
 			case basicloads[inst.Name], basicstores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
 					// sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
