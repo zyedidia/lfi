@@ -26,40 +26,26 @@ var dataRegs = map[arm.Reg]bool{
 var fixedRegs = map[arm.Reg]bool{
 	arm.X21: true,
 	arm.W21: true,
-	arm.H21: true,
-	arm.B21: true,
 
 	arm.X22: true,
 	arm.W22: true,
-	arm.H22: true,
-	arm.B22: true,
 }
 
 var restrictedRegs = map[arm.Reg]bool{
 	arm.X30: true,
 	arm.W30: true,
-	arm.H30: true,
-	arm.B30: true,
 
 	arm.X21: true,
 	arm.W21: true,
-	arm.H21: true,
-	arm.B21: true,
 
 	arm.X22: true,
 	arm.W22: true,
-	arm.H22: true,
-	arm.B22: true,
 
 	arm.X24: true,
 	arm.W24: true,
-	arm.H24: true,
-	arm.B24: true,
 
 	arm.X15: true,
 	arm.W15: true,
-	arm.H15: true,
-	arm.B15: true,
 
 	arm.SP:  true,
 	arm.WSP: true,

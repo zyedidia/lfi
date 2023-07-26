@@ -84,10 +84,10 @@ var stores = map[string]bool{
 	"stlrb": true,
 	"stlrh": true,
 
-	"sd1": true,
-	"sd2": true,
-	"sd3": true,
-	"sd4": true,
+	"st1": true,
+	"st2": true,
+	"st3": true,
+	"st4": true,
 }
 
 var exstores = map[string]bool{
