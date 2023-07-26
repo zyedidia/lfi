@@ -715,16 +715,16 @@ func plan9Arg(inst *Inst, pc uint64, symname func(uint64) (string, uint64), arg 
 		return fmt.Sprintf("%s[%d]", result, a.index)
 
 	case Systemreg:
-		return fmt.Sprintf("$%d", uint32(a.op0&1)<<14|uint32(a.op1&7)<<11|uint32(a.cn&15)<<7|uint32(a.cm&15)<<3|uint32(a.op2)&7)
+		return fmt.Sprintf("$%d", uint32(a.Op0&1)<<14|uint32(a.Op1&7)<<11|uint32(a.Cn&15)<<7|uint32(a.Cm&15)<<3|uint32(a.Op2)&7)
 
 	case Imm_prfop:
 		if strings.Contains(a.String(), "#") {
 			return fmt.Sprintf("$%d", a)
 		}
-	case sysOp:
-		result := a.op.String()
-		if a.r != 0 {
-			result += ", " + plan9gpr(a.r)
+	case SysOp:
+		result := a.Op.String()
+		if a.R != 0 {
+			result += ", " + plan9gpr(a.R)
 		}
 		return result
 	}

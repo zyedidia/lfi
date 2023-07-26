@@ -35,6 +35,8 @@ var loads = map[string]bool{
 	"ldrsh":  true,
 	"ldrusb": true,
 	"ldrush": true,
+	"ldurh":  true,
+	"ldurb":  true,
 
 	"ldar":   true,
 	"ldxr":   true,

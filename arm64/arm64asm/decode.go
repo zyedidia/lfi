@@ -693,17 +693,17 @@ func decodeArg(aop instArg, x uint32) Arg {
 		cn := (x >> 12) & 15
 		cm := (x >> 8) & 15
 		op2 := (x >> 5) & 7
-		sysInst := sysInstFields{uint8(op1), uint8(cn), uint8(cm), uint8(op2)}
+		sysInst := SysInstFields{uint8(op1), uint8(cn), uint8(cm), uint8(op2)}
 		attrs := sysInst.getAttrs()
 		reg := int(x & 31)
 		if !attrs.hasOperand2 {
 			if reg == 31 {
-				return sysOp{sysInst, 0, false}
+				return SysOp{sysInst, 0, false}
 			}
 			// This instruction is undefined if the Rt field is not set to 31.
 			return nil
 		}
-		return sysOp{sysInst, X0 + Reg(reg), true}
+		return SysOp{sysInst, X0 + Reg(reg), true}
 
 	case arg_Bt:
 		return B0 + Reg(x&(1<<5-1))

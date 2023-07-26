@@ -24,12 +24,45 @@ var dataRegs = map[arm.Reg]bool{
 }
 
 var fixedRegs = map[arm.Reg]bool{
-	loResReg:     true,
-	loSegmentReg: true,
-	loSyscallReg: true,
-	segmentReg:   true,
-	syscallReg:   true,
-	loOptReg:     true,
+	arm.X21: true,
+	arm.W21: true,
+	arm.H21: true,
+	arm.B21: true,
+
+	arm.X22: true,
+	arm.W22: true,
+	arm.H22: true,
+	arm.B22: true,
+}
+
+var restrictedRegs = map[arm.Reg]bool{
+	arm.X30: true,
+	arm.W30: true,
+	arm.H30: true,
+	arm.B30: true,
+
+	arm.X21: true,
+	arm.W21: true,
+	arm.H21: true,
+	arm.B21: true,
+
+	arm.X22: true,
+	arm.W22: true,
+	arm.H22: true,
+	arm.B22: true,
+
+	arm.X24: true,
+	arm.W24: true,
+	arm.H24: true,
+	arm.B24: true,
+
+	arm.X15: true,
+	arm.W15: true,
+	arm.H15: true,
+	arm.B15: true,
+
+	arm.SP:  true,
+	arm.WSP: true,
 }
 
 var loRegs = map[arm.Reg]bool{
@@ -64,26 +97,6 @@ var loRegs = map[arm.Reg]bool{
 	arm.W28: true,
 	arm.W29: true,
 	arm.W30: true,
-}
-
-var restrictedRegs = map[arm.Reg]bool{
-	arm.X30: true,
-	arm.W30: true,
-	arm.H30: true,
-	arm.B30: true,
-
-	arm.X21: true,
-	arm.W21: true,
-	arm.H21: true,
-	arm.B21: true,
-
-	arm.X20: true,
-	arm.W20: true,
-	arm.H20: true,
-	arm.B20: true,
-
-	arm.SP:  true,
-	arm.WSP: true,
 }
 
 // list of permitted instructions
@@ -300,8 +313,8 @@ var allowed = map[arm.Op]bool{
 	arm.MOVK:   true,
 	arm.MOVN:   true,
 	arm.MOVZ:   true,
-	// arm.MRS:       true,
-	// arm.MSR:       true,
+	arm.MRS:    true,
+	arm.MSR:    true,
 	arm.MSUB:   true,
 	arm.MUL:    true,
 	arm.MVN:    true,
@@ -567,6 +580,14 @@ var stores = map[arm.Op]bool{
 	arm.STURH: true,
 }
 
+var multiloads = map[arm.Op]bool{
+	arm.LDP:   true,
+	arm.LDPSW: true,
+	arm.LDNP:  true,
+	arm.LDAXP: true,
+	arm.LDXP:  true,
+}
+
 var branches = map[arm.Op]bool{
 	arm.RET:  true,
 	arm.BLR:  true,
@@ -582,3 +603,7 @@ var branches = map[arm.Op]bool{
 var nomodify = map[arm.Op]bool{
 	arm.NOP: true,
 }
+
+var (
+	tpidr_el0 = arm.Systemreg{3, 3, 13, 0, 2}
+)

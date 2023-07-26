@@ -58,7 +58,7 @@ const (
 )
 
 func sys_op_4(op1, crn, crm, op2 uint32) sys {
-	sysInst := sysInstFields{uint8(op1), uint8(crn), uint8(crm), uint8(op2)}
+	sysInst := SysInstFields{uint8(op1), uint8(crn), uint8(crm), uint8(op2)}
 	return sysInst.getType()
 }
 
