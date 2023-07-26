@@ -12,6 +12,7 @@ var basicloads = map[string]bool{
 	"ldrsh":  true,
 	"ldrusb": true,
 	"ldrush": true,
+	"prfm":   true,
 }
 
 var basicstores = map[string]bool{
@@ -62,6 +63,9 @@ var loads = map[string]bool{
 	"ld2":  true,
 	"ld3":  true,
 	"ld4":  true,
+
+	"prfm":  true,
+	"prfum": true,
 }
 
 var calls = map[string]bool{
