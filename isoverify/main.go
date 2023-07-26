@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/zyedidia/isolator/arm64/arm64asm"
 	arm "github.com/zyedidia/isolator/arm64/arm64asm"
 )
 
@@ -24,27 +23,54 @@ func fail(i Inst, msg string) {
 	failed = true
 }
 
-func mustResReg(reg arm.Reg, inst Inst) {
-	if reg != resReg {
-		fail(inst, fmt.Sprintf("must use reserved register %s", resReg))
+func isReg(a arm.Arg, reg arm.Reg) bool {
+	if r, ok := a.(arm.Reg); ok {
+		return r == reg
 	}
+	return false
 }
 
-func mustRetReg(reg arm.Reg, inst Inst) {
-	if reg != retReg {
-		fail(inst, fmt.Sprintf("must use reserved return register %s", retReg))
+func isSystemReg(a arm.Arg, reg arm.Systemreg) bool {
+	if r, ok := a.(arm.Systemreg); ok {
+		return r == reg
 	}
+	return false
 }
 
-func mustArgs(n int, inst Inst) {
-	nargs := 0
-	for _, a := range inst.Args {
-		if a != nil {
-			nargs++
+func isZero(arr []byte) bool {
+	for _, b := range arr {
+		if b != 0 {
+			return false
 		}
 	}
-	if nargs != n {
-		fail(inst, fmt.Sprintf("incorrect number of arguments, got %d, expected %d", nargs, n))
+	return true
+}
+
+func checkMem(mem arm.Arg, inst Inst) {
+	switch arg := mem.(type) {
+	case arm.MemImmediate:
+		if !dataRegs[arm.Reg(arg.Base)] {
+			fail(inst, "must use reserved data register for memory access")
+		}
+	case arm.MemExtend:
+		if arg.Base != arm.RegSP(segmentReg) {
+			if dataRegs[arm.Reg(arg.Base)] && arg.Base != arm.RegSP(arm.SP) {
+				if arg.Amount == 0 && loRegs[arg.Index] && (arg.Extend == arm.Uxtw || arg.Extend == arm.Sxtw) {
+					return
+				}
+			}
+
+			fail(inst, "base reg must be segment reg")
+			return
+		}
+		if !loRegs[arg.Index] {
+			fail(inst, "index reg must be 32-bit")
+			return
+		}
+		if arg.Extend != arm.Uxtw || arg.Amount != 0 {
+			fail(inst, "extend must be uxtw #0")
+			return
+		}
 	}
 }
 
@@ -81,22 +107,10 @@ func checkAddUxtw(inst Inst, target arm.Reg, src arm.Reg, checksrc bool) {
 	}
 }
 
-func checkMem(mem arm.Arg, inst Inst, prevInst *Inst) {
-	switch arg := mem.(type) {
-	case arm.MemImmediate:
-		if arg.Mode == arm.AddrPostReg {
-			fail(inst, "cannot use post register addressing mode")
-		}
-		if !dataRegs[arm.Reg(arg.Base)] {
-			// must be a data register
-			fail(inst, fmt.Sprintf("must use data register (sp or %s) for memory access", resReg))
-		}
-	case arm.MemExtend:
-		fail(inst, "cannot use extended addressing mode")
+func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, sp bool) {
+	if fixedRegs[modReg] {
+		fail(inst, "modifying fixed register")
 	}
-}
-
-func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 	var next1, next2 *Inst
 	if i+1 < len(insts) {
 		next1 = &insts[i+1]
@@ -105,10 +119,10 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 		next2 = &insts[i+2]
 	}
 	if restrictedRegs[modReg] {
-		if modReg == segmentReg {
-			// it is never valid to modify the segment ID register
-			fail(inst, "modifying the segment ID register is disallowed")
-		} else if couldSp && modReg == arm.SP {
+		if !sp && (modReg == arm.XZR || modReg == arm.WZR) {
+			return
+		} else if sp && modReg == arm.SP {
+			// allow 'add sp, segmentReg, loResReg, uxtw' (required during guard sequence)
 			if inst.Op == arm.ADD && inst.Args[1].(arm.RegSP) == arm.RegSP(segmentReg) {
 				if r, ok := inst.Args[2].(arm.RegExtshiftAmount); ok {
 					if r.ExtShift == arm.Uxtw && r.Reg == loResReg {
@@ -132,15 +146,12 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 			var r arm.Reg
 			checkAddUxtw(inst, modReg, r, false)
 			return
-		} else if fixedRegs[modReg] {
-			fail(inst, "modifying fixed register")
 		} else if modReg == loResReg {
-			// mov resReg, wsp is allowed
+			// mov loResReg, wsp is allowed
 			checkMov(inst, loResReg, arm.WSP)
 			if inst.Op == arm.MOV && inst.Args[1].(arm.RegSP) == arm.RegSP(arm.WSP) {
 				return
 			}
-			fail(inst, "modifying restricted register without appropriate guards")
 		} else if modReg == retReg {
 			// must be followed by
 			// add retReg, segmentReg, loRetReg, uxtw
@@ -151,18 +162,20 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, couldSp bool) {
 			}
 			return
 		}
-
-		fail(inst, fmt.Sprintf("modifying special register %s without appropriate guards", arm.RegSP(modReg)))
+		fail(inst, "modifying restricted register without guards")
 	}
 }
 
-func isZero(arr []byte) bool {
-	for _, b := range arr {
-		if b != 0 {
-			return false
+func mustArgs(n int, inst Inst) {
+	nargs := 0
+	for _, a := range inst.Args {
+		if a != nil {
+			nargs++
 		}
 	}
-	return true
+	if nargs != n {
+		fail(inst, fmt.Sprintf("incorrect number of arguments, got %d, expected %d", nargs, n))
+	}
 }
 
 func main() {
@@ -199,7 +212,7 @@ func main() {
 		addr := p.Vaddr
 		for len(data) > 0 {
 			if !isZero(data[:4]) {
-				inst, err := arm64asm.Decode(data)
+				inst, err := arm.Decode(data)
 				if err != nil {
 					fmt.Printf("unknown instruction at %x: %v, %s\n", addr, data[:4], err)
 					failed = true
@@ -209,10 +222,7 @@ func main() {
 						Addr: int64(addr),
 					})
 				}
-				if err != nil {
-					log.Fatalf("%x: %v, %s\n", addr, data[:4], err)
-				}
-				// fmt.Printf("%x: %s\n", addr, arm64asm.GNUSyntax(inst))
+				// fmt.Printf("%x: %s\n", addr, arm.GNUSyntax(inst))
 			}
 			addr += 4
 			data = data[4:]
@@ -225,56 +235,65 @@ func main() {
 			fail(inst, "instruction disallowed")
 			continue
 		}
-		var prevInst *Inst
-		if i == 0 {
-			prevInst = nil
-		} else {
-			prevInst = &insts[i-1]
-		}
-		// * make sure BLR/BR use the reserved reg
-		// * make sure loads/stores use the reserved reg
-		// * make sure loads/stores do not use fancy addressing modes
+
+		// * BLR/BR must use resReg or syscallReg
+		// * RET must use retReg
+		// * loads/stores must use data reg, or used masking address mode
+		// * fixed registers cannot be modified
+		// * reserved registers cannot be modified without masks
 		switch inst.Op {
-		case arm.BLR:
-			mustResReg(inst.Args[0].(arm.Reg), inst)
-		case arm.BR:
-			mustResReg(inst.Args[0].(arm.Reg), inst)
+		case arm.MSR:
+			if r, ok := inst.Args[0].(arm.Systemreg); !ok || !legalSysRegs[r] {
+				fail(inst, "attempt to access illegal system reg")
+			}
+		case arm.MRS:
+			if r, ok := inst.Args[1].(arm.Systemreg); !ok || !legalSysRegs[r] {
+				fail(inst, "attempt to access illegal system reg")
+			}
+		case arm.BLR, arm.BR:
+			if !isReg(inst.Args[0], resReg) && !isReg(inst.Args[0], syscallReg) {
+				fail(inst, "indirect branch on non-reserved reg")
+			}
 		case arm.RET:
-			mustRetReg(inst.Args[0].(arm.Reg), inst)
-		case arm.LDR, arm.LDRB, arm.LDRH, arm.LDRSB, arm.LDRSH, arm.LDRSW,
-			arm.LDUR, arm.LDURB, arm.LDURH, arm.LDURSH, arm.LDURSW, arm.STR,
-			arm.STRB, arm.STRH, arm.STUR, arm.STURB, arm.STURH:
-			mustArgs(2, inst)
-			checkMem(inst.Args[1], inst, prevInst)
-		case arm.LDP, arm.LDPSW, arm.STP:
+			if !isReg(inst.Args[0], retReg) {
+				fail(inst, "return to invalid register")
+			}
+		}
+
+		if multistores[inst.Op] || multiloads[inst.Op] {
 			mustArgs(3, inst)
-			checkMem(inst.Args[2], inst, prevInst)
+			checkMem(inst.Args[2], inst)
+		} else if stores[inst.Op] || loads[inst.Op] {
+			mustArgs(2, inst)
+			checkMem(inst.Args[1], inst)
 		}
 
 		if stores[inst.Op] || branches[inst.Op] || nomodify[inst.Op] {
-			// stores cannot modify restricted registers in bad ways
-			// branches do not modify their operands
+			// instructions that cannot modify their operands
+			// since we already checked that stores have a proper base reg,
+			// the post/pre-index addressing modes cannot modify fixed
+			// registers in bad ways.
 			continue
 		}
 
-		// make sure instructions do not modify reserved registers in bad ways
 		var modReg arm.Reg
-		couldSp := false
+		var sp bool
 		switch r := inst.Args[0].(type) {
 		case arm.Reg:
 			modReg = r
 		case arm.RegSP:
 			modReg = arm.Reg(r)
-			couldSp = true
+			sp = true
 		default:
-			fail(inst, "first arg was not a register")
+			// does not modify a GPR
+			continue
 		}
 
-		checkModReg(inst, insts, i, modReg, couldSp)
+		checkModReg(inst, insts, i, modReg, sp)
 
-		if inst.Op == arm.LDP || inst.Op == arm.LDPSW {
+		if multiloads[inst.Op] {
 			modReg = inst.Args[1].(arm.Reg)
-			checkModReg(inst, insts, i, modReg, false)
+			checkModReg(inst, insts, i, modReg, sp)
 		}
 	}
 

@@ -121,37 +121,38 @@ func sandboxMemAddrRange(op *OpNode, a *Arg, builder *Builder, reg Reg, optReg R
 		if m.Reg1 != reg || m.Extend == nil {
 			return false
 		}
-		rangeMask(op, m.Reg1, builder, optReg)
-		if m.Extend == nil || m.Extend.Imm == nil {
+		if m.Extend.Imm == nil && (m.Extend.Op == "uxtw" || m.Extend.Op == "sxtw") {
+			rangeMask(op, m.Reg1, builder, optReg)
 			*a = MemAddrComplex{
-				Reg1: optReg,
-				Reg2: loReg(m.Reg2),
-				Extend: &Extend{
-					Op: "sxtw",
-				},
+				Reg1:   optReg,
+				Reg2:   loReg(m.Reg2),
+				Extend: m.Extend,
 			}
 		} else {
-			exop := "sxtw"
-			if m.Extend.Op == "uxtw" {
-				exop = "uxtw"
-			}
-			builder.Locate(op)
-			builder.AddBefore(NewNode(&Inst{
-				Name: "and",
-				Args: []Arg{
-					scratchReg,
-					hiReg(m.Reg2),
-					Number("0x0fffffff"),
-				},
-			}))
-			*a = MemAddrComplex{
-				Reg1: optReg,
-				Reg2: loReg(scratchReg),
-				Extend: &Extend{
-					Op:  exop,
-					Imm: m.Extend.Imm,
-				},
-			}
+			return false
+
+			// this optimization is unsafe if we don't use any alignment
+			// exop := "sxtw"
+			// if m.Extend.Op == "uxtw" {
+			// 	exop = "uxtw"
+			// }
+			// builder.Locate(op)
+			// builder.AddBefore(NewNode(&Inst{
+			// 	Name: "and",
+			// 	Args: []Arg{
+			// 		scratchReg,
+			// 		hiReg(m.Reg2),
+			// 		Number("0x0fffffff"),
+			// 	},
+			// }))
+			// *a = MemAddrComplex{
+			// 	Reg1: optReg,
+			// 	Reg2: loReg(scratchReg),
+			// 	Extend: &Extend{
+			// 		Op:  exop,
+			// 		Imm: m.Extend.Imm,
+			// 	},
+			// }
 		}
 	}
 	return true

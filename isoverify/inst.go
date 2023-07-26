@@ -24,12 +24,45 @@ var dataRegs = map[arm.Reg]bool{
 }
 
 var fixedRegs = map[arm.Reg]bool{
-	loResReg:     true,
-	loSegmentReg: true,
-	loSyscallReg: true,
-	segmentReg:   true,
-	syscallReg:   true,
-	loOptReg:     true,
+	arm.X21: true,
+	arm.W21: true,
+	arm.H21: true,
+	arm.B21: true,
+
+	arm.X22: true,
+	arm.W22: true,
+	arm.H22: true,
+	arm.B22: true,
+}
+
+var restrictedRegs = map[arm.Reg]bool{
+	arm.X30: true,
+	arm.W30: true,
+	arm.H30: true,
+	arm.B30: true,
+
+	arm.X21: true,
+	arm.W21: true,
+	arm.H21: true,
+	arm.B21: true,
+
+	arm.X22: true,
+	arm.W22: true,
+	arm.H22: true,
+	arm.B22: true,
+
+	arm.X24: true,
+	arm.W24: true,
+	arm.H24: true,
+	arm.B24: true,
+
+	arm.X15: true,
+	arm.W15: true,
+	arm.H15: true,
+	arm.B15: true,
+
+	arm.SP:  true,
+	arm.WSP: true,
 }
 
 var loRegs = map[arm.Reg]bool{
@@ -66,26 +99,6 @@ var loRegs = map[arm.Reg]bool{
 	arm.W30: true,
 }
 
-var restrictedRegs = map[arm.Reg]bool{
-	arm.X30: true,
-	arm.W30: true,
-	arm.H30: true,
-	arm.B30: true,
-
-	arm.X21: true,
-	arm.W21: true,
-	arm.H21: true,
-	arm.B21: true,
-
-	arm.X20: true,
-	arm.W20: true,
-	arm.H20: true,
-	arm.B20: true,
-
-	arm.SP:  true,
-	arm.WSP: true,
-}
-
 // list of permitted instructions
 var allowed = map[arm.Op]bool{
 	arm.ABS:    true,
@@ -119,14 +132,14 @@ var allowed = map[arm.Op]bool{
 	arm.BL:    true,
 	arm.BLR:   true,
 	arm.BR:    true,
-	// arm.BRK:       true,
-	arm.BSL:  true,
-	arm.CBNZ: true,
-	arm.CBZ:  true,
-	arm.CCMN: true,
-	arm.CCMP: true,
-	arm.CINC: true,
-	arm.CINV: true,
+	arm.BRK:   true,
+	arm.BSL:   true,
+	arm.CBNZ:  true,
+	arm.CBZ:   true,
+	arm.CCMN:  true,
+	arm.CCMP:  true,
+	arm.CINC:  true,
+	arm.CINV:  true,
 	// arm.CLREX:     true,
 	arm.CLS:     true,
 	arm.CLZ:     true,
@@ -300,8 +313,8 @@ var allowed = map[arm.Op]bool{
 	arm.MOVK:   true,
 	arm.MOVN:   true,
 	arm.MOVZ:   true,
-	// arm.MRS:       true,
-	// arm.MSR:       true,
+	arm.MRS:    true,
+	arm.MSR:    true,
 	arm.MSUB:   true,
 	arm.MUL:    true,
 	arm.MVN:    true,
@@ -557,14 +570,103 @@ var allowed = map[arm.Op]bool{
 	arm.ZIP2: true,
 }
 
+var loads = map[arm.Op]bool{
+	arm.LD1:    true,
+	arm.LD1R:   true,
+	arm.LD2:    true,
+	arm.LD2R:   true,
+	arm.LD3:    true,
+	arm.LD3R:   true,
+	arm.LD4:    true,
+	arm.LD4R:   true,
+	arm.LDAR:   true,
+	arm.LDARB:  true,
+	arm.LDARH:  true,
+	arm.LDAXP:  true,
+	arm.LDAXR:  true,
+	arm.LDAXRB: true,
+	arm.LDAXRH: true,
+	arm.LDNP:   true,
+	arm.LDP:    true,
+	arm.LDPSW:  true,
+	arm.LDR:    true,
+	arm.LDRB:   true,
+	arm.LDRH:   true,
+	arm.LDRSB:  true,
+	arm.LDRSH:  true,
+	arm.LDRSW:  true,
+	arm.LDTR:   true,
+	arm.LDTRB:  true,
+	arm.LDTRH:  true,
+	arm.LDTRSB: true,
+	arm.LDTRSH: true,
+	arm.LDTRSW: true,
+	arm.LDUR:   true,
+	arm.LDURB:  true,
+	arm.LDURH:  true,
+	arm.LDURSB: true,
+	arm.LDURSH: true,
+	arm.LDURSW: true,
+	arm.LDXP:   true,
+	arm.LDXR:   true,
+	arm.LDXRB:  true,
+	arm.LDXRH:  true,
+}
+
 var stores = map[arm.Op]bool{
-	arm.STP:   true,
-	arm.STR:   true,
-	arm.STRB:  true,
-	arm.STRH:  true,
-	arm.STUR:  true,
-	arm.STURB: true,
-	arm.STURH: true,
+	arm.ST1:    true,
+	arm.ST2:    true,
+	arm.ST3:    true,
+	arm.ST4:    true,
+	arm.STLR:   true,
+	arm.STLRB:  true,
+	arm.STLRH:  true,
+	arm.STLXP:  true,
+	arm.STLXR:  true,
+	arm.STLXRB: true,
+	arm.STLXRH: true,
+	arm.STNP:   true,
+	arm.STP:    true,
+	arm.STR:    true,
+	arm.STRB:   true,
+	arm.STRH:   true,
+	arm.STTR:   true,
+	arm.STTRB:  true,
+	arm.STTRH:  true,
+	arm.STUR:   true,
+	arm.STURB:  true,
+	arm.STURH:  true,
+	arm.STXP:   true,
+	arm.STXR:   true,
+	arm.STXRB:  true,
+	arm.STXRH:  true,
+}
+
+var multiloads = map[arm.Op]bool{
+	arm.LDP:   true,
+	arm.LDPSW: true,
+	arm.LDNP:  true,
+	arm.LDAXP: true,
+	arm.LDXP:  true,
+}
+
+var multistores = map[arm.Op]bool{
+	arm.STNP: true,
+	arm.STP:  true,
+}
+
+var exstores = map[arm.Op]bool{
+	arm.STLXR:  true,
+	arm.STLXRB: true,
+	arm.STLXRH: true,
+	arm.STXR:   true,
+	arm.STXRB:  true,
+	arm.STXRH:  true,
+}
+
+var multiexstores = map[arm.Op]bool{
+	arm.STXP:  true,
+	arm.STLXP: true,
 }
 
 var branches = map[arm.Op]bool{
@@ -581,4 +683,18 @@ var branches = map[arm.Op]bool{
 
 var nomodify = map[arm.Op]bool{
 	arm.NOP: true,
+	arm.CMP: true,
+	arm.CMN: true,
+}
+
+var (
+	tpidr_el0 = arm.Systemreg{3, 3, 13, 0, 2}
+	fpsr      = arm.Systemreg{3, 3, 4, 4, 1}
+	fpcr      = arm.Systemreg{3, 3, 4, 4, 0}
+)
+
+var legalSysRegs = map[arm.Systemreg]bool{
+	tpidr_el0: true,
+	fpsr:      true,
+	fpcr:      true,
 }
