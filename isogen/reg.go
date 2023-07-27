@@ -5,11 +5,11 @@ import "strings"
 const (
 	resReg     = Reg("x15")
 	segmentReg = Reg("x21")
-	syscallReg = Reg("x22")
 	scratchReg = Reg("x14")
 	optReg     = Reg("x24")
 	optReg2    = Reg("x23")
 	spReg      = Reg("sp")
+	retReg     = Reg("x30")
 )
 
 var sandboxed = map[Reg]bool{
@@ -21,7 +21,6 @@ var sandboxed = map[Reg]bool{
 
 var reserved = map[Reg]bool{
 	segmentReg: true,
-	syscallReg: true,
 	resReg:     true,
 	optReg:     true,
 }

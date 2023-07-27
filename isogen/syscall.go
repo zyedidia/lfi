@@ -19,8 +19,19 @@ func syscallPass(ops *OpList) {
 			}))
 
 			b.Add(NewNode(&Inst{
+				Name: "ldr",
+				Args: []Arg{
+					retReg,
+					MemAddr{
+						Reg: segmentReg,
+						Imm: nil,
+					},
+				},
+			}))
+
+			b.Add(NewNode(&Inst{
 				Name: "blr",
-				Args: []Arg{syscallReg},
+				Args: []Arg{retReg},
 			}))
 
 			n := b.Add(NewNode(&Inst{

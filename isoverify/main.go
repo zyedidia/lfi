@@ -49,6 +49,9 @@ func isZero(arr []byte) bool {
 func checkMem(mem arm.Arg, inst Inst) {
 	switch arg := mem.(type) {
 	case arm.MemImmediate:
+		if arg.Base == arm.RegSP(segmentReg) && arg.Imm == 0 {
+			return
+		}
 		if !dataRegs[arm.Reg(arg.Base)] {
 			fail(inst, "must use reserved data register for memory access")
 		}
@@ -236,7 +239,7 @@ func main() {
 			continue
 		}
 
-		// * BLR/BR must use resReg or syscallReg
+		// * BLR/BR must use resReg or retReg
 		// * RET must use retReg
 		// * loads/stores must use data reg, or used masking address mode
 		// * fixed registers cannot be modified
@@ -251,7 +254,7 @@ func main() {
 				fail(inst, "attempt to access illegal system reg")
 			}
 		case arm.BLR, arm.BR:
-			if !isReg(inst.Args[0], resReg) && !isReg(inst.Args[0], syscallReg) {
+			if !isReg(inst.Args[0], resReg) && !isReg(inst.Args[0], retReg) {
 				fail(inst, "indirect branch on non-reserved reg")
 			}
 		case arm.RET:

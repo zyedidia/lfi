@@ -9,12 +9,12 @@ const (
 	loResReg     = arm.W15
 	segmentReg   = arm.X21
 	loSegmentReg = arm.W21
-	syscallReg   = arm.X22
-	loSyscallReg = arm.W22
-	optReg       = arm.X24
-	loOptReg     = arm.W24
-	retReg       = arm.X30
-	loRetReg     = arm.W30
+	// syscallReg   = arm.X22
+	// loSyscallReg = arm.W22
+	optReg   = arm.X24
+	loOptReg = arm.W24
+	retReg   = arm.X30
+	loRetReg = arm.W30
 )
 
 var dataRegs = map[arm.Reg]bool{
