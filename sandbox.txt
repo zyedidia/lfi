@@ -7,6 +7,15 @@ x23: scratch register
 sp: special
 fp: special (TODO)
 
+TODO:
+make this transformation
+add sp, sp, #n
+->
+add w14, wsp, #n
+add sp, x21, x14
+
+requires that x14 is a reserved 32-bit-only register
+
 load/store transformations:
     ldr _, [x0]
     ->
