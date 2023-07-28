@@ -185,6 +185,7 @@ func main() {
 	}
 	// run("cp", asmmc, iso)
 	// run("isogen", asmmc, "-o", iso, "-S", "/tmp/isocc.stats")
+	// flags := []string{asmmc, "-o", iso, "--inst"}
 	flags := []string{asmmc, "-o", iso}
 	if norange {
 		flags = append(flags, "--hoist=false")

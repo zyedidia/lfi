@@ -1,6 +1,8 @@
 package main
 
-import "log"
+import (
+	"log"
+)
 
 func sandboxSp(builder *Builder) {
 	builder.Add(NewNode(&Inst{
@@ -45,9 +47,58 @@ func sandboxDest(dest Reg, builder *Builder) {
 func specialRegPass(ops *OpList) {
 	op := ops.Front
 	builder := NewBuilder(ops)
+instloop:
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
 			builder.Locate(op)
+			if inst.Name == "add" || inst.Name == "sub" {
+				if r, ok := inst.Args[0].(Reg); ok && r == "sp" {
+					o := op
+					for o != nil {
+						if inner, ok := o.Value.(*Inst); ok {
+							if loads[inner.Name] || multiloads[inner.Name] || stores[inner.Name] || multistores[inner.Name] {
+								var m Arg
+								if loads[inner.Name] || stores[inner.Name] {
+									m = inner.Args[1]
+								} else {
+									m = inner.Args[2]
+								}
+								var base Reg
+								switch m := m.(type) {
+								case MemAddr:
+									base = m.Reg
+								case MemAddrPost:
+									base = m.Reg
+								case MemAddrPre:
+									base = m.Reg
+								}
+								if base == "sp" {
+									op = op.Next
+									continue instloop
+								}
+							} else if branches[inner.Name] {
+								break
+							}
+						}
+						o = o.Next
+					}
+					inst.Args[0] = loReg(resReg)
+					inst.Args[1] = loReg(inst.Args[1].(Reg))
+					op = builder.Add(NewNode(&Inst{
+						Name: "add",
+						Args: []Arg{
+							Reg("sp"),
+							segmentReg,
+							loReg(resReg),
+							Extend{
+								Op: "uxtw",
+							},
+						},
+					}))
+					op = op.Next
+					continue
+				}
+			}
 			if loads[inst.Name] {
 				if r, ok := inst.Args[0].(Reg); ok {
 					if inst.Name == "ldr" {

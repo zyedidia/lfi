@@ -177,6 +177,7 @@ func main() {
 		defer os.Remove(iso)
 	}
 	// run("cp", asm, iso)
+	// flags := []string{asmmc, "-o", iso, "--inst"}
 	flags := []string{asmmc, "-o", iso}
 	if norange {
 		flags = append(flags, "--hoist=false")

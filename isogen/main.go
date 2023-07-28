@@ -20,6 +20,8 @@ func showOps(w io.Writer, list *OpList) {
 	}
 }
 
+var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
+
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
 	hoist := pflag.BoolP("hoist", "r", true, "apply guard hoisting optimization")
@@ -49,6 +51,9 @@ func main() {
 	memPass(ops)
 	syscallPass(ops)
 	specialRegPass(ops)
+	if *instrument {
+		instrumentPass(ops)
+	}
 	branchFixupPass(ops)
 
 	var w io.Writer
