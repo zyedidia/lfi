@@ -97,6 +97,10 @@ func checkAddUxtw(inst Inst, target arm.Reg, src arm.Reg, checksrc bool) {
 	if !must(inst.Op == arm.ADD, inst, fmt.Sprintf("must be add uxtw, but got %s", inst.Op)) {
 		return
 	}
+	if _, ok := inst.Args[1].(arm.RegSP); !ok {
+		must(ok, inst, "incorrect argument")
+		return
+	}
 	must(inst.Args[1].(arm.RegSP) == arm.RegSP(segmentReg), inst, "second argument must be segment reg")
 	if r, ok := inst.Args[2].(arm.RegExtshiftAmount); !ok {
 		fail(inst, "third argument must use uxtw")
@@ -122,6 +126,15 @@ func checkModReg(inst Inst, insts []Inst, i int, modReg arm.Reg, sp bool) {
 		next2 = &insts[i+2]
 	}
 	if restrictedRegs[modReg] {
+		if modReg == retReg && inst.Op == arm.LDR {
+			// 'ldr retReg, [segmentReg]' is legal without further guard
+			mem := inst.Args[1].(arm.MemImmediate)
+			if mem.Base == arm.RegSP(segmentReg) {
+				must(mem.Imm == 0, inst, "immediate must be zero")
+				return
+			}
+		}
+
 		if !sp && (modReg == arm.XZR || modReg == arm.WZR) {
 			return
 		} else if sp && modReg == arm.SP {

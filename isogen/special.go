@@ -50,6 +50,12 @@ func specialRegPass(ops *OpList) {
 			builder.Locate(op)
 			if loads[inst.Name] {
 				if r, ok := inst.Args[0].(Reg); ok {
+					if inst.Name == "ldr" {
+						if m, ok := inst.Args[1].(MemAddr); ok && r == retReg && m.Reg == segmentReg && m.Imm == nil {
+							op = op.Next
+							continue
+						}
+					}
 					sandboxDest(r, builder)
 				}
 			} else if multiloads[inst.Name] {
@@ -59,7 +65,7 @@ func specialRegPass(ops *OpList) {
 				if r, ok := inst.Args[1].(Reg); ok {
 					sandboxDest(r, builder)
 				}
-			} else if !IsStore(op.Value) && len(inst.Args) > 0 {
+			} else if !IsStore(op.Value) && !IsBranch(op.Value) && len(inst.Args) > 0 {
 				if r, ok := inst.Args[0].(Reg); ok {
 					sandboxDest(r, builder)
 				}

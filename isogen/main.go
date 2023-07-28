@@ -43,12 +43,12 @@ func main() {
 
 	branchPass(ops)
 	fixupReservedPass(ops)
-	syscallPass(ops)
-	specialRegPass(ops)
 	if *hoist {
 		rangePass(ops)
 	}
 	memPass(ops)
+	syscallPass(ops)
+	specialRegPass(ops)
 	branchFixupPass(ops)
 
 	var w io.Writer

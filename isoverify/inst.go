@@ -9,43 +9,41 @@ const (
 	loResReg     = arm.W15
 	segmentReg   = arm.X21
 	loSegmentReg = arm.W21
-	// syscallReg   = arm.X22
-	// loSyscallReg = arm.W22
-	optReg   = arm.X24
-	loOptReg = arm.W24
-	retReg   = arm.X30
-	loRetReg = arm.W30
+	optReg       = arm.X24
+	loOptReg     = arm.W24
+	optReg2      = arm.X22
+	loOptReg2    = arm.W22
+	retReg       = arm.X30
+	loRetReg     = arm.W30
 )
 
 var dataRegs = map[arm.Reg]bool{
-	resReg: true,
-	optReg: true,
-	arm.SP: true,
+	resReg:  true,
+	optReg:  true,
+	optReg2: true,
+	arm.SP:  true,
 }
 
 var fixedRegs = map[arm.Reg]bool{
-	arm.X21: true,
-	arm.W21: true,
-
-	arm.X22: true,
-	arm.W22: true,
+	segmentReg:   true,
+	loSegmentReg: true,
 }
 
 var restrictedRegs = map[arm.Reg]bool{
-	arm.X30: true,
-	arm.W30: true,
+	retReg:   true,
+	loRetReg: true,
 
-	arm.X21: true,
-	arm.W21: true,
+	segmentReg:   true,
+	loSegmentReg: true,
 
-	arm.X22: true,
-	arm.W22: true,
+	optReg2:   true,
+	loOptReg2: true,
 
-	arm.X24: true,
-	arm.W24: true,
+	optReg:   true,
+	loOptReg: true,
 
-	arm.X15: true,
-	arm.W15: true,
+	resReg:   true,
+	loResReg: true,
 
 	arm.SP:  true,
 	arm.WSP: true,

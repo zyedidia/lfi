@@ -7,22 +7,23 @@ const (
 	segmentReg = Reg("x21")
 	scratchReg = Reg("x14")
 	optReg     = Reg("x24")
-	optReg2    = Reg("x23")
+	optReg2    = Reg("x22")
 	spReg      = Reg("sp")
 	retReg     = Reg("x30")
 )
 
 var sandboxed = map[Reg]bool{
-	spReg:  true,
-	resReg: true,
-	optReg: true,
-	// optReg2: true,
+	spReg:   true,
+	resReg:  true,
+	optReg:  true,
+	optReg2: true,
 }
 
 var reserved = map[Reg]bool{
 	segmentReg: true,
 	resReg:     true,
 	optReg:     true,
+	optReg2:    true,
 }
 
 func hiReg(r Reg) Reg {
