@@ -84,6 +84,9 @@ instloop:
 					}
 					inst.Args[0] = loReg(resReg)
 					inst.Args[1] = loReg(inst.Args[1].(Reg))
+					if r, ok := inst.Args[2].(Reg); ok {
+						inst.Args[2] = loReg(r)
+					}
 					op = builder.Add(NewNode(&Inst{
 						Name: "add",
 						Args: []Arg{
