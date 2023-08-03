@@ -41,6 +41,9 @@ func main() {
 	var out, target string
 	var compile, assemble, verbose, keep, lto bool
 	var isogen, args, objs []string
+	if iflags := os.Getenv("ISOFLAGS"); iflags != "" {
+		isogen = append(isogen, iflags)
+	}
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		if strings.HasPrefix(arg, "-fisolator") {

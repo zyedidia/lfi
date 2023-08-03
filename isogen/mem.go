@@ -196,6 +196,54 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 				resReg,
 			},
 		}))
+	case MemAddrComplex:
+		if sandboxed[m.Reg1] {
+			return
+		}
+		if m.Extend == nil {
+			builder.AddBefore(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					loReg(scratchReg),
+					loReg(m.Reg1),
+					loReg(m.Reg2),
+				},
+			}))
+			builder.Add(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					resReg,
+					segmentReg,
+					loReg(scratchReg),
+					Extend{Op: "uxtw"},
+				},
+			}))
+			*a = MemAddr{
+				Reg: resReg,
+			}
+		} else {
+			builder.AddBefore(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					loReg(scratchReg),
+					loReg(m.Reg1),
+					loReg(m.Reg2),
+					m.Extend,
+				},
+			}))
+			builder.Add(NewNode(&Inst{
+				Name: "add",
+				Args: []Arg{
+					resReg,
+					segmentReg,
+					loReg(scratchReg),
+					Extend{Op: "uxtw"},
+				},
+			}))
+			*a = MemAddr{
+				Reg: resReg,
+			}
+		}
 	default:
 		log.Fatal("bad addressing mode")
 	}
@@ -213,7 +261,7 @@ func memPass(ops *OpList) {
 			case multiexstores[inst.Name]:
 				sandboxMemAddrNoOpt(op, &inst.Args[3], builder)
 			case basicloads[inst.Name], basicstores[inst.Name]:
-				if *opt >= 1 && !sandboxMemAddr(&inst.Args[1], builder) {
+				if *opt < 1 || !sandboxMemAddr(&inst.Args[1], builder) {
 					sandboxMemAddrNoOpt(op, &inst.Args[1], builder)
 				}
 			case loads[inst.Name], stores[inst.Name]:
