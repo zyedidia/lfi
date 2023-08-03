@@ -51,7 +51,6 @@ func main() {
 	memPass(ops)
 	syscallPass(ops)
 	specialRegPass(ops)
-	preExtensionPass(ops)
 	if *instrument {
 		instrumentPass(ops)
 	}

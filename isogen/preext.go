@@ -19,37 +19,37 @@ func isMaskAny(inst *Inst, optReg Reg) bool {
 }
 
 var preExtendable = map[string]bool{
-	"add":  true,
-	"adds": true,
-	"sub":  true,
-	"subs": true,
-	"madd": true,
-	"adcs": true,
-	"adc":  true,
-	"mneg": true,
-	"msub": true,
-	"mul":  true,
-	"neg":  true,
-	"negs": true,
-	"ngc":  true,
-	"ngcs": true,
-	"sbc":  true,
-	"sbcs": true,
-	"sdiv": true,
-	"mov":  true,
-	"mvn":  true,
-	"orn":  true,
-	"orr":  true,
-	"ror":  true,
-	"lsr":  true,
-	"lsl":  true,
-	"eor":  true,
-	"eon":  true,
-	"bic":  true,
-	"bics": true,
-	"asr":  true,
-	"and":  true,
-	"ands": true,
+	"add": true,
+	// "adds": true,
+	// "sub":  true,
+	// "subs": true,
+	// "madd": true,
+	// "adcs": true,
+	// "adc":  true,
+	// "mneg": true,
+	// "msub": true,
+	// "mul":  true,
+	// "neg":  true,
+	// "negs": true,
+	// "ngc":  true,
+	// "ngcs": true,
+	// "sbc":  true,
+	// "sbcs": true,
+	// "sdiv": true,
+	// "mov":  true,
+	// "mvn":  true,
+	// "orn":  true,
+	// "orr":  true,
+	// "ror":  true,
+	// "lsr":  true,
+	// "lsl":  true,
+	// "eor":  true,
+	// "eon":  true,
+	// "bic":  true,
+	// "bics": true,
+	// "asr":  true,
+	// "and":  true,
+	// "ands": true,
 }
 
 func preExtensionPass(ops *OpList) {
@@ -68,23 +68,24 @@ outer:
 						}
 						// check if the add uxtw guarded register is modified
 						if mod, addr := isModify(o, inner, hiReg(inst.Args[2].(Reg))); mod && !addr {
-							if !preExtendable[inst.Name] && !multiloads[inst.Name] && !loads[inst.Name] {
+							if !preExtendable[inner.Name] {
 								break
 							}
+							// if !preExtendable[inner.Name] && !multiloads[inner.Name] && !loads[inner.Name] {
+							// 	break
+							// }
 							for i, a := range inner.Args {
 								if r, ok := a.(Reg); ok {
-									if r == hiReg(inst.Args[2].(Reg)) {
-										inner.Args[i] = loReg(scratchReg)
-									} else {
-										inner.Args[i] = loReg(r)
-									}
+									inner.Args[i] = loReg(r)
 								}
 							}
+							inner.Args[0] = loReg(scratchReg)
 							b.Locate(o)
 							b.Add(NewNode(&Inst{
-								Name: "mov",
+								Name: "add",
 								Args: []Arg{
 									hiReg(inst.Args[2].(Reg)),
+									segmentReg,
 									scratchReg,
 								},
 							}))
