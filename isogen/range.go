@@ -19,50 +19,52 @@ func isMask(inst *Inst, reg Reg, optReg Reg) bool {
 	return false
 }
 
-func isModify(op *OpNode, inst *Inst, reg Reg) bool {
+// first bool returns if modified
+// second bool returns if modified by an addressing mode
+func isModify(op *OpNode, inst *Inst, reg Reg) (bool, bool) {
 	if loads[inst.Name] {
 		if r, ok := inst.Args[0].(Reg); ok && r == reg {
-			return true
+			return true, false
 		}
 		switch m := inst.Args[1].(type) {
 		case MemAddrPre:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		case MemAddrPost:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		}
 	} else if multiloads[inst.Name] {
 		if r, ok := inst.Args[0].(Reg); ok && r == reg {
-			return true
+			return true, false
 		}
 		if r, ok := inst.Args[1].(Reg); ok && r == reg {
-			return true
+			return true, false
 		}
 		switch m := inst.Args[2].(type) {
 		case MemAddrPre:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		case MemAddrPost:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		}
 	} else if stores[inst.Name] {
 		switch m := inst.Args[1].(type) {
 		case MemAddrPre:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		case MemAddrPost:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		}
 	} else if multistores[inst.Name] {
 		switch m := inst.Args[2].(type) {
 		case MemAddrPre:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		case MemAddrPost:
-			return m.Reg == reg
+			return m.Reg == reg, true
 		}
 	} else if !IsStore(op.Value) && len(inst.Args) > 0 {
 		if r, ok := inst.Args[0].(Reg); ok && r == reg {
-			return true
+			return true, false
 		}
 	}
-	return false
+	return false, false
 }
 
 func rangeMask(op *OpNode, reg Reg, builder *Builder, optReg Reg) {
@@ -92,7 +94,7 @@ loop:
 		case *Inst:
 			if isMask(i, reg, optReg) {
 				break loop
-			} else if isModify(n, i, reg) {
+			} else if mod, _ := isModify(n, i, reg); mod {
 				builder.Locate(n)
 				builder.Add(mask)
 				break loop
