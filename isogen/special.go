@@ -88,7 +88,7 @@ instloop:
 						Args: []Arg{
 							Reg("sp"),
 							segmentReg,
-							loReg(scratchReg),
+							scratchReg,
 						},
 					}))
 					op = op.Next
