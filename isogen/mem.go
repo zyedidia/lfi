@@ -32,8 +32,8 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			builder.AddBefore(NewNode(&Inst{
 				Name: "add",
 				Args: []Arg{
-					scratchReg,
-					m.Reg,
+					loReg(scratchReg),
+					loReg(m.Reg),
 					m.Imm,
 				},
 			}))
@@ -91,9 +91,9 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			builder.AddBefore(NewNode(&Inst{
 				Name: "add",
 				Args: []Arg{
-					scratchReg,
-					m.Reg1,
-					m.Reg2,
+					loReg(scratchReg),
+					loReg(m.Reg1),
+					loReg(m.Reg2),
 				},
 			}))
 			*a = MemAddrComplex{
@@ -107,9 +107,9 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			builder.AddBefore(NewNode(&Inst{
 				Name: "add",
 				Args: []Arg{
-					scratchReg,
-					m.Reg1,
-					m.Reg2,
+					loReg(scratchReg),
+					loReg(m.Reg1),
+					loReg(m.Reg2),
 					m.Extend,
 				},
 			}))

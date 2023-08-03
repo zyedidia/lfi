@@ -8,7 +8,7 @@ func sandboxSp(builder *Builder) {
 	builder.Add(NewNode(&Inst{
 		Name: "mov",
 		Args: []Arg{
-			loReg(resReg),
+			loReg(scratchReg),
 			Reg("wsp"),
 		},
 	}))
@@ -18,8 +18,7 @@ func sandboxSp(builder *Builder) {
 		Args: []Arg{
 			Reg("sp"),
 			segmentReg,
-			loReg(resReg),
-			Extend{Op: "uxtw"},
+			scratchReg,
 		},
 	}))
 }
@@ -82,7 +81,7 @@ instloop:
 						}
 						o = o.Next
 					}
-					inst.Args[0] = loReg(resReg)
+					inst.Args[0] = loReg(scratchReg)
 					inst.Args[1] = loReg(inst.Args[1].(Reg))
 					if r, ok := inst.Args[2].(Reg); ok {
 						inst.Args[2] = loReg(r)
@@ -92,10 +91,7 @@ instloop:
 						Args: []Arg{
 							Reg("sp"),
 							segmentReg,
-							loReg(resReg),
-							Extend{
-								Op: "uxtw",
-							},
+							scratchReg,
 						},
 					}))
 					op = op.Next
