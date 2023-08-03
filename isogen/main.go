@@ -21,10 +21,10 @@ func showOps(w io.Writer, list *OpList) {
 }
 
 var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
+var opt = pflag.IntP("opt", "O", 3, "optimization level")
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
-	hoist := pflag.BoolP("hoist", "r", true, "apply guard hoisting optimization")
 
 	pflag.Parse()
 	args := pflag.Args()
@@ -45,7 +45,7 @@ func main() {
 
 	branchPass(ops)
 	fixupReservedPass(ops)
-	if *hoist {
+	if *opt >= 2 {
 		rangePass(ops)
 	}
 	memPass(ops)

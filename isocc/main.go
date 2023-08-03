@@ -45,10 +45,13 @@ func temp(dir string) string {
 
 func main() {
 	var out, target string
-	var compile, assemble, verbose, keep, lto, norange bool
-	var args, objs []string
+	var compile, assemble, verbose, keep, lto bool
+	var isogen, args, objs []string
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
+		if strings.HasPrefix(arg, "-fisolator") {
+			isogen = append(isogen, arg[len("-fisolator"):])
+		}
 		switch arg {
 		case "-flto", "-flto=full", "-flto=thin":
 			lto = true
@@ -66,8 +69,6 @@ func main() {
 			}
 			out = os.Args[i+1]
 			i++
-		case "-fno-isolator-hoisting":
-			norange = true
 		case "-c":
 			compile = true
 		case "-S":
@@ -187,9 +188,7 @@ func main() {
 	// run("isogen", asmmc, "-o", iso, "-S", "/tmp/isocc.stats")
 	// flags := []string{asmmc, "-o", iso, "--inst"}
 	flags := []string{asmmc, "-o", iso}
-	if norange {
-		flags = append(flags, "--hoist=false")
-	}
+	flags = append(flags, isogen...)
 	run("isogen", flags...)
 
 	if !assemble {
