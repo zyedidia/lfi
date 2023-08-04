@@ -66,9 +66,12 @@ outer:
 						if branches[inner.Name] {
 							break
 						}
+						if mod, _ := isModify(o, inner, loReg(scratchReg)); mod {
+							break
+						}
 						// check if the add uxtw guarded register is modified
 						if mod, addr := isModify(o, inner, hiReg(inst.Args[2].(Reg))); mod && !addr {
-							if !preExtendable[inner.Name] {
+							if !basicloads[inner.Name] {
 								break
 							}
 							// if !preExtendable[inner.Name] && !multiloads[inner.Name] && !loads[inner.Name] {

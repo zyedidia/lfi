@@ -54,6 +54,7 @@ func main() {
 	if *instrument {
 		instrumentPass(ops)
 	}
+	preExtensionPass(ops)
 	branchFixupPass(ops)
 
 	var w io.Writer
