@@ -19,90 +19,108 @@ func isMaskAny(inst *Inst, optReg Reg) bool {
 }
 
 var preExtendable = map[string]bool{
-	"add": true,
-	// "adds": true,
-	// "sub":  true,
-	// "subs": true,
-	// "madd": true,
-	// "adcs": true,
-	// "adc":  true,
-	// "mneg": true,
-	// "msub": true,
-	// "mul":  true,
-	// "neg":  true,
-	// "negs": true,
-	// "ngc":  true,
-	// "ngcs": true,
-	// "sbc":  true,
-	// "sbcs": true,
-	// "sdiv": true,
-	// "mov":  true,
-	// "mvn":  true,
-	// "orn":  true,
-	// "orr":  true,
-	// "ror":  true,
-	// "lsr":  true,
-	// "lsl":  true,
-	// "eor":  true,
-	// "eon":  true,
-	// "bic":  true,
-	// "bics": true,
-	// "asr":  true,
-	// "and":  true,
-	// "ands": true,
+	"add":  true,
+	"sub":  true,
+	"madd": true,
+	"mov":  true,
+}
+
+func unused(start *OpNode, reg Reg) bool {
+	op := start
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			if branches[inst.Name] {
+				if calls[inst.Name] && tempReg[reg] {
+					return true
+				}
+				return false
+			}
+			clobbered := false
+			for i, a := range inst.Args {
+				switch a := a.(type) {
+				case Reg:
+					if hiReg(a) == reg {
+						if i == 0 {
+							if loads[inst.Name] || preExtendable[inst.Name] {
+								clobbered = true
+								continue
+							}
+						}
+						return false
+					}
+				case MemAddr:
+					if hiReg(a.Reg) == reg {
+						return false
+					}
+				case MemAddrPre:
+					if hiReg(a.Reg) == reg {
+						return false
+					}
+				case MemAddrPost:
+					if hiReg(a.Reg) == reg {
+						return false
+					}
+				case MemAddrComplex:
+					if hiReg(a.Reg1) == reg || hiReg(a.Reg2) == reg {
+						return false
+					}
+				}
+			}
+			if clobbered {
+				return true
+			}
+		} else {
+			break
+		}
+		op = op.Next
+	}
+	return false
 }
 
 func preExtensionPass(ops *OpList) {
 	op := ops.Front
 	b := NewBuilder(ops)
-outer:
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
 			if isMaskAny(inst, resReg) || isMaskAny(inst, optReg) || isMaskAny(inst, optReg2) {
 				o := op.Prev
-				// break out of this loop if we find a branch or label
-				for o != nil {
-					if inner, ok := o.Value.(*Inst); ok {
-						if branches[inner.Name] {
-							break
+				if inner, ok := o.Value.(*Inst); ok {
+					if branches[inner.Name] {
+						op = op.Next
+						continue
+					}
+					if mod, _ := isModify(o, inner, loReg(scratchReg)); mod {
+						op = op.Next
+						continue
+					}
+					// check if the add uxtw guarded register is modified
+					if mod, addr := isModify(o, inner, hiReg(inst.Args[2].(Reg))); mod && !addr {
+						if !preExtendable[inner.Name] && !loads[inner.Name] {
+							op = op.Next
+							continue
 						}
-						if mod, _ := isModify(o, inner, loReg(scratchReg)); mod {
-							break
+						if !unused(op.Next, hiReg(inst.Args[2].(Reg))) {
+							op = op.Next
+							continue
 						}
-						// check if the add uxtw guarded register is modified
-						if mod, addr := isModify(o, inner, hiReg(inst.Args[2].(Reg))); mod && !addr {
-							if !basicloads[inner.Name] {
-								break
-							}
-							// if !preExtendable[inner.Name] && !multiloads[inner.Name] && !loads[inner.Name] {
-							// 	break
-							// }
+						if !loads[inner.Name] {
 							for i, a := range inner.Args {
 								if r, ok := a.(Reg); ok {
 									inner.Args[i] = loReg(r)
 								}
 							}
-							inner.Args[0] = loReg(scratchReg)
-							b.Locate(o)
-							b.Add(NewNode(&Inst{
-								Name: "add",
-								Args: []Arg{
-									hiReg(inst.Args[2].(Reg)),
-									segmentReg,
-									scratchReg,
-								},
-							}))
-							inst.Args[2] = scratchReg
-							inst.Args[3] = nil
-							inst.Args = inst.Args[:3]
-							continue outer
-						} else if addr {
-							break
 						}
-					} else if _, ok := op.Value.(Label); ok {
-						break
+						inner.Args[0] = loReg(scratchReg)
+						b.Locate(o)
+						inst.Args[2] = scratchReg
+						inst.Args[3] = nil
+						inst.Args = inst.Args[:3]
+						op = op.Next
+						continue
+					} else if addr {
+						op = op.Next
+						continue
 					}
-					o = o.Prev
 				}
 			}
 		}

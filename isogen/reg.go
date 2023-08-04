@@ -40,16 +40,7 @@ func loReg(r Reg) Reg {
 	return "w" + r[1:]
 }
 
-var callerSaved = map[Reg]bool{
-	"x0":  true,
-	"x1":  true,
-	"x2":  true,
-	"x3":  true,
-	"x4":  true,
-	"x5":  true,
-	"x6":  true,
-	"x7":  true,
-	"x8":  true,
+var tempReg = map[Reg]bool{
 	"x9":  true,
 	"x10": true,
 	"x11": true,
