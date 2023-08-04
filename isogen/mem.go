@@ -26,6 +26,10 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 				if err != nil || x >= 4096 {
 					return false
 				}
+			case Reloc:
+				if i.Type != "lo12" {
+					return false
+				}
 			default:
 				return false
 			}
