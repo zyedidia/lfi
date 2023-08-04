@@ -1,5 +1,10 @@
 package main
 
+import (
+	"log"
+	"strconv"
+)
+
 func isMaskAny(inst *Inst, optReg Reg) bool {
 	if len(inst.Args) != 4 {
 		return false
@@ -98,6 +103,34 @@ func preExtensionPass(ops *OpList) {
 						if !preExtendable[inner.Name] && !loads[inner.Name] {
 							op = op.Next
 							continue
+						}
+						if loads[inner.Name] {
+							var imm Imm
+							switch m := inner.Args[1].(type) {
+							case MemAddr:
+								imm = m.Imm
+							case MemAddrPre:
+								imm = Number(m.Imm)
+							case MemAddrPost:
+								imm = Number(m.Imm)
+							}
+							if imm != nil {
+								switch i := imm.(type) {
+								case Number:
+									x, err := strconv.Atoi(string(i))
+									if err != nil || x >= 16384 {
+										op = op.Next
+										continue
+									}
+								case Reloc:
+									if i.Type != "lo12" && i.Type != "got_lo12" {
+										op = op.Next
+										continue
+									}
+								default:
+									log.Fatal("invalid immediate")
+								}
+							}
 						}
 						if !unused(op.Next, hiReg(inst.Args[2].(Reg))) {
 							op = op.Next
