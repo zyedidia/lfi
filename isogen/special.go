@@ -153,7 +153,7 @@ func fixupReservedPass(ops *OpList) {
 								r1,
 								segmentReg,
 								loReg(r1),
-								&Extend{
+								Extend{
 									Op: "uxtw",
 								},
 							},
@@ -169,7 +169,7 @@ func fixupReservedPass(ops *OpList) {
 								r2,
 								segmentReg,
 								loReg(r2),
-								&Extend{
+								Extend{
 									Op: "uxtw",
 								},
 							},

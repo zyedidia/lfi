@@ -139,7 +139,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 				resReg,
 				segmentReg,
 				loReg(m.Reg),
-				&Extend{Op: "uxtw"},
+				Extend{Op: "uxtw"},
 			},
 		}))
 		*a = MemAddr{
@@ -156,7 +156,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 				resReg,
 				segmentReg,
 				loReg(m.Reg),
-				&Extend{Op: "uxtw"},
+				Extend{Op: "uxtw"},
 			},
 		}))
 		*a = MemAddrPre{
@@ -181,7 +181,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 				resReg,
 				segmentReg,
 				loReg(m.Reg),
-				&Extend{Op: "uxtw"},
+				Extend{Op: "uxtw"},
 			},
 		}))
 		*a = MemAddrPost{

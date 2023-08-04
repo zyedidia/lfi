@@ -7,7 +7,7 @@ func isMask(inst *Inst, reg Reg, optReg Reg) bool {
 	r1, ok1 := inst.Args[0].(Reg)
 	r2, ok2 := inst.Args[1].(Reg)
 	r3, ok3 := inst.Args[2].(Reg)
-	ex, ok := inst.Args[3].(*Extend)
+	ex, ok := inst.Args[3].(Extend)
 	if ok1 && ok2 && ok3 && ok {
 		return inst.Name == "add" &&
 			r1 == optReg &&
@@ -72,7 +72,7 @@ func rangeMask(op *OpNode, reg Reg, builder *Builder, optReg Reg) {
 			optReg,
 			segmentReg,
 			loReg(reg),
-			&Extend{Op: "uxtw"},
+			Extend{Op: "uxtw"},
 		},
 	})
 	n := op.Prev
@@ -96,7 +96,7 @@ loop:
 				builder.Locate(n)
 				builder.Add(mask)
 				break loop
-			} else if calls[i.Name] {
+			} else if branches[i.Name] {
 				builder.Locate(n)
 				builder.Add(mask)
 				break loop
@@ -180,7 +180,7 @@ func rangeAnalysisPass(ops *OpList) {
 		case Label:
 			curLabel = op
 		case *Inst:
-			if calls[i.Name] {
+			if branches[i.Name] {
 				curLabel = op
 			}
 		}
@@ -232,7 +232,7 @@ func rangePass(ops *OpList) {
 			}
 			op.rangeReg2 = maxReg2
 		case *Inst:
-			if calls[i.Name] {
+			if branches[i.Name] {
 				curLabel = op
 				maxReg := Reg("")
 				max := 2
