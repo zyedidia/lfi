@@ -129,8 +129,6 @@ func main() {
 
 	asm := target
 	if lto && compile {
-		out = targeto
-
 		flags := []string{
 			"-c",
 			"-o", out,
