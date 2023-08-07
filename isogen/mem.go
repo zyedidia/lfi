@@ -68,6 +68,8 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 				Number(m.Imm),
 			},
 		}))
+	case MemAddrPostReg:
+		return false
 	case MemAddrPre:
 		if sandboxed[m.Reg] {
 			return true
@@ -198,6 +200,28 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			Args: []Arg{
 				m.Reg,
 				resReg,
+			},
+		}))
+	case MemAddrPostReg:
+		builder.AddBefore(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				resReg,
+				segmentReg,
+				loReg(m.Reg),
+				Extend{Op: "uxtw"},
+			},
+		}))
+		*a = MemAddr{
+			Reg: resReg,
+		}
+		builder.Locate(op)
+		builder.Add(NewNode(&Inst{
+			Name: "add",
+			Args: []Arg{
+				m.Reg,
+				m.Reg,
+				m.RegOff,
 			},
 		}))
 	case MemAddrComplex:

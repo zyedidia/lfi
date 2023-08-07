@@ -273,7 +273,7 @@ pub fn check(
         return;
     }
     if let Operand::Reg { reg, .. } = inst.operands()[0] {
-        let next = iter.peek_range(0, 32);
+        let next = iter.peek_range(0, 64);
         let ok = ok_mod(&inst, reg, next);
         if !ok {
             error(inst, "disallowed modification");

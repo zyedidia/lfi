@@ -26,7 +26,7 @@ fn main() {
     let size = text_section.size();
     let bytes = text_section.raw_data(&elf);
 
-    println!("verifying {} bytes", size);
+    println!("verifying {}: {} bytes", argv[1], size);
 
     let mut iter = bad64::disasm(bytes, base).peekmore();
 

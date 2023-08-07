@@ -24,6 +24,7 @@ var reserved = map[Reg]bool{
 	resReg:     true,
 	optReg:     true,
 	optReg2:    true,
+	scratchReg: true,
 }
 
 func hiReg(r Reg) Reg {

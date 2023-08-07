@@ -44,10 +44,17 @@ func ParseInst(line string, loc string) (*Label, *Inst, error) {
 				Imm: imm,
 			})
 		} else if arg.Mem2 != nil {
-			inst.Args = append(inst.Args, MemAddrPost{
-				Reg: Reg(arg.Mem2.Reg),
-				Imm: arg.Mem2.Imm,
-			})
+			if regs[arg.Mem2.RegOrImm] {
+				inst.Args = append(inst.Args, MemAddrPostReg{
+					Reg:    Reg(arg.Mem2.Reg),
+					RegOff: Reg(arg.Mem2.RegOrImm),
+				})
+			} else {
+				inst.Args = append(inst.Args, MemAddrPost{
+					Reg: Reg(arg.Mem2.Reg),
+					Imm: arg.Mem2.RegOrImm,
+				})
+			}
 		} else if arg.Mem3 != nil {
 			inst.Args = append(inst.Args, MemAddrPre{
 				Reg: Reg(arg.Mem3.Reg),

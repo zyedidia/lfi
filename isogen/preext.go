@@ -65,6 +65,10 @@ func unused(start *OpNode, reg Reg) bool {
 					if hiReg(a.Reg) == reg {
 						return false
 					}
+				case MemAddrPostReg:
+					if hiReg(a.Reg) == reg || hiReg(a.RegOff) == reg {
+						return false
+					}
 				case MemAddrComplex:
 					if hiReg(a.Reg1) == reg || hiReg(a.Reg2) == reg {
 						return false

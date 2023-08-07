@@ -52,8 +52,8 @@ type MemAddr1 struct {
 // [Xn], #i
 // Xn += i after access
 type MemAddr2 struct {
-	Reg string `"[" @Ident "]"`
-	Imm string `"," "#"? @(Number)`
+	Reg      string `"[" @Ident "]"`
+	RegOrImm string `"," ("#"? @Number | @Ident)`
 }
 
 // [Xn, #i]!

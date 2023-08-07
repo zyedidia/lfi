@@ -31,6 +31,8 @@ func isModify(op *OpNode, inst *Inst, reg Reg) (bool, bool) {
 			return m.Reg == reg, true
 		case MemAddrPost:
 			return m.Reg == reg, true
+		case MemAddrPostReg:
+			return m.Reg == reg, true
 		}
 	} else if multiloads[inst.Name] {
 		if r, ok := inst.Args[0].(Reg); ok && r == reg {
@@ -44,6 +46,8 @@ func isModify(op *OpNode, inst *Inst, reg Reg) (bool, bool) {
 			return m.Reg == reg, true
 		case MemAddrPost:
 			return m.Reg == reg, true
+		case MemAddrPostReg:
+			return m.Reg == reg, true
 		}
 	} else if stores[inst.Name] {
 		switch m := inst.Args[1].(type) {
@@ -51,12 +55,16 @@ func isModify(op *OpNode, inst *Inst, reg Reg) (bool, bool) {
 			return m.Reg == reg, true
 		case MemAddrPost:
 			return m.Reg == reg, true
+		case MemAddrPostReg:
+			return m.Reg == reg, true
 		}
 	} else if multistores[inst.Name] {
 		switch m := inst.Args[2].(type) {
 		case MemAddrPre:
 			return m.Reg == reg, true
 		case MemAddrPost:
+			return m.Reg == reg, true
+		case MemAddrPostReg:
 			return m.Reg == reg, true
 		}
 	} else if !IsStore(op.Value) && len(inst.Args) > 0 {

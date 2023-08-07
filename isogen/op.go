@@ -59,6 +59,13 @@ type MemAddrPost struct {
 	Imm string
 }
 
+// [Xn], Xm
+// Xn += Xm after access
+type MemAddrPostReg struct {
+	Reg    Reg
+	RegOff Reg
+}
+
 // [Xn, #i]!
 // Xn += i before access
 type MemAddrPre struct {
@@ -91,6 +98,7 @@ func (Reloc) isArg()          {}
 func (Number) isArg()         {}
 func (MemAddr) isArg()        {}
 func (MemAddrPost) isArg()    {}
+func (MemAddrPostReg) isArg() {}
 func (MemAddrPre) isArg()     {}
 func (MemAddrComplex) isArg() {}
 func (Extend) isArg()         {}
@@ -153,6 +161,10 @@ func (m MemAddrPre) String() string {
 
 func (m MemAddrPost) String() string {
 	return fmt.Sprintf("[%v], %v", m.Reg, m.Imm)
+}
+
+func (m MemAddrPostReg) String() string {
+	return fmt.Sprintf("[%v], %v", m.Reg, m.Reg)
 }
 
 func (m MemAddrComplex) String() string {
