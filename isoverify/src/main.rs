@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::process;
+use std::time::Instant;
 
 use peekmore::PeekMore;
 use verifier::check;
@@ -28,8 +29,9 @@ fn main() {
 
     println!("verifying {}: {} bytes", argv[1], size);
 
-    let mut iter = bad64::disasm(bytes, base).peekmore();
+    let start = Instant::now();
 
+    let mut iter = bad64::disasm(bytes, base).peekmore();
     while let Some(maybe_decoded) = iter.next() {
         match maybe_decoded {
             Ok(inst) => {
@@ -39,8 +41,15 @@ fn main() {
         }
     }
 
+    let duration = start.elapsed();
+
     if unsafe { verifier::FAILED } {
         eprintln!("verification failed");
         process::exit(1);
     }
+
+    println!(
+        "verification passed ({:.1} MB/s)",
+        (size as f64) / duration.as_secs_f64() / 1_000_000.0
+    );
 }
