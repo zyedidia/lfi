@@ -116,38 +116,35 @@ fn ok_mod(
     inst: &Instruction,
     reg: Reg,
     next: &[Option<Result<Instruction, bad64::DecodeError>>],
-) -> (bool, usize) {
+) -> bool {
     if fixed_reg(reg) {
-        return (false, 0);
+        return false;
     }
     if !restricted_reg(reg) {
-        return (true, 0);
+        return true;
     }
 
     if inst.op() == Op::ADD {
         let ops = inst.operands();
         if ops.len() == 3 {
-            return (
-                match (ops[1], ops[2]) {
-                    // 'add restricted, base, lo, uxtw' is allowed
-                    (Operand::Reg { reg: base, .. }, Operand::ShiftReg { reg, shift }) => {
-                        base == BASE_REG && lo_reg(reg) && shift == Shift::UXTW(0)
-                    }
-                    // 'add restricted, base, RES32_REG' is allowed
-                    (Operand::Reg { reg: base, .. }, Operand::Reg { reg, .. }) => {
-                        base == BASE_REG && reg == lo(RES32_REG)
-                    }
-                    _ => false,
-                },
-                0,
-            );
+            return match (ops[1], ops[2]) {
+                // 'add restricted, base, lo, uxtw' is allowed
+                (Operand::Reg { reg: base, .. }, Operand::ShiftReg { reg, shift }) => {
+                    base == BASE_REG && lo_reg(reg) && shift == Shift::UXTW(0)
+                }
+                // 'add restricted, base, RES32_REG' is allowed
+                (Operand::Reg { reg: base, .. }, Operand::Reg { reg, .. }) => {
+                    base == BASE_REG && reg == RES32_REG
+                }
+                _ => false,
+            };
         }
     }
 
     if reg == SP_REG {
         // must be followed by
         // mov lo(RES32_REG), wsp
-        // add sp, BASE_REG, lo(RES32_REG)
+        // add sp, BASE_REG, RES32_REG
         if let Some(Ok(next1)) = &next[0] {
             if let Some(Ok(next2)) = &next[1] {
                 if next1.op() != Op::MOV
@@ -155,7 +152,7 @@ fn ok_mod(
                     || next2.op() != Op::ADD
                     || next2.operands().len() != 3
                 {
-                    return (false, 0);
+                    return false;
                 }
                 let (ops1, ops2) = (next1.operands(), next2.operands());
                 match (ops1[0], ops1[1], ops2[0], ops2[1], ops2[2]) {
@@ -164,18 +161,15 @@ fn ok_mod(
                         Operand::Reg { reg: wsp, .. },
                         Operand::Reg { reg: sp, .. },
                         Operand::Reg { reg: base, .. },
-                        Operand::Reg { reg: res32_s, .. },
+                        Operand::Reg { reg: res32_x, .. },
                     ) => {
-                        return (
-                            res32 == lo(RES32_REG)
-                                && wsp == Reg::WSP
-                                && sp == Reg::SP
-                                && base == BASE_REG
-                                && res32_s == lo(RES32_REG),
-                            2,
-                        );
+                        return res32 == lo(RES32_REG)
+                            && wsp == Reg::WSP
+                            && sp == Reg::SP
+                            && base == BASE_REG
+                            && res32_x == RES32_REG;
                     }
-                    _ => return (false, 0),
+                    _ => return false,
                 }
             }
         }
@@ -190,7 +184,7 @@ fn ok_mod(
                     ..
                 } => {
                     if reg == BASE_REG && !mul_vl && zero(offset) {
-                        return (true, 0);
+                        return true;
                     }
                 }
                 _ => {}
@@ -200,7 +194,7 @@ fn ok_mod(
         // add RET_REG, BASE_REG, lo(RET_REG), uxtw
         if let Some(Ok(next)) = &next[0] {
             if next.op() != Op::ADD || next.operands().len() != 3 {
-                return (false, 0);
+                return false;
             }
             let ops = next.operands();
             match (ops[0], ops[1], ops[2]) {
@@ -214,15 +208,15 @@ fn ok_mod(
                         && loret == lo(RET_REG)
                         && shift == Shift::UXTW(0)
                     {
-                        return (true, 1);
+                        return true;
                     }
                 }
-                _ => return (false, 0),
+                _ => return false,
             };
         }
     }
 
-    return (false, 0);
+    return false;
 }
 
 fn main() {
@@ -270,16 +264,13 @@ fn main() {
                 }
                 if let Operand::Reg { reg, .. } = inst.operands()[0] {
                     let next = iter.peek_range(0, 2);
-                    let (ok, advance) = ok_mod(&inst, reg, next);
+                    let ok = ok_mod(&inst, reg, next);
                     if !ok {
                         eprintln!(
                             "error: {:x}: {}: disallowed modification",
                             inst.address(),
                             inst
                         )
-                    }
-                    for _ in 0..advance {
-                        iter.next();
                     }
                 }
             }

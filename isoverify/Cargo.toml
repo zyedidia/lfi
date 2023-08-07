@@ -1,5 +1,5 @@
 [package]
-name = "bad64test"
+name = "isoverify"
 version = "0.1.0"
 edition = "2021"
 
