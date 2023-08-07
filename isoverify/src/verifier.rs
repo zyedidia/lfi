@@ -141,7 +141,9 @@ fn ok_check_sp(next: &[Option<Result<Instruction, bad64::DecodeError>>]) -> bool
 fn ok_mod(
     inst: &Instruction,
     reg: Reg,
-    next: &[Option<Result<Instruction, bad64::DecodeError>>],
+    iter: &mut peekmore::PeekMoreIterator<
+        impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
+    >,
 ) -> bool {
     if fixed_reg(reg) {
         return false;
@@ -177,18 +179,19 @@ fn ok_mod(
         // add sp, BASE_REG, RES32_REG
         //
         // or a load/store before the next branch
-        if ok_check_sp(next) {
+        if ok_check_sp(iter.peek_range(0, 2)) {
             return true;
         }
         if (inst.op() == Op::ADD || inst.op() == Op::SUB)
             && matches!(inst.operands()[2], Operand::Imm64 { .. })
         {
-            for maybe_inst in next {
-                if let Some(Ok(inst)) = maybe_inst {
+            while let Some(maybe_inst) = iter.peek() {
+                if let Ok(inst) = maybe_inst {
                     if is_branch(inst.op()) {
                         break;
                     }
                     if !is_access_incomplete(inst.op()) {
+                        iter.advance_cursor();
                         continue;
                     }
                     for op in inst.operands() {
@@ -202,6 +205,9 @@ fn ok_mod(
                             _ => {}
                         }
                     }
+                    iter.advance_cursor();
+                } else {
+                    return false;
                 }
             }
         }
@@ -224,7 +230,7 @@ fn ok_mod(
         }
         // must be followed by
         // add RET_REG, BASE_REG, lo(RET_REG), uxtw
-        if let Some(Ok(next)) = &next[0] {
+        if let Some(Ok(next)) = iter.peek() {
             if next.op() != Op::ADD || next.operands().len() != 3 {
                 return false;
             }
@@ -273,8 +279,7 @@ pub fn check(
         return;
     }
     if let Operand::Reg { reg, .. } = inst.operands()[0] {
-        let next = iter.peek_range(0, 64);
-        let ok = ok_mod(&inst, reg, next);
+        let ok = ok_mod(&inst, reg, iter);
         if !ok {
             error(inst, "disallowed modification");
         }
