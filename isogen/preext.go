@@ -123,7 +123,7 @@ func preExtensionPass(ops *OpList) {
 										continue
 									}
 								case Reloc:
-									if i.Type != "lo12" && i.Type != "got_lo12" {
+									if i.Type != "lo12" {
 										op = op.Next
 										continue
 									}
