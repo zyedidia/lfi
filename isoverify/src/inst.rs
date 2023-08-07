@@ -413,6 +413,17 @@ pub fn is_access_incomplete(op: Op) -> bool {
     }
 }
 
+pub fn is_multimod(op: Op) -> bool {
+    match op {
+        Op::LDP => true,
+        Op::LDPSW => true,
+        Op::LDNP => true,
+        Op::LDXP => true,
+        Op::LDAXP => true,
+        _ => false,
+    }
+}
+
 pub fn is_allowed(op: Op) -> bool {
     match op {
         Op::ABS => true,

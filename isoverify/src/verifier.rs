@@ -1,7 +1,7 @@
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift};
 
 use crate::inst::{
-    is_access_incomplete, is_allowed, is_branch, legal_sysreg, lo, lo_reg, nomodify,
+    is_access_incomplete, is_allowed, is_branch, is_multimod, legal_sysreg, lo, lo_reg, nomodify,
 };
 
 const RES_REG: Reg = Reg::X15;
@@ -22,6 +22,7 @@ fn error(inst: &Instruction, msg: &str) {
     }
 }
 
+// List of registers that may be used as load targets
 fn data_reg(r: Reg) -> bool {
     match r {
         RES_REG | SP_REG | OPT_REG | OPT_REG2 => true,
@@ -29,10 +30,12 @@ fn data_reg(r: Reg) -> bool {
     }
 }
 
+// List of registers that may never be modified.
 fn fixed_reg(r: Reg) -> bool {
     r == BASE_REG || r == lo(BASE_REG) || r == RES32_REG
 }
 
+// List of registers that may be modified only via guards.
 fn restricted_reg(r: Reg) -> bool {
     r == RET_REG
         || r == OPT_REG
@@ -46,6 +49,7 @@ fn restricted_reg(r: Reg) -> bool {
         || r == lo(SP_REG)
 }
 
+// Makes sure that indirect branches only used reserved registers
 fn check_branch(inst: &Instruction) {
     match inst.op() {
         Op::BLR | Op::BR | Op::RET => {
@@ -63,6 +67,7 @@ fn check_branch(inst: &Instruction) {
     }
 }
 
+// Checks that operand 'i' is not an illegal system register
 fn check_sysreg(inst: &Instruction, i: usize) {
     if let Operand::SysReg(r) = inst.operands()[i] {
         if !legal_sysreg(r) {
@@ -86,6 +91,7 @@ fn zero(imm: Imm) -> bool {
     }
 }
 
+// Checks a memory address to make it sure only uses the guard mode, or a reserved register
 fn ok_operand(op: &Operand) -> bool {
     match op {
         Operand::MemReg(r) => data_reg(*r),
@@ -106,6 +112,7 @@ fn ok_operand(op: &Operand) -> bool {
     }
 }
 
+// Returns true if the sequence next[0], next[1] properly forms a stack pointer guard sequence
 fn ok_check_sp(next: &[Option<Result<Instruction, bad64::DecodeError>>]) -> bool {
     if let Some(Ok(next1)) = &next[0] {
         if let Some(Ok(next2)) = &next[1] {
@@ -138,6 +145,8 @@ fn ok_check_sp(next: &[Option<Result<Instruction, bad64::DecodeError>>]) -> bool
     return false;
 }
 
+// Returns true if an instruction, with 'reg' as its first operand, does not modify a reserved
+// register illegaly.
 fn ok_mod(
     inst: &Instruction,
     reg: Reg,
@@ -263,12 +272,16 @@ pub fn check(
         impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
     >,
 ) {
+    // check if the instruction is in the allowlist.
     if !is_allowed(inst.op()) {
         error(inst, "disallowed instruction");
     }
+    // make sure indirect branches target a reserved register
     check_branch(&inst);
+    // make sure system instructions (MRS/MSR) only access legal registers
     check_sys(&inst);
 
+    // check memory addressing operands for legality
     for op in inst.operands().iter() {
         if !ok_operand(op) {
             error(inst, "disallowed operand")
@@ -276,12 +289,23 @@ pub fn check(
     }
 
     if nomodify(inst.op()) || inst.operands().len() == 0 {
+        // these instructions don't modify their first operand
         return;
     }
+    // check that reserved registers are only modified according to the right rules
     if let Operand::Reg { reg, .. } = inst.operands()[0] {
         let ok = ok_mod(&inst, reg, iter);
         if !ok {
             error(inst, "disallowed modification");
+        }
+        if is_multimod(inst.op()) {
+            if let Operand::Reg { reg, .. } = inst.operands()[1] {
+                // these instructions also modify their second operand, so we check that too
+                let ok = ok_mod(&inst, reg, iter);
+                if !ok {
+                    error(inst, "disallowed modification");
+                }
+            }
         }
     }
 }

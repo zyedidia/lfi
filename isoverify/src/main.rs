@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use peekmore::PeekMore;
 use verifier::check;
-use xmas_elf::ElfFile;
+use xmas_elf::{program::SegmentData, ElfFile};
 
 mod inst;
 mod verifier;
@@ -21,23 +21,32 @@ fn main() {
 
     let elf = ElfFile::new(&buf).unwrap();
 
-    let text_section = elf.find_section_by_name(".text").unwrap();
+    println!("verifying {}", argv[1]);
 
-    let base = text_section.address();
-    let size = text_section.size();
-    let bytes = text_section.raw_data(&elf);
-
-    println!("verifying {}: {} bytes", argv[1], size);
+    let mut size = 0;
 
     let start = Instant::now();
 
-    let mut iter = bad64::disasm(bytes, base).peekmore();
-    while let Some(maybe_decoded) = iter.next() {
-        match maybe_decoded {
-            Ok(inst) => {
-                check(&inst, &mut iter);
+    for prog in elf.program_iter() {
+        if !prog.flags().is_execute() {
+            continue;
+        }
+        let base = prog.virtual_addr();
+        size += prog.file_size();
+
+        if let Ok(SegmentData::Undefined(bytes)) = prog.get_data(&elf) {
+            let mut iter = bad64::disasm(bytes, base).peekmore();
+            while let Some(maybe_decoded) = iter.next() {
+                match maybe_decoded {
+                    Ok(inst) => {
+                        check(&inst, &mut iter);
+                    }
+                    Err(e) => eprintln!("{:x}: unknown instruction: {}", e.address(), e),
+                }
             }
-            Err(e) => eprintln!("{:x}: unknown instruction: {}", e.address(), e),
+        } else {
+            eprintln!("error reading segment data");
+            process::exit(1);
         }
     }
 
