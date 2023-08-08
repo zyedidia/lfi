@@ -52,7 +52,7 @@ fn main() {
 
     let duration = start.elapsed();
 
-    if unsafe { verifier::FAILED } {
+    if verifier::FAILED.load(std::sync::atomic::Ordering::Relaxed) {
         eprintln!("verification failed");
         process::exit(1);
     }

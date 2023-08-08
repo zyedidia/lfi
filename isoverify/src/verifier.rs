@@ -1,7 +1,8 @@
-use bad64::{Imm, Instruction, Op, Operand, Reg, Shift};
+use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
+use std::sync::atomic::{self, AtomicBool};
 
 use crate::inst::{
-    is_access_incomplete, is_allowed, is_branch, is_multimod, legal_sysreg, lo, lo_reg, nomodify,
+    is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify,
 };
 
 const RES_REG: Reg = Reg::X15;
@@ -12,14 +13,12 @@ const OPT_REG2: Reg = Reg::X22;
 const BASE_REG: Reg = Reg::X21;
 const RES32_REG: Reg = Reg::X14;
 
-pub static mut FAILED: bool = false;
+pub static FAILED: AtomicBool = AtomicBool::new(false);
 
 fn error(inst: &Instruction, msg: &str) {
     eprintln!("error: {:x}: {}: {}", inst.address(), inst, msg);
     // this is not a multithreaded program
-    unsafe {
-        FAILED = true;
-    }
+    FAILED.store(true, atomic::Ordering::Relaxed);
 }
 
 // List of registers that may be used as load targets
@@ -47,6 +46,15 @@ fn restricted_reg(r: Reg) -> bool {
         || r == lo(OPT_REG2)
         || r == lo(RES_REG)
         || r == lo(SP_REG)
+}
+
+pub fn legal_sysreg(reg: SysReg) -> bool {
+    match reg {
+        SysReg::TPIDR_EL0 => true,
+        SysReg::FPSR => true,
+        SysReg::FPCR => true,
+        _ => false,
+    }
 }
 
 // Makes sure that indirect branches only used reserved registers
