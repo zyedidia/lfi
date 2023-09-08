@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -80,6 +81,10 @@ func main() {
 		log.SetOutput(os.Stderr)
 	} else {
 		log.SetOutput(io.Discard)
+	}
+
+	if as == "" {
+		as = filepath.Base(os.Args[0])
 	}
 
 	asmmc := temp(os.TempDir())
