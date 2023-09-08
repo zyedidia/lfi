@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/zyedidia/isolator/isogen/ast"
+	"github.com/zyedidia/lfi/lfi-gen/ast"
 )
 
 func getImm(imm *ast.Imm) Imm {

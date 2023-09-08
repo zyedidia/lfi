@@ -1,6 +1,0 @@
-use dedicated register for data isolation:
-    * allows range analysis and hoisting optimizations
-    * requires additional move instruction for fancy addressing modes
-    * avoids requiring chunks
-use guards+chunks for data isolation
-    * allows single instruction guard even for fancy addressing modes

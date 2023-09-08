@@ -1,0 +1,2 @@
+#!/bin/sh
+gcc -ffixed-x15 -ffixed-x21 -ffixed-x22 -ffixed-x14 -ffixed-x24 "$@"

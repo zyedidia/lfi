@@ -1,4 +1,0 @@
-* resolve tbnz/tbz that are out of range [x]
-* resolve labels like 1f, 1b [x]
-* group basic blocks together and assign a range register
-* set up pre-built toolchain with instrumented musl and compiler-rt, and LLD

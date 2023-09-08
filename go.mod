@@ -1,4 +1,4 @@
-module github.com/zyedidia/isolator
+module github.com/zyedidia/lfi
 
 go 1.20
 

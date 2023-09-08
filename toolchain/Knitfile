@@ -1,0 +1,43 @@
+local prefix = {
+    base = "/tmp/toolchain",
+    sysroot = "/tmp/toolchain/sysroot",
+    comprt = "/tmp/toolchain/compiler-rt",
+}
+local cc = "isocc"
+local cxx = "isocxx"
+
+local asflags = "-fno-isolator-hoisting"
+
+local version = {
+    musl = "1.2.4",
+    llvm = "15.0.7",
+}
+
+return b{
+    $ install:VB: llvm-cxx
+        cp clang clang++ $(prefix.base)
+    $ install-iso:VB: llvm-cxx
+        cp isocc $(prefix.base)/clang
+        cp isocxx $(prefix.base)/clang++
+
+    $ musl-$(version.musl).tar.gz:
+        wget https://musl.libc.org/releases/musl-$(version.musl).tar.gz
+    $ musl-$(version.musl): musl-$(version.musl).tar.gz
+        tar -xf $input
+    $ musl:VB: musl-$(version.musl) llvm-rt[I]
+        export CC=$cc && export CFLAGS="--rtlib=compiler-rt -resource-dir $(prefix.comprt)" && cd musl-$(version.musl) && ./configure --prefix=$(prefix.sysroot) && make && make install
+
+    $ llvm-project-$(version.llvm).src.tar.xz:
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-$(version.llvm)/llvm-project-$(version.llvm).src.tar.xz
+    $ llvm-project-$(version.llvm).src: llvm-project-$(version.llvm).src.tar.xz
+        tar -xf $input
+    $ llvm-project-$(version.llvm).src/build-runtimes: llvm-project-$(version.llvm).src
+        cd $input && mkdir build-runtimes
+    $ llvm-project-$(version.llvm).src/build-compiler-rt: llvm-project-$(version.llvm).src
+        cd $input && mkdir build-compiler-rt
+    $ llvm-cxx:V: llvm-project-$(version.llvm).src/build-runtimes llvm-rt[I] musl[I]
+        export ASMFLAGS="$asflags" && export CXXFLAGS="--sysroot $(prefix.sysroot) -Wno-unused-command-line-argument -nostdlib -nostdlibinc -isystem $(prefix.sysroot)/include -isystem /usr/include -I../libunwind/include -resource-dir $(prefix.comprt) --rtlib=compiler-rt $asflags" && export CFLAGS="--sysroot $(prefix.sysroot) -Wno-unused-command-line-argument -nostdlib -nostdlibinc -isystem $(prefix.sysroot)/include -isystem /usr/include -I../libunwind/include -resource-dir $(prefix.comprt) --rtlib=compiler-rt $asflags" && cd $input && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$cc -DCMAKE_CXX_COMPILER=$cxx -DLIBCXX_HAS_MUSL_LIBC=YES -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" ../runtimes -DCMAKE_INSTALL_PREFIX=$(prefix.sysroot) -DLIBCXX_ENABLE_SHARED=NO -DLIBCXXABI_ENABLE_SHARED=NO -DLIBUNWIND_ENABLE_SHARED=NO -DLIBCXXABI_LINK_TESTS_WITH_SHARED_LIBCXX=OFF -DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=OFF -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXXABI=OFF -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX=OFF && ninja unwind cxxabi cxx && ninja install
+
+    $ llvm-rt:V: llvm-project-$(version.llvm).src/build-compiler-rt
+        cd $input && cmake ../compiler-rt -G Ninja -DCMAKE_C_COMPILER=$cc -DCMAKE_CXX_COMPILER=$cxx -DCOMPILER_RT_BUILD_BUILTINS=ON -DCOMPILER_RT_BUILD_LIBFUZZER=OFF -DCOMPILER_RT_BUILD_MEMPROF=OFF -DCOMPILER_RT_BUILD_PROFILE=OFF -DCOMPILER_RT_BUILD_SANITIZERS=OFF -DCOMPILER_RT_BUILD_XRAY=OFF -DCOMPILER_RT_BUILD_ORC=OFF -DCMAKE_INSTALL_PREFIX=$(prefix.comprt) && ninja && ninja install
+}

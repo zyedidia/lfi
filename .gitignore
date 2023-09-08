@@ -1,6 +1,5 @@
 *.o
 xz_r.s
 far.s
-isoverif/test
-isoverify/test
-isoverify/target
+lfi-verify/test
+lfi-verify/target

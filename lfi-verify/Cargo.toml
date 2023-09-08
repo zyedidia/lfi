@@ -1,5 +1,5 @@
 [package]
-name = "isoverify"
+name = "lfi-verify"
 version = "0.1.0"
 edition = "2021"
 
