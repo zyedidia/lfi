@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -40,12 +39,10 @@ func temp(dir string) string {
 }
 
 func main() {
-	var in, out string
+	var in, out, as string
 	var args, lfiflags []string
 	var keep, verbose bool
 	verbose = true
-
-	as := filepath.Base(os.Args[0])
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -55,6 +52,12 @@ func main() {
 				fatal("-o needs an argument")
 			}
 			out = os.Args[i+1]
+			i++
+		case "-flfi-as":
+			if i+1 >= len(os.Args) {
+				fatal("-lfi-as needs an argument")
+			}
+			as = os.Args[i+1]
 			i++
 		case "-V":
 			verbose = true
