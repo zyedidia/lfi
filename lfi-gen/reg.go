@@ -3,11 +3,11 @@ package main
 import "strings"
 
 const (
-	resReg     = Reg("x15")
+	resReg     = Reg("x18")
 	segmentReg = Reg("x21")
-	scratchReg = Reg("x14")
-	optReg     = Reg("x24")
-	optReg2    = Reg("x22")
+	scratchReg = Reg("x22")
+	optReg     = Reg("x23")
+	optReg2    = Reg("x24")
 	spReg      = Reg("sp")
 	retReg     = Reg("x30")
 )

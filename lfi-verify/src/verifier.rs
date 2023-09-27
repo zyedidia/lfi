@@ -5,13 +5,13 @@ use crate::inst::{
     is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify,
 };
 
-const RES_REG: Reg = Reg::X15;
+const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
 const SP_REG: Reg = Reg::SP;
-const OPT_REG: Reg = Reg::X24;
-const OPT_REG2: Reg = Reg::X22;
+const OPT_REG: Reg = Reg::X23;
+const OPT_REG2: Reg = Reg::X24;
 const BASE_REG: Reg = Reg::X21;
-const RES32_REG: Reg = Reg::X14;
+const RES32_REG: Reg = Reg::X22;
 
 pub static FAILED: AtomicBool = AtomicBool::new(false);
 

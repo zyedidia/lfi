@@ -1,8 +1,8 @@
 #!/bin/bash
-TOOLCHAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-clang -fno-integrated-as \
+TOOLCHAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..
+clang++ -fno-integrated-as \
     -mllvm --aarch64-enable-compress-jump-tables=false \
-    -ffixed-x15 -ffixed-x21 -ffixed-x22 -ffixed-x14 -ffixed-x24 -ffixed-x30 \
+    -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x23 -ffixed-x24 -ffixed-x30 \
     "$@" \
     -B $TOOLCHAIN/assembler \
     --sysroot $TOOLCHAIN/sysroot \
