@@ -56,7 +56,7 @@ func main() {
 			i++
 		case "-flfi-as":
 			if i+1 >= len(os.Args) {
-				fatal("-lfi-as needs an argument")
+				fatal("-flfi-as needs an argument")
 			}
 			as = os.Args[i+1]
 			i++
@@ -71,8 +71,9 @@ func main() {
 			default:
 				if strings.HasPrefix(arg, "-flfi") {
 					lfiflags = append(lfiflags, arg[len("-flfi"):])
+				} else {
+					args = append(args, "-Wa,"+arg)
 				}
-				args = append(args, arg)
 			}
 		}
 	}
