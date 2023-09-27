@@ -20,8 +20,8 @@ cd llvm-project-$VERSION.src/
 mkdir build-runtimes
 cd build-runtimes
 export ASMFLAGS="-flfi-O1"
-export CXXFLAGS="--sysroot $SYSROOT -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
-export CFLAGS="--sysroot $SYSROOT -Wno-unused-command-line-argument -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
+export CXXFLAGS="--sysroot $SYSROOT -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -isystem /usr/include/aarch64-linux-gnu -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
+export CFLAGS="--sysroot $SYSROOT -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -isystem /usr/include/aarch64-linux-gnu -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
 cmake ../runtimes -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=$CC \
@@ -33,6 +33,7 @@ cmake ../runtimes -G Ninja \
     -DLIBCXXABI_ENABLE_SHARED=NO \
     -DLIBUNWIND_ENABLE_SHARED=NO \
     -DLIBCXXABI_LINK_TESTS_WITH_SHARED_LIBCXX=OFF \
+    -DLIBCXX_ENABLE_LOCALIZATION=OFF \
     -DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=OFF \
     -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXXABI=OFF \
     -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX=OFF

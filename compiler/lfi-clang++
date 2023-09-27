@@ -13,6 +13,7 @@ lfi-compile clang++ \
     -isystem $TOOLCHAIN/sysroot/include/c++/v1 \
     -isystem $TOOLCHAIN/sysroot/include \
     -isystem /usr/include \
+    -isystem /usr/include/aarch64-linux-gnu \
     -fuse-ld=lld \
     -Wno-unused-command-line-argument \
     -lc++ \

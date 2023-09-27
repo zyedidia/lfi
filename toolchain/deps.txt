@@ -1,3 +1,5 @@
 sudo apt install llvm clang lld ninja-build cmake
 
 may need to link /usr/include/asm-generic -> /usr/include/asm to build libc++
+
+sudo ln -s /usr/include/asm-generic /usr/include/asm

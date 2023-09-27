@@ -1,5 +1,8 @@
 #!/bin/sh
 
+PREFIX=$1
+mkdir -p $PREFIX
+
 ./download-llvm.sh
 ./download-musl.sh
 

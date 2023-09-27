@@ -10,6 +10,7 @@ lfi-compile clang \
     -nostdlibinc \
     -isystem $TOOLCHAIN/sysroot/include \
     -isystem /usr/include \
+    -isystem /usr/include/aarch64-linux-gnu \
     -fuse-ld=lld \
     -Wno-unused-command-line-argument \
     -static-pie \
