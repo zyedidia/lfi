@@ -10,4 +10,6 @@ lfi-compile clang \
     -nostdlibinc \
     -isystem $TOOLCHAIN/sysroot/include \
     -isystem /usr/include \
+    -fuse-ld=lld \
+    -Wno-unused-command-line-argument \
     -target aarch64-linux-musl

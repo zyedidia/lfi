@@ -43,7 +43,7 @@ func compile(cmdargs []string) {
 	compiler := cmdargs[0]
 
 	var args, lfiargs, inputs, objs []string
-	var compile, assemble, verbose, keep bool
+	var compile, assemble, verbose, keep, lto bool
 	var out string
 
 	for i := 1; i < len(cmdargs); i++ {
@@ -55,6 +55,9 @@ func compile(cmdargs []string) {
 		}
 
 		switch arg {
+		case "-flto", "-flto=full", "-flto=thin":
+			lto = true
+			args = append(args, arg)
 		case "-c":
 			compile = true
 		case "-S":
@@ -99,12 +102,17 @@ func compile(cmdargs []string) {
 	if verbose {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(0)
+		log.SetPrefix("LFI: ")
 	} else {
 		log.SetOutput(io.Discard)
 	}
 
 	if len(inputs) == 0 {
-		if out == "" {
+		var oldout string
+		if lto {
+			oldout = out
+			out = temp(os.TempDir())
+		} else if out == "" {
 			out = "a.out"
 		}
 		flags := []string{
@@ -112,8 +120,15 @@ func compile(cmdargs []string) {
 		}
 		flags = append(flags, objs...)
 		flags = append(flags, args...)
+		if !lto {
+			run(compiler, flags...)
+			return
+		}
+
+		flags = append(flags, "-Wl,--lto-emit-asm", "-Wl,-plugin-opt=--aarch64-enable-compress-jump-tables=false")
 		run(compiler, flags...)
-		return
+		inputs = []string{out}
+		out = oldout
 	}
 
 	if len(inputs) != 1 {
@@ -127,7 +142,19 @@ func compile(cmdargs []string) {
 	inputdir := filepath.Dir(input)
 
 	asm := input
-	if filepath.Ext(input) == ".S" {
+	if lto && compile {
+		if out == "" {
+			out = targeto
+		}
+		flags := []string{
+			"-c",
+			"-o", out,
+			input,
+		}
+		flags = append(flags, args...)
+		run(compiler, flags...)
+		return
+	} else if filepath.Ext(input) == ".S" {
 		asm = temp(inputdir)
 		stage1 := []string{
 			"-E",
