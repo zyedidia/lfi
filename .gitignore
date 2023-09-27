@@ -1,5 +1,7 @@
+.knit
 *.o
 xz_r.s
 far.s
 lfi-verify/test
 lfi-verify/target
+/lfi-run/lfi-run

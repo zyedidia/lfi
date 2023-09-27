@@ -1,0 +1,16 @@
+cc = cli.cc or "clang"
+local arch = cli.arch or "arm64"
+local cflags = "-mgeneral-regs-only"
+
+return b{
+    $ lfi-run: loader.o ht.o $arch/trampoline.o $arch/setup.o $arch/syscall.o
+        $cc $input -o $output -static -g3
+    $ %.o: %.c
+        $cc $cflags $input -c -o $output -O2 -g3
+    $ $arch/%.o: $arch/%.s
+        $cc $input -c -o $output
+    $ format:VB:
+        clang-format -i loader.c
+
+    include("test/build.knit"),
+}
