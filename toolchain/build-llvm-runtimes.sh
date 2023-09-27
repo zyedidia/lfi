@@ -1,12 +1,12 @@
 #!/bin/sh
 
-# Usage: build-compiler-rt.sh PREFIX
+# Usage: build-llvm-runtimes.sh PREFIX
 
 set -e
 set -x
 
 VERSION=15.0.7
-PREFIX=/tmp/toolchain
+PREFIX=$1
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
 

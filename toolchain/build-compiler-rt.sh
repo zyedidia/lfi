@@ -6,7 +6,7 @@ set -x
 set -e
 
 VERSION=15.0.7
-PREFIX=/tmp/toolchain
+PREFIX=$1
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
 
