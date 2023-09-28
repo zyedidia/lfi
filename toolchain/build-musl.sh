@@ -13,6 +13,7 @@ COMPRT=$PREFIX/compiler-rt
 CC=$PWD/../compiler/lfi-nolib-clang
 
 cp memset.S musl-$VERSION/src/string/aarch64/memset.S
+cp getopt.c musl-$VERSION/src/misc/getopt.c
 
 export CC=$CC
 export CFLAGS="--rtlib=compiler-rt -resource-dir $COMPRT"
