@@ -164,7 +164,7 @@ func (m MemAddrPost) String() string {
 }
 
 func (m MemAddrPostReg) String() string {
-	return fmt.Sprintf("[%v], %v", m.Reg, m.Reg)
+	return fmt.Sprintf("[%v], %v", m.Reg, m.RegOff)
 }
 
 func (m MemAddrComplex) String() string {
