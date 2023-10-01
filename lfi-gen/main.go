@@ -25,6 +25,7 @@ var opt = pflag.IntP("opt", "O", 3, "optimization level")
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
+	syscall := pflag.Bool("syscall", false, "only modify system call invocation")
 
 	pflag.Parse()
 	args := pflag.Args()
@@ -42,22 +43,25 @@ func main() {
 	}
 
 	// MarkLeaders(*ops)
-
-	branchPass(ops)
-	fixupReservedPass(ops)
-	if *opt >= 2 {
-		rangePass(ops)
+	if *syscall {
+		syscallPass(ops)
+	} else {
+		branchPass(ops)
+		fixupReservedPass(ops)
+		if *opt >= 2 {
+			rangePass(ops)
+		}
+		memPass(ops)
+		syscallPass(ops)
+		specialRegPass(ops)
+		if *instrument {
+			instrumentPass(ops)
+		}
+		if *opt >= 3 {
+			preExtensionPass(ops)
+		}
+		branchFixupPass(ops)
 	}
-	memPass(ops)
-	syscallPass(ops)
-	specialRegPass(ops)
-	if *instrument {
-		instrumentPass(ops)
-	}
-	if *opt >= 3 {
-		preExtensionPass(ops)
-	}
-	branchFixupPass(ops)
 
 	var w io.Writer
 	if *out != "" {
