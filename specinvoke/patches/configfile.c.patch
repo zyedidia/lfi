@@ -1,0 +1,10 @@
+--- benchspec/CPU/525.x264_r/src/ldecod_src/configfile.c	2023-10-02 22:27:29.412440105 +0000
++++ benchspec/CPU/525.x264_r/src/ldecod_src/configfile.c	2023-10-02 22:17:06.956714035 +0000
+@@ -66,6 +66,7 @@
+ #include "configfile.h"
+ #define MAX_ITEMS_TO_PARSE  10000
+ 
++InputParameters cfgparams;
+ static void PatchInp                (InputParameters *p_Inp);
+ 
+ /*!

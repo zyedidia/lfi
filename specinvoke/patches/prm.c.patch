@@ -1,0 +1,14 @@
+--- benchspec/CPU/544.nab_r/src/prm.c	2023-10-02 22:29:26.616416437 +0000
++++ benchspec/CPU/544.nab_r/src/prm.c	2023-10-02 22:21:04.064569766 +0000
+@@ -41,7 +41,11 @@
+ #include "mpi.h"
+ #endif
+ 
++#ifdef WASM
++extern _Thread_local int errno;
++#else
+ extern int errno;
++#endif
+ 
+ static int compressed = 0;
+ static char e_msg[256];

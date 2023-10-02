@@ -1,0 +1,11 @@
+--- benchspec/CPU/525.x264_r/src/ldecod_src/inc/configfile.h	2023-10-02 22:27:44.308436789 +0000
++++ benchspec/CPU/525.x264_r/src/ldecod_src/inc/configfile.h	2023-10-02 22:16:40.632734567 +0000
+@@ -18,7 +18,7 @@
+ //#define LEVEL_IDC       21
+ 
+ 
+-InputParameters cfgparams;
++extern InputParameters cfgparams;
+ 
+ #ifdef INCLUDED_BY_CONFIGFILE_C
+ // Mapping_Map Syntax:
