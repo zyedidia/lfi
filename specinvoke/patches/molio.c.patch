@@ -1,0 +1,11 @@
+--- benchspec/CPU/544.nab_r/src/molio.c	2023-10-03 01:06:33.999043498 +0000
++++ benchspec/CPU/544.nab_r/src/molio.c	2023-10-03 01:08:27.887032522 +0000
+@@ -97,7 +97,7 @@
+ static void mk_wwpdb_aname(char[], char[], char[]);
+ 
+ int get_mytaskid(void);
+-void reducerror(int);
++int reducerror(int);
+ char *ggets(char *, int, FILE *);
+ void upd_molnumbers(MOLECULE_T *);
+ MOLECULE_T *newmolecule(void);
