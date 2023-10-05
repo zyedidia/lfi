@@ -218,13 +218,17 @@ fn ok_mod(
         if (inst.op() == Op::ADD || inst.op() == Op::SUB)
             && matches!(inst.operands()[2], Operand::Imm64 { .. })
         {
+            let mut modifications = 1;
             while let Some(maybe_inst) = iter.peek() {
                 if let Ok(inst) = maybe_inst {
                     if is_branch(inst.op()) {
                         break;
                     }
                     if modifies(inst, SP_REG) {
-                        break;
+                        if modifications >= 2 {
+                            break;
+                        }
+                        modifications += 1;
                     }
                     if !is_access_incomplete(inst.op()) {
                         iter.advance_cursor();
