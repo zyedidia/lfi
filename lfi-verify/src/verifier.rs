@@ -21,6 +21,23 @@ fn error(inst: &Instruction, msg: &str) {
     FAILED.store(true, atomic::Ordering::Relaxed);
 }
 
+fn modifies(inst: &Instruction, r: Reg) -> bool {
+    if nomodify(inst.op()) || inst.operands().len() == 0 {
+        return false;
+    }
+    if let Operand::Reg { reg, .. } = inst.operands()[0] {
+        if reg == r {
+            return true;
+        }
+        if is_multimod(inst.op()) {
+            if let Operand::Reg { reg, .. } = inst.operands()[1] {
+                return reg == r;
+            }
+        }
+    }
+    return false;
+}
+
 // List of registers that may be used as load targets
 fn data_reg(r: Reg) -> bool {
     match r {
@@ -168,7 +185,6 @@ fn ok_mod(
     if !restricted_reg(reg) {
         return true;
     }
-
     if inst.op() == Op::ADD {
         let ops = inst.operands();
         if ops.len() == 3 {
@@ -195,7 +211,7 @@ fn ok_mod(
         // mov lo(RES32_REG), wsp
         // add sp, BASE_REG, RES32_REG
         //
-        // or a load/store before the next branch
+        // or a load/store before the next branch or modification to SP
         if ok_check_sp(iter.peek_range(0, 2)) {
             return true;
         }
@@ -205,6 +221,9 @@ fn ok_mod(
             while let Some(maybe_inst) = iter.peek() {
                 if let Ok(inst) = maybe_inst {
                     if is_branch(inst.op()) {
+                        break;
+                    }
+                    if modifies(inst, SP_REG) {
                         break;
                     }
                     if !is_access_incomplete(inst.op()) {

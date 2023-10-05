@@ -169,7 +169,9 @@ pub fn is_branch(op: Op) -> bool {
     }
 }
 
-// instructions that are accesses -- does not necessarily include every access instruction.
+// Instructions that are accesses -- does not necessarily including every access instruction. This
+// list is used to validate stack pointer modifications that happen before an access. In this case,
+// being incomplete is not a problem, since it just means more programs are disallowed.
 pub fn is_access_incomplete(op: Op) -> bool {
     match op {
         Op::LD1 => true,
