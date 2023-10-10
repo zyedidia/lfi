@@ -69,7 +69,6 @@ static unsigned long loadelf_anon(int fd, Elf64_Ehdr* ehdr, Elf64_Phdr* phdr, un
     minva = BOX_TRUNC(minva);
     maxva = BOX_ROUND(maxva);
 
-    // For dynamic ELF let the kernel chose the address.
     hint = dyn ? (void*) BASE_VA : (void*) minva;
     flags = dyn ? 0 : MAP_FIXED;
     flags |= (MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_FIXED);
@@ -91,7 +90,7 @@ static unsigned long loadelf_anon(int fd, Elf64_Ehdr* ehdr, Elf64_Phdr* phdr, un
         start += TRUNC_PG(iter->p_vaddr);
         sz = ROUND_PG(iter->p_memsz + off);
 
-        p = mmap((void*) start, sz, PROT_WRITE, flags, -1, 0);
+        p = mmap((void*) start, sz, PROT_READ | PROT_WRITE, flags, -1, 0);
         if (p == (void*) -1)
             goto err;
         if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
