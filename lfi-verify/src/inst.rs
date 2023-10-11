@@ -454,11 +454,11 @@ pub fn is_allowed(op: Op) -> bool {
         Op::AUTDZA => false,
         Op::AUTDZB => false,
         Op::AUTIA => false,
-        Op::AUTIA1716 => false,
+        Op::AUTIA1716 => true, // used by libunwind
         Op::AUTIASP => false,
         Op::AUTIAZ => false,
         Op::AUTIB => false,
-        Op::AUTIB1716 => false,
+        Op::AUTIB1716 => true, // used by libunwind
         Op::AUTIBSP => false,
         Op::AUTIBZ => false,
         Op::AUTIZA => false,
