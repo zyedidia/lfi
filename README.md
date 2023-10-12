@@ -29,9 +29,11 @@ LFI supports all source-level language features and targets the ARMv8.0-A ISA
 (including SIMD), but does not support dynamic code generation. We are also
 planning to add support for ARMv8.1+ extensions.
 
-LFI is currently in development. In particular, so far the runtime has just
-been used for collecting measurements, and does not provide a fully sandboxed
-environment. We are currently working on rewriting it to be fully secure.
+LFI is currently in development. For now, please only use it for
+experimentation, and refrain from posting about it on public forums. In
+particular, so far the runtime has just been used for collecting measurements,
+and does not provide a fully sandboxed environment. We are currently working on
+rewriting it to be fully secure.
 
 # Tools
 
