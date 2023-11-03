@@ -11,6 +11,8 @@ import (
 
 // note: in order to use, you must remove checksum verification from
 // check_important_files in bin/common/setup_common.pl
+// or
+// change version.txt to 0.0.0 and set SPEC_NOCHECK=1
 
 func main() {
 	loader := os.Getenv("LOADER")
