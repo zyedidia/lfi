@@ -1,16 +1,27 @@
-cc = cli.cc or "clang"
-local arch = cli.arch or "arm64"
-local cflags = "-mgeneral-regs-only"
+local knit = require("knit")
+
+local conf = {
+    cc = cli.cc or "gcc",
+    debug = tobool(cli.debug) or false,
+}
+
+local cflags := -Wall
+
+if conf.debug then
+    cflags := $cflags -Og -g
+else
+    cflags := $cflags -O2
+end
+
+local src = knit.glob("*.c")
+local obj = knit.extrepl(src, ".c", ".o")
+local prog := lfi-run
 
 return b{
-    $ lfi-run: loader.o ht.o $arch/trampoline.o $arch/setup.o $arch/syscall.o
-        $cc $input -o $output -static -g3
-    $ %.o: %.c
-        $cc $cflags $input -c -o $output -O2 -g3
-    $ $arch/%.o: $arch/%.s
-        $cc $input -c -o $output
-    $ format:VB:
-        clang-format -i loader.c
+    $ build:VB: $prog
 
-    include("test/build.knit"),
+    $ $prog: $obj
+        $(conf.cc) $cflags $input -o $output
+    $ %.o:D[%.d]: %.c
+        $(conf.cc) $cflags -MMD -c $input -o $output
 }

@@ -1,5 +1,0 @@
-return b{
-    $ a.out: test.c
-        isocc --sysroot=/usr/local/musl -fuse-ld=lld -Wl,--rosegment -O2 $input -o $output -static-pie
-        # gcc -O2 $input -o $output -static-pie -g3
-}

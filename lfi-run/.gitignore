@@ -1,0 +1,4 @@
+*.d
+*.o
+lfi-run
+a.out

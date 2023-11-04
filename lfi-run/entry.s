@@ -1,3 +1,18 @@
+.text
+.align 4
+.globl enter_sandbox
+.type enter_sandbox,@function
+enter_sandbox:
+	mov sp, x1
+	mov x1, x0
+	mov x0, x2
+	mov x21, x3
+	blr x1
+	mov x0, x21
+	bl sandbox_exit
+hlt: 
+	b hlt
+
 .macro PROLOGUE
 stp x0, x1,   [sp, #0+16*0]
 stp x2, x3,   [sp, #0+16*1]
@@ -36,33 +51,13 @@ ldp x30, x24, [sp, #0+16*11]
 
 .text
 .align 4
-.globl instcall_entry
-.type instcall_entry,@function
-instcall_entry:
-    sub sp, sp, #464
-    PROLOGUE
-    mov x0, sp
-    bl instcall_handler
-    EPILOGUE
-    add sp, sp, #464
-    ret
-
-.text
-.align 4
 .globl syscall_entry
 .type syscall_entry,@function
 syscall_entry:
-	// TODO: optimize by only saving/restoring for hooked syscalls (mmap, brk)
 	sub sp, sp, #464
 	PROLOGUE
-    mov x0, sp
+	mov x0, sp
 	bl syscall_handler
-    cbnz x0, handled
 	EPILOGUE
 	add sp, sp, #464
-    svc #0
-    ret
-handled:
-    EPILOGUE
-    add sp, sp, #464
-    ret
+	ret
