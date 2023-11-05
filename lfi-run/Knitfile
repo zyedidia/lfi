@@ -8,20 +8,23 @@ local conf = {
 local cflags := -Wall
 
 if conf.debug then
-    cflags := $cflags -Og -g
+    cflags := $cflags -Og -g3 -fsanitize=address,undefined
 else
-    cflags := $cflags -O2
+    cflags := $cflags -O2 -g3
 end
 
-local src = knit.glob("*.c")
-local obj = knit.extrepl(src, ".c", ".o")
+local csrc = knit.glob("*.c")
+local ssrc = knit.glob("*.s")
+local obj = knit.join(knit.extrepl(csrc, ".c", ".o"), knit.extrepl(ssrc, ".s", ".o"))
 local prog := lfi-run
 
 return b{
     $ build:VB: $prog
 
     $ $prog: $obj
-        $(conf.cc) $cflags $input -o $output
+        $(conf.cc) $cflags $input -o $output -static
     $ %.o:D[%.d]: %.c
         $(conf.cc) $cflags -MMD -c $input -o $output
+    $ %.o: %.s
+        $(conf.cc) $cflags -c $input -o $output
 }
