@@ -17,8 +17,6 @@ enum {
     GUARD_SIZE = (uint64_t) 4 * GB,
 };
 
-static void libc_fini() {}
-
 static int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) |
            ((prot & PF_X) ? PROT_EXEC : 0);
@@ -83,6 +81,8 @@ int manager_load(struct manager* m,
         return -1;
     }
 
+    uintptr_t maxva = 0;
+
     for (Elf64_Phdr* iter = phdr; iter < &phdr[ehdr->e_phnum]; iter++) {
         if (iter->p_type != PT_LOAD)
             continue;
@@ -98,19 +98,21 @@ int manager_load(struct manager* m,
             (ssize_t) iter->p_filesz)
             goto err;
         mprotect(&proc.mem.base[start], end - start, pflags(iter->p_flags));
+        if (end > maxva)
+            maxva = end;
     }
 
     m->proc = proc;
+    m->proc.brk = (uint64_t) m->proc.mem.base + maxva;
 
     memset(m->proc.sys.base, 0, m->proc.sys.len);
-    memset(m->proc.kstack_data, 0, sizeof(m->proc.kstack_data));
+    memset(m->proc.kstack.data, 0, sizeof(m->proc.kstack.data));
     m->proc.kstack_canary = KSTACK_CANARY;
-    m->proc.kstack = (uintptr_t) &m->proc.kstack_data[sizeof(m->proc.kstack_data)-16];
+    m->proc.kstack_ptr = (uintptr_t) &m->proc.kstack.data[sizeof(m->proc.kstack.data)-16];
 
     m->proc.regs = (struct regs){
         .x21 = base,
         .x30 = base + PAGE_SIZE + ehdr->e_entry,
-        .x0 = (uint64_t) libc_fini,
         .sp = (uint64_t) &m->proc.mem.base[m->proc.mem.len-16],
         .x18 = base,
         .x23 = base,
@@ -210,9 +212,7 @@ int main(int argc, char* argv[], char* envp[]) {
     free(phdr);
     close(fd);
 
-    char* pargv[2] = {"proc", NULL};
-    char* penvp[1] = {NULL};
-    proc_setup(&manager.proc, &ehdr, 1, pargv, penvp);
+    proc_setup(&manager.proc, &ehdr, argc - 1, &argv[1], envp);
 
     manager_schedule(&manager);
 }

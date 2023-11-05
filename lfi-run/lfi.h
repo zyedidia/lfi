@@ -51,16 +51,22 @@ enum {
     KSTACK_CANARY = 0xdeadbeef,
 };
 
+struct __attribute__((aligned(16))) stack {
+    uint8_t data[KSTACK_SIZE];
+};
+
 struct proc {
-    uintptr_t kstack;
+    uintptr_t kstack_ptr;
     struct regs regs;
     struct mem_region sys;
     struct mem_region mem;
     struct mem_region guard;
 
+    uint64_t brk;
+
     uint64_t kstack_canary;
 
-    uint8_t kstack_data[KSTACK_SIZE];
+    struct stack kstack;
 };
 
 struct manager {
