@@ -16,6 +16,7 @@ end
 local csrc = knit.glob("*.c")
 local ssrc = knit.glob("*.s")
 local obj = knit.join(knit.extrepl(csrc, ".c", ".o"), knit.extrepl(ssrc, ".s", ".o"))
+obj = knit.prefix(obj, ".")
 local prog := lfi-run
 
 return b{
@@ -23,8 +24,8 @@ return b{
 
     $ $prog: $obj
         $(conf.cc) $cflags $input -o $output -static
-    $ %.o:D[%.d]: %.c
+    $ .%.o:D[.%.d]: %.c
         $(conf.cc) $cflags -MMD -c $input -o $output
-    $ %.o: %.s
+    $ .%.o: %.s
         $(conf.cc) $cflags -c $input -o $output
 }

@@ -3,6 +3,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PAGE_SIZE 4096
+#define ALIGN (PAGE_SIZE - 1)
+
+static inline uintptr_t truncpg(uintptr_t addr) {
+    return addr & ~ALIGN;
+}
+
+static inline uintptr_t ceilpg(uintptr_t addr) {
+    return (addr + ALIGN) & ~ALIGN;
+}
+
 struct regs {
     uint64_t x0;
     uint64_t x1;
@@ -55,6 +66,8 @@ struct __attribute__((aligned(16))) stack {
     uint8_t data[KSTACK_SIZE];
 };
 
+struct buddy;
+
 struct proc {
     uintptr_t kstack_ptr;
     struct regs regs;
@@ -62,6 +75,7 @@ struct proc {
     struct mem_region mem;
     struct mem_region guard;
 
+    struct buddy* heap;
     uint64_t brk;
 
     uint64_t kstack_canary;

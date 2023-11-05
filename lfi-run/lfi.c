@@ -8,26 +8,19 @@
 #include <unistd.h>
 
 #include "lfi.h"
+#include "heap.h"
 
 enum {
     GB = (uint64_t) 1024 * 1024 * 1024,
-    PAGE_SIZE = (uint64_t) 4096,
-    ALIGN = (uint64_t) PAGE_SIZE - 1,
+    MB = (uint64_t) 1024 * 1024,
     BOX_SIZE = (uint64_t) 4 * GB,
     GUARD_SIZE = (uint64_t) 4 * GB,
+    BRK_SIZE = (uint64_t) 512 * MB,
 };
 
 static int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) |
            ((prot & PF_X) ? PROT_EXEC : 0);
-}
-
-static uintptr_t truncpg(uintptr_t addr) {
-    return addr & ~ALIGN;
-}
-
-static uintptr_t ceilpg(uintptr_t addr) {
-    return (addr + ALIGN) & ~ALIGN;
 }
 
 static int check_ehdr(Elf64_Ehdr* ehdr) {
@@ -104,6 +97,8 @@ int manager_load(struct manager* m,
 
     m->proc = proc;
     m->proc.brk = (uint64_t) m->proc.mem.base + maxva;
+    uint64_t brk_end = m->proc.brk + BRK_SIZE;
+    proc_heap_init(&m->proc, (void*) brk_end, (uint64_t) (m->proc.mem.base + m->proc.mem.len) - brk_end);
 
     memset(m->proc.sys.base, 0, m->proc.sys.len);
     memset(m->proc.kstack.data, 0, sizeof(m->proc.kstack.data));
