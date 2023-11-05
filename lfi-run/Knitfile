@@ -5,7 +5,7 @@ local conf = {
     debug = tobool(cli.debug) or false,
 }
 
-local cflags := -Wall
+local cflags := -Wall -mgeneral-regs-only
 
 if conf.debug then
     cflags := $cflags -Og -g3 -fsanitize=address,undefined

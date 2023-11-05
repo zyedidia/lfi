@@ -131,6 +131,39 @@ err:
     return -1;
 }
 
+void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], char* envp[]) {
+    char* args[argc];
+    char* sp_max = (char*) proc->regs.sp;
+    char* sp_args = sp_max - PAGE_SIZE;
+    // Write argv string values to stack
+    for (int i = 0; i < argc; i++) {
+        size_t len = strnlen(argv[i], 1024) + 1;
+        memcpy(sp_args, argv[i], len);
+        args[i] = sp_args;
+        sp_args += len;
+    }
+    // Write argc and argv pointers to stack
+    uint64_t* sp_new = (uint64_t*) (sp_max - 2 * PAGE_SIZE);
+    proc->regs.sp = (uint64_t) sp_new;
+    (*sp_new) = argc;
+    char** proc_argv = (char**) (sp_new + 1);
+    for (int i = 0; i < argc; i++) {
+        proc_argv[i] = args[i];
+    }
+    proc_argv[argc] = NULL;
+    char** proc_envp = (char**) &proc_argv[argc + 1];
+    *proc_envp++ = NULL;
+
+    Elf64_auxv_t* av = (void*) proc_envp;
+
+    *av++ = (Elf64_auxv_t){ .a_type = AT_ENTRY, .a_un.a_val = proc->regs.x30, };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_RANDOM, .a_un.a_val = proc->regs.sp };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_EXECFN, .a_un.a_val = (uint64_t) proc_argv[0] };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_PHDR, .a_un.a_val = (uint64_t) proc->mem.base + ehdr->e_phoff };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_PHNUM, .a_un.a_val = ehdr->e_phnum };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_PHENT, .a_un.a_val = ehdr->e_phentsize };
+}
+
 void manager_schedule(struct manager* m) {
     enter_sandbox(&m->proc);
 }
@@ -176,6 +209,10 @@ int main(int argc, char* argv[], char* envp[]) {
     }
     free(phdr);
     close(fd);
+
+    char* pargv[2] = {"proc", NULL};
+    char* penvp[1] = {NULL};
+    proc_setup(&manager.proc, &ehdr, 1, pargv, penvp);
 
     manager_schedule(&manager);
 }
