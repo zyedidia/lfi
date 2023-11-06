@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/syscall.h>
+
 #include <sys/uio.h>
 
 #include "lfi.h"
@@ -103,31 +105,26 @@ static void sys_openat(struct proc* proc) {
 static void sys_brk(struct proc* proc) {
     if (proc->regs.x0 != 0) {
         proc->brk = proc_addr(proc, proc->regs.x0);
-        printf("set brk:%lx\n", proc->brk);
-    } else {
-        printf("get brk:%lx\n", proc->brk);
     }
     proc->regs.x0 = proc->brk;
 }
 
 static void sys_mmap(struct proc* proc) {
-    printf("mmap %lx %ld\n", proc->regs.x0, proc->regs.x1);
     if (proc->regs.x1 == 0) {
         proc->regs.x0 = -1;
         return;
     }
-    if (proc->regs.x0) {
+    if (proc->regs.x0 == 0) {
         size_t size = ceilpg(proc->regs.x1);
         void* p = proc_alloc(proc, size);
         if (!p) {
             proc->regs.x0 = -1;
             return;
         }
-        printf("allocated %p, %ld\n", p, size);
         proc->regs.x0 = (uint64_t) p;
         // TODO: protections and flags
     } else if (proc->regs.x0 + proc->regs.x1 <= proc->brk) {
-        printf("using brk\n");
+        /* proc->regs.x0 = -1; */
         return;
     } else {
         proc->regs.x0 = -1;

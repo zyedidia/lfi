@@ -16,6 +16,7 @@ enum {
     BOX_SIZE = (uint64_t) 4 * GB,
     GUARD_SIZE = (uint64_t) 4 * GB,
     BRK_SIZE = (uint64_t) 512 * MB,
+    STACK_SIZE = (uint64_t) 2 * MB,
 };
 
 static int pflags(int prot) {
@@ -76,6 +77,8 @@ int manager_load(struct manager* m,
 
     uintptr_t maxva = 0;
 
+    // TODO: fill non loaded pages with 0
+
     for (Elf64_Phdr* iter = phdr; iter < &phdr[ehdr->e_phnum]; iter++) {
         if (iter->p_type != PT_LOAD)
             continue;
@@ -98,7 +101,7 @@ int manager_load(struct manager* m,
     m->proc = proc;
     m->proc.brk = (uint64_t) m->proc.mem.base + maxva;
     uint64_t brk_end = m->proc.brk + BRK_SIZE;
-    proc_heap_init(&m->proc, (void*) brk_end, (uint64_t) (m->proc.mem.base + m->proc.mem.len) - brk_end);
+    proc_heap_init(&m->proc, (void*) brk_end, (uint64_t) (m->proc.mem.base + m->proc.mem.len - STACK_SIZE) - brk_end);
 
     memset(m->proc.sys.base, 0, m->proc.sys.len);
     memset(m->proc.kstack.data, 0, sizeof(m->proc.kstack.data));
@@ -108,7 +111,6 @@ int manager_load(struct manager* m,
     m->proc.regs = (struct regs){
         .x21 = base,
         .x30 = base + PAGE_SIZE + ehdr->e_entry,
-        .sp = (uint64_t) &m->proc.mem.base[m->proc.mem.len-16],
         .x18 = base,
         .x23 = base,
         .x24 = base,
@@ -130,7 +132,7 @@ err:
 
 void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], char* envp[]) {
     char* args[argc];
-    char* sp_max = (char*) proc->regs.sp;
+    char* sp_max = (char*) proc->mem.base + proc->mem.len;
     char* sp_args = sp_max - PAGE_SIZE;
     // Write argv string values to stack
     for (int i = 0; i < argc; i++) {
@@ -154,11 +156,12 @@ void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], cha
     Elf64_auxv_t* av = (void*) proc_envp;
 
     *av++ = (Elf64_auxv_t){ .a_type = AT_ENTRY, .a_un.a_val = proc->regs.x30, };
-    *av++ = (Elf64_auxv_t){ .a_type = AT_RANDOM, .a_un.a_val = proc->regs.sp };
     *av++ = (Elf64_auxv_t){ .a_type = AT_EXECFN, .a_un.a_val = (uint64_t) proc_argv[0] };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHDR, .a_un.a_val = (uint64_t) proc->mem.base + ehdr->e_phoff };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHNUM, .a_un.a_val = ehdr->e_phnum };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHENT, .a_un.a_val = ehdr->e_phentsize };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_PAGESZ, .a_un.a_val = PAGE_SIZE };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_NULL, .a_un.a_val = 0 };
 }
 
 void manager_schedule(struct manager* m) {
