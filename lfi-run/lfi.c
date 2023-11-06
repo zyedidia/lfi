@@ -86,7 +86,7 @@ int manager_load(struct manager* m,
         uintptr_t end = ceilpg(iter->p_vaddr + iter->p_memsz);
         memset(&proc.mem.base[start], 0, end - start);
 
-        printf("LOAD [%lx:%lx] -> [%p:%p]\n", start, end, &proc.mem.base[start], &proc.mem.base[end]);
+        fprintf(stderr, "LOAD [%lx:%lx] -> [%p:%p]\n", start, end, &proc.mem.base[start], &proc.mem.base[end]);
 
         if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
             goto err;
