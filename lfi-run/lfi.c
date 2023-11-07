@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #include "lfi.h"
-#include "heap.h"
+#include "mem.h"
 
 enum {
     GB = (uint64_t) 1024 * 1024 * 1024,
@@ -38,13 +38,13 @@ static struct mem_region mem_map(uintptr_t base,
                                  int flags) {
     void* m = mmap((void*) base, len, prot, flags, -1, 0);
     return (struct mem_region){
-        .base = m,
+        .base = (uint64_t) m,
         .len = len,
     };
 }
 
 static void mem_unmap(struct mem_region* mem) {
-    munmap(mem->base, mem->len);
+    munmap((void*) mem->base, mem->len);
 }
 
 void syscall_entry();
@@ -56,57 +56,61 @@ int manager_load(struct manager* m,
                  Elf64_Phdr* phdr) {
     struct proc proc;
 
-    uintptr_t base = 8ULL * GB;
-    int flags = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
-    proc.sys = mem_map(base, PAGE_SIZE, PROT_READ | PROT_WRITE, flags);
-    if (proc.sys.base == (void*) -1) {
-        return -1;
-    }
-    proc.mem = mem_map(base + PAGE_SIZE, BOX_SIZE - PAGE_SIZE,
-                       PROT_READ | PROT_WRITE, flags);
-    if (proc.mem.base == (void*) -1) {
-        mem_unmap(&proc.sys);
-        return -1;
-    }
-    proc.guard = mem_map(base + BOX_SIZE, GUARD_SIZE, PROT_NONE, flags);
-    if (proc.guard.base == (void*) -1) {
-        mem_unmap(&proc.sys);
-        mem_unmap(&proc.mem);
-        return -1;
-    }
-
     uintptr_t maxva = 0;
-
-    // TODO: fill non loaded pages with 0
 
     for (Elf64_Phdr* iter = phdr; iter < &phdr[ehdr->e_phnum]; iter++) {
         if (iter->p_type != PT_LOAD)
             continue;
-        uintptr_t start = truncpg(iter->p_vaddr);
         uintptr_t end = ceilpg(iter->p_vaddr + iter->p_memsz);
-        memset(&proc.mem.base[start], 0, end - start);
-
-        fprintf(stderr, "LOAD [%lx:%lx] -> [%p:%p]\n", start, end, &proc.mem.base[start], &proc.mem.base[end]);
-
-        if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
-            goto err;
-        if (read(fd, &proc.mem.base[iter->p_vaddr], iter->p_filesz) !=
-            (ssize_t) iter->p_filesz)
-            goto err;
-        mprotect(&proc.mem.base[start], end - start, pflags(iter->p_flags));
         if (end > maxva)
             maxva = end;
     }
 
-    m->proc = proc;
-    m->proc.brk = (uint64_t) m->proc.mem.base + maxva;
-    uint64_t brk_end = m->proc.brk + BRK_SIZE;
-    proc_heap_init(&m->proc, (void*) brk_end, (uint64_t) (m->proc.mem.base + m->proc.mem.len - STACK_SIZE) - brk_end);
+    uintptr_t base = 8ULL * GB;
+    int flags = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
+    proc.sys = mem_map(base, PAGE_SIZE, PROT_READ | PROT_WRITE, flags);
+    if (proc.sys.base == (uint64_t) -1) {
+        return -1;
+    }
+    proc.bin = mem_map(base + PAGE_SIZE, maxva, PROT_NONE, flags);
+    if (proc.bin.base == (uint64_t) -1) {
+        mem_unmap(&proc.sys);
+        return -1;
+    }
+    proc.guard = mem_map(base + BOX_SIZE, GUARD_SIZE, PROT_NONE, flags);
+    if (proc.guard.base == (uint64_t) -1) {
+        mem_unmap(&proc.sys);
+        mem_unmap(&proc.bin);
+        return -1;
+    }
 
-    memset(m->proc.sys.base, 0, m->proc.sys.len);
-    memset(m->proc.kstack.data, 0, sizeof(m->proc.kstack.data));
-    m->proc.kstack_canary = KSTACK_CANARY;
-    m->proc.kstack_ptr = (uintptr_t) &m->proc.kstack.data[sizeof(m->proc.kstack.data)-16];
+    for (Elf64_Phdr* iter = phdr; iter < &phdr[ehdr->e_phnum]; iter++) {
+        if (iter->p_type != PT_LOAD)
+            continue;
+        uint64_t start = truncpg(iter->p_vaddr);
+        uint64_t end = ceilpg(iter->p_vaddr + iter->p_memsz);
+
+        mprotect((char*) proc.bin.base + start, end - start, PROT_READ | PROT_WRITE);
+        memset((char*) proc.bin.base + start, 0, end - start);
+
+        fprintf(stderr, "LOAD [%lx:%lx] -> [%lx:%lx]\n", start, end, proc.bin.base + start, proc.bin.base + end);
+
+        if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
+            goto err;
+        if (read(fd, (char*) proc.bin.base + iter->p_vaddr, iter->p_filesz) !=
+            (ssize_t) iter->p_filesz)
+            goto err;
+        mprotect((char*) proc.bin.base + start, end - start, pflags(iter->p_flags));
+    }
+
+    m->proc = proc;
+    m->proc.brk = (uint64_t) m->proc.bin.base + maxva;
+
+    memset((char*) m->proc.sys.base, 0, m->proc.sys.len);
+    char* kstack = aligned_alloc(PAGE_SIZE, KSTACK_SIZE);
+    memset(kstack, 0, KSTACK_SIZE);
+    mprotect(kstack, PAGE_SIZE, PROT_NONE);
+    m->proc.kstack_ptr = (uintptr_t) kstack + KSTACK_SIZE;
 
     m->proc.regs = (struct regs){
         .x21 = base,
@@ -114,25 +118,43 @@ int manager_load(struct manager* m,
         .x18 = base,
         .x23 = base,
         .x24 = base,
+        .tpidr = base,
     };
+
+    m->proc.stack = mem_map(base + BOX_SIZE - STACK_SIZE, STACK_SIZE, PROT_READ | PROT_WRITE, flags);
+    if (m->proc.stack.base == (uint64_t) -1) {
+        goto err;
+    }
+
+    m->proc.brk_heap = mem_map(m->proc.brk, BRK_SIZE, PROT_READ | PROT_WRITE, flags);
+    if (m->proc.brk_heap.base == (uint64_t) -1) {
+        mem_unmap(&m->proc.stack);
+        goto err;
+    }
+
+    uint64_t mmap_base = m->proc.brk_heap.base + m->proc.brk_heap.len;
+    proc_mmap_init(&m->proc, mmap_base, m->proc.stack.base - mmap_base);
 
     uintptr_t* ptrs = (uintptr_t*) m->proc.sys.base;
     ptrs[0] = (uintptr_t) syscall_entry;
     ptrs[1] = (uintptr_t) &m->proc;
-    mprotect(m->proc.sys.base, m->proc.sys.len, PROT_READ);
+    uintptr_t tpidr;
+    asm volatile ("mrs %0, tpidr_el0" : "=r"(tpidr));
+    ptrs[2] = tpidr;
+    mprotect((char*) m->proc.sys.base, m->proc.sys.len, PROT_READ);
 
     return 0;
 
 err:
     mem_unmap(&proc.sys);
-    mem_unmap(&proc.mem);
+    mem_unmap(&proc.bin);
     mem_unmap(&proc.guard);
     return -1;
 }
 
 void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], char* envp[]) {
     char* args[argc];
-    char* sp_max = (char*) proc->mem.base + proc->mem.len;
+    char* sp_max = (char*) proc->stack.base + proc->stack.len;
     char* sp_args = sp_max - PAGE_SIZE;
     // Write argv string values to stack
     for (int i = 0; i < argc; i++) {
@@ -157,7 +179,7 @@ void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], cha
 
     *av++ = (Elf64_auxv_t){ .a_type = AT_ENTRY, .a_un.a_val = proc->regs.x30, };
     *av++ = (Elf64_auxv_t){ .a_type = AT_EXECFN, .a_un.a_val = (uint64_t) proc_argv[0] };
-    *av++ = (Elf64_auxv_t){ .a_type = AT_PHDR, .a_un.a_val = (uint64_t) proc->mem.base + ehdr->e_phoff };
+    *av++ = (Elf64_auxv_t){ .a_type = AT_PHDR, .a_un.a_val = (uint64_t) proc->bin.base + ehdr->e_phoff };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHNUM, .a_un.a_val = ehdr->e_phnum };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHENT, .a_un.a_val = ehdr->e_phentsize };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PAGESZ, .a_un.a_val = PAGE_SIZE };

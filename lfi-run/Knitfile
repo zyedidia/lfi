@@ -1,16 +1,16 @@
 local knit = require("knit")
 
 local conf = {
-    cc = cli.cc or "gcc",
+    cc = cli.cc or "clang",
     debug = tobool(cli.debug) or false,
 }
 
-local cflags := -Wall -mgeneral-regs-only
+local cflags := -Wall -Wextra -mgeneral-regs-only
 
 if conf.debug then
-    cflags := $cflags -Og -g3 -fsanitize=address,undefined
+    cflags := $cflags -Og -g3
 else
-    cflags := $cflags -O2 -g3
+    cflags := $cflags -O3 -g3
 end
 
 local csrc = knit.glob("*.c")
@@ -23,7 +23,7 @@ return b{
     $ build:VB: $prog
 
     $ $prog: $obj
-        $(conf.cc) $cflags $input -o $output -static
+        $(conf.cc) $cflags $input -o $output
     $ .%.o:D[.%.d]: %.c
         $(conf.cc) $cflags -MMD -c $input -o $output
     $ .%.o: %.s

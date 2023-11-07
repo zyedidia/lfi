@@ -1,14 +1,14 @@
+#include <stdlib.h>
 #include <stdio.h>
 int main() {
-
-    int* p = malloc(10);
+    int* p = malloc(1024 * 1024);
+    if (!p) {
+        printf("no alloc\n");
+        return 0;
+    }
+    /* *p = 10; */
     printf("%p\n", p);
-
-    /* asm volatile ("mov x8, %0" :: "r"((unsigned long) 172) : "x8"); */
-    /*  */
-    /* for (int i = 0; i < 10; i++) { */
-    /*     asm volatile ("svc #0"); */
-    /* } */
+    free(p);
 
     return 0;
 }

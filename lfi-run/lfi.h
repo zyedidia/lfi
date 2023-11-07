@@ -49,16 +49,17 @@ struct regs {
     uint64_t sp;
     uint64_t nzcv;
     uint64_t fpsr;
+    uint64_t tpidr;
     uint64_t vector[32];
 };
 
 struct mem_region {
-    char* base;
+    uint64_t base;
     size_t len;
 };
 
 enum {
-    KSTACK_SIZE = 8192,
+    KSTACK_SIZE = 8192 * 8, // includes guard page
     KSTACK_CANARY = 0xdeadbeef,
 };
 
@@ -66,21 +67,20 @@ struct __attribute__((aligned(16))) stack {
     uint8_t data[KSTACK_SIZE];
 };
 
-struct buddy;
+struct memmap;
 
 struct proc {
     uintptr_t kstack_ptr;
     struct regs regs;
     struct mem_region sys;
-    struct mem_region mem;
+    struct mem_region bin;
+    struct mem_region brk_heap;
+    struct mem_region mmap_heap;
+    struct mem_region stack;
     struct mem_region guard;
 
-    struct buddy* heap;
+    struct memmap* memmaps;
     uint64_t brk;
-
-    uint64_t kstack_canary;
-
-    struct stack kstack;
 };
 
 struct manager {

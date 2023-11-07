@@ -15,6 +15,8 @@ restore_regs:
 	ldp x1, x2, [x0, #8+8*34]
 	msr nzcv, x1
 	msr fpsr, x2
+	ldr x1,       [x0, #8+8*36]
+	msr tpidr_el0, x1
 	ldp x2, x3,   [x0, #8+16*1]
 	ldp x4, x5,   [x0, #8+16*2]
 	ldp x6, x7,   [x0, #8+16*3]
@@ -39,6 +41,8 @@ restore_partial_regs:
 	ldp x1, x2, [x0, #8+8*34]
 	msr nzcv, x1
 	msr fpsr, x2
+	ldr x1,       [x0, #8+8*36]
+	msr tpidr_el0, x1
 	ldp x2, x3,   [x0, #8+16*1]
 	ldp x4, x5,   [x0, #8+16*2]
 	ldp x6, x7,   [x0, #8+16*3]
@@ -76,6 +80,8 @@ restore_partial_regs:
 	mrs x0, nzcv
 	mrs x1, fpsr
 	stp x0, x1, [x21, #8+8*34]
+	mrs x0, tpidr_el0
+	str x0,     [x21, #8+8*36]
 	// reset x21 by loading it back
 	ldr x21,    [x21, #8+16*10+8]
 .endm
@@ -98,6 +104,8 @@ restore_partial_regs:
 	mrs x0, nzcv
 	mrs x1, fpsr
 	stp x0, x1, [x21, #8+8*34]
+	mrs x0, tpidr_el0
+	str x0,     [x21, #8+8*36]
 	// reset x21 by loading it back
 	ldr x21,    [x21, #8+16*10+8]
 .endm
@@ -108,8 +116,10 @@ restore_partial_regs:
 .type syscall_entry,@function
 syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [x21, #8] // load struct proc*
-	ldr x1, [x0]      // load stack
+	ldr x0, [x21, #16] // load kernel tpidr_el0
+	msr tpidr_el0, x0
+	ldr x0, [x21, #8]  // load struct proc*
+	ldr x1, [x0]       // load stack
 	mov sp, x1
 	bl syscall_handler
 	ldr x0, [x21, #8]

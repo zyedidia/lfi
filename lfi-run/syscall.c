@@ -6,15 +6,16 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
+#include <assert.h>
 
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/syscall.h>
-
 #include <sys/uio.h>
 
 #include "lfi.h"
-#include "heap.h"
+#include "mem.h"
 
 enum {
     SYS_GETCWD = 17,
@@ -65,8 +66,21 @@ static uint64_t proc_addr(struct proc* proc, uint64_t addr) {
 }
 
 static bool proc_inbounds(struct proc* proc, uint64_t addr) {
-    uint64_t base = (uint64_t) proc->mem.base;
-    return addr >= base && addr < base + proc->mem.len;
+    uint64_t base = (uint64_t) proc->sys.base;
+    uint64_t end = (uint64_t) proc->stack.base + proc->stack.len;
+    return addr >= base && addr < end;
+}
+
+static bool proc_inbrk(struct proc* proc, uint64_t addr) {
+    uint64_t base = (uint64_t) proc->brk_heap.base;
+    uint64_t end = (uint64_t) proc->brk_heap.base + proc->brk_heap.len;
+    return addr >= base && addr < end;
+}
+
+static bool proc_inmmap(struct proc* proc, uint64_t addr) {
+    uint64_t base = (uint64_t) proc->mmap_heap.base;
+    uint64_t end = (uint64_t) proc->mmap_heap.base + proc->mmap_heap.len;
+    return addr >= base && addr < end;
 }
 
 static void sys_unlinkat(struct proc* proc) {
@@ -220,27 +234,34 @@ static void sys_brk(struct proc* proc) {
 }
 
 static void sys_mmap(struct proc* proc) {
-    // TODO: mmap stuff
     if (proc->regs.x1 == 0) {
         proc->regs.x0 = -1;
         return;
     }
-    if (proc->regs.x0 == 0) {
-        size_t size = ceilpg(proc->regs.x1);
-        void* p = proc_alloc(proc, size);
-        if (!p) {
-            proc->regs.x0 = -1;
-            return;
-        }
-        proc->regs.x0 = (uint64_t) p;
-        // TODO: protections and flags
-    } else if (proc->regs.x0 + proc->regs.x1 <= proc->brk) {
-        /* proc->regs.x0 = -1; */
-        return;
-    } else {
-        fprintf(stderr, "[warning]: bad allocation\n");
-        proc->regs.x0 = -1;
+
+    uint64_t base = proc->regs.x0;
+    if (base) {
+        base = truncpg(proc_addr(proc, proc->regs.x0));
     }
+    size_t size = ceilpg(proc->regs.x1);
+    int prot = proc->regs.x2;
+    int flags = proc->regs.x3;
+
+    fprintf(stderr, "mmap(%lx, %d)\n", base, flags);
+
+    if (base != 0 && proc_inbrk(proc, base) && proc_inbrk(proc, base + size)) {
+        mprotect((void*) base, size, prot);
+        proc->regs.x0 = base;
+        return;
+    }
+
+    if (base != 0 && (!proc_inmmap(proc, base) || !proc_inmmap(proc, base + size))) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    proc->regs.x0 = proc_mmap(proc, base, size, prot, flags | MAP_FIXED);
+    return;
 }
 
 static void sys_munmap(struct proc* proc) {
