@@ -247,8 +247,6 @@ static void sys_mmap(struct proc* proc) {
     int prot = proc->regs.x2;
     int flags = proc->regs.x3;
 
-    fprintf(stderr, "mmap(%lx, %d)\n", base, flags);
-
     if (base != 0 && proc_inbrk(proc, base) && proc_inbrk(proc, base + size)) {
         mprotect((void*) base, size, prot);
         proc->regs.x0 = base;
@@ -265,7 +263,13 @@ static void sys_mmap(struct proc* proc) {
 }
 
 static void sys_munmap(struct proc* proc) {
-    // TODO
+    uint64_t addr = proc_addr(proc, proc->regs.x0);
+    size_t size = proc->regs.x1;
+    if (!proc_unmap(proc, addr, size)) {
+        proc->regs.x0 = -1;
+    } else {
+        proc->regs.x0 = 0;
+    }
 }
 
 static void sys_lseek(struct proc* proc) {

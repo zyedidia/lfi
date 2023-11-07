@@ -6,7 +6,7 @@ int main() {
         printf("no alloc\n");
         return 0;
     }
-    /* *p = 10; */
+    *p = 10;
     printf("%p\n", p);
     free(p);
 

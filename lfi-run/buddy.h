@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #endif
 
@@ -98,7 +99,7 @@ void *buddy_reallocarray(struct buddy *buddy, void *ptr,
 void buddy_free(struct buddy *buddy, void *ptr);
 
 /* A (safer) free with a size. Will not free unless the size fits the target span. */
-void buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size);
+bool buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size);
 
 /*
  * Reservation functions
@@ -182,7 +183,9 @@ typedef signed long ssize_t;
  */
 
 /* Implementation defined */
+#ifdef BUDDY_DEBUG
 static void buddy_debug(struct buddy *buddy);
+#endif
 
 struct buddy_tree;
 
@@ -301,10 +304,14 @@ static unsigned int buddy_tree_can_shrink(struct buddy_tree *t);
  */
 
 /* Implementation defined */
+#ifdef BUDDY_DEBUG
 static void buddy_tree_debug(struct buddy_tree *t, struct buddy_tree_pos pos, size_t start_size);
+#endif
 
 /* Implementation defined */
+#ifdef BUDDY_DEBUG
 static unsigned int buddy_tree_check_invariant(struct buddy_tree *t, struct buddy_tree_pos pos);
+#endif
 
 
 /*
@@ -334,7 +341,9 @@ static void bitset_shift_right(unsigned char *bitset, size_t from_pos, size_t to
  */
 
 /* Implementation defined */
+#ifdef BUDDY_DEBUG
 static void bitset_debug(unsigned char *bitset, size_t length);
+#endif
 
 /*
  * Bits
@@ -789,22 +798,22 @@ void buddy_free(struct buddy *buddy, void *ptr) {
     buddy_tree_release(tree, pos);
 }
 
-void buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size) {
+bool buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size) {
     unsigned char *dst, *main;
     struct buddy_tree *tree;
     struct buddy_tree_pos pos;
     size_t allocated_size_for_depth;
 
     if (buddy == NULL) {
-        return;
+        return false;
     }
     if (ptr == NULL) {
-        return;
+        return false;
     }
     dst = (unsigned char *)ptr;
     main = buddy_main(buddy);
     if ((dst < main) || (dst >= (main + buddy->memory_size))) {
-        return;
+        return false;
     }
 
     /* Find the position tracking this address */
@@ -812,7 +821,7 @@ void buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size) {
     pos = position_for_address(buddy, dst);
 
     if (! buddy_tree_valid(tree, pos)) {
-        return;
+        return false;
     }
 
     allocated_size_for_depth = size_for_depth(buddy, pos.depth);
@@ -820,14 +829,15 @@ void buddy_safe_free(struct buddy *buddy, void *ptr, size_t requested_size) {
         requested_size = buddy->alignment;
     }
     if (requested_size > allocated_size_for_depth) {
-        return;
+        return false;
     }
     if (requested_size <= (allocated_size_for_depth / 2)) {
-        return;
+        return false;
     }
 
     /* Release the position */
     buddy_tree_release(tree, pos);
+    return true;
 }
 
 void buddy_reserve_range(struct buddy *buddy, void *ptr, size_t requested_size) {
@@ -1142,6 +1152,7 @@ static struct buddy_embed_check buddy_embed_offset(size_t memory_size, size_t al
     return check_result;
 }
 
+#ifdef BUDDY_DEBUG
 static void buddy_debug(struct buddy *buddy) {
     BUDDY_PRINTF("buddy allocator at: %p arena at: %p\n", (void *)buddy, (void *)buddy_main(buddy));
     BUDDY_PRINTF("memory size: %zu\n", buddy->memory_size);
@@ -1156,6 +1167,7 @@ static void buddy_debug(struct buddy *buddy) {
     BUDDY_PRINTF("allocator tree follows:\n");
     buddy_tree_debug(buddy_tree(buddy), buddy_tree_root(), buddy_effective_memory_size(buddy));
 }
+#endif
 
 /*
  * A buddy allocation tree
@@ -1645,6 +1657,7 @@ static unsigned int buddy_tree_can_shrink(struct buddy_tree *t) {
     return 1;
 }
 
+#ifdef BUDDY_DEBUG
 static void buddy_tree_debug(struct buddy_tree *t, struct buddy_tree_pos pos,
         size_t start_size) {
     struct buddy_tree_walk_state state = buddy_tree_walk_state_root();
@@ -1699,6 +1712,7 @@ static unsigned int buddy_tree_check_invariant(struct buddy_tree *t, struct budd
     } while (buddy_tree_walk(t, &state));
     return fail;
 }
+#endif
 
 /*
  * A char-backed bitset implementation
@@ -1824,11 +1838,13 @@ static void bitset_shift_right(unsigned char *bitset, size_t from_pos, size_t to
     bitset_clear_range(bitset, from_pos, from_pos+by-1);
 }
 
+#ifdef BUDDY_DEBUG
 static void bitset_debug(unsigned char *bitset, size_t length) {
     for (size_t i = 0; i < length; i++) {
         BUDDY_PRINTF("%zu: %d\n", i, bitset_test(bitset, i) && 1);
     }
 }
+#endif
 
 /*
  Bits

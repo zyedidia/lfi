@@ -67,7 +67,7 @@ struct __attribute__((aligned(16))) stack {
     uint8_t data[KSTACK_SIZE];
 };
 
-struct memmap;
+struct buddy;
 
 struct proc {
     uintptr_t kstack_ptr;
@@ -79,7 +79,7 @@ struct proc {
     struct mem_region stack;
     struct mem_region guard;
 
-    struct memmap* memmaps;
+    struct buddy* mmap;
     uint64_t brk;
 };
 

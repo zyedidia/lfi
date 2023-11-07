@@ -133,7 +133,12 @@ int manager_load(struct manager* m,
     }
 
     uint64_t mmap_base = m->proc.brk_heap.base + m->proc.brk_heap.len;
-    proc_mmap_init(&m->proc, mmap_base, m->proc.stack.base - mmap_base);
+    bool ok = proc_mmap_init(&m->proc, mmap_base, m->proc.stack.base - mmap_base);
+    if (!ok) {
+        mem_unmap(&m->proc.stack);
+        mem_unmap(&m->proc.brk_heap);
+        goto err;
+    }
 
     uintptr_t* ptrs = (uintptr_t*) m->proc.sys.base;
     ptrs[0] = (uintptr_t) syscall_entry;
