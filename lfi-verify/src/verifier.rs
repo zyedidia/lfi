@@ -253,7 +253,7 @@ fn ok_mod(
         }
     } else if reg == RET_REG {
         if inst.op() == Op::LDR {
-            // ldr x30, [x21] is legal
+            // 'ldr x30, [x21]' is legal but must be followed by 'blr x30'
             match inst.operands()[1] {
                 Operand::MemOffset {
                     reg,
@@ -262,7 +262,11 @@ fn ok_mod(
                     ..
                 } => {
                     if reg == BASE_REG && !mul_vl && zero(offset) {
-                        return true;
+                        if let Some(Ok(next)) = iter.peek() {
+                            if next.op() == Op::BLR {
+                                return true;
+                            }
+                        }
                     }
                 }
                 _ => {}
