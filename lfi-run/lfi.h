@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
+#endif
 #define ALIGN (PAGE_SIZE - 1)
 
 static inline uintptr_t truncpg(uintptr_t addr) {
