@@ -315,10 +315,10 @@ void syscall_handler(struct proc* proc) {
         proc->regs.x0 = 0;
         break;
     case SYS_GETPID:
-        proc->regs.x0 = 0;
+        proc->regs.x0 = 42;
         break;
     case SYS_GETTID:
-        proc->regs.x0 = 0;
+        proc->regs.x0 = 42;
         break;
     case SYS_GETCWD:
         sys_getcwd(proc);
