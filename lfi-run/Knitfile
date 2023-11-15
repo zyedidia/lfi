@@ -24,7 +24,7 @@ return b{
     $ build:VB: $prog
 
     $ $prog: $obj
-        $(conf.cc) $cflags $input -o $output
+        $(conf.cc) $cflags $input -o $output -static
     $ .%.o:D[.%.d]: %.c
         $(conf.cc) $cflags -MMD -c $input -o $output -DPAGE_SIZE=$pagesize -mgeneral-regs-only
     $ .%.o: %.s
