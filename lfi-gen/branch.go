@@ -9,7 +9,8 @@ func branchPass(ops *OpList) {
 	b := NewBuilder(ops)
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
-			if inst.Name == "br" || inst.Name == "blr" {
+			// leave 'blr x30'/'br x30' untouched (used for runtime calls)
+			if (inst.Name == "br" || inst.Name == "blr") && inst.Args[0].(Reg) != "x30" {
 				b.Locate(op)
 				b.AddBefore(NewNode(&Inst{
 					Name: "add",

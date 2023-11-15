@@ -48,6 +48,7 @@ static void mem_unmap(struct mem_region* mem) {
 }
 
 void syscall_entry();
+void yield_fast(int pid);
 void enter_sandbox(struct proc* proc);
 
 int manager_load(struct manager* m,
@@ -142,10 +143,11 @@ int manager_load(struct manager* m,
 
     uintptr_t* ptrs = (uintptr_t*) m->proc.sys.base;
     ptrs[0] = (uintptr_t) syscall_entry;
-    ptrs[128+1] = (uintptr_t) &m->proc;
+    ptrs[1] = (uintptr_t) yield_fast;
+    ptrs[16+0] = (uintptr_t) &m->proc;
     uintptr_t tpidr;
     asm volatile ("mrs %0, tpidr_el0" : "=r"(tpidr));
-    ptrs[128+2] = tpidr;
+    ptrs[16+1] = tpidr;
     mprotect((char*) m->proc.sys.base, m->proc.sys.len, PROT_READ);
 
     return 0;

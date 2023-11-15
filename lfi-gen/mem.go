@@ -11,6 +11,9 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 		if sandboxed[m.Reg] {
 			return true
 		}
+		if m.Reg == segmentReg {
+			return false
+		}
 		if m.Imm == nil {
 			*a = MemAddrComplex{
 				Reg1: segmentReg,
@@ -137,6 +140,10 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 	switch m := (*a).(type) {
 	case MemAddr:
 		if sandboxed[m.Reg] {
+			return
+		}
+		if m.Reg == segmentReg {
+			// allow 'ldr [x21, #n]' without rewriting
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{

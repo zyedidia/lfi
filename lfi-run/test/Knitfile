@@ -1,0 +1,6 @@
+return b{
+    $ all:VB: benchswitch test
+    $ %: %.c
+        lfi-clang $input -O2 -o $output
+}
+

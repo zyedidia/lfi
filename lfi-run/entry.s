@@ -10,7 +10,7 @@ enter_sandbox:
 
 // save registers, assuming sandbox base is x21
 .macro SAVE_REGS
-	ldr x21,      [x21, #8] // x21 now points to struct proc
+	ldr x21,      [x21, #128] // x21 now points to struct proc
 	stp x0, x1,   [x21, #8+16*0]
 	stp x2, x3,   [x21, #8+16*1]
 	stp x4, x5,   [x21, #8+16*2]
@@ -28,18 +28,18 @@ enter_sandbox:
 	stp x28, x29, [x21, #8+16*14]
 	mov x1, sp
 	stp x30, x1,  [x21, #8+16*15]
-	mrs x0, nzcv
-	mrs x1, fpsr
-	stp x0, x1, [x21, #8+8*34]
-	mrs x0, tpidr_el0
-	str x0,     [x21, #8+8*36]
+	mrs x1, nzcv
+	mrs x2, fpsr
+	stp x1, x2, [x21, #8+8*34]
+	mrs x1, tpidr_el0
+	str x1,     [x21, #8+8*36]
 	// reset x21 by loading it back
 	ldr x21,    [x21, #8+16*10+8]
 .endm
 
 // save caller-saved registers, assuming sandbox base is x21
 .macro SAVE_PARTIAL_REGS
-	ldr x21,      [x21, #8] // x21 now points to struct proc
+	ldr x21,      [x21, #128] // x21 now points to struct proc
 	stp x0, x1,   [x21, #8+16*0]
 	stp x2, x3,   [x21, #8+16*1]
 	stp x4, x5,   [x21, #8+16*2]
@@ -66,13 +66,13 @@ enter_sandbox:
 .globl syscall_entry
 syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [x21, #128+#16] // load kernel tpidr_el0
+	ldr x0, [x21, #128+8] // load kernel tpidr_el0
 	msr tpidr_el0, x0
-	ldr x0, [x21, #128+#8]  // load struct proc*
+	ldr x0, [x21, #128]  // load struct proc*
 	ldr x1, [x0]       // load stack
 	mov sp, x1
 	bl syscall_handler
-	ldr x0, [x21, #128+#8]
+	ldr x0, [x21, #128]
 	b  restore_partial_regs
 	brk #0
 
@@ -108,7 +108,7 @@ yield_fast:
 	// This access assumes every 4GB-aligned page is either accessible and
 	// corresponds to a valid sandbox, or is inaccessible and will cause a
 	// trap.
-	ldr x0, [x21, #128+#8]
+	ldr x0, [x21, #128]
 	// fallthrough to restore_regs
 
 // restore registers from the struct proc pointed to by x0

@@ -101,7 +101,8 @@ instloop:
 			if loads[inst.Name] {
 				if r, ok := inst.Args[0].(Reg); ok {
 					if inst.Name == "ldr" {
-						if m, ok := inst.Args[1].(MemAddr); ok && r == retReg && m.Reg == segmentReg && m.Imm == nil {
+						// allow 'ldr [x21, #n]' without rewriting
+						if m, ok := inst.Args[1].(MemAddr); ok && r == retReg && m.Reg == segmentReg {
 							op = op.Next
 							continue
 						}
