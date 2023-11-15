@@ -1,9 +1,7 @@
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
 use std::sync::atomic::{self, AtomicBool};
 
-use crate::inst::{
-    is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify,
-};
+use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
 
 const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
@@ -109,11 +107,15 @@ fn check_sys(inst: &Instruction) {
     }
 }
 
-fn zero(imm: Imm) -> bool {
+fn nimm(imm: Imm, val: i64) -> bool {
     match imm {
-        Imm::Signed(i) => i == 0,
-        Imm::Unsigned(u) => u == 0,
+        Imm::Signed(i) => i == val,
+        Imm::Unsigned(u) => u == val as u64,
     }
+}
+
+fn zero(imm: Imm) -> bool {
+    nimm(imm, 0)
 }
 
 // Checks a memory address to make it sure only uses the guard mode, or a reserved register
@@ -125,7 +127,9 @@ fn ok_operand(op: &Operand) -> bool {
             offset,
             mul_vl,
             ..
-        } => !mul_vl && ((*reg == BASE_REG && zero(*offset)) || data_reg(*reg)),
+        } => {
+            !mul_vl && ((*reg == BASE_REG && (zero(*offset) || nimm(*offset, 8))) || data_reg(*reg))
+        }
         Operand::MemPreIdx { reg, .. } => data_reg(*reg),
         Operand::MemPostIdxReg { .. } => false,
         Operand::MemPostIdxImm { reg, .. } => data_reg(*reg),
@@ -261,7 +265,7 @@ fn ok_mod(
                     mul_vl,
                     ..
                 } => {
-                    if reg == BASE_REG && !mul_vl && zero(offset) {
+                    if reg == BASE_REG && !mul_vl && (zero(offset) || nimm(offset, 8)) {
                         if let Some(Ok(next)) = iter.peek() {
                             if next.op() == Op::BLR {
                                 return true;
