@@ -619,7 +619,6 @@ pub fn is_allowed(op: Op) -> bool {
         Op::DCPS1 => false,
         Op::DCPS2 => false,
         Op::DCPS3 => false,
-        // non armv8.0
         Op::DECB => false,
         Op::DECD => false,
         Op::DECH => false,

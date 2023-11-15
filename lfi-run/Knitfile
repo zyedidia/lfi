@@ -1,7 +1,7 @@
 local knit = require("knit")
 
 local conf = {
-    cc = cli.cc or "clang",
+    cc = cli.cc or "clang -target aarch64-linux-gnu",
     debug = tobool(cli.debug) or false,
 }
 

@@ -55,6 +55,22 @@ struct regs {
     uint64_t vector[32];
 };
 
+struct context {
+    uint64_t x30;
+    uint64_t sp;
+
+    uint64_t x19;
+    uint64_t x20;
+    uint64_t x21;
+    uint64_t x22;
+    uint64_t x23;
+    uint64_t x24;
+    uint64_t x25;
+    uint64_t x26;
+    uint64_t x27;
+    uint64_t x28;
+};
+
 struct mem_region {
     uint64_t base;
     size_t len;
@@ -74,6 +90,7 @@ struct buddy;
 struct proc {
     uintptr_t kstack_ptr;
     struct regs regs;
+    struct context context;
     struct mem_region sys;
     struct mem_region bin;
     struct mem_region brk_heap;

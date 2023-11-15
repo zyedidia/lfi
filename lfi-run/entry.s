@@ -8,55 +8,6 @@ enter_sandbox:
 	// should not return
 	brk #0
 
-// restore registers from the struct proc pointed to by x0
-// does not return
-.globl restore_regs
-restore_regs:
-	ldp x1, x2, [x0, #8+8*34]
-	msr nzcv, x1
-	msr fpsr, x2
-	ldr x1,       [x0, #8+8*36]
-	msr tpidr_el0, x1
-	ldp x2, x3,   [x0, #8+16*1]
-	ldp x4, x5,   [x0, #8+16*2]
-	ldp x6, x7,   [x0, #8+16*3]
-	ldp x8, x9,   [x0, #8+16*4]
-	ldp x10, x11, [x0, #8+16*5]
-	ldp x12, x13, [x0, #8+16*6]
-	ldp x14, x15, [x0, #8+16*7]
-	ldp x16, x17, [x0, #8+16*8]
-	ldp x18, x19, [x0, #8+16*9]
-	ldp x20, x21, [x0, #8+16*10]
-	ldp x22, x23, [x0, #8+16*11]
-	ldp x24, x25, [x0, #8+16*12]
-	ldp x26, x27, [x0, #8+16*13]
-	ldp x28, x29, [x0, #8+16*14]
-	ldp x30, x1,  [x0, #8+16*15]
-	mov sp, x1
-	ldp x0, x1,   [x0, #8+16*0]
-	ret
-
-.globl restore_partial_regs
-restore_partial_regs:
-	ldp x1, x2, [x0, #8+8*34]
-	msr nzcv, x1
-	msr fpsr, x2
-	ldr x1,       [x0, #8+8*36]
-	msr tpidr_el0, x1
-	ldp x2, x3,   [x0, #8+16*1]
-	ldp x4, x5,   [x0, #8+16*2]
-	ldp x6, x7,   [x0, #8+16*3]
-	ldp x8, x9,   [x0, #8+16*4]
-	ldp x10, x11, [x0, #8+16*5]
-	ldp x12, x13, [x0, #8+16*6]
-	ldp x14, x15, [x0, #8+16*7]
-	ldp x16, x17, [x0, #8+16*8]
-	ldr x18,      [x0, #8+16*9]
-	ldp x30, x1,  [x0, #8+16*15]
-	mov sp, x1
-	ldp x0, x1,   [x0, #8+16*0]
-	ret
-
 // save registers, assuming sandbox base is x21
 .macro SAVE_REGS
 	ldr x21,      [x21, #8] // x21 now points to struct proc
@@ -113,15 +64,77 @@ restore_partial_regs:
 .text
 .align 4
 .globl syscall_entry
-.type syscall_entry,@function
 syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [x21, #16] // load kernel tpidr_el0
+	ldr x0, [x21, #128+#16] // load kernel tpidr_el0
 	msr tpidr_el0, x0
-	ldr x0, [x21, #8]  // load struct proc*
+	ldr x0, [x21, #128+#8]  // load struct proc*
 	ldr x1, [x0]       // load stack
 	mov sp, x1
 	bl syscall_handler
-	ldr x0, [x21, #8]
+	ldr x0, [x21, #128+#8]
 	b  restore_partial_regs
 	brk #0
+
+.globl restore_partial_regs
+restore_partial_regs:
+	ldp x1, x2, [x0, #8+8*34]
+	msr nzcv, x1
+	msr fpsr, x2
+	ldr x1,       [x0, #8+8*36]
+	msr tpidr_el0, x1
+	ldp x2, x3,   [x0, #8+16*1]
+	ldp x4, x5,   [x0, #8+16*2]
+	ldp x6, x7,   [x0, #8+16*3]
+	ldp x8, x9,   [x0, #8+16*4]
+	ldp x10, x11, [x0, #8+16*5]
+	ldp x12, x13, [x0, #8+16*6]
+	ldp x14, x15, [x0, #8+16*7]
+	ldp x16, x17, [x0, #8+16*8]
+	ldr x18,      [x0, #8+16*9]
+	ldp x30, x1,  [x0, #8+16*15]
+	mov sp, x1
+	ldp x0, x1,   [x0, #8+16*0]
+	ret
+
+// Yields directly to the sandbox referred to in x0, specified by pid. If no
+// such sandbox exists, this will trap and the runtime can handle the fault.
+.text
+.align 4
+.globl yield_fast
+yield_fast:
+	SAVE_REGS
+	lsl x21, x0, #32
+	// This access assumes every 4GB-aligned page is either accessible and
+	// corresponds to a valid sandbox, or is inaccessible and will cause a
+	// trap.
+	ldr x0, [x21, #128+#8]
+	// fallthrough to restore_regs
+
+// restore registers from the struct proc pointed to by x0
+// does not return
+.globl restore_regs
+restore_regs:
+	ldp x1, x2, [x0, #8+8*34]
+	msr nzcv, x1
+	msr fpsr, x2
+	ldr x1,       [x0, #8+8*36]
+	msr tpidr_el0, x1
+	ldp x2, x3,   [x0, #8+16*1]
+	ldp x4, x5,   [x0, #8+16*2]
+	ldp x6, x7,   [x0, #8+16*3]
+	ldp x8, x9,   [x0, #8+16*4]
+	ldp x10, x11, [x0, #8+16*5]
+	ldp x12, x13, [x0, #8+16*6]
+	ldp x14, x15, [x0, #8+16*7]
+	ldp x16, x17, [x0, #8+16*8]
+	ldp x18, x19, [x0, #8+16*9]
+	ldp x20, x21, [x0, #8+16*10]
+	ldp x22, x23, [x0, #8+16*11]
+	ldp x24, x25, [x0, #8+16*12]
+	ldp x26, x27, [x0, #8+16*13]
+	ldp x28, x29, [x0, #8+16*14]
+	ldp x30, x1,  [x0, #8+16*15]
+	mov sp, x1
+	ldp x0, x1,   [x0, #8+16*0]
+	ret

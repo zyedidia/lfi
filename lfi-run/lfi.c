@@ -142,10 +142,10 @@ int manager_load(struct manager* m,
 
     uintptr_t* ptrs = (uintptr_t*) m->proc.sys.base;
     ptrs[0] = (uintptr_t) syscall_entry;
-    ptrs[1] = (uintptr_t) &m->proc;
+    ptrs[128+1] = (uintptr_t) &m->proc;
     uintptr_t tpidr;
     asm volatile ("mrs %0, tpidr_el0" : "=r"(tpidr));
-    ptrs[2] = tpidr;
+    ptrs[128+2] = tpidr;
     mprotect((char*) m->proc.sys.base, m->proc.sys.len, PROT_READ);
 
     return 0;
