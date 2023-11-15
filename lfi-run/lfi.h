@@ -52,7 +52,7 @@ struct regs {
     uint64_t nzcv;
     uint64_t fpsr;
     uint64_t tpidr;
-    uint64_t vector[32];
+    uint64_t vector[64];
 };
 
 struct context {
