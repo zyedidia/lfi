@@ -1,6 +1,10 @@
 return b{
     $ all:VB: benchswitch test
-    $ %: %.c
-        lfi-clang $input -O2 -o $output
+    $ %.o: %.c
+        lfi-clang $input -O2 -o $output -c
+    $ %.o: %.s
+        lfi-clang $input -O2 -o $output -c
+    $ %: %.o yield.o
+        lfi-clang $input -o $output
 }
 
