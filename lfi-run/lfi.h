@@ -93,6 +93,9 @@ struct mem_region {
     int fd;
     int refcnt;
     bool allocated;
+
+    struct mem_region* next;
+    struct mem_region* prev;
 };
 
 enum {
@@ -126,6 +129,9 @@ struct proc {
 
     struct buddy* mmap;
     uint64_t brk;
+
+    struct mem_region* mmap_front;
+    struct mem_region* mmap_back;
 
     struct proc* next;
     struct proc* prev;

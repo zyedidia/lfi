@@ -11,8 +11,8 @@ static void* kswitch(void* p, struct context* old, struct context* new) {
     return kswitch_asm(p, old, new);
 }
 
-struct proc* runq_front;
-struct proc* runq_back;
+static struct proc* runq_front;
+static struct proc* runq_back;
 
 // Push a thread onto the front of the run queue.
 void runq_push_front(struct proc* n) {
