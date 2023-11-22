@@ -133,12 +133,17 @@ struct proc {
     struct mem_region* mmap_front;
     struct mem_region* mmap_back;
 
+    int pid;
+
     struct proc* next;
     struct proc* prev;
 };
 
 struct manager {
-    struct proc proc;
+    struct proc* running;
+
+    struct proc* runq_front;
+    struct proc* runq_back;
 };
 
 void timer_setup(long us);
@@ -147,8 +152,8 @@ void signal_disable();
 void signal_setstack(void* stack, size_t size);
 void signal_setup();
 
-typedef void (*threadfn_t)(void*);
+void runq_push_front(struct manager* m, struct proc* p);
+void schedule(struct manager* m);
+bool thread_yield(struct manager* m);
 
-void runq_push_front(struct proc* p);
-void schedule();
-bool thread_yield();
+extern struct manager manager;

@@ -79,11 +79,14 @@ bool proc_unmap(struct proc* proc, uint64_t base, size_t size) {
     struct mem_region* m = proc->mmap_front;
     while (m) {
         if (m->base == base && m->len == size) {
+            mmap_remove(proc, m);
             if (m->allocated) {
+                /* free(m); */
                 return buddy_safe_free(proc->mmap, (void*) base, size);
             } else {
                 buddy_unsafe_release_range(proc->mmap, (void*) base, size);
                 munmap((void*) base, size);
+                /* free(m); */
                 return true;
             }
         }

@@ -8,9 +8,9 @@ local conf = {
 local cflags := -Wall -Wextra
 
 if conf.debug then
-    cflags := $cflags -Og -g3
+    cflags := $cflags -Og -g3 -fsanitize=address
 else
-    cflags := $cflags -O3 -g3
+    cflags := $cflags -O3 -g3 -static
 end
 
 local csrc = knit.glob("*.c")
@@ -24,7 +24,7 @@ return b{
     $ build:VB: $prog
 
     $ $prog: $obj
-        $(conf.cc) $cflags $input -o $output -static
+        $(conf.cc) $cflags $input -o $output
     $ .%.o:D[.%.d]: %.c
         $(conf.cc) $cflags -MMD -c $input -o $output -DPAGE_SIZE=$pagesize -mgeneral-regs-only
     $ .%.o: %.s
