@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <signal.h>
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -69,15 +71,32 @@ struct context {
     uint64_t x26;
     uint64_t x27;
     uint64_t x28;
+
+    uint64_t nzcv;
+    uint64_t fpsr;
+    uint64_t q8;
+    uint64_t q9;
+    uint64_t q10;
+    uint64_t q11;
+    uint64_t q12;
+    uint64_t q13;
+    uint64_t q14;
+    uint64_t q15;
+
+    void* sp_base;
 };
 
 struct mem_region {
     uint64_t base;
     size_t len;
+
+    int fd;
+    int refcnt;
+    bool allocated;
 };
 
 enum {
-    KSTACK_SIZE = 8192 * 8, // includes guard page
+    KSTACK_SIZE = 8192 * 16, // includes guard page
     KSTACK_CANARY = 0xdeadbeef,
 };
 
@@ -86,6 +105,11 @@ struct __attribute__((aligned(16))) stack {
 };
 
 struct buddy;
+
+enum procstate {
+    STATE_RUNNABLE,
+    STATE_EXITED,
+};
 
 struct proc {
     uintptr_t kstack_ptr;
@@ -98,10 +122,27 @@ struct proc {
     struct mem_region stack;
     struct mem_region guard;
 
+    enum procstate state;
+
     struct buddy* mmap;
     uint64_t brk;
+
+    struct proc* next;
+    struct proc* prev;
 };
 
 struct manager {
     struct proc proc;
 };
+
+void timer_setup(long us);
+void signal_enable();
+void signal_disable();
+void signal_setstack(void* stack, size_t size);
+void signal_setup();
+
+typedef void (*threadfn_t)(void*);
+
+void runq_push_front(struct proc* p);
+void schedule();
+bool thread_yield();

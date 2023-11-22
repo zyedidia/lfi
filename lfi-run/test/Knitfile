@@ -1,5 +1,5 @@
 return b{
-    $ all:VB: benchswitch test
+    $ all:VB: benchswitch test fault
     $ %.o: %.c
         lfi-clang $input -O2 -o $output -c
     $ %.o: %.s

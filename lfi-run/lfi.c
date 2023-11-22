@@ -122,6 +122,12 @@ int manager_load(struct manager* m,
         .tpidr = base,
     };
 
+    m->proc.context = (struct context){
+        .sp = m->proc.kstack_ptr,
+        .x30 = (uintptr_t) enter_sandbox,
+        .sp_base = kstack,
+    };
+
     m->proc.stack = mem_map(base + BOX_SIZE - STACK_SIZE, STACK_SIZE, PROT_READ | PROT_WRITE, flags);
     if (m->proc.stack.base == (uint64_t) -1) {
         goto err;
@@ -193,10 +199,6 @@ void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], cha
     *av++ = (Elf64_auxv_t){ .a_type = AT_NULL, .a_un.a_val = 0 };
 }
 
-void manager_schedule(struct manager* m) {
-    enter_sandbox(&m->proc);
-}
-
 struct manager manager;
 
 int main(int argc, char* argv[], char* envp[]) {
@@ -204,6 +206,8 @@ int main(int argc, char* argv[], char* envp[]) {
         printf("no input\n");
         return 1;
     }
+
+    signal_setup();
 
     char* file = argv[1];
     int fd;
@@ -240,6 +244,10 @@ int main(int argc, char* argv[], char* envp[]) {
     close(fd);
 
     proc_setup(&manager.proc, &ehdr, argc - 1, &argv[1], envp);
+    runq_push_front(&manager.proc);
 
-    manager_schedule(&manager);
+    timer_setup(10000); // 10ms time slices
+    signal_enable();
+
+    schedule();
 }
