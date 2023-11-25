@@ -6,10 +6,7 @@
 #include "lfi.h"
 #include "mem.h"
 
-#define BUDDY_ALLOC_ALIGN (PAGE_SIZE)
-#define BUDDY_ALLOC_IMPLEMENTATION
 #include "buddy.h"
-#undef BUDDY_ALLOC_IMPLEMENTATION
 
 static void mmap_push_back(struct proc* p, struct mem_region* n) {
     n->next = NULL;
@@ -33,10 +30,10 @@ static void mmap_remove(struct proc* p, struct mem_region* n) {
 }
 
 bool proc_mmap_init(struct proc* proc, uint64_t base, size_t size) {
-    void* meta = malloc(buddy_sizeof(size));
+    void* meta = malloc(buddy_sizeof_alignment(size, PAGE_SIZE));
     if (!meta)
         return false;
-    proc->mmap = buddy_init(meta, (void*) base, size);
+    proc->mmap = buddy_init_alignment(meta, (void*) base, size, PAGE_SIZE);
     if (!proc->mmap)
         return false;
     return true;

@@ -9,6 +9,7 @@
 
 #include "lfi.h"
 #include "mem.h"
+#include "buddy.h"
 
 enum {
     GB = (uint64_t) 1024 * 1024 * 1024,
@@ -17,6 +18,9 @@ enum {
     GUARD_SIZE = (uint64_t) 4 * GB,
     BRK_SIZE = (uint64_t) 512 * MB,
     STACK_SIZE = (uint64_t) 2 * MB,
+
+    NUM_BOXES = (uint64_t) 1024 * 16,
+    BOXES_START = (uint64_t) 8ULL * GB,
 };
 
 static int pflags(int prot) {
@@ -86,7 +90,7 @@ static void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv
 }
 
 
-static int proc_load(struct proc* proc, int fd, int argc, char* argv[], char* envp[]) {
+static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* argv[], char* envp[]) {
     Elf64_Ehdr ehdr;
     if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr)) {
         printf("can't read ELF header\n");
@@ -118,7 +122,6 @@ static int proc_load(struct proc* proc, int fd, int argc, char* argv[], char* en
             maxva = end;
     }
 
-    uintptr_t base = 8ULL * GB;
     int flags = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
     proc->sys = mem_map(base, PAGE_SIZE, PROT_READ | PROT_WRITE, flags);
     if (proc->sys.base == (uint64_t) -1) {
@@ -216,7 +219,11 @@ err:
     return -1;
 }
 
-static struct proc* proc_new(char* file, int argc, char* argv[], char* envp[]) {
+uintptr_t proc_newbase(struct manager* m) {
+    return (uintptr_t) buddy_malloc(m->proc_allocator, BOX_SIZE + GUARD_SIZE);
+}
+
+static struct proc* proc_new(struct manager* m, char* file, int argc, char* argv[], char* envp[]) {
     int fd;
     if ((fd = open(file, O_RDONLY)) < 0) {
         printf("could not open file %s\n", file);
@@ -227,7 +234,14 @@ static struct proc* proc_new(char* file, int argc, char* argv[], char* envp[]) {
         close(fd);
         return NULL;
     }
-    if (proc_load(proc, fd, argc - 1, &argv[1], envp) < 0) {
+
+    uintptr_t base = proc_newbase(m);
+    if (!base) {
+        close(fd);
+        return NULL;
+    }
+
+    if (proc_load(base, proc, fd, argc - 1, &argv[1], envp) < 0) {
         printf("failed to load sandbox\n");
         free(proc);
         close(fd);
@@ -235,6 +249,19 @@ static struct proc* proc_new(char* file, int argc, char* argv[], char* envp[]) {
     }
     close(fd);
     return proc;
+}
+
+bool manager_setup(struct manager* m) {
+    size_t size = NUM_BOXES * (BOX_SIZE + GUARD_SIZE);
+    void* meta = malloc(buddy_sizeof_alignment(size, BOX_SIZE + GUARD_SIZE));
+    if (!meta)
+        return false;
+    m->proc_allocator = buddy_init_alignment(meta, (void*) BOXES_START, size, BOX_SIZE + GUARD_SIZE);
+    if (!m->proc_allocator) {
+        free(meta);
+        return false;
+    }
+    return true;
 }
 
 struct manager manager;
@@ -246,9 +273,10 @@ int main(int argc, char* argv[], char* envp[]) {
     }
 
     signal_setup();
+    manager_setup(&manager);
 
     char* file = argv[1];
-    struct proc* proc = proc_new(file, argc - 1, &argv[1], envp);
+    struct proc* proc = proc_new(&manager, file, argc - 1, &argv[1], envp);
     if (!proc) {
         return 1;
     }

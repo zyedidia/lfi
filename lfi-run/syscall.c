@@ -315,7 +315,7 @@ void syscall_handler(struct proc* proc) {
         proc->regs.x0 = 0;
         break;
     case SYS_GETPID:
-        proc->regs.x0 = proc->sys.base >> 32;
+        proc->regs.x0 = proc_getpid(proc);
         break;
     case SYS_GETTID:
         proc->regs.x0 = 42;

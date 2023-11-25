@@ -133,18 +133,30 @@ struct proc {
     struct mem_region* mmap_front;
     struct mem_region* mmap_back;
 
-    int pid;
+    struct proc* parent;
+    size_t children;
 
     struct proc* next;
     struct proc* prev;
 };
+
+static inline int proc_getpid(struct proc* p) {
+    return p->sys.base >> 32;
+}
 
 struct manager {
     struct proc* running;
 
     struct proc* runq_front;
     struct proc* runq_back;
+
+    struct proc* waitq_front;
+    struct proc* waitq_back;
+
+    struct buddy* proc_allocator;
 };
+
+uintptr_t proc_newbase(struct manager* m);
 
 void timer_setup(long us);
 void signal_enable();

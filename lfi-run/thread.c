@@ -61,7 +61,7 @@ void schedule(struct manager* m) {
             runq_push_back(m, t);
         } else {
             runq_remove(m, t);
-            printf("%d: process exited\n", t->pid);
+            printf("%d: process exited\n", proc_getpid(t));
             // TODO: exit
         }
     }
