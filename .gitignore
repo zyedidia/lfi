@@ -7,3 +7,4 @@ lfi-verify/target
 /lfi-run/lfi-run
 /lfi-run/test/test
 /lfi-run/test/benchswitch
+/lfi-run/test/fork

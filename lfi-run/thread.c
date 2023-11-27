@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "lfi.h"
 
@@ -60,8 +61,10 @@ void schedule(struct manager* m) {
         if (t->state == STATE_RUNNABLE) {
             runq_push_back(m, t);
         } else {
-            runq_remove(m, t);
             printf("%d: process exited\n", proc_getpid(t));
+            if (m->runq_front == NULL && m->waitq_front == NULL) {
+                exit(0);
+            }
             // TODO: exit
         }
     }
@@ -69,9 +72,6 @@ void schedule(struct manager* m) {
 
 bool thread_yield(struct manager* m) {
     assert(m->running != NULL);
-    if (m->runq_front == NULL) {
-        return false;
-    }
     // kswitch_asm to avoid changing signal stack
     kswitch_asm(m->running, &m->running->context, &scheduler_ctx);
     return true;

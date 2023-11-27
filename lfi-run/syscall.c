@@ -45,6 +45,7 @@ enum {
     SYS_BRK = 214,
     SYS_MUNMAP = 215,
     SYS_MREMAP = 216,
+    SYS_CLONE = 220,
     SYS_MMAP = 222,
     SYS_PRLIMIT64 = 261,
 };
@@ -301,7 +302,8 @@ void syscall_handler(struct proc* proc) {
     switch (sysno) {
     case SYS_EXIT_GROUP:
     case SYS_EXIT:
-        exit(proc->regs.x0);
+        proc->state = STATE_EXITED;
+        thread_yield(&manager);
         break;
     case SYS_SET_TID_ADDRESS:
         proc->regs.x0 = 0;
@@ -385,6 +387,12 @@ void syscall_handler(struct proc* proc) {
         break;
     case SYS_UNLINKAT:
         sys_unlinkat(proc);
+        break;
+    case 135: // personality
+        proc->regs.x0 = 0;
+        break;
+    case 220:
+        sys_fork(proc);
         break;
     default:
         fprintf(stderr, "unhandled syscall: %ld\n", sysno);

@@ -11,18 +11,6 @@
 #include "mem.h"
 #include "buddy.h"
 
-enum {
-    GB = (uint64_t) 1024 * 1024 * 1024,
-    MB = (uint64_t) 1024 * 1024,
-    BOX_SIZE = (uint64_t) 4 * GB,
-    GUARD_SIZE = (uint64_t) 4 * GB,
-    BRK_SIZE = (uint64_t) 512 * MB,
-    STACK_SIZE = (uint64_t) 2 * MB,
-
-    NUM_BOXES = (uint64_t) 1024 * 16,
-    BOXES_START = (uint64_t) 8ULL * GB,
-};
-
 static int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) |
            ((prot & PF_X) ? PROT_EXEC : 0);
@@ -34,21 +22,6 @@ static int check_ehdr(Elf64_Ehdr* ehdr) {
              e_ident[EI_MAG2] != ELFMAG2 || e_ident[EI_MAG3] != ELFMAG3 ||
              e_ident[EI_CLASS] != ELFCLASS64 ||
              e_ident[EI_VERSION] != EV_CURRENT || ehdr->e_type != ET_DYN);
-}
-
-static struct mem_region mem_map(uintptr_t base,
-                                 size_t len,
-                                 int prot,
-                                 int flags) {
-    void* m = mmap((void*) base, len, prot, flags, -1, 0);
-    return (struct mem_region){
-        .base = (uint64_t) m,
-        .len = len,
-    };
-}
-
-static void mem_unmap(struct mem_region* mem) {
-    munmap((void*) mem->base, mem->len);
 }
 
 void syscall_entry();
@@ -127,7 +100,7 @@ static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* 
     if (proc->sys.base == (uint64_t) -1) {
         return -1;
     }
-    proc->bin = mem_map(base + PAGE_SIZE, maxva, PROT_NONE, flags);
+    proc->bin = mem_map(base + PAGE_SIZE, maxva, PROT_READ | PROT_WRITE, flags);
     if (proc->bin.base == (uint64_t) -1) {
         mem_unmap(&proc->sys);
         return -1;
@@ -145,9 +118,6 @@ static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* 
         uint64_t start = truncpg(iter->p_vaddr);
         uint64_t end = ceilpg(iter->p_vaddr + iter->p_memsz);
 
-        mprotect((char*) proc->bin.base + start, end - start, PROT_READ | PROT_WRITE);
-        memset((char*) proc->bin.base + start, 0, end - start);
-
         fprintf(stderr, "LOAD [%lx:%lx] -> [%lx:%lx]\n", start, end, proc->bin.base + start, proc->bin.base + end);
 
         if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
@@ -160,7 +130,6 @@ static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* 
 
     proc->brk = (uint64_t) proc->bin.base + maxva;
 
-    memset((char*) proc->sys.base, 0, proc->sys.len);
     char* kstack = aligned_alloc(PAGE_SIZE, KSTACK_SIZE);
     memset(kstack, 0, KSTACK_SIZE);
     mprotect(kstack, PAGE_SIZE, PROT_NONE);

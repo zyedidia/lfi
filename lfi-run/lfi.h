@@ -10,6 +10,18 @@
 #endif
 #define ALIGN (PAGE_SIZE - 1)
 
+enum {
+    GB = (uint64_t) 1024 * 1024 * 1024,
+    MB = (uint64_t) 1024 * 1024,
+    BOX_SIZE = (uint64_t) 4 * GB,
+    GUARD_SIZE = (uint64_t) 4 * GB,
+    BRK_SIZE = (uint64_t) 512 * MB,
+    STACK_SIZE = (uint64_t) 2 * MB,
+
+    NUM_BOXES = (uint64_t) 1024 * 16,
+    BOXES_START = (uint64_t) 8ULL * GB,
+};
+
 static inline uintptr_t truncpg(uintptr_t addr) {
     return addr & ~ALIGN;
 }
@@ -89,9 +101,8 @@ struct context {
 struct mem_region {
     uint64_t base;
     size_t len;
+    int prot;
 
-    int fd;
-    int refcnt;
     bool allocated;
 
     struct mem_region* next;
@@ -167,5 +178,10 @@ void signal_setup();
 void runq_push_front(struct manager* m, struct proc* p);
 void schedule(struct manager* m);
 bool thread_yield(struct manager* m);
+
+struct mem_region mem_map(uintptr_t base, size_t len, int prot, int flags);
+void mem_unmap(struct mem_region* mem);
+
+void sys_fork(struct proc* p);
 
 extern struct manager manager;

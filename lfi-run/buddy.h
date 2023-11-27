@@ -46,6 +46,8 @@ struct buddy *buddy_init(unsigned char *at, unsigned char *main, size_t memory_s
 /* Initializes a binary buddy memory allocator at the specified location using a non-default alignment */
 struct buddy *buddy_init_alignment(unsigned char *at, unsigned char *main, size_t memory_size, size_t alignment);
 
+struct buddy *buddy_copy(unsigned char *at, unsigned char *main, struct buddy* from);
+
 /*
  * Initializes a binary buddy memory allocator embedded in the specified arena.
  * The arena's capacity is reduced to account for the allocator metadata.
@@ -472,6 +474,15 @@ struct buddy *buddy_init_alignment(unsigned char *at, unsigned char *main, size_
     buddy->alignment = alignment;
     buddy_tree_init(buddy->buddy_tree, (uint8_t) buddy_tree_order);
     buddy_toggle_virtual_slots(buddy, 1);
+    return buddy;
+}
+
+struct buddy *buddy_copy(unsigned char *at, unsigned char *main, struct buddy* from) {
+    struct buddy *buddy = (struct buddy *) at;
+    uint8_t buddy_tree_order = buddy_tree_order_for_memory(from->memory_size, from->alignment);
+    memcpy(buddy, from, sizeof(struct buddy));
+    memcpy(&buddy->buddy_tree[0], &from->buddy_tree[0], buddy_tree_sizeof(buddy_tree_order));
+    buddy->arena.main = main;
     return buddy;
 }
 

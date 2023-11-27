@@ -8,7 +8,23 @@
 
 #include "buddy.h"
 
-static void mmap_push_back(struct proc* p, struct mem_region* n) {
+struct mem_region mem_map(uintptr_t base,
+                          size_t len,
+                          int prot,
+                          int flags) {
+    void* m = mmap((void*) base, len, prot, flags, -1, 0);
+    return (struct mem_region){
+        .base = (uint64_t) m,
+        .len = len,
+        .prot = prot,
+    };
+}
+
+void mem_unmap(struct mem_region* mem) {
+    munmap((void*) mem->base, mem->len);
+}
+
+void mmap_push_back(struct proc* p, struct mem_region* n) {
     n->next = NULL;
     n->prev = p->mmap_back;
     if (p->mmap_back)
@@ -36,6 +52,10 @@ bool proc_mmap_init(struct proc* proc, uint64_t base, size_t size) {
     proc->mmap = buddy_init_alignment(meta, (void*) base, size, PAGE_SIZE);
     if (!proc->mmap)
         return false;
+    proc->mmap_heap = (struct mem_region){
+        .base = base,
+        .len = size,
+    };
     return true;
 }
 
@@ -60,6 +80,7 @@ uint64_t proc_mmap(struct proc* proc, uint64_t base, size_t size, int prot, int 
     *region = (struct mem_region){
         .base = base,
         .len = size,
+        .prot = prot,
         .allocated = alloc != NULL,
     };
     if (!alloc)
