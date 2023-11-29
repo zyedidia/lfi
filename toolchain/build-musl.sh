@@ -16,7 +16,7 @@ cp memset.S musl-$VERSION/src/string/aarch64/memset.S
 cp getopt.c musl-$VERSION/src/misc/getopt.c
 
 export CC=$CC
-export CFLAGS="--rtlib=compiler-rt -resource-dir $COMPRT"
+export CFLAGS="--rtlib=compiler-rt -resource-dir $COMPRT -DMMAP_THRESHOLD=4294967296"
 cd musl-$VERSION
 make clean
 ./configure --prefix=$SYSROOT --syslibdir=$SYSROOT/lib

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 PREFIX=$1
 mkdir -p $PREFIX
 
