@@ -17,6 +17,7 @@
 #include "lfi.h"
 #include "mem.h"
 #include "queue.h"
+#include "pipe.h"
 
 enum {
     SYS_GETCWD = 17,
@@ -27,6 +28,7 @@ enum {
     SYS_CHDIR = 49,
     SYS_OPENAT = 56,
     SYS_CLOSE = 57,
+    SYS_PIPE2 = 59,
     SYS_GETDENTS64 = 61,
     SYS_LSEEK = 62,
     SYS_READ = 63,
@@ -142,7 +144,11 @@ static void sys_read(struct proc* proc) {
     int fd = proc->regs.x0;
     void* buf = (void*) proc_addr(proc, proc->regs.x1);
     size_t size = proc->regs.x2;
-    check(proc, read(fd, buf, size));
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].read) {
+        proc->regs.x0 = -1;
+        return;
+    }
+    check(proc, proc->fdtable[fd].read(proc, proc->fdtable[fd].device, buf, size));
 }
 
 static void sys_readv(struct proc* proc) {
@@ -152,6 +158,12 @@ static void sys_readv(struct proc* proc) {
 
     // TODO: copy to prevent TOCTOU
 
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].read) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    int total = 0;
     for (int i = 0; i < iovcnt; i++) {
         if (iov[i].iov_base == NULL && iov[i].iov_len == 0) {
             continue;
@@ -167,16 +179,29 @@ static void sys_readv(struct proc* proc) {
             proc->regs.x0 = -1;
             return;
         }
+        int n = proc->fdtable[fd].read(proc, proc->fdtable[fd].device, v->iov_base, v->iov_len);
+        if (n < 0) {
+            proc->regs.x0 = n;
+            return;
+        }
+        total += n;
     }
-
-    check(proc, readv(fd, iov, iovcnt));
+    proc->regs.x0 = total;
 }
 
 static void sys_write(struct proc* proc) {
     int fd = proc->regs.x0;
     void* buf = (void*) proc_addr(proc, proc->regs.x1);
     size_t size = proc->regs.x2;
-    check(proc, write(fd, buf, size));
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].write) {
+        goto err;
+    }
+    check(proc, proc->fdtable[fd].write(proc, proc->fdtable[fd].device, buf, size));
+
+    return;
+err:
+    proc->regs.x0 = -1;
+    return;
 }
 
 static void sys_writev(struct proc* proc) {
@@ -186,6 +211,12 @@ static void sys_writev(struct proc* proc) {
 
     // TODO: copy to prevent TOCTOU
 
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].write) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    int total = 0;
     for (int i = 0; i < iovcnt; i++) {
         if (iov[i].iov_base == NULL && iov[i].iov_len == 0) {
             continue;
@@ -201,9 +232,14 @@ static void sys_writev(struct proc* proc) {
             proc->regs.x0 = -1;
             return;
         }
+        int n = proc->fdtable[fd].write(proc, proc->fdtable[fd].device, v->iov_base, v->iov_len);
+        if (n < 0) {
+            proc->regs.x0 = n;
+            return;
+        }
+        total += n;
     }
-
-    check(proc, writev(fd, iov, iovcnt));
+    proc->regs.x0 = total;
 }
 
 static void sys_openat(struct proc* proc) {
@@ -333,6 +369,44 @@ static void sys_wait4(struct proc* proc) {
     }
 }
 
+static struct file* fdalloc(struct proc* p, int* fd) {
+    struct file* f = NULL;
+    for (int i = 0; i < NFD; i++) {
+        if (!p->fdtable[i].allocated) {
+            p->fdtable[i].allocated = true;
+            f = &p->fdtable[i];
+            *fd = i;
+            break;
+        }
+    }
+    return f;
+}
+
+void sys_pipe2(struct proc* proc) {
+    int* pipefd = (int*) proc_addr(proc, proc->regs.x0);
+    // TODO: pipe flags
+    int fd0, fd1;
+    struct file* f0 = fdalloc(proc, &fd0);
+    if (!f0)
+        goto err;
+    struct file* f1 = fdalloc(proc, &fd1);
+    if (!f1)
+        goto err;
+
+    if (!pipe_new(f0, f1))
+        goto err;
+
+    pipefd[0] = fd0;
+    pipefd[1] = fd1;
+
+    proc->regs.x0 = 0;
+    return;
+
+err:
+    proc->regs.x0 = -1;
+    return;
+}
+
 void syscall_handler(struct proc* proc) {
     uint64_t sysno = proc->regs.x8;
 
@@ -436,6 +510,9 @@ void syscall_handler(struct proc* proc) {
         break;
     case SYS_WAIT4:
         sys_wait4(proc);
+        break;
+    case SYS_PIPE2:
+        sys_pipe2(proc);
         break;
     default:
         fprintf(stderr, "unhandled syscall: %ld\n", sysno);

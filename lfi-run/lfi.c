@@ -12,6 +12,22 @@
 #include "buddy.h"
 #include "queue.h"
 
+static int rdstdin(void* proc, void* device, uint8_t* buf, int n) {
+    (void) proc;
+    (void) device;
+    return fread(buf, 1, n, stdin);
+}
+static int wrstdout(void* proc, void* device, uint8_t* buf, int n) {
+    (void) proc;
+    (void) device;
+    return fwrite(buf, 1, n, stdout);
+}
+static int wrstderr(void* proc, void* device, uint8_t* buf, int n) {
+    (void) proc;
+    (void) device;
+    return fwrite(buf, 1, n, stderr);
+}
+
 static int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) |
            ((prot & PF_X) ? PROT_EXEC : 0);
@@ -61,8 +77,23 @@ static void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv
     *av++ = (Elf64_auxv_t){ .a_type = AT_PHENT, .a_un.a_val = ehdr->e_phentsize };
     *av++ = (Elf64_auxv_t){ .a_type = AT_PAGESZ, .a_un.a_val = PAGE_SIZE };
     *av++ = (Elf64_auxv_t){ .a_type = AT_NULL, .a_un.a_val = 0 };
-}
 
+    proc->fdtable[0] = (struct file){
+        .allocated = true,
+        .read = rdstdin,
+        .write = NULL,
+    };
+    proc->fdtable[1] = (struct file){
+        .allocated = true,
+        .read = NULL,
+        .write = wrstdout,
+    };
+    proc->fdtable[2] = (struct file){
+        .allocated = true,
+        .read = NULL,
+        .write = wrstderr,
+    };
+}
 
 static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* argv[], char* envp[]) {
     Elf64_Ehdr ehdr;

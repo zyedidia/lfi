@@ -123,6 +123,17 @@ enum procstate {
     STATE_EXITED,
 };
 
+enum {
+    NFD = 16,
+};
+
+struct file {
+    bool allocated;
+    void* device;
+    int (*write)(void* proc, void* dev, uint8_t* buf, int n);
+    int (*read)(void* proc, void* dev, uint8_t* buf, int n);
+};
+
 struct proc {
     uintptr_t kstack_ptr;
     struct regs regs;
@@ -145,6 +156,8 @@ struct proc {
     struct proc* parent;
     size_t children;
     void* wq;
+
+    struct file fdtable[NFD];
 
     struct proc* next;
     struct proc* prev;

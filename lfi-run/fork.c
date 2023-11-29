@@ -105,6 +105,8 @@ void sys_fork(struct proc* p) {
         .sp_base = kstack,
     };
 
+    memcpy(child->fdtable, p->fdtable, sizeof(p->fdtable));
+
     child->regs.x0 = 0;
     p->regs.x0 = proc_getpid(child);
     child->parent = p;
