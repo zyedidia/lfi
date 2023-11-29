@@ -172,7 +172,7 @@ struct manager {
 
 uintptr_t proc_newbase(struct manager* m);
 
-void timer_setup(long us);
+void timer_setup();
 void signal_enable();
 void signal_disable();
 void signal_setstack(void* stack, size_t size);

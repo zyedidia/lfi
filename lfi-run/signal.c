@@ -69,14 +69,23 @@ void signal_setstack(void* stack, size_t size) {
 }
 
 void signal_enable() {
+    timer_setup();
     sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
 }
 
 void signal_disable() {
     sigprocmask(SIG_BLOCK, &signal_set, NULL);
+    // disarm timer
+    struct itimerval it;
+    it.it_interval.tv_sec = 0;
+    it.it_interval.tv_usec = 0;
+    it.it_value = it.it_interval;
+    if (setitimer(ITIMER_REAL, &it, NULL))
+        perror("setitimer");
 }
 
-void timer_setup(long us) {
+void timer_setup() {
+    long us = 10000; // 10ms time slices
     struct itimerval it;
     it.it_interval.tv_sec = 0;
     it.it_interval.tv_usec = us;

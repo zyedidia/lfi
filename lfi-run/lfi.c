@@ -253,7 +253,7 @@ int main(int argc, char* argv[], char* envp[]) {
 
     queue_push_front(&manager.runq, proc);
 
-    timer_setup(10000); // 10ms time slices
+    timer_setup();
 
     schedule(&manager);
 }
