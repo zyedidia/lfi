@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "lfi.h"
+#include "queue.h"
 
 void* kswitch_asm(void* p, struct context* old, struct context* new);
 
@@ -12,67 +14,41 @@ static void* kswitch(void* p, struct context* old, struct context* new) {
     return kswitch_asm(p, old, new);
 }
 
-// Push a thread onto the front of the run queue.
-void runq_push_front(struct manager* m, struct proc* n) {
-    n->next = m->runq_front;
-    n->prev = NULL;
-    if (m->runq_front)
-        m->runq_front->prev = n;
-    else
-        m->runq_back = n;
-    m->runq_front = n;
-}
+static struct proc* runnable(struct manager* m) {
+    signal_enable();
 
-// Push a thread onto the back of the run queue.
-static void runq_push_back(struct manager* m, struct proc* n) {
-    n->next = NULL;
-    n->prev = m->runq_back;
-    if (m->runq_back)
-        m->runq_back->next = n;
-    else
-        m->runq_front = n;
-    m->runq_back = n;
-}
-
-// Remove a thread from the run queue.
-static void runq_remove(struct manager* m, struct proc* n) {
-    if (n->next)
-        n->next->prev = n->prev;
-    else
-        m->runq_back = n->prev;
-    if (n->prev)
-        n->prev->next = n->next;
-    else
-        m->runq_front = n->next;
+    while (1) {
+        struct proc* p = queue_pop_back(&m->runq);
+        if (p) {
+            return p;
+        }
+        pause();
+    }
 }
 
 struct context scheduler_ctx;
 
 void schedule(struct manager* m) {
-    while (m->runq_front != NULL) {
-        struct proc* t = m->runq_front;
-        runq_remove(m, t);
-        if (t->state == STATE_RUNNABLE) {
-            m->running = t;
-            kswitch(t, &scheduler_ctx, &t->context);
-            m->running = NULL;
-        }
+    while (1) {
+        struct proc* p = runnable(m);
 
-        if (t->state == STATE_RUNNABLE) {
-            runq_push_back(m, t);
-        } else {
-            printf("%d: process exited\n", proc_getpid(t));
-            if (m->runq_front == NULL && m->waitq_front == NULL) {
-                exit(0);
-            }
-            // TODO: exit
+        signal_disable();
+
+        m->running = p;
+        kswitch(p, &scheduler_ctx, &p->context);
+        m->running = NULL;
+
+        if (p->state == STATE_RUNNABLE) {
+            queue_push_front(&m->runq, p);
+        } else if (m->runq.front == NULL && m->waitq.front == NULL) {
+            exit(0);
         }
     }
 }
 
-bool thread_yield(struct manager* m) {
-    assert(m->running != NULL);
+bool thread_yield() {
+    assert(manager.running != NULL);
     // kswitch_asm to avoid changing signal stack
-    kswitch_asm(m->running, &m->running->context, &scheduler_ctx);
+    kswitch_asm(NULL, &manager.running->context, &scheduler_ctx);
     return true;
 }

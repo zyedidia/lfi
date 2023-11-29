@@ -6,6 +6,7 @@
 #include "lfi.h"
 #include "mem.h"
 #include "buddy.h"
+#include "queue.h"
 
 static uint64_t proc_addr(struct proc* proc, uint64_t addr) {
     return (uint32_t) (addr) | (uint64_t) proc->sys.base;
@@ -107,7 +108,7 @@ void sys_fork(struct proc* p) {
     child->regs.x0 = 0;
     p->regs.x0 = proc_getpid(child);
 
-    runq_push_front(&manager, child);
+    queue_push_front(&manager.runq, child);
     return;
 err:
     p->regs.x0 = -1;

@@ -47,6 +47,7 @@ enum {
     SYS_MREMAP = 216,
     SYS_CLONE = 220,
     SYS_MMAP = 222,
+    SYS_WAIT4 = 260,
     SYS_PRLIMIT64 = 261,
 };
 
@@ -246,6 +247,12 @@ static void sys_mmap(struct proc* proc) {
     }
     size_t size = ceilpg(proc->regs.x1);
     int prot = proc->regs.x2;
+
+    if ((prot & PROT_EXEC) != 0) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
     int flags = proc->regs.x3;
 
     if (base != 0 && proc_inbrk(proc, base) && proc_inbrk(proc, base + size)) {
@@ -296,6 +303,13 @@ static void sys_fstat(struct proc* proc) {
     check(proc, fstat(proc->regs.x0, (struct stat*) proc_addr(proc, proc->regs.x1)));
 }
 
+static void sys_wait4(struct proc* proc) {
+    int pid = proc->regs.x0;
+    int* status = (int*) proc_addr(proc, proc->regs.x1);
+    assert(pid == -1);
+    assert(status == NULL);
+}
+
 void syscall_handler(struct proc* proc) {
     uint64_t sysno = proc->regs.x8;
 
@@ -303,7 +317,7 @@ void syscall_handler(struct proc* proc) {
     case SYS_EXIT_GROUP:
     case SYS_EXIT:
         proc->state = STATE_EXITED;
-        thread_yield(&manager);
+        thread_yield();
         break;
     case SYS_SET_TID_ADDRESS:
         proc->regs.x0 = 0;
@@ -388,10 +402,10 @@ void syscall_handler(struct proc* proc) {
     case SYS_UNLINKAT:
         sys_unlinkat(proc);
         break;
-    case 135: // personality
+    case 135: // rt_sigprocmask
         proc->regs.x0 = 0;
         break;
-    case 220:
+    case SYS_CLONE:
         sys_fork(proc);
         break;
     default:

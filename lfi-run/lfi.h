@@ -72,7 +72,6 @@ struct regs {
 struct context {
     uint64_t x30;
     uint64_t sp;
-
     uint64_t x19;
     uint64_t x20;
     uint64_t x21;
@@ -83,18 +82,16 @@ struct context {
     uint64_t x26;
     uint64_t x27;
     uint64_t x28;
-
     uint64_t nzcv;
     uint64_t fpsr;
-    uint64_t q8;
-    uint64_t q9;
-    uint64_t q10;
-    uint64_t q11;
-    uint64_t q12;
-    uint64_t q13;
-    uint64_t q14;
-    uint64_t q15;
-
+    uint64_t d8;
+    uint64_t d9;
+    uint64_t d10;
+    uint64_t d11;
+    uint64_t d12;
+    uint64_t d13;
+    uint64_t d14;
+    uint64_t d15;
     void* sp_base;
 };
 
@@ -122,6 +119,7 @@ struct buddy;
 
 enum procstate {
     STATE_RUNNABLE,
+    STATE_BLOCKED,
     STATE_EXITED,
 };
 
@@ -151,6 +149,12 @@ struct proc {
     struct proc* prev;
 };
 
+struct queue {
+    struct proc* front;
+    struct proc* back;
+    size_t size;
+};
+
 static inline int proc_getpid(struct proc* p) {
     return p->sys.base >> 32;
 }
@@ -158,11 +162,8 @@ static inline int proc_getpid(struct proc* p) {
 struct manager {
     struct proc* running;
 
-    struct proc* runq_front;
-    struct proc* runq_back;
-
-    struct proc* waitq_front;
-    struct proc* waitq_back;
+    struct queue runq;
+    struct queue waitq;
 
     struct buddy* proc_allocator;
 };
@@ -175,9 +176,8 @@ void signal_disable();
 void signal_setstack(void* stack, size_t size);
 void signal_setup();
 
-void runq_push_front(struct manager* m, struct proc* p);
 void schedule(struct manager* m);
-bool thread_yield(struct manager* m);
+bool thread_yield();
 
 struct mem_region mem_map(uintptr_t base, size_t len, int prot, int flags);
 void mem_unmap(struct mem_region* mem);

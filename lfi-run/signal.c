@@ -18,7 +18,7 @@ static void signal_handler(int sig, siginfo_t* si, ucontext_t* context) {
         printf("killed\n");
         exit(0);
     case SIGALRM:
-        thread_yield(&manager);
+        thread_yield();
         break;
     case SIGINT:
         // TODO: deliver sigint, for now we just die
@@ -29,6 +29,11 @@ static void signal_handler(int sig, siginfo_t* si, ucontext_t* context) {
 
 static void sigenter(int sig, siginfo_t* si, void* context) {
     ucontext_t* ctx = (ucontext_t*) context;
+    if (ctx->uc_mcontext.pc < 8ULL * GB) {
+        // interrupted while in the runtime
+        signal_handler(sig, si, ctx);
+        return;
+    }
     uintptr_t* ptrs = (uintptr_t*) ctx->uc_mcontext.regs[21];
     uintptr_t kernel_tpidr = ptrs[16+1];
     uintptr_t user_tpidr;

@@ -4,6 +4,9 @@
 .globl enter_sandbox
 .type enter_sandbox,@function
 enter_sandbox:
+	mov x19, x0
+	bl signal_enable
+	mov x0, x19
 	b restore_regs
 	// should not return
 	brk #0

@@ -10,6 +10,7 @@
 #include "lfi.h"
 #include "mem.h"
 #include "buddy.h"
+#include "queue.h"
 
 static int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) |
@@ -26,7 +27,7 @@ static int check_ehdr(Elf64_Ehdr* ehdr) {
 
 void syscall_entry();
 void yield_fast(int pid);
-void enter_sandbox(struct proc* proc);
+void enter_sandbox(struct proc* p);
 
 static void proc_setup(struct proc* proc, Elf64_Ehdr* ehdr, int argc, char* argv[], char* envp[]) {
     char* args[argc];
@@ -250,10 +251,9 @@ int main(int argc, char* argv[], char* envp[]) {
         return 1;
     }
 
-    runq_push_front(&manager, proc);
+    queue_push_front(&manager.runq, proc);
 
     timer_setup(10000); // 10ms time slices
-    signal_enable();
 
     schedule(&manager);
 }
