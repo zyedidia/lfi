@@ -16,6 +16,7 @@
 
 #include "lfi.h"
 #include "mem.h"
+#include "queue.h"
 
 enum {
     SYS_GETCWD = 17,
@@ -305,9 +306,31 @@ static void sys_fstat(struct proc* proc) {
 
 static void sys_wait4(struct proc* proc) {
     int pid = proc->regs.x0;
-    int* status = (int*) proc_addr(proc, proc->regs.x1);
+    /* int* status = (int*) proc_addr(proc, proc->regs.x1); */
     assert(pid == -1);
-    assert(status == NULL);
+    assert(proc->regs.x1 == 0);
+
+    if (proc->children == 0) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    while (1) {
+        struct proc* zombie = manager.exitq.front;
+        while (zombie) {
+            if (zombie->parent == proc) {
+                int pid = proc_getpid(zombie);
+                queue_remove(&manager.exitq, zombie);
+                // TODO: free the zombie
+                proc->regs.x0 = pid;
+                proc->children--;
+                return;
+            }
+            zombie = zombie->next;
+        }
+
+        proc_wait(proc, &manager.waitq, STATE_BLOCKED);
+    }
 }
 
 void syscall_handler(struct proc* proc) {
@@ -316,8 +339,11 @@ void syscall_handler(struct proc* proc) {
     switch (sysno) {
     case SYS_EXIT_GROUP:
     case SYS_EXIT:
-        proc->state = STATE_EXITED;
-        thread_yield();
+        if (proc->parent && proc->parent->state == STATE_BLOCKED && proc->parent->wq == (void*) &manager.waitq) {
+            queue_wake(&manager.waitq, proc->parent);
+        }
+
+        proc_wait(proc, &manager.exitq, STATE_EXITED);
         break;
     case SYS_SET_TID_ADDRESS:
         proc->regs.x0 = 0;
@@ -407,6 +433,9 @@ void syscall_handler(struct proc* proc) {
         break;
     case SYS_CLONE:
         sys_fork(proc);
+        break;
+    case SYS_WAIT4:
+        sys_wait4(proc);
         break;
     default:
         fprintf(stderr, "unhandled syscall: %ld\n", sysno);

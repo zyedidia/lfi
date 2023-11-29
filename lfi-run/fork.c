@@ -107,6 +107,8 @@ void sys_fork(struct proc* p) {
 
     child->regs.x0 = 0;
     p->regs.x0 = proc_getpid(child);
+    child->parent = p;
+    p->children++;
 
     queue_push_front(&manager.runq, child);
     return;

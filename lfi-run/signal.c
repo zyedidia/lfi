@@ -18,7 +18,7 @@ static void signal_handler(int sig, siginfo_t* si, ucontext_t* context) {
         printf("killed\n");
         exit(0);
     case SIGALRM:
-        thread_yield();
+        proc_yield();
         break;
     case SIGINT:
         // TODO: deliver sigint, for now we just die

@@ -46,9 +46,15 @@ void schedule(struct manager* m) {
     }
 }
 
-bool thread_yield() {
+void proc_yield() {
     assert(manager.running != NULL);
     // kswitch_asm to avoid changing signal stack
     kswitch_asm(NULL, &manager.running->context, &scheduler_ctx);
-    return true;
+}
+
+void proc_wait(struct proc* p, struct queue* q, enum procstate state) {
+    p->state = state;
+    p->wq = (void*) q;
+    queue_push_front(q, p);
+    proc_yield();
 }

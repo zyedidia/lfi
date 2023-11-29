@@ -144,6 +144,7 @@ struct proc {
 
     struct proc* parent;
     size_t children;
+    void* wq;
 
     struct proc* next;
     struct proc* prev;
@@ -164,6 +165,7 @@ struct manager {
 
     struct queue runq;
     struct queue waitq;
+    struct queue exitq;
 
     struct buddy* proc_allocator;
 };
@@ -177,7 +179,8 @@ void signal_setstack(void* stack, size_t size);
 void signal_setup();
 
 void schedule(struct manager* m);
-bool thread_yield();
+void proc_yield();
+void proc_wait(struct proc* p, struct queue* q, enum procstate state);
 
 struct mem_region mem_map(uintptr_t base, size_t len, int prot, int flags);
 void mem_unmap(struct mem_region* mem);

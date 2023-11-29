@@ -1,5 +1,5 @@
 return b{
-    $ all:VB: benchswitch test fork
+    $ all:VB: benchswitch test fork hello
     $ %.o: %.c
         lfi-clang $input -O2 -o $output -c
     $ %.o: %.s
