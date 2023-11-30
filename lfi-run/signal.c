@@ -30,6 +30,9 @@ static void signal_handler(int sig, siginfo_t* si, ucontext_t* context) {
 static void sigenter(int sig, siginfo_t* si, void* context) {
     ucontext_t* ctx = (ucontext_t*) context;
     if (ctx->uc_mcontext.pc < 8ULL * GB) {
+        if (sig == SIGALRM) {
+            return;
+        }
         // interrupted while in the runtime
         signal_handler(sig, si, ctx);
         return;

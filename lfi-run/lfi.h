@@ -82,6 +82,7 @@ struct context {
     uint64_t x26;
     uint64_t x27;
     uint64_t x28;
+    uint64_t x29;
     uint64_t nzcv;
     uint64_t fpsr;
     uint64_t d8;
