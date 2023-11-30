@@ -1,19 +1,17 @@
 #!/bin/sh
 
-# Usage: build-compiler-rt.sh PREFIX
+# Usage: build-compiler-rt.sh CC CXX PREFIX
 
 set -x
 set -e
 
 VERSION=15.0.7
-PREFIX=$1
+PREFIX=$3
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
 
-CC=$PWD/../compiler/lfi-nolib-clang
-CXX=$PWD/../compiler/lfi-nolib-clang++
-# CC=clang
-# CXX=clang++
+CC=$1
+CXX=$2
 
 rm -rf llvm-project-$VERSION.src/build-compiler-rt
 

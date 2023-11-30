@@ -1,17 +1,17 @@
 #!/bin/sh
 
-# Usage: build-llvm-runtimes.sh PREFIX
+# Usage: build-llvm-runtimes.sh CC CXX PREFIX
 
 set -e
 set -x
 
 VERSION=15.0.7
-PREFIX=$1
+PREFIX=$3
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
 
-CC=$PWD/../compiler/lfi-nolib-clang
-CXX=$PWD/../compiler/lfi-nolib-clang++
+CC=$1
+CXX=$2
 
 rm -rf llvm-project-$VERSION.src/build-runtimes
 
@@ -19,7 +19,7 @@ rm -rf llvm-project-$VERSION.src/build-runtimes
 cd llvm-project-$VERSION.src/
 mkdir build-runtimes
 cd build-runtimes
-export ASMFLAGS="-flfi-O1"
+# export ASMFLAGS="-flfi-O1"
 export CXXFLAGS="--sysroot $SYSROOT -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -isystem /usr/include/aarch64-linux-gnu -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
 export CFLAGS="--sysroot $SYSROOT -nostdlib -nostdlibinc -isystem $SYSROOT/include -isystem /usr/include -isystem /usr/include/aarch64-linux-gnu -I../libunwind/include -resource-dir $COMPRT --rtlib=compiler-rt"
 cmake ../runtimes -G Ninja \

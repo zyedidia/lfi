@@ -1,0 +1,15 @@
+#!/bin/bash
+TOOLCHAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..
+clang \
+    "$@" \
+    --sysroot $TOOLCHAIN/sysroot \
+    --rtlib=compiler-rt \
+    -resource-dir $TOOLCHAIN/compiler-rt \
+    -nostdlibinc \
+    -isystem $TOOLCHAIN/sysroot/include \
+    -isystem /usr/include \
+    -isystem /usr/include/aarch64-linux-gnu \
+    -fuse-ld=lld \
+    -Wno-unused-command-line-argument \
+    -static-pie \
+    -target aarch64-linux-musl
