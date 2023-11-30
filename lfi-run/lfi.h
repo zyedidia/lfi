@@ -125,7 +125,8 @@ enum procstate {
 };
 
 enum {
-    NFD = 16,
+    NFD    = 16,
+    NCHILD = 32,
 };
 
 struct file {
@@ -155,7 +156,8 @@ struct proc {
     struct mem_region* mmap_back;
 
     struct proc* parent;
-    size_t children;
+    struct proc* children[NCHILD];
+    size_t nchildren;
     void* wq;
 
     struct file fdtable[NFD];
@@ -175,6 +177,7 @@ static inline int proc_getpid(struct proc* p) {
 }
 
 struct manager {
+    struct proc* init;
     struct proc* running;
 
     struct queue runq;

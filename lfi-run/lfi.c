@@ -283,6 +283,7 @@ int main(int argc, char* argv[], char* envp[]) {
     }
 
     queue_push_front(&manager.runq, proc);
+    manager.init = proc;
 
     timer_setup();
 

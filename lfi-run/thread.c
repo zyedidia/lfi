@@ -38,10 +38,12 @@ void schedule(struct manager* m) {
         kswitch(p, &scheduler_ctx, &p->context);
         m->running = NULL;
 
+        if (m->init->state == STATE_EXITED) {
+            exit(0);
+        }
+
         if (p->state == STATE_RUNNABLE) {
             queue_push_front(&m->runq, p);
-        } else if (m->runq.front == NULL && m->waitq.front == NULL) {
-            exit(0);
         }
     }
 }

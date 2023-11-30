@@ -346,7 +346,7 @@ static void sys_wait4(struct proc* proc) {
     assert(pid == -1);
     assert(proc->regs.x1 == 0);
 
-    if (proc->children == 0) {
+    if (proc->nchildren == 0) {
         proc->regs.x0 = -1;
         return;
     }
@@ -359,7 +359,7 @@ static void sys_wait4(struct proc* proc) {
                 queue_remove(&manager.exitq, zombie);
                 // TODO: free the zombie
                 proc->regs.x0 = pid;
-                proc->children--;
+                proc->nchildren--;
                 return;
             }
             zombie = zombie->next;
@@ -413,8 +413,15 @@ void syscall_handler(struct proc* proc) {
     switch (sysno) {
     case SYS_EXIT_GROUP:
     case SYS_EXIT:
-        if (proc->parent && proc->parent->state == STATE_BLOCKED && proc->parent->wq == (void*) &manager.waitq) {
-            queue_wake(&manager.waitq, proc->parent);
+        if (manager.init != proc) {
+            for (size_t i = 0; i < proc->nchildren; i++) {
+                proc->children[i]->parent = manager.init;
+                manager.init->nchildren++;
+            }
+
+            if (proc->parent && proc->parent->state == STATE_BLOCKED && proc->parent->wq == (void*) &manager.waitq) {
+                queue_wake(&manager.waitq, proc->parent);
+            }
         }
 
         proc_wait(proc, &manager.exitq, STATE_EXITED);

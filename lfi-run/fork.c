@@ -17,9 +17,15 @@ void yield_fast(int pid);
 void enter_sandbox(struct proc* proc);
 
 void sys_fork(struct proc* p) {
+    if (p->nchildren >= NCHILD) {
+        p->regs.x0 = -1;
+        return;
+    }
+
     struct proc* child = calloc(1, sizeof(struct proc));
     if (!child) {
         p->regs.x0 = -1;
+        return;
     }
     // * find free base
     uintptr_t base = proc_newbase(&manager);
@@ -110,10 +116,11 @@ void sys_fork(struct proc* p) {
     child->regs.x0 = 0;
     p->regs.x0 = proc_getpid(child);
     child->parent = p;
-    p->children++;
+    p->children[p->nchildren++] = child;
 
     queue_push_front(&manager.runq, child);
     return;
 err:
     p->regs.x0 = -1;
+    return;
 }
