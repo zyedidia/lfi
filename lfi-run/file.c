@@ -5,10 +5,6 @@
 
 #include "file.h"
 
-struct filedev {
-    int fd;
-};
-
 static int file_read(void* proc, void* dev, uint8_t* buf, int n) {
     (void) proc;
     struct filedev* f = (struct filedev*) dev;
@@ -45,5 +41,6 @@ void filedev_init(struct file* file, int fd) {
         .write = file_write,
         .lseek = file_lseek,
         .close = file_close,
+        .is_file = true,
     };
 }

@@ -125,7 +125,7 @@ enum procstate {
 };
 
 enum {
-    NFD    = 16,
+    NFD    = 64,
     NCHILD = 32,
 };
 
@@ -136,6 +136,7 @@ struct file {
     int (*write)(void* proc, void* dev, uint8_t* buf, int n);
     off_t (*lseek)(void* proc, void* dev, off_t off, unsigned int whence);
     int (*close)(void* proc, void* dev);
+    bool is_file;
 };
 
 struct proc {

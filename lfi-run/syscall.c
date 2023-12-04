@@ -104,6 +104,10 @@ static bool proc_inmmap(struct proc* proc, uint64_t addr) {
 
 static void sys_unlinkat(struct proc* proc) {
     int dirfd = proc->regs.x0;
+    if (dirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
     char* pathname = (char*) proc_addr(proc, proc->regs.x1);
     int flags = proc->regs.x2;
     check(proc, unlinkat(dirfd, pathname, flags));
@@ -114,11 +118,20 @@ static void sys_getdents64(struct proc* proc) {
     int fd = proc->regs.x0;
     void* dirp = (void*) proc_addr(proc, proc->regs.x1);
     size_t count = proc->regs.x2;
-    check(proc, syscall(SYS_getdents64, fd, dirp, count));
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].is_file) {
+        proc->regs.x0 = -1;
+        return;
+    }
+    struct filedev* fdev = (struct filedev*) proc->fdtable[fd].device;
+    check(proc, syscall(SYS_getdents64, fdev->fd, dirp, count));
 }
 
 static void sys_readlinkat(struct proc* proc) {
     int dirfd = proc->regs.x0;
+    if (dirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
     // TODO
     char* pathname = (char*) proc_addr(proc, proc->regs.x1);
     char* buf = (char*) proc_addr(proc, proc->regs.x2);
@@ -128,6 +141,10 @@ static void sys_readlinkat(struct proc* proc) {
 
 static void sys_faccessat(struct proc* proc) {
     int dirfd = proc->regs.x0;
+    if (dirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
     // TODO
     char* pathname = (char*) proc_addr(proc, proc->regs.x1);
     int mode = proc->regs.x2;
@@ -370,6 +387,10 @@ static void sys_close(struct proc* proc) {
 
 static void sys_newfstatat(struct proc* proc) {
     int dirfd = proc->regs.x0;
+    if (dirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
     char* filename = (char*) proc->regs.x1;
     struct stat* statbuf = (struct stat*) proc_addr(proc, proc->regs.x2);
     int flag = proc->regs.x3;
@@ -377,7 +398,13 @@ static void sys_newfstatat(struct proc* proc) {
 }
 
 static void sys_fstat(struct proc* proc) {
-    check(proc, fstat(proc->regs.x0, (struct stat*) proc_addr(proc, proc->regs.x1)));
+    int fd = proc->regs.x0;
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].is_file) {
+        proc->regs.x0 = -1;
+        return;
+    }
+    struct filedev* fdev = (struct filedev*) proc->fdtable[fd].device;
+    check(proc, fstat(fdev->fd, (struct stat*) proc_addr(proc, proc->regs.x1)));
 }
 
 static void sys_wait4(struct proc* proc) {
