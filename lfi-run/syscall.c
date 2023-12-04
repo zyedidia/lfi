@@ -18,6 +18,7 @@
 #include "mem.h"
 #include "queue.h"
 #include "pipe.h"
+#include "file.h"
 
 enum {
     SYS_GETCWD = 17,
@@ -57,6 +58,19 @@ enum {
 enum {
     MAX_PATH = 1024,
 };
+
+static struct file* fdalloc(struct proc* p, int* fd) {
+    struct file* f = NULL;
+    for (int i = 0; i < NFD; i++) {
+        if (!p->fdtable[i].allocated) {
+            p->fdtable[i].allocated = true;
+            f = &p->fdtable[i];
+            *fd = i;
+            break;
+        }
+    }
+    return f;
+}
 
 static void check(struct proc* proc, int val) {
     if (val == -1) {
@@ -261,7 +275,15 @@ static void sys_openat(struct proc* proc) {
     int flags = proc->regs.x2;
     mode_t mode = proc->regs.x3;
 
-    int fd = openat(dirfd, safepath, flags, mode);
+    int linuxfd = openat(dirfd, safepath, flags, mode);
+    if (linuxfd < 0) {
+        proc->regs.x0 = linuxfd;
+        return;
+    }
+    int fd;
+    struct file* f = fdalloc(proc, &fd);
+    assert(f);
+    filedev_init(f, linuxfd);
     proc->regs.x0 = fd;
 }
 
@@ -321,11 +343,29 @@ static void sys_lseek(struct proc* proc) {
     int fd = proc->regs.x0;
     off_t off = proc->regs.x1;
     unsigned int whence = proc->regs.x2;
-    check(proc, lseek(fd, off, whence));
+
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated || !proc->fdtable[fd].lseek) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    check(proc, proc->fdtable[fd].lseek(proc, proc->fdtable[fd].device, off, whence));
 }
 
 static void sys_close(struct proc* proc) {
-    check(proc, close(proc->regs.x0));
+    int fd = proc->regs.x0;
+
+    if (fd < 0 || fd >= NFD || !proc->fdtable[fd].allocated) {
+        proc->regs.x0 = -1;
+        return;
+    }
+
+    if (!proc->fdtable[fd].close) {
+        proc->regs.x0 = 0;
+        return;
+    }
+
+    check(proc, proc->fdtable[fd].close(proc, proc->fdtable[fd].device));
 }
 
 static void sys_newfstatat(struct proc* proc) {
@@ -367,19 +407,6 @@ static void sys_wait4(struct proc* proc) {
 
         proc_wait(proc, &manager.waitq, STATE_BLOCKED);
     }
-}
-
-static struct file* fdalloc(struct proc* p, int* fd) {
-    struct file* f = NULL;
-    for (int i = 0; i < NFD; i++) {
-        if (!p->fdtable[i].allocated) {
-            p->fdtable[i].allocated = true;
-            f = &p->fdtable[i];
-            *fd = i;
-            break;
-        }
-    }
-    return f;
 }
 
 void sys_pipe2(struct proc* proc) {

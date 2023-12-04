@@ -68,8 +68,8 @@ uint64_t proc_mmap(struct proc* proc, uint64_t base, size_t size, int prot, int 
         base = (uint64_t) alloc;
     }
 
-    void* p = mmap((void*) base, size, prot, flags, -1, 0);
-    if (p == (void*) -1) {
+    void* mem = mmap((void*) base, size, prot, flags, -1, 0);
+    if (mem == (void*) -1) {
         if (alloc)
             buddy_free(proc->mmap, alloc);
         goto err;
@@ -85,9 +85,9 @@ uint64_t proc_mmap(struct proc* proc, uint64_t base, size_t size, int prot, int 
     };
     if (!alloc)
         buddy_reserve_range(proc->mmap, (void*) base, size);
-    mmap_push_back(p, region);
+    mmap_push_back(proc, region);
 
-    return (uint64_t) p;
+    return (uint64_t) mem;
 
 err:
     return (uint64_t) -1;
@@ -100,7 +100,11 @@ bool proc_unmap(struct proc* proc, uint64_t base, size_t size) {
             mmap_remove(proc, m);
             if (m->allocated) {
                 /* free(m); */
-                return buddy_safe_free(proc->mmap, (void*) base, size);
+                bool freed = buddy_safe_free(proc->mmap, (void*) base, size);
+                if (freed) {
+                    munmap((void*) base, size);
+                }
+                return freed;
             } else {
                 buddy_unsafe_release_range(proc->mmap, (void*) base, size);
                 munmap((void*) base, size);

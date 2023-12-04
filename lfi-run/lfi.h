@@ -132,8 +132,10 @@ enum {
 struct file {
     bool allocated;
     void* device;
-    int (*write)(void* proc, void* dev, uint8_t* buf, int n);
     int (*read)(void* proc, void* dev, uint8_t* buf, int n);
+    int (*write)(void* proc, void* dev, uint8_t* buf, int n);
+    off_t (*lseek)(void* proc, void* dev, off_t off, unsigned int whence);
+    int (*close)(void* proc, void* dev);
 };
 
 struct proc {
