@@ -242,7 +242,7 @@ static struct proc* proc_new(struct manager* m, char* file, int argc, char* argv
         return NULL;
     }
 
-    if (proc_load(base, proc, fd, argc - 1, &argv[1], envp) < 0) {
+    if (proc_load(base, proc, fd, argc, argv, envp) < 0) {
         printf("failed to load sandbox\n");
         free(proc);
         close(fd);
