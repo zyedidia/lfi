@@ -21,7 +21,7 @@ func showOps(w io.Writer, list *OpList) {
 }
 
 var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
-var opt = pflag.IntP("opt", "O", 3, "optimization level")
+var opt = pflag.IntP("opt", "O", 2, "optimization level")
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
@@ -57,7 +57,7 @@ func main() {
 		if *instrument {
 			instrumentPass(ops)
 		}
-		if *opt >= 3 {
+		if *opt >= 2 {
 			preExtensionPass(ops)
 		}
 		branchFixupPass(ops)
