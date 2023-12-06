@@ -25,6 +25,7 @@ enum {
     SYS_FCNTL = 25,
     SYS_IOCTL = 29,
     SYS_UNLINKAT = 35,
+    SYS_RENAMEAT = 38,
     SYS_FACCESSAT = 48,
     SYS_CHDIR = 49,
     SYS_OPENAT = 56,
@@ -137,6 +138,23 @@ static void sys_readlinkat(struct proc* proc) {
     char* buf = (char*) proc_addr(proc, proc->regs.x2);
     size_t bufsiz = proc->regs.x3;
     check(proc, readlinkat(dirfd, pathname, buf, bufsiz));
+}
+
+static void sys_renameat(struct proc* proc) {
+    int olddirfd = proc->regs.x0;
+    if (olddirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
+    int newdirfd = proc->regs.x2;
+    if (newdirfd != AT_FDCWD) {
+        proc->regs.x0 = -1;
+        return;
+    }
+    // TODO
+    char* oldpath = (char*) proc_addr(proc, proc->regs.x1);
+    char* newpath = (char*) proc_addr(proc, proc->regs.x3);
+    check(proc, renameat(olddirfd, oldpath, newdirfd, newpath));
 }
 
 static void sys_faccessat(struct proc* proc) {
@@ -574,6 +592,9 @@ void syscall_handler(struct proc* proc) {
         break;
     case SYS_PIPE2:
         sys_pipe2(proc);
+        break;
+    case SYS_RENAMEAT:
+        sys_renameat(proc);
         break;
     default:
         fprintf(stderr, "unhandled syscall: %ld\n", sysno);
