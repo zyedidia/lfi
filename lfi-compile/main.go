@@ -46,6 +46,11 @@ func compile(cmdargs []string) {
 	var compile, assemble, verbose, keep, lto bool
 	var out string
 
+	lfienv := os.Getenv("LFIFLAGS")
+	if lfienv != "" {
+		lfiargs = append(lfiargs, strings.Fields(lfienv)...)
+	}
+
 	for i := 1; i < len(cmdargs); i++ {
 		arg := cmdargs[i]
 
