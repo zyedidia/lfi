@@ -60,6 +60,7 @@ bool proc_mmap_init(struct proc* proc, uint64_t base, size_t size) {
 }
 
 uint64_t proc_mmap(struct proc* proc, uint64_t base, size_t size, int prot, int flags) {
+    size = ceilpg(size);
     void* alloc = NULL;
     if (base == 0) {
         alloc = buddy_malloc(proc->mmap, size);
@@ -96,18 +97,18 @@ err:
 bool proc_unmap(struct proc* proc, uint64_t base, size_t size) {
     struct mem_region* m = proc->mmap_front;
     while (m) {
-        if (m->base == base && m->len == size) {
+        if (m->base == base && m->len == ceilpg(size)) {
             mmap_remove(proc, m);
             if (m->allocated) {
                 /* free(m); */
-                bool freed = buddy_safe_free(proc->mmap, (void*) base, size);
+                bool freed = buddy_safe_free(proc->mmap, (void*) base, m->len);
                 if (freed) {
-                    munmap((void*) base, size);
+                    munmap((void*) base, m->len);
                 }
                 return freed;
             } else {
-                buddy_unsafe_release_range(proc->mmap, (void*) base, size);
-                munmap((void*) base, size);
+                buddy_unsafe_release_range(proc->mmap, (void*) base, m->len);
+                munmap((void*) base, m->len);
                 /* free(m); */
                 return true;
             }
