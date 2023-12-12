@@ -30,10 +30,11 @@ LFI supports all source-level language features and targets the ARMv8.0-A ISA
 planning to add support for ARMv8.1+ extensions.
 
 LFI is currently in development. For now, please only use it for
-experimentation, and refrain from posting about it on public forums. In
-particular, so far the runtime has just been used for collecting measurements,
-and does not provide a fully sandboxed environment. We are currently working on
-rewriting it to be fully secure.
+experimentation. In particular, so far the runtime has just been used for
+collecting measurements, and does not provide a fully sandboxed environment. We
+are currently working on rewriting it to be fully secure. A paper with
+additional details will be publicly available in the next few months, so stay
+tuned for that.
 
 # Tools
 
