@@ -32,7 +32,6 @@ void sys_fork(struct proc* p) {
     if (!base)
         goto err;
 
-    child->brk = p->brk;
     child->state = STATE_RUNNABLE;
 
     // * copy/share regions
@@ -41,6 +40,7 @@ void sys_fork(struct proc* p) {
     child->sys = mem_map(base, PAGE_SIZE, PROT_READ | PROT_WRITE, flags);
     child->guard = mem_map(base + BOX_SIZE, GUARD_SIZE, PROT_NONE, flags);
 
+    child->brk = proc_addr(child, p->brk);
     // TODO: unsafe, rewrite this to preserve correct protections
     child->bin = mem_map(proc_addr(child, p->bin.base), p->bin.len, PROT_READ | PROT_WRITE | PROT_EXEC, flags);
     memcpy((void*) child->bin.base, (void*) p->bin.base, p->bin.len);

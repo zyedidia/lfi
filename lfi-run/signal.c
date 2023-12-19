@@ -15,7 +15,7 @@ static void signal_handler(int sig, siginfo_t* si, ucontext_t* context) {
     case SIGSEGV:
     case SIGBUS:
     case SIGILL:
-        printf("killed\n");
+        printf("killed %d (pc=%llx)\n", sig, context->uc_mcontext.pc);
         exit(0);
     case SIGALRM:
         proc_yield();

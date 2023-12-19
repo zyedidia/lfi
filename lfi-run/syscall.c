@@ -350,7 +350,7 @@ static void sys_mmap(struct proc* proc) {
     int flags = proc->regs.x3;
 
     if (base != 0 && proc_inbrk(proc, base) && proc_inbrk(proc, base + size)) {
-        mprotect((void*) base, size, prot);
+        /* mprotect((void*) base, size, prot); */
         proc->regs.x0 = base;
         return;
     }
