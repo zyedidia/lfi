@@ -5,6 +5,15 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "lfi"
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
+[[bin]]
+name = "lfi-verify"
+path = "src/main.rs"
+
 [dependencies]
 
 xmas-elf = "0.8"
