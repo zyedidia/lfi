@@ -1,5 +1,4 @@
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
-use std::sync::atomic::{self, AtomicBool};
 
 use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
 
@@ -11,12 +10,9 @@ const OPT_REG2: Reg = Reg::X24;
 const BASE_REG: Reg = Reg::X21;
 const RES32_REG: Reg = Reg::X22;
 
-pub static FAILED: AtomicBool = AtomicBool::new(false);
-
-fn error(inst: &Instruction, msg: &str) {
-    eprintln!("error: {:x}: {}: {}", inst.address(), inst, msg);
-    // this is not a multithreaded program
-    FAILED.store(true, atomic::Ordering::Relaxed);
+pub struct Verifier {
+    pub failed: bool,
+    pub msg: String,
 }
 
 fn modifies(inst: &Instruction, r: Reg) -> bool {
@@ -63,47 +59,12 @@ fn restricted_reg(r: Reg) -> bool {
         || r == lo(SP_REG)
 }
 
-pub fn legal_sysreg(reg: SysReg) -> bool {
+fn legal_sysreg(reg: SysReg) -> bool {
     match reg {
         SysReg::TPIDR_EL0 => true,
         SysReg::FPSR => true,
         SysReg::FPCR => true,
         _ => false,
-    }
-}
-
-// Makes sure that indirect branches only used reserved registers
-fn check_branch(inst: &Instruction) {
-    match inst.op() {
-        Op::BLR | Op::BR | Op::RET => {
-            let ops = inst.operands();
-            if ops.len() == 0 {
-                return;
-            }
-            if let Operand::Reg { reg: r, arrspec: _ } = ops[0] {
-                if r != RES_REG && r != RET_REG {
-                    error(inst, "indirect branch on non-reserved register");
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
-// Checks that operand 'i' is not an illegal system register
-fn check_sysreg(inst: &Instruction, i: usize) {
-    if let Operand::SysReg(r) = inst.operands()[i] {
-        if !legal_sysreg(r) {
-            error(inst, "attempt to access illegal system register");
-        }
-    }
-}
-
-fn check_sys(inst: &Instruction) {
-    match inst.op() {
-        Op::MSR => check_sysreg(inst, 0),
-        Op::MRS => check_sysreg(inst, 1),
-        _ => {}
     }
 }
 
@@ -305,44 +266,87 @@ fn ok_mod(
     return false;
 }
 
-pub fn check(
-    inst: &Instruction,
-    iter: &mut peekmore::PeekMoreIterator<
-        impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
-    >,
-) {
-    // check if the instruction is in the allowlist.
-    if !is_allowed(inst.op()) {
-        error(inst, "disallowed instruction");
+impl Verifier {
+    fn error(self: &mut Self, inst: &Instruction, msg: &str) {
+        self.failed = true;
+        self.msg = format!("error: {:x}: {}: {}", inst.address(), inst, msg);
     }
-    // make sure indirect branches target a reserved register
-    check_branch(&inst);
-    // make sure system instructions (MRS/MSR) only access legal registers
-    check_sys(&inst);
 
-    // check memory addressing operands for legality
-    for op in inst.operands().iter() {
-        if !ok_operand(op) {
-            error(inst, "disallowed operand")
+    // Makes sure that indirect branches only used reserved registers
+    fn check_branch(self: &mut Self, inst: &Instruction) {
+        match inst.op() {
+            Op::BLR | Op::BR | Op::RET => {
+                let ops = inst.operands();
+                if ops.len() == 0 {
+                    return;
+                }
+                if let Operand::Reg { reg: r, arrspec: _ } = ops[0] {
+                    if r != RES_REG && r != RET_REG {
+                        self.error(inst, "indirect branch on non-reserved register");
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
-    if nomodify(inst.op()) || inst.operands().len() == 0 {
-        // these instructions don't modify their first operand
-        return;
-    }
-    // check that reserved registers are only modified according to the right rules
-    if let Operand::Reg { reg, .. } = inst.operands()[0] {
-        let ok = ok_mod(&inst, reg, iter);
-        if !ok {
-            error(inst, "disallowed modification");
+    // Checks that operand 'i' is not an illegal system register
+    fn check_sysreg(self: &mut Self, inst: &Instruction, i: usize) {
+        if let Operand::SysReg(r) = inst.operands()[i] {
+            if !legal_sysreg(r) {
+                self.error(inst, "attempt to access illegal system register");
+            }
         }
-        if is_multimod(inst.op()) {
-            if let Operand::Reg { reg, .. } = inst.operands()[1] {
-                // these instructions also modify their second operand, so we check that too
-                let ok = ok_mod(&inst, reg, iter);
-                if !ok {
-                    error(inst, "disallowed modification");
+    }
+
+    fn check_sys(self: &mut Self, inst: &Instruction) {
+        match inst.op() {
+            Op::MSR => self.check_sysreg(inst, 0),
+            Op::MRS => self.check_sysreg(inst, 1),
+            _ => {}
+        }
+    }
+
+    pub fn check_insn(
+        self: &mut Self,
+        inst: &Instruction,
+        iter: &mut peekmore::PeekMoreIterator<
+            impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
+        >,
+    ) {
+        // check if the instruction is in the allowlist.
+        if !is_allowed(inst.op()) {
+            self.error(inst, "disallowed instruction");
+        }
+        // make sure indirect branches target a reserved register
+        self.check_branch(&inst);
+        // make sure system instructions (MRS/MSR) only access legal registers
+        self.check_sys(&inst);
+
+        // check memory addressing operands for legality
+        for op in inst.operands().iter() {
+            if !ok_operand(op) {
+                self.error(inst, "disallowed operand")
+            }
+        }
+
+        if nomodify(inst.op()) || inst.operands().len() == 0 {
+            // these instructions don't modify their first operand
+            return;
+        }
+        // check that reserved registers are only modified according to the right rules
+        if let Operand::Reg { reg, .. } = inst.operands()[0] {
+            let ok = ok_mod(&inst, reg, iter);
+            if !ok {
+                self.error(inst, "disallowed modification");
+            }
+            if is_multimod(inst.op()) {
+                if let Operand::Reg { reg, .. } = inst.operands()[1] {
+                    // these instructions also modify their second operand, so we check that too
+                    let ok = ok_mod(&inst, reg, iter);
+                    if !ok {
+                        self.error(inst, "disallowed modification");
+                    }
                 }
             }
         }

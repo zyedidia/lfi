@@ -4,7 +4,7 @@ use std::process;
 use std::time::Instant;
 
 use peekmore::PeekMore;
-use verifier::check;
+use verifier::Verifier;
 use xmas_elf::{program::SegmentData, ElfFile};
 
 mod inst;
@@ -27,6 +27,11 @@ fn main() {
 
     let start = Instant::now();
 
+    let mut verif = Verifier {
+        failed: false,
+        msg: String::new(),
+    };
+
     for prog in elf.program_iter() {
         if !prog.flags().is_execute() {
             continue;
@@ -39,7 +44,7 @@ fn main() {
             while let Some(maybe_decoded) = iter.next() {
                 match maybe_decoded {
                     Ok(inst) => {
-                        check(&inst, &mut iter);
+                        verif.check_insn(&inst, &mut iter);
                     }
                     Err(e) => eprintln!("{:x}: unknown instruction: {}", e.address(), e),
                 }
@@ -52,8 +57,8 @@ fn main() {
 
     let duration = start.elapsed();
 
-    if verifier::FAILED.load(std::sync::atomic::Ordering::Relaxed) {
-        eprintln!("verification failed");
+    if verif.failed {
+        eprintln!("verification failed: {}", verif.msg);
         process::exit(1);
     }
 
