@@ -1,7 +1,8 @@
 #!/bin/bash
 TOOLCHAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..
-clang \
+lfi-compile clang \
     "$@" \
+    -flfi-native \
     --sysroot $TOOLCHAIN/sysroot \
     --rtlib=compiler-rt \
     -resource-dir $TOOLCHAIN/compiler-rt \

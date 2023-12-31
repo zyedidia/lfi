@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func addSyscall(offset int, b *Builder) *OpNode {
+func addSyscall(offset int, native bool, b *Builder) *OpNode {
 	b.Add(NewNode(&Inst{
 		Name: "str",
 		Args: []Arg{
@@ -14,6 +14,27 @@ func addSyscall(offset int, b *Builder) *OpNode {
 		},
 	}))
 
+	baseReg := segmentReg
+	if native {
+		b.Add(NewNode(&Inst{
+			Name: "adr",
+			Args: []Arg{
+				retReg,
+				Number("0"),
+			},
+		}))
+
+		b.Add(NewNode(&Inst{
+			Name: "and",
+			Args: []Arg{
+				retReg,
+				retReg,
+				Number("#0xffffffff00000000"),
+			},
+		}))
+		baseReg = retReg
+	}
+
 	var imm Imm
 	if offset != 0 {
 		imm = Number(fmt.Sprintf("%d", offset))
@@ -24,7 +45,7 @@ func addSyscall(offset int, b *Builder) *OpNode {
 		Args: []Arg{
 			retReg,
 			MemAddr{
-				Reg: segmentReg,
+				Reg: baseReg,
 				Imm: imm,
 			},
 		},
@@ -57,7 +78,7 @@ func instrumentPass(ops *OpList) {
 			e, eok := inst.Args[3].(Extend)
 			if ok && r2 == segmentReg && eok && e.Op == "uxtw" {
 				b.Locate(op)
-				n := addSyscall(8, b)
+				n := addSyscall(8, false, b)
 				op = n
 			}
 		}
@@ -65,13 +86,13 @@ func instrumentPass(ops *OpList) {
 	}
 }
 
-func syscallPass(ops *OpList) {
+func syscallPass(native bool, ops *OpList) {
 	op := ops.Front
 	b := NewBuilder(ops)
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok && inst.Name == "svc" {
 			b.Locate(op)
-			n := addSyscall(0, b)
+			n := addSyscall(0, native, b)
 			b.list.Remove(op)
 			op = n
 		}
