@@ -4,4 +4,5 @@ lfi-compile clang \
     -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x23 -ffixed-x24 -ffixed-x30 \
     "$@" \
     -fuse-ld=lld \
+    -fPIC \
     -Wno-unused-command-line-argument
