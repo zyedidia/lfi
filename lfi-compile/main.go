@@ -12,6 +12,7 @@ import (
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
+	rmtemps()
 	os.Exit(1)
 }
 
@@ -27,7 +28,17 @@ func run(command string, args ...string) {
 	}
 }
 
+var keep bool
+
 var temps []string
+
+func rmtemps() {
+	if !keep {
+		for _, t := range temps {
+			os.Remove(t)
+		}
+	}
+}
 
 func temp(dir string) string {
 	tmp, err := os.CreateTemp(dir, ".lfi.*.s")
@@ -43,7 +54,7 @@ func compile(cmdargs []string) {
 	compiler := cmdargs[0]
 
 	var args, lfiargs, inputs, objs []string
-	var compile, assemble, verbose, keep, lto bool
+	var compile, assemble, verbose, lto bool
 	var out string
 
 	lfienv := os.Getenv("LFIFLAGS")
@@ -207,11 +218,7 @@ func compile(cmdargs []string) {
 		run("cp", lfiasm, targetasm)
 	}
 
-	if !keep {
-		for _, t := range temps {
-			os.Remove(t)
-		}
-	}
+	rmtemps()
 }
 
 func main() {
