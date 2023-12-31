@@ -14,12 +14,22 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		},
 	}))
 
-	baseReg := segmentReg
 	if native {
+		b.Add(NewNode(&Inst{
+			Name: "str",
+			Args: []Arg{
+				Reg("x21"),
+				MemAddrPre{
+					Reg: Reg("sp"),
+					Imm: "-16",
+				},
+			},
+		}))
+
 		b.Add(NewNode(&Inst{
 			Name: "adr",
 			Args: []Arg{
-				retReg,
+				segmentReg,
 				Number("0"),
 			},
 		}))
@@ -27,12 +37,11 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		b.Add(NewNode(&Inst{
 			Name: "and",
 			Args: []Arg{
-				retReg,
-				retReg,
+				segmentReg,
+				segmentReg,
 				Number("#0xffffffff00000000"),
 			},
 		}))
-		baseReg = retReg
 	}
 
 	var imm Imm
@@ -45,7 +54,7 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		Args: []Arg{
 			retReg,
 			MemAddr{
-				Reg: baseReg,
+				Reg: segmentReg,
 				Imm: imm,
 			},
 		},
@@ -55,6 +64,19 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		Name: "blr",
 		Args: []Arg{retReg},
 	}))
+
+	if native {
+		b.Add(NewNode(&Inst{
+			Name: "ldr",
+			Args: []Arg{
+				Reg("x21"),
+				MemAddrPost{
+					Reg: Reg("sp"),
+					Imm: "16",
+				},
+			},
+		}))
+	}
 
 	n := b.Add(NewNode(&Inst{
 		Name: "ldr",
