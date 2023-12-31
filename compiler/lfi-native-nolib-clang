@@ -1,6 +1,6 @@
 #!/bin/bash
 lfi-compile clang \
-    -flfi-native \
+    -flfi--native \
     "$@" \
     -fuse-ld=lld \
     -fPIC \

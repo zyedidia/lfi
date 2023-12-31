@@ -7,8 +7,8 @@ mkdir -p $PREFIX
 
 CC=$PWD/../compiler/lfi-nolib-clang
 CXX=$PWD/../compiler/lfi-nolib-clang++
-# CC=clang
-# CXX=clang++
+# CC=$PWD/../compiler/lfi-native-nolib-clang
+# CXX=$PWD/../compiler/lfi-native-nolib-clang++
 
 ./download-llvm.sh
 ./download-musl.sh

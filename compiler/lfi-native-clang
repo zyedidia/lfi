@@ -2,7 +2,7 @@
 TOOLCHAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..
 lfi-compile clang \
     "$@" \
-    -flfi-native \
+    -flfi--native \
     --sysroot $TOOLCHAIN/sysroot \
     --rtlib=compiler-rt \
     -resource-dir $TOOLCHAIN/compiler-rt \
