@@ -58,7 +58,7 @@ func main() {
 		if *instrument {
 			instrumentPass(ops)
 		}
-		if *opt >= 2 {
+		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
 		}
 		branchFixupPass(ops)
