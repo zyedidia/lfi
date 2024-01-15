@@ -271,15 +271,21 @@ func rangePass(ops *OpList) {
 				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
 			case multiexstores[inst.Name]:
 				sandboxMemAddrNoOpt(op, &inst.Args[3], builder)
-			case basicloads[inst.Name], basicstores[inst.Name]:
+			case basicloads[inst.Name] && !*noloads:
+				fallthrough
+			case basicstores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
 					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}
-			case loads[inst.Name], stores[inst.Name]:
+			case loads[inst.Name] && !*noloads:
+				fallthrough
+			case stores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg, optReg) {
 					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}
-			case multiloads[inst.Name], multistores[inst.Name]:
+			case multiloads[inst.Name] && !*noloads:
+				fallthrough
+			case multistores[inst.Name]:
 				if !sandboxMemAddrRange(op, &inst.Args[2], builder, curLabel.rangeReg, optReg) {
 					sandboxMemAddrRange(op, &inst.Args[1], builder, curLabel.rangeReg2, optReg2)
 				}

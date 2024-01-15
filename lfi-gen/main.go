@@ -22,6 +22,7 @@ func showOps(w io.Writer, list *OpList) {
 
 var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
 var opt = pflag.IntP("opt", "O", 2, "optimization level")
+var noloads = pflag.Bool("no-loads", false, "do not sandbox loads")
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")

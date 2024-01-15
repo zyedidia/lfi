@@ -295,13 +295,19 @@ func memPass(ops *OpList) {
 				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
 			case multiexstores[inst.Name]:
 				sandboxMemAddrNoOpt(op, &inst.Args[3], builder)
-			case basicloads[inst.Name], basicstores[inst.Name]:
+			case basicloads[inst.Name] && !*noloads:
+				fallthrough
+			case basicstores[inst.Name]:
 				if *opt < 1 || !sandboxMemAddr(&inst.Args[1], builder) {
 					sandboxMemAddrNoOpt(op, &inst.Args[1], builder)
 				}
-			case loads[inst.Name], stores[inst.Name]:
+			case loads[inst.Name] && !*noloads:
+				fallthrough
+			case stores[inst.Name]:
 				sandboxMemAddrNoOpt(op, &inst.Args[1], builder)
-			case multiloads[inst.Name], multistores[inst.Name]:
+			case multiloads[inst.Name] && !*noloads:
+				fallthrough
+			case multistores[inst.Name]:
 				sandboxMemAddrNoOpt(op, &inst.Args[2], builder)
 			}
 		}
