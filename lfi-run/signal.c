@@ -72,7 +72,7 @@ void signal_setstack(void* stack, size_t size) {
 }
 
 void signal_enable() {
-    timer_setup();
+    /* timer_setup(); */
     sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
 }
 

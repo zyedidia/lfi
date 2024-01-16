@@ -5,7 +5,7 @@
 set -e
 set -x
 
-VERSION=17.0.6
+VERSION=15.0.7
 PREFIX=$3
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
@@ -15,7 +15,8 @@ CXX=$2
 
 rm -rf llvm-project-$VERSION.src/build-runtimes
 
-cp DwarfInstructions.hpp ./llvm-project-$VERSION.src/libunwind/src/DwarfInstructions.hpp
+# only for LLVM 17
+# cp DwarfInstructions.hpp ./llvm-project-$VERSION.src/libunwind/src/DwarfInstructions.hpp
 
 # llvm c++ libraries
 cd llvm-project-$VERSION.src/
