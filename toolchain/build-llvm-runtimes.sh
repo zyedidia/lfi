@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# Usage: build-llvm-runtimes.sh CC CXX PREFIX
+# Usage: build-llvm-runtimes.sh CC CXX PREFIX VERSION
 
 set -e
 set -x
 
-VERSION=15.0.7
+VERSION=$4
 PREFIX=$3
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
