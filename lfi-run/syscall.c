@@ -502,11 +502,11 @@ void syscall_handler(struct proc* proc) {
         proc->regs.x0 = 0;
         break;
     case SYS_IOCTL:
-        fprintf(stderr, "[warning]: ioctl ignored\n");
+        /* fprintf(stderr, "[warning]: ioctl ignored\n"); */
         proc->regs.x0 = 0;
         break;
     case SYS_FCNTL:
-        fprintf(stderr, "[warning]: fcntl ignored\n");
+        /* fprintf(stderr, "[warning]: fcntl ignored\n"); */
         proc->regs.x0 = 0;
         break;
     case SYS_GETPID:

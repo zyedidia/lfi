@@ -150,7 +150,7 @@ static int proc_load(uintptr_t base, struct proc* proc, int fd, int argc, char* 
         uint64_t start = truncpg(iter->p_vaddr);
         uint64_t end = ceilpg(iter->p_vaddr + iter->p_memsz);
 
-        fprintf(stderr, "LOAD [%lx:%lx] -> [%lx:%lx]\n", start, end, proc->bin.base + start, proc->bin.base + end);
+        /* fprintf(stderr, "LOAD [%lx:%lx] -> [%lx:%lx]\n", start, end, proc->bin.base + start, proc->bin.base + end); */
 
         if (lseek(fd, iter->p_offset, SEEK_SET) < 0)
             goto err;

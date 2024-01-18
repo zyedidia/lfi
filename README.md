@@ -2,8 +2,8 @@
 
 Lightweight Fault Isolation (LFI) is a performant and secure software
 sandboxing system targeting the ARM64 architecture. LFI allows you to run up to
-32K sandboxes in a single address space while guaranteeing that the sandboxes
-are completely isolated from each other. Each sandbox may be given up to 4GB of
+64K sandboxes in a single address space while guaranteeing that the sandboxes
+are completely isolated from each other. Each sandbox may be given up to 4GiB of
 memory.
 
 The LFI sandboxer only accepts ELF binaries that pass a verification step to
@@ -47,20 +47,77 @@ The LFI project provides the following tools:
   automatically interpose on the compilation process and invoke `lfi-gen` on
   the intermediate `.s` file. Currently only supports
   `clang`/`clang++`/`gcc`/`g++`.
-* `scripts`: a collection of wrapper scripts that invoke `lfi-compile` with a
+* `compiler`: a collection of wrapper scripts that invoke `lfi-compile` with a
   desired compiler and set of compiler flags.
 
 # Installation
 
-First, install your system's version of Clang, LLVM, and LLD.
+First, install your system's version of Clang, LLVM, and LLD. We typically
+test with LLVM 15, but any relatively modern version should work.
 
-Next, build and install `lfi-gen` and `lfi-compile`, and download the LFI
-LLVM-based toolchain from the releases page (alternatively, you may build it
-yourself in `toolchain` by running `./install-toolchain /tmp/lfi-toolchain`).
+## Prebuilt toolchain
 
-Finally, build and install `lfi-run` by running `knit` in `lfi-run/` and move
-it into your installation path of choice. You may also want to build and
-install `lfi-verify` to use the verifier.
+A prebuilt toolchain is provided in the GitHub releases:
+https://github.com/zyedidia/lfi/releases/tag/prerelease. It is built for Linux
+AArch64.
+
+The tarball provides the LFI binaries in the `bin` directory, and a compiler
+sysroot in `toolchain`.
+
+## Building from source
+
+To build the LFI binaries from source, run the following:
+
+```
+go install ./lfi-gen
+go install ./lfi-compile
+go install ./specinvoke
+
+cd lfi-verify
+cargo install --path /path/to/bin
+cd ..
+
+cd lfi-run
+knit
+mv lfi-run /path/to/bin
+cd ..
+```
+
+Next you must build the runtime libraries including the C and C++ standard libraries, and compiler-rt.
+
+We recommend LLVM version 15.0.7. This can be installed on Ubuntu 22.04 with
+`sudo apt install clang-15 llvm-15 lld-15`. To make it the default clang on
+your system, run the script `./toolchain/update-alternatives.sh 15 200`.
+
+Then you can install the LLVM toolchain:
+
+```
+cd toolchain
+./install-toolchain /tmp/lfi/toolchain
+sudo mv /tmp/lfi /opt
+# put /opt/lfi/toolchain/bin on your PATH
+```
+
+# Example
+
+Once you have installed all the tools, you can build simple programs.
+
+```
+#include <stdio.h>
+int main() {
+    printf("Hello from LFI\n");
+    return 0;
+}
+```
+
+```
+$ lfi-clang hello.c -O2 -o hello
+$ lfi-verify hello # check if it verifies
+verifying test
+verification passed (3.2 MB/s)
+$ lfi-run hello
+Hello from LFI
+```
 
 # Roadmap
 
