@@ -15,6 +15,8 @@ CXX=$2
 
 rm -rf llvm-project-$VERSION.src/build-compiler-rt
 
+cp lse.S llvm-project-$VERSION.src/compiler-rt/lib/builtins/aarch64
+
 # compiler-rt
 cd llvm-project-$VERSION.src/
 mkdir build-compiler-rt
