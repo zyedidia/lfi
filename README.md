@@ -71,7 +71,6 @@ To build the LFI binaries from source, run the following:
 ```
 go install ./lfi-gen
 go install ./lfi-compile
-go install ./specinvoke
 
 cd lfi-verify
 cargo install --path /path/to/bin
