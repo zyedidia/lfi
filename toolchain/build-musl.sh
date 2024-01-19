@@ -5,7 +5,7 @@
 set -e
 set -x
 
-VERSION=1.2.4
+VERSION=$3
 PREFIX=$2
 SYSROOT=$PREFIX/sysroot
 COMPRT=$PREFIX/compiler-rt
