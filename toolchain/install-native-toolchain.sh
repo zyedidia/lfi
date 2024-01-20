@@ -11,14 +11,13 @@ MUSL_VERSION=1.2.4
 CC=$PWD/../compiler/lfi-native-nolib-clang
 CXX=$PWD/../compiler/lfi-native-nolib-clang++
 
-if [ ! -f llvm-project-$LLVM_VERSION.src ]; then
+if [ ! -d llvm-project-$LLVM_VERSION.src ]; then
     ./download-llvm.sh $LLVM_VERSION
 fi
-if [ ! -f musl-$MUSL_VERSION ]; then
+
+if [ ! -d musl-$MUSL_VERSION ]; then
     ./download-musl.sh $MUSL_VERSION
 fi
-
-./download-musl.sh
 
 ./build-compiler-rt.sh $CC $CXX $PREFIX $LLVM_VERSION
 ./build-musl.sh $CC $PREFIX $MUSL_VERSION
