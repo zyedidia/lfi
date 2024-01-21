@@ -1,0 +1,4 @@
+.core/exception.o: \
+  core/exception.d \
+  core/lib.d \
+  object.d

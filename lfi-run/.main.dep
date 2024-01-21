@@ -1,0 +1,3 @@
+.main.o: \
+  main.d \
+  object.d
