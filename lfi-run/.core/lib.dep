@@ -1,0 +1,3 @@
+.core/lib.o: \
+  core/lib.d \
+  object.d
