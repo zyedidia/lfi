@@ -1,4 +1,4 @@
-use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
+use bad64::{Imm, Imm::Signed, Instruction, Op, Operand, Reg, Shift, SysReg};
 
 use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
 
@@ -181,7 +181,7 @@ fn ok_mod(
             return true;
         }
         if (inst.op() == Op::ADD || inst.op() == Op::SUB)
-            && matches!(inst.operands()[2], Operand::Imm64 { .. })
+            && matches!(inst.operands()[2], Operand::Imm64 { imm: Signed(x), shift: None } if x.abs() < 8192)
         {
             let mut modifications = 1;
             while let Some(maybe_inst) = iter.peek() {
