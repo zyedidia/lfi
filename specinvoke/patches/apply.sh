@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATCH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/..
+PATCH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 patch -p0 < $PATCH/prm.c.patch
 patch -p0 < $PATCH/molio.c.patch
