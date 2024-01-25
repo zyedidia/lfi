@@ -9,3 +9,5 @@ lfi-verify/target
 /lfi-run/test/benchswitch
 /lfi-run/test/fork
 /lfi-run/test/hello
+*.dep
+todo.txt
