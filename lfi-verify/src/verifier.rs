@@ -12,7 +12,7 @@ const RES32_REG: Reg = Reg::X22;
 
 pub struct Verifier {
     pub failed: bool,
-    pub msg: String,
+    // pub msg: String,
 }
 
 fn modifies(inst: &Instruction, r: Reg) -> bool {
@@ -269,7 +269,7 @@ fn ok_mod(
 impl Verifier {
     fn error(self: &mut Self, inst: &Instruction, msg: &str) {
         self.failed = true;
-        self.msg = format!("error: {:x}: {}: {}", inst.address(), inst, msg);
+        // self.msg = format!("error: {:x}: {}: {}", inst.address(), inst, msg);
     }
 
     // Makes sure that indirect branches only used reserved registers

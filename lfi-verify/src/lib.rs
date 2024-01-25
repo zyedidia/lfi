@@ -1,3 +1,5 @@
+#![no_std]
+
 use peekmore::PeekMore;
 use verifier::Verifier;
 
@@ -6,11 +8,11 @@ mod verifier;
 
 #[no_mangle]
 pub extern "C" fn lfi_verify_bytes(raw_bytes: *const u8, size: usize) -> bool {
-    let bytes = unsafe { std::slice::from_raw_parts(raw_bytes, size) };
+    let bytes = unsafe { core::slice::from_raw_parts(raw_bytes, size) };
 
     let mut verif = Verifier {
         failed: false,
-        msg: String::new(),
+        // msg: String::new(),
     };
 
     let mut iter = bad64::disasm(bytes, 0).peekmore();

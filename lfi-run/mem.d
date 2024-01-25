@@ -2,6 +2,8 @@ module mem;
 
 import core.lib;
 
+import verify;
+
 struct MemRegion {
     void* base;
     usize len;
@@ -21,7 +23,9 @@ struct MemRegion {
 
     int protect(int prot) {
         if (exec(prot)) {
-            // TODO: verify
+            if (!lfi_verify_bytes(base, len)) {
+                return -1;
+            }
         }
         return mprotect(base, len, prot);
     }
