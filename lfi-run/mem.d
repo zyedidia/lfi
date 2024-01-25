@@ -17,6 +17,7 @@ struct MemRegion {
 
     void unmap() {
         munmap(base, len);
+        base = cast(void*) -1;
     }
 
     int protect(int prot) {

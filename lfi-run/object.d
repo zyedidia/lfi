@@ -1,6 +1,6 @@
 module object;
 
-alias string = immutable(char)[];
+alias string = const(char)[];
 alias usize = typeof(int.sizeof);
 alias size_t = usize;
 
@@ -17,10 +17,10 @@ static if ((void*).sizeof == 8) {
 }
 
 pragma(printf)
-extern (C) void printf(const char* fmt, ...);
+extern (C) void printf(const(char)* fmt, ...);
 
 pragma(printf)
-extern (C) void fprintf(void* stream, const char* fmt, ...);
+extern (C) void fprintf(void* stream, const(char)* fmt, ...);
 
 struct Empty {}
 

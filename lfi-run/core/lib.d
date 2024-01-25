@@ -50,6 +50,9 @@ ssize ftell(void* stream);
 ssize getdents64(int fd, void* dirp, usize count);
 int fstat(int fd, Stat* statbuf);
 int clock_gettime(uint clockid, TimeSpec* tp);
+int unlinkat(int dirfd, const(char)* path, int flags);
+int renameat2(int oldfd, const(char)* oldpath, int newfd, const(char)* newpath, int flags);
+int faccessat(int dirfd, const(char)* path, int mode, int flags);
 
 void* mmap(void* addr, usize length, int prot, int flags, int fd, long off);
 int munmap(void* addr, usize length);
@@ -86,12 +89,14 @@ enum {
 }
 
 enum {
-    O_RDONLY = 0,
-    O_WRONLY = 1,
-    O_RDWR   = 2,
-    O_APPEND = 0x0400,
-    O_TRUNC  = 0x0200,
-    O_CREAT  = 0x0040,
+    O_RDONLY    = 0,
+    O_WRONLY    = 1,
+    O_RDWR      = 2,
+    O_APPEND    = 0x0400,
+    O_TRUNC     = 0x0200,
+    O_CREAT     = 0x0040,
+    O_DIRECTORY = 0x4000,
+    O_PATH      = 0x200000,
 }
 
 enum PATH_MAX = 4096;
@@ -130,3 +135,21 @@ struct Stat {
     TimeSpec st_ctim;
     uint[2] __unused;
 }
+
+struct SysInfo {
+	ulong uptime;
+	ulong[3] loads;
+	ulong totalram;
+	ulong freeram;
+	ulong sharedram;
+	ulong bufferram;
+	ulong totalswap;
+	ulong freeswap;
+	ushort procs, pad;
+	ulong totalhigh;
+	ulong freehigh;
+	uint mem_unit;
+	ubyte[256] __reserved;
+}
+
+int sysinfo(SysInfo* info);

@@ -32,6 +32,11 @@ private enum {
 // This will fail if using 64kB pages and 48kB guards.
 static assert(GUARD_SIZE % PAGESIZE == 0);
 
+struct Cwd {
+    string name;
+    int fd;
+}
+
 struct Proc {
     enum State {
         RUNNABLE,
@@ -49,6 +54,8 @@ struct Proc {
     MemRegion stack;
     MemRegion brk;
     Vector!(MemRegion) mmap;
+
+    Cwd cwd;
 
     uintptr brkp;
 
@@ -285,11 +292,35 @@ err1:
     }
 
     bool checkptr(uintptr ptr, usize size) {
+        // TODO: check if ptr is accessible?
         return ptr + size < base + PROC_SIZE && ptr >= base;
+    }
+
+    bool checkpath(uintptr ptr) {
+        if (!checkptr(ptr, PATH_MAX)) {
+            return false;
+        }
+        if (strnlen(cast(const(char)*) ptr, PATH_MAX - 1) >= PATH_MAX - 1) {
+            return false;
+        }
+        return true;
     }
 
     int getpid() {
         return cast(int) (base >> 32);
+    }
+
+    int chdir(const(char*) path) {
+        usize len = strnlen(path, PATH_MAX - 1);
+        string newcwd = path[0 .. len];
+        int fd = open(path, O_DIRECTORY | O_PATH, 0);
+        if (fd < 0)
+            return fd;
+        if (cwd.fd >= 0)
+            close(cwd.fd);
+        cwd.name = newcwd;
+        cwd.fd = fd;
+        return 0;
     }
 }
 
@@ -302,9 +333,14 @@ struct SysTable {
 static assert(SysTable.sizeof <= PAGESIZE);
 
 private bool elf_check(FileHeader* ehdr) {
-    return ehdr.magic == ELF_MAGIC && ehdr.width == ELFCLASS64 && ehdr.version_ == EV_CURRENT && ehdr.type == ET_DYN;
+    return ehdr.magic == ELF_MAGIC &&
+        ehdr.width == ELFCLASS64 &&
+        ehdr.version_ == EV_CURRENT &&
+        ehdr.type == ET_DYN;
 }
 
 private int pflags(int prot) {
-    return ((prot & PF_R) ? PROT_READ : 0) | ((prot & PF_W) ? PROT_WRITE : 0) | ((prot & PF_X) ? PROT_EXEC : 0);
+    return ((prot & PF_R) ? PROT_READ : 0) |
+        ((prot & PF_W) ? PROT_WRITE : 0) |
+        ((prot & PF_X) ? PROT_EXEC : 0);
 }

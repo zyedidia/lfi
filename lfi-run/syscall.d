@@ -1,6 +1,7 @@
 module syscall;
 
 import core.lib;
+import core.math;
 
 import sysno;
 import proc;
@@ -53,6 +54,9 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.NEWFSTATAT:
         ret = sys_fstatat(p, cast(int) a0, a1, a2, cast(int) a3);
         break;
+    case Sys.READV:
+        ret = sys_readv(p, cast(int) a0, a1, a2);
+        break;
     case Sys.READ:
         ret = sys_read(p, cast(int) a0, a1, a2);
         break;
@@ -71,6 +75,24 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.WRITEV:
         ret = sys_writev(p, cast(int) a0, a1, a2);
         break;
+    case Sys.RENAMEAT:
+        ret = sys_renameat2(p, cast(int) a0, a1, cast(int) a2, a3, 0);
+        break;
+    case Sys.UNLINKAT:
+        ret = sys_unlinkat(p, cast(int) a0, a1, cast(int) a2);
+        break;
+    case Sys.FACCESSAT:
+        ret = sys_faccessat(p, cast(int) a0, a1, cast(int) a2, cast(int) a3);
+        break;
+    case Sys.GETCWD:
+        ret = sys_getcwd(p, a0, a1);
+        break;
+    case Sys.CHDIR:
+        ret = sys_chdir(p, a0);
+        break;
+    case Sys.SYSINFO:
+        ret = sys_sysinfo(p, a0);
+        break;
     case Sys.IOCTL, Sys.FCNTL:
         ret = 0;
         break;
@@ -87,7 +109,7 @@ int sys_openat(Proc* p, int dirfd, uintptr pathname, int flags, int mode) {
         return Err.BADF;
     }
     pathname = p.addr(pathname);
-    if (!p.checkptr(pathname, PATH_MAX)) {
+    if (!p.checkpath(pathname)) {
         return Err.FAULT;
     }
     int fd;
@@ -120,6 +142,31 @@ ssize sys_lseek(Proc* p, int fd, ssize off, int whence) {
     return file.lseek(file.dev, p, off, whence);
 }
 
+struct Iovec {
+    uintptr base;
+    usize len;
+}
+
+ssize sys_readv(Proc* p, int fd, uintptr iovp, usize iovcnt) {
+    iovp = p.addr(iovp);
+    if (!p.checkptr(iovp, iovcnt * Iovec.sizeof)) {
+        return Err.FAULT;
+    }
+
+    Iovec[] iov = (cast(Iovec*) iovp)[0 .. iovcnt];
+    ssize total = 0;
+
+    for (int i = 0; i < iov.length; i++) {
+        ssize n = sys_read(p, fd, iov[i].base, iov[i].len);
+        if (n < 0) {
+            return n;
+        }
+        total += n;
+    }
+
+    return total;
+}
+
 ssize sys_read(Proc* p, int fd, uintptr buf, usize size) {
     VFile file;
     if (!p.fdtable.get(fd, file)) {
@@ -145,11 +192,6 @@ ssize sys_read(Proc* p, int fd, uintptr buf, usize size) {
 }
 
 ssize sys_writev(Proc* p, int fd, uintptr iovp, usize iovcnt) {
-    struct Iovec {
-        uintptr base;
-        usize len;
-    }
-
     iovp = p.addr(iovp);
     if (!p.checkptr(iovp, iovcnt * Iovec.sizeof)) {
         return Err.FAULT;
@@ -238,7 +280,7 @@ int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags
     pathname = p.addr(pathname);
     statbuf = p.addr(statbuf);
     if ((flags & AT_EMPTY_PATH) == 0) {
-        if (!p.checkptr(pathname, PATH_MAX))
+        if (!p.checkpath(pathname))
             return Err.FAULT;
         // TODO: only supports AT_EMPTY_PATH
         return Err.INVAL;
@@ -249,7 +291,7 @@ int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags
     if (!p.fdtable.get(dirfd, file))
         return Err.BADF;
     if (!file.stat)
-        return Err.BADF;
+        return Err.PERM;
     Stat* stat = cast(Stat*) statbuf;
     if (file.stat(file.dev, p, stat) < 0)
         return Err.INVAL;
@@ -278,4 +320,66 @@ ssize sys_getdents64(Proc* p, int fd, uintptr dirp, usize count) {
     }
     ssize n = file.getdents64(file.dev, p, cast(void*) dirp, count);
     return n;
+}
+
+int sys_renameat2(Proc* p, int oldfd, uintptr oldpath, int newfd, uintptr newpath, int flags) {
+    if (oldfd != AT_FDCWD || newfd != AT_FDCWD) {
+        return Err.BADF;
+    }
+    oldpath = p.addr(oldpath);
+    newpath = p.addr(newpath);
+    if (!p.checkpath(oldpath) || !p.checkpath(newpath)) {
+        return Err.FAULT;
+    }
+    return renameat2(AT_FDCWD, cast(const(char)*) oldpath,
+                     AT_FDCWD, cast(const(char)*) newpath, flags);
+}
+
+int sys_unlinkat(Proc* p, int dirfd, uintptr path, int flags) {
+    if (dirfd != AT_FDCWD) {
+        return Err.BADF;
+    }
+    path = p.addr(path);
+    if (!p.checkpath(path)) {
+        return Err.FAULT;
+    }
+    return unlinkat(AT_FDCWD, cast(const(char)*) path, flags);
+}
+
+int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
+    if (dirfd != AT_FDCWD) {
+        return Err.BADF;
+    }
+    path = p.addr(path);
+    if (!p.checkpath(path)) {
+        return Err.FAULT;
+    }
+    return faccessat(AT_FDCWD, cast(const(char)*) path, mode, flags);
+}
+
+uintptr sys_getcwd(Proc* p, uintptr buf, usize size) {
+    buf = p.addr(buf);
+    if (!p.checkptr(buf, size)) {
+        return Err.FAULT;
+    }
+    ubyte[] pathbuf = (cast(ubyte*) buf)[0 .. min(size, p.cwd.name.length + 1)];
+    memcpy(pathbuf.ptr, p.cwd.name.ptr, pathbuf.length - 1);
+    pathbuf[size - 1] = 0;
+    return cast(uintptr) pathbuf.ptr;
+}
+
+int sys_sysinfo(Proc* p, uintptr info) {
+    info = p.addr(info);
+    if (!p.checkptr(info, SysInfo.sizeof)) {
+        return Err.FAULT;
+    }
+    return sysinfo(cast(SysInfo*) info);
+}
+
+int sys_chdir(Proc* p, uintptr path) {
+    path = p.addr(path);
+    if (!p.checkpath(path)) {
+        return Err.FAULT;
+    }
+    return p.chdir(cast(const(char)*) path);
 }
