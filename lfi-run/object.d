@@ -40,3 +40,5 @@ bool __equals(scope const string lhs, scope const string rhs) {
     }
     return true;
 }
+
+enum PAGESIZE = 4096;

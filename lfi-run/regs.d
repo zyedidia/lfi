@@ -37,6 +37,14 @@ struct Regs {
     ulong fpsr;
     ulong tpidr;
     ulong[64] vector;
+
+    this(ulong base, ulong entry) {
+        x21 = base;
+        x30 = entry;
+        x18 = base;
+        x23 = base;
+        x24 = base;
+    }
 };
 
 struct Context {
@@ -64,4 +72,10 @@ struct Context {
     ulong d14;
     ulong d15;
     void* sp_base;
+
+    this(uintptr sp, uintptr entry, void* sp_base) {
+        this.sp = sp;
+        this.sp_base = sp_base;
+        this.x30 = entry;
+    }
 };
