@@ -51,9 +51,8 @@ ssize file_write(void* dev, Proc* p, ubyte* buf, usize n) {
     return fwrite(buf, 1, n, dev);
 }
 
-int file_stat(void* dev, Proc* p, void* statbuf) {
-    return -1;
-    // return fstat(fileno(dev), statbuf);
+int file_stat(void* dev, Proc* p, Stat* statbuf) {
+    return fstat(fileno(dev), statbuf);
 }
 
 ssize file_lseek(void* dev, Proc* p, ssize off, uint whence) {
@@ -77,7 +76,7 @@ struct VFile {
     ssize function(void* dev, Proc* p, ubyte* buf, usize n) write;
     ssize function(void* dev, Proc* p, ssize off, uint whence) lseek;
     int function(void* dev, Proc* p) close;
-    int function(void* dev, Proc* p, void* stat) stat;
+    int function(void* dev, Proc* p, Stat* stat) stat;
     ssize function(void* dev, Proc* p, void* dirp, usize count) getdents64;
 }
 

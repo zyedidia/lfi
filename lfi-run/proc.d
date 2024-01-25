@@ -23,6 +23,7 @@ private enum {
     CODE_MAX = gb(1),
     STACK_SIZE = mb(2),
     KSTACK_SIZE = kb(64),
+    BRK_SIZE = mb(512),
 
     ARGC_MAX = 1024,
     ARGV_MAX = 1024,
@@ -49,12 +50,12 @@ struct Proc {
     MemRegion brk;
     Vector!(MemRegion) mmap;
 
+    uintptr brkp;
+
     FdTable fdtable;
 
     uintptr base;
     ubyte[] kstack;
-
-    int pid;
 
     Proc* next;
     Proc* prev;
@@ -116,61 +117,67 @@ err1:
         if (!load(base, buf, seg_base, last, entry))
             return false;
 
-        FileHeader* ehdr = cast(FileHeader*) buf.ptr;
-        ProgHeader[] phdr = (cast(ProgHeader*) &buf[ehdr.phoff])[0 .. ehdr.phnum];
-
         stack = MemRegion.map(cast(uintptr) guards[1].base - STACK_SIZE, STACK_SIZE, PROT_READ | PROT_WRITE);
         if (!stack.valid())
             return false;
 
+        brkp = ceil(last, PAGESIZE);
+        brk = MemRegion.map(cast(uintptr) brkp, BRK_SIZE, PROT_READ | PROT_WRITE);
+        if (!brk.valid())
+            goto err1;
+
         regs = Regs(base, entry);
 
         // Set up argv and envp.
+        {
+            char*[ARGC_MAX] argv_ptrs;
 
-        char*[ARGC_MAX] argv_ptrs;
+            void* stack_top = stack.base + stack.len;
+            char* p_argv = cast(char*) stack_top - PAGESIZE;
 
-        void* stack_top = stack.base + stack.len;
-        char* p_argv = cast(char*) stack_top - PAGESIZE;
+            // Write argv string values to the stack.
+            for (int i = 0; i < argc; i++) {
+                usize len = strnlen(argv[i], ARGV_MAX);
+                memcpy(p_argv, argv[i], len);
+                argv_ptrs[i] = p_argv;
+                p_argv += len;
+            }
 
-        // Write argv string values to the stack.
-        for (int i = 0; i < argc; i++) {
-            usize len = strnlen(argv[i], ARGV_MAX);
-            memcpy(p_argv, argv[i], len);
-            argv_ptrs[i] = p_argv;
-            p_argv += len;
+            // Write argc and argv pointers to the stack.
+            long* p_argc = cast(long*) (stack_top - 2 * PAGESIZE);
+            regs.sp = cast(uintptr) p_argc;
+            *p_argc++ = argc;
+            char** p_argvp = cast(char**) p_argc;
+            for (int i = 0; i < argc; i++) {
+                p_argvp[i] = argv_ptrs[i];
+            }
+            p_argvp[argc] = null;
+            // Empty envp.
+            char** p_envp = cast(char**) &p_argvp[argc + 1];
+            *p_envp++ = null;
+
+            FileHeader* ehdr = cast(FileHeader*) buf.ptr;
+            ProgHeader[] phdr = (cast(ProgHeader*) &buf[ehdr.phoff])[0 .. ehdr.phnum];
+
+            // Set up auxv.
+            Auxv* av = cast(Auxv*) p_envp;
+            *av++ = Auxv(AT_SECURE, 0);
+            *av++ = Auxv(AT_PHDR, seg_base + ehdr.phoff);
+            *av++ = Auxv(AT_PHNUM, ehdr.phnum);
+            *av++ = Auxv(AT_PHENT, ProgHeader.sizeof);
+            *av++ = Auxv(AT_ENTRY, entry);
+            *av++ = Auxv(AT_EXECFN, cast(ulong) p_argvp[0]);
+            *av++ = Auxv(AT_PAGESZ, PAGESIZE);
+            // *av++ = Auxv(AT_RANDOM, p_argvp_start[0]);
+            *av++ = Auxv(AT_HWCAP, 0x0);
+            *av++ = Auxv(AT_HWCAP2, 0x0);
+            *av++ = Auxv(AT_FLAGS, 0x0);
+            *av++ = Auxv(AT_UID, 1000);
+            *av++ = Auxv(AT_EUID, 1000);
+            *av++ = Auxv(AT_GID, 1000);
+            *av++ = Auxv(AT_EGID, 1000);
+            *av++ = Auxv(AT_NULL, 0);
         }
-
-        // Write argc and argv pointers to the stack.
-        long* p_argc = cast(long*) (stack_top - 2 * PAGESIZE);
-        regs.sp = cast(uintptr) p_argc;
-        *p_argc++ = argc;
-        char** p_argvp = cast(char**) p_argc;
-        for (int i = 0; i < argc; i++) {
-            p_argvp[i] = argv_ptrs[i];
-        }
-        p_argvp[argc] = null;
-        // Empty envp.
-        char** p_envp = cast(char**) &p_argvp[argc + 1];
-        *p_envp++ = null;
-
-        // Set up auxv.
-        Auxv* av = cast(Auxv*) p_envp;
-        *av++ = Auxv(AT_SECURE, 0);
-        *av++ = Auxv(AT_PHDR, seg_base + ehdr.phoff);
-        *av++ = Auxv(AT_PHNUM, ehdr.phnum);
-        *av++ = Auxv(AT_PHENT, ProgHeader.sizeof);
-        *av++ = Auxv(AT_ENTRY, entry);
-        *av++ = Auxv(AT_EXECFN, cast(ulong) p_argvp[0]);
-        *av++ = Auxv(AT_PAGESZ, PAGESIZE);
-        // *av++ = Auxv(AT_RANDOM, p_argvp_start[0]);
-        *av++ = Auxv(AT_HWCAP, 0x0);
-        *av++ = Auxv(AT_HWCAP2, 0x0);
-        *av++ = Auxv(AT_FLAGS, 0x0);
-        *av++ = Auxv(AT_UID, 1000);
-        *av++ = Auxv(AT_EUID, 1000);
-        *av++ = Auxv(AT_GID, 1000);
-        *av++ = Auxv(AT_EGID, 1000);
-        *av++ = Auxv(AT_NULL, 0);
 
         // Set up sys page.
 
@@ -181,11 +188,13 @@ err1:
             table.proc = cast(uintptr) &this;
             table.saved_tpidr = SysReg.tpidr_el0;
             if (sys.protect(PROT_READ) == -1) {
-                goto err1;
+                goto err2;
             }
         }
 
         return true;
+err2:
+        brk.unmap();
 err1:
         stack.unmap();
         return false;
@@ -277,6 +286,10 @@ err1:
 
     bool checkptr(uintptr ptr, usize size) {
         return ptr + size < base + PROC_SIZE && ptr >= base;
+    }
+
+    int getpid() {
+        return cast(int) (base >> 32);
     }
 }
 
