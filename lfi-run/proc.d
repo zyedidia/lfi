@@ -9,6 +9,7 @@ import regs;
 import mem;
 import elf;
 import sys;
+import file;
 
 extern (C) {
     void proc_entry(Proc* p);
@@ -48,7 +49,9 @@ struct Proc {
     MemRegion brk;
     Vector!(MemRegion) mmap;
 
-    void* base;
+    FdTable fdtable;
+
+    uintptr base;
     ubyte[] kstack;
 
     int pid;
@@ -67,6 +70,7 @@ struct Proc {
             goto err1;
         p.kstackp = p.kstack.ptr + KSTACK_SIZE;
         p.context = Context(cast(uintptr) p.kstackp, cast(uintptr) &Proc.entry, p.kstack.ptr);
+        p.fdtable.init();
 
         return p;
 
@@ -107,7 +111,7 @@ err1:
         if (argc <= 0 || argc >= ARGC_MAX)
             return false;
 
-        uintptr base = 0x2_0000_0000;
+        base = 0x2_0000_0000;
         uintptr seg_base, last, entry;
         if (!load(base, buf, seg_base, last, entry))
             return false;
@@ -265,6 +269,14 @@ err2:
 err1:
         sys.unmap();
         return false;
+    }
+
+    uintptr addr(uintptr p) {
+        return (cast(uint) p) | base;
+    }
+
+    bool checkptr(uintptr ptr, usize size) {
+        return ptr + size < base + PROC_SIZE && ptr >= base;
     }
 }
 
