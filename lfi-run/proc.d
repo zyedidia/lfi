@@ -10,6 +10,8 @@ import mem;
 import elf;
 import sys;
 import file;
+import queue;
+import schedule;
 
 extern (C) {
     void proc_entry(Proc* p);
@@ -60,6 +62,8 @@ struct Proc {
     uintptr brkp;
 
     FdTable fdtable;
+
+    void* wq;
 
     uintptr base;
     ubyte[] kstack;
@@ -321,6 +325,17 @@ err1:
         cwd.name = newcwd;
         cwd.fd = fd;
         return 0;
+    }
+
+    void yield() {
+        kswitch(null, &context, &schedctx);
+    }
+
+    void block(Queue* q, State s) {
+        state = s;
+        wq = q;
+        q.push_front(&this);
+        yield();
     }
 }
 

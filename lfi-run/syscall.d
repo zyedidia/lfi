@@ -25,6 +25,9 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.GETTID:
         ret = 0;
         break;
+    case Sys.PIPE2:
+        ret = sys_pipe2(p, a0, cast(int) a1);
+        break;
     case Sys.BRK:
         ret = sys_brk(p, a0);
         break;
@@ -382,4 +385,31 @@ int sys_chdir(Proc* p, uintptr path) {
         return Err.FAULT;
     }
     return p.chdir(cast(const(char)*) path);
+}
+
+int sys_pipe2(Proc* p, uintptr pipefd, int flags) {
+    pipefd = p.addr(pipefd);
+    if (!p.checkptr(pipefd, int[2].sizeof)) {
+        return Err.FAULT;
+    }
+    int[] pipes = (cast(int*) pipefd)[0 .. 2];
+    int fd0, fd1;
+    VFile* f0, f1;
+
+    f0 = p.fdtable.alloc(fd0);
+    if (!f0)
+        goto err1;
+    f1 = p.fdtable.alloc(fd1);
+    if (!f1)
+        goto err2;
+
+    pipes[0] = fd0;
+    pipes[1] = fd1;
+
+    return 0;
+
+err2:
+    p.fdtable.remove(fd0);
+err1:
+    return -1;
 }
