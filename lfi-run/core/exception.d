@@ -7,6 +7,7 @@ private void putstr(string s) {
 }
 
 noreturn panic(string file, int line, string message) {
+    putstr("panic: ");
     putstr(file);
     printf(":%d: ", line);
     putstr(message);
@@ -98,7 +99,7 @@ extern (C) {
     }
 
     void __assert(immutable(char)* msg, immutable(char)* file, int line) {
-        printf("%s:%d: %s\n", file, line, msg);
+        printf("assertion failure: %s:%d: %s\n", file, line, msg);
         exit(1);
     }
 }

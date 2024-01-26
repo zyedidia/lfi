@@ -19,6 +19,7 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
     }
 
     runq.push_front(proc);
+    mainp = proc;
 
     scheduler();
 

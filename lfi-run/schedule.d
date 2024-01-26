@@ -25,16 +25,18 @@ __gshared {
     Queue exitq;
     Queue waitq;
     Context schedctx;
-    Proc* main;
+    Proc* mainp;
 }
 
 void scheduler() {
+    assert(mainp, "main process does not exist");
+
     while (true) {
         Proc* p = runnable_proc();
 
         kswitch(p, &schedctx, &p.context);
 
-        if (main.state == Proc.State.EXITED) {
+        if (mainp.state == Proc.State.EXITED) {
             exit(0);
         }
 

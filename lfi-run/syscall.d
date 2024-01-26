@@ -6,6 +6,7 @@ import core.math;
 import sysno;
 import proc;
 import file;
+import schedule;
 
 extern (C) void syscall_handler(Proc* p) {
     ulong sysno = p.regs.x8;
@@ -250,7 +251,8 @@ uintptr sys_brk(Proc* p, uintptr addr) {
 }
 
 noreturn sys_exit(Proc* p, int status) {
-    assert(0, "exit");
+    p.block(&exitq, Proc.State.EXITED);
+    assert(0, "exited");
 }
 
 uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int fd, long offset) {
