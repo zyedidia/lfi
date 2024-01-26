@@ -21,8 +21,8 @@ private const(char)* flags2cmode(int flags) {
     return "r+".ptr;
 }
 
-int file_new(VFile* vf, const(char)* name, int flags, int mode) {
-    int kfd = open(name, flags, mode);
+int file_new(VFile* vf, int dirfd, const(char)* name, int flags, int mode) {
+    int kfd = openat(dirfd, name, flags, mode);
     if (kfd < 0)
         return kfd;
     *vf = std_new(kfd);

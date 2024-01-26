@@ -126,7 +126,7 @@ int sys_openat(Proc* p, int dirfd, uintptr pathname, int flags, int mode) {
     if (!vf) {
         return Err.NFILE;
     }
-    int err = file_new(vf, cast(char*) pathname, flags, mode);
+    int err = file_new(vf, p.cwd.fd, cast(char*) pathname, flags, mode);
     if (err < 0) {
         p.fdtable.remove(fd);
         return err;
@@ -379,8 +379,8 @@ int sys_renameat2(Proc* p, int oldfd, uintptr oldpath, int newfd, uintptr newpat
     if (!p.checkpath(oldpath) || !p.checkpath(newpath)) {
         return Err.FAULT;
     }
-    return renameat2(AT_FDCWD, cast(const(char)*) oldpath,
-                     AT_FDCWD, cast(const(char)*) newpath, flags);
+    return renameat2(p.cwd.fd, cast(const(char)*) oldpath,
+                     p.cwd.fd, cast(const(char)*) newpath, flags);
 }
 
 int sys_unlinkat(Proc* p, int dirfd, uintptr path, int flags) {
@@ -391,7 +391,7 @@ int sys_unlinkat(Proc* p, int dirfd, uintptr path, int flags) {
     if (!p.checkpath(path)) {
         return Err.FAULT;
     }
-    return unlinkat(AT_FDCWD, cast(const(char)*) path, flags);
+    return unlinkat(p.cwd.fd, cast(const(char)*) path, flags);
 }
 
 int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
@@ -402,7 +402,7 @@ int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
     if (!p.checkpath(path)) {
         return Err.FAULT;
     }
-    return faccessat(AT_FDCWD, cast(const(char)*) path, mode, flags);
+    return faccessat(p.cwd.fd, cast(const(char)*) path, mode, flags);
 }
 
 uintptr sys_getcwd(Proc* p, uintptr buf, usize size) {

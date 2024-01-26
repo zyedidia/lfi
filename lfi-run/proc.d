@@ -91,6 +91,7 @@ struct Proc {
 
         p.kstackp = p.kstack.ptr + KSTACK_SIZE;
         p.context = Context(cast(uintptr) p.kstackp, cast(uintptr) &Proc.entry, p.kstack.ptr);
+        p.cwd.fd = AT_FDCWD;
 
         return p;
 

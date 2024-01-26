@@ -1,7 +1,7 @@
 local cc := /opt/lfi/toolchain/bin/lfi-clang
 
 return b{
-    $ all:VB: hello.elf alloc.elf argv.elf file.elf
+    $ all:VB: hello.elf alloc.elf argv.elf file.elf chdir.elf
     $ %.elf: %.c
         $cc -O2 $input -o $output
 }
