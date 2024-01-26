@@ -18,7 +18,6 @@ extern (C) void syscall_handler(Proc* p) {
     ulong a3 = p.regs.x3;
     ulong a4 = p.regs.x4;
     ulong a5 = p.regs.x5;
-    // printf("syscall %ld\n", sysno);
 
     switch (sysno) {
     case Sys.GETPID:
@@ -330,21 +329,21 @@ int sys_clock_gettime(Proc* p, uint clockid, uintptr tp) {
 int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags) {
     pathname = p.addr(pathname);
     statbuf = p.addr(statbuf);
+    if (!p.checkptr(statbuf, Stat.sizeof))
+        return Err.FAULT;
+    Stat* stat = cast(Stat*) statbuf;
     if ((flags & AT_EMPTY_PATH) == 0) {
         if (!p.checkpath(pathname))
             return Err.FAULT;
-        // TODO: only supports AT_EMPTY_PATH
-        printf("only at_empty_path\n");
-        return Err.INVAL;
+        if (dirfd != AT_FDCWD)
+            return Err.BADF;
+        return syserr(fstatat(p.cwd.fd, cast(const(char)*) pathname, stat, flags));
     }
-    if (!p.checkptr(statbuf, Stat.sizeof))
-        return Err.FAULT;
     VFile file;
     if (!p.fdtable.get(dirfd, file))
         return Err.BADF;
     if (!file.stat)
         return Err.PERM;
-    Stat* stat = cast(Stat*) statbuf;
     if (file.stat(file.dev, p, stat) < 0)
         return Err.INVAL;
     return 0;

@@ -49,7 +49,7 @@ int fflush(void* stream);
 int fileno(void* stream);
 ssize ftell(void* stream);
 ssize getdents64(int fd, void* dirp, usize count);
-int fstat(int fd, Stat* statbuf);
+int fstatat(int dirfd, const(char)* path, Stat* statbuf, int flags);
 int clock_gettime(uint clockid, TimeSpec* tp);
 int unlinkat(int dirfd, const(char)* path, int flags);
 int renameat2(int oldfd, const(char)* oldpath, int newfd, const(char)* newpath, int flags);

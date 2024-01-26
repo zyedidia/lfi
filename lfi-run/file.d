@@ -54,7 +54,7 @@ ssize file_write(void* dev, Proc* p, ubyte* buf, usize n) {
 }
 
 int file_stat(void* dev, Proc* p, Stat* statbuf) {
-    return syserr(fstat(file_fd(dev), statbuf));
+    return syserr(fstatat(file_fd(dev), "".ptr, statbuf, AT_EMPTY_PATH));
 }
 
 ssize file_lseek(void* dev, Proc* p, ssize off, uint whence) {
