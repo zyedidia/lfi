@@ -88,6 +88,9 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.UNLINKAT:
         ret = sys_unlinkat(p, cast(int) a0, a1, cast(int) a2);
         break;
+    case Sys.READLINKAT:
+        ret = sys_readlinkat(p, cast(int) a0, a1, a2, a3);
+        break;
     case Sys.FACCESSAT:
         ret = sys_faccessat(p, cast(int) a0, a1, cast(int) a2, cast(int) a3);
         break;
@@ -100,7 +103,7 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.SYSINFO:
         ret = sys_sysinfo(p, a0);
         break;
-    case Sys.IOCTL, Sys.FCNTL:
+    case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64:
         ret = 0;
         break;
     default:
@@ -331,6 +334,7 @@ int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags
         if (!p.checkpath(pathname))
             return Err.FAULT;
         // TODO: only supports AT_EMPTY_PATH
+        printf("only at_empty_path\n");
         return Err.INVAL;
     }
     if (!p.checkptr(statbuf, Stat.sizeof))
@@ -394,6 +398,18 @@ int sys_unlinkat(Proc* p, int dirfd, uintptr path, int flags) {
     return unlinkat(p.cwd.fd, cast(const(char)*) path, flags);
 }
 
+int sys_readlinkat(Proc* p, int dirfd, uintptr path, uintptr buf, usize size) {
+    if (dirfd != AT_FDCWD) {
+        return Err.BADF;
+    }
+    path = p.addr(path);
+    buf = p.addr(buf);
+    if (!p.checkpath(path) || !p.checkptr(buf, size)) {
+        return Err.FAULT;
+    }
+    return readlinkat(p.cwd.fd, cast(const(char)*) path, cast(char*) buf, size);
+}
+
 int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
     if (dirfd != AT_FDCWD) {
         return Err.BADF;
@@ -405,15 +421,15 @@ int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
     return faccessat(p.cwd.fd, cast(const(char)*) path, mode, flags);
 }
 
-uintptr sys_getcwd(Proc* p, uintptr buf, usize size) {
+ssize sys_getcwd(Proc* p, uintptr buf, usize size) {
     buf = p.addr(buf);
     if (!p.checkptr(buf, size)) {
         return Err.FAULT;
     }
     ubyte[] pathbuf = (cast(ubyte*) buf)[0 .. min(size, p.cwd.name.length + 1)];
     memcpy(pathbuf.ptr, p.cwd.name.ptr, pathbuf.length - 1);
-    pathbuf[size - 1] = 0;
-    return cast(uintptr) pathbuf.ptr;
+    pathbuf[$ - 1] = 0;
+    return pathbuf.length - 1;
 }
 
 int sys_sysinfo(Proc* p, uintptr info) {

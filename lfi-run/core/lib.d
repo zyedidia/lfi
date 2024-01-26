@@ -54,6 +54,8 @@ int clock_gettime(uint clockid, TimeSpec* tp);
 int unlinkat(int dirfd, const(char)* path, int flags);
 int renameat2(int oldfd, const(char)* oldpath, int newfd, const(char)* newpath, int flags);
 int faccessat(int dirfd, const(char)* path, int mode, int flags);
+int readlinkat(int dirfd, const(char)* path, char* buf, usize size);
+char* getcwd(char* buf, usize size);
 
 void* mmap(void* addr, usize length, int prot, int flags, int fd, long off);
 int munmap(void* addr, usize length);

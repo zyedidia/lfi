@@ -36,7 +36,7 @@ private enum {
 static assert(GUARD_SIZE % PAGESIZE == 0);
 
 struct Cwd {
-    string name;
+    char[PATH_MAX] name;
     int fd;
 }
 
@@ -82,7 +82,9 @@ struct Proc {
         if (!p)
             return null;
 
-        ubyte[] kstack = kzalloc(KSTACK_SIZE);
+        ubyte[] kstack = void;
+
+        kstack = kzalloc(KSTACK_SIZE);
         if (!kstack)
             goto err1;
 
@@ -92,6 +94,8 @@ struct Proc {
         p.kstackp = p.kstack.ptr + KSTACK_SIZE;
         p.context = Context(cast(uintptr) p.kstackp, cast(uintptr) &Proc.entry, p.kstack.ptr);
         p.cwd.fd = AT_FDCWD;
+
+        ensure(getcwd(&p.cwd.name[0], p.cwd.name.length) != null);
 
         return p;
 
@@ -345,14 +349,12 @@ err1:
     }
 
     int chdir(const(char*) path) {
-        usize len = strnlen(path, PATH_MAX - 1);
-        string newcwd = path[0 .. len];
         int fd = open(path, O_DIRECTORY | O_PATH, 0);
         if (fd < 0)
             return fd;
         if (cwd.fd >= 0)
             close(cwd.fd);
-        cwd.name = newcwd;
+        memcpy(cwd.name.ptr, path, cwd.name.length);
         cwd.fd = fd;
         return 0;
     }
