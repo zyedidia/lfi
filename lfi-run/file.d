@@ -22,7 +22,7 @@ private const(char)* flags2cmode(int flags) {
 }
 
 int file_new(VFile* vf, int dirfd, const(char)* name, int flags, int mode) {
-    int kfd = openat(dirfd, name, flags, mode);
+    int kfd = syserr(openat(dirfd, name, flags, mode));
     if (kfd < 0)
         return kfd;
     *vf = std_new(kfd);
@@ -46,27 +46,27 @@ private int file_fd(void* dev) {
 }
 
 ssize file_read(void* dev, Proc* p, ubyte* buf, usize n) {
-    return read(file_fd(dev), buf, n);
+    return syserr(read(file_fd(dev), buf, n));
 }
 
 ssize file_write(void* dev, Proc* p, ubyte* buf, usize n) {
-    return write(file_fd(dev), buf, n);
+    return syserr(write(file_fd(dev), buf, n));
 }
 
 int file_stat(void* dev, Proc* p, Stat* statbuf) {
-    return fstat(file_fd(dev), statbuf);
+    return syserr(fstat(file_fd(dev), statbuf));
 }
 
 ssize file_lseek(void* dev, Proc* p, ssize off, uint whence) {
-    return lseek(file_fd(dev), off, whence);
+    return syserr(lseek(file_fd(dev), off, whence));
 }
 
 ssize file_getdents64(void* dev, Proc* p, void* dirp, usize count) {
-    return getdents64(file_fd(dev), dirp, count);
+    return syserr(getdents64(file_fd(dev), dirp, count));
 }
 
 int file_close(void* dev, Proc* p) {
-    return close(file_fd(dev));
+    return syserr(close(file_fd(dev)));
 }
 
 struct VFile {

@@ -1,5 +1,7 @@
 module sysno;
 
+import core.lib;
+
 enum Sys {
     GETCWD = 17,
     FCNTL = 25,
@@ -62,3 +64,18 @@ enum Err {
     TXTBSY      = -26,       // Text file busy
     TOOBIG      = -7,        // Argument list too long
 }
+
+int syserr(int val) {
+    if (val == -1) {
+        return -errno;
+    }
+    return val;
+}
+
+ssize syserr(ssize val) {
+    if (val == -1) {
+        return -errno;
+    }
+    return val;
+}
+

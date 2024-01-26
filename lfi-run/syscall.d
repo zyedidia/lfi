@@ -18,6 +18,7 @@ extern (C) void syscall_handler(Proc* p) {
     ulong a3 = p.regs.x3;
     ulong a4 = p.regs.x4;
     ulong a5 = p.regs.x5;
+    // printf("syscall %ld\n", sysno);
 
     switch (sysno) {
     case Sys.GETPID:
@@ -323,8 +324,7 @@ int sys_clock_gettime(Proc* p, uint clockid, uintptr tp) {
         return Err.INVAL;
     }
     TimeSpec* t = cast(TimeSpec*) tp;
-    int ret = clock_gettime(clockid, t);
-    return ret;
+    return syserr(clock_gettime(clockid, t));
 }
 
 int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags) {
@@ -395,7 +395,7 @@ int sys_unlinkat(Proc* p, int dirfd, uintptr path, int flags) {
     if (!p.checkpath(path)) {
         return Err.FAULT;
     }
-    return unlinkat(p.cwd.fd, cast(const(char)*) path, flags);
+    return syserr(unlinkat(p.cwd.fd, cast(const(char)*) path, flags));
 }
 
 int sys_readlinkat(Proc* p, int dirfd, uintptr path, uintptr buf, usize size) {
@@ -407,7 +407,7 @@ int sys_readlinkat(Proc* p, int dirfd, uintptr path, uintptr buf, usize size) {
     if (!p.checkpath(path) || !p.checkptr(buf, size)) {
         return Err.FAULT;
     }
-    return readlinkat(p.cwd.fd, cast(const(char)*) path, cast(char*) buf, size);
+    return syserr(readlinkat(p.cwd.fd, cast(const(char)*) path, cast(char*) buf, size));
 }
 
 int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
@@ -418,7 +418,7 @@ int sys_faccessat(Proc* p, int dirfd, uintptr path, int mode, int flags) {
     if (!p.checkpath(path)) {
         return Err.FAULT;
     }
-    return faccessat(p.cwd.fd, cast(const(char)*) path, mode, flags);
+    return syserr(faccessat(p.cwd.fd, cast(const(char)*) path, mode, flags));
 }
 
 ssize sys_getcwd(Proc* p, uintptr buf, usize size) {
@@ -437,7 +437,7 @@ int sys_sysinfo(Proc* p, uintptr info) {
     if (!p.checkptr(info, SysInfo.sizeof)) {
         return Err.FAULT;
     }
-    return sysinfo(cast(SysInfo*) info);
+    return syserr(sysinfo(cast(SysInfo*) info));
 }
 
 int sys_chdir(Proc* p, uintptr path) {

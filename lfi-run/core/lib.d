@@ -67,8 +67,9 @@ __gshared {
     extern void* stdout;
     extern void* stderr;
     extern void* stdin;
-    extern int errno;
 }
+
+extern int errno;
 
 enum {
     MAP_SHARED    = 0x001,
