@@ -56,7 +56,9 @@ struct Proc {
     Vector!(MemRegion) segments;
     MemRegion stack;
     MemRegion brk;
-    Vector!(MemRegion) mmap;
+
+    uintptr mmap_start;
+    uintptr mmap_end;
 
     Cwd cwd;
 
@@ -80,12 +82,15 @@ struct Proc {
         if (!p)
             return null;
 
-        p.kstack = kzalloc(KSTACK_SIZE);
-        if (!p.kstack)
+        ubyte[] kstack = kzalloc(KSTACK_SIZE);
+        if (!kstack)
             goto err1;
+
+        p.fdtable.init();
+        p.kstack = kstack;
+
         p.kstackp = p.kstack.ptr + KSTACK_SIZE;
         p.context = Context(cast(uintptr) p.kstackp, cast(uintptr) &Proc.entry, p.kstack.ptr);
-        p.fdtable.init();
 
         return p;
 
@@ -215,6 +220,11 @@ err1:
             }
         }
 
+        mmap_start = cast(uintptr) brk.base + brk.len;
+        mmap_end = truncpg(cast(uintptr) stack.base - 1);
+        if (!free_vmas.add(mmap_start, mmap_end - mmap_start, Empty()))
+            goto err2;
+
         return true;
 err2:
         brk.unmap();
@@ -310,6 +320,13 @@ err1:
     bool checkptr(uintptr ptr, usize size) {
         // TODO: check if ptr is accessible?
         return ptr + size < base + PROC_SIZE && ptr >= base;
+    }
+
+    bool checkmap(uintptr ptr, usize size) {
+        if (!checkptr(ptr, size)) {
+            return false;
+        }
+        return ptr >= mmap_start && ptr + size <= mmap_end;
     }
 
     bool checkpath(uintptr ptr) {
@@ -421,20 +438,20 @@ err1:
         return true;
     }
 
-    bool unmap(uintptr start, usize size) {
+    int unmap(uintptr start, usize size) {
         Interval!(MemRegion) v;
         if (!vmas.find_exact(start, size, v)) {
-            return false;
+            return -1;
         }
 
-        ensure(v.val.unmap() < 0);
+        ensure(v.val.unmap() == 0);
 
         // TODO: handle allocation failure
         ensure(free_vmas.add(start, size, Empty()));
         // Ok to ensure.
         ensure(vmas.remove(start, size));
 
-        return true;
+        return 0;
     }
 }
 

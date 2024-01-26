@@ -26,6 +26,9 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.GETTID:
         ret = 0;
         break;
+    case Sys.CLOCK_GETTIME:
+        ret = sys_clock_gettime(p, cast(uint) a0, a1);
+        break;
     case Sys.PIPE2:
         ret = sys_pipe2(p, a0, cast(int) a1);
         break;
@@ -258,10 +261,6 @@ noreturn sys_exit(Proc* p, int status) {
 }
 
 uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int fd, long offset) {
-    addr = p.addr(truncpg(addr));
-
-    // TODO: check mmap region
-
     if (fd >= 0) {
         return Err.BADF;
     }
@@ -285,6 +284,12 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
             return Err.NOMEM;
         }
     } else {
+        addr = p.addr(truncpg(addr));
+
+        if (!p.checkmap(addr, length)) {
+            return false;
+        }
+
         if (!p.map(addr, length, prot, flags, fd, offset)) {
             return Err.NOMEM;
         }
@@ -294,8 +299,10 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
 }
 
 int sys_munmap(Proc* p, uintptr addr, usize length) {
-    // TODO: check mmap region
     addr = p.addr(truncpg(addr));
+    if (!p.checkmap(addr, length)) {
+        return Err.PERM;
+    }
     return p.unmap(addr, length);
 }
 

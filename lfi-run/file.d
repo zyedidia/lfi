@@ -1,6 +1,7 @@
 module file;
 
 import core.lib;
+import core.alloc;
 
 import proc;
 import sysno;
@@ -24,16 +25,13 @@ int file_new(VFile* vf, const(char)* name, int flags, int mode) {
     int kfd = open(name, flags, mode);
     if (kfd < 0)
         return kfd;
-    void* cfile = fdopen(kfd, flags2cmode(flags));
-    if (!cfile)
-        return Err.BADF;
-    *vf = std_new(cfile);
+    *vf = std_new(kfd);
     return 0;
 }
 
-VFile std_new(void* stream) {
+VFile std_new(int kfd) {
     VFile vf;
-    vf.dev = stream;
+    vf.dev = cast(void*) kfd;
     vf.read = &file_read;
     vf.write = &file_write;
     vf.lseek = &file_lseek;
@@ -43,31 +41,32 @@ VFile std_new(void* stream) {
     return vf;
 }
 
+private int file_fd(void* dev) {
+    return cast(int) dev;
+}
+
 ssize file_read(void* dev, Proc* p, ubyte* buf, usize n) {
-    return fread(buf, 1, n, dev);
+    return read(file_fd(dev), buf, n);
 }
 
 ssize file_write(void* dev, Proc* p, ubyte* buf, usize n) {
-    return fwrite(buf, 1, n, dev);
+    return write(file_fd(dev), buf, n);
 }
 
 int file_stat(void* dev, Proc* p, Stat* statbuf) {
-    return fstat(fileno(dev), statbuf);
+    return fstat(file_fd(dev), statbuf);
 }
 
 ssize file_lseek(void* dev, Proc* p, ssize off, uint whence) {
-    ssize r = fseek(dev, off, whence);
-    if (r < 0)
-        return r;
-    return ftell(dev);
+    return lseek(file_fd(dev), off, whence);
 }
 
 ssize file_getdents64(void* dev, Proc* p, void* dirp, usize count) {
-    return getdents64(fileno(dev), dirp, count);
+    return getdents64(file_fd(dev), dirp, count);
 }
 
 int file_close(void* dev, Proc* p) {
-    return fclose(dev);
+    return close(file_fd(dev));
 }
 
 struct VFile {
@@ -108,9 +107,9 @@ struct FdTable {
     }
 
     void init() {
-        alloc(0, std_new(stdin));
-        alloc(1, std_new(stdout));
-        alloc(2, std_new(stderr));
+        alloc(0, std_new(fileno(stdin)));
+        alloc(1, std_new(fileno(stdout)));
+        alloc(2, std_new(fileno(stderr)));
     }
 
     bool get(int fd, ref VFile file) {
