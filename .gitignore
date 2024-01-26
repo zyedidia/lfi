@@ -11,3 +11,4 @@ lfi-verify/target
 /lfi-run/test/hello
 *.dep
 todo.txt
+*.elf

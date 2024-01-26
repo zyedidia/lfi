@@ -4,6 +4,7 @@ import core.vector;
 import core.lib;
 import core.math;
 import core.alloc;
+import core.interval;
 
 import regs;
 import mem;
@@ -60,6 +61,8 @@ struct Proc {
     Cwd cwd;
 
     uintptr brkp;
+    IntervalTree!(MemRegion) vmas;
+    IntervalTree!(Empty) free_vmas;
 
     FdTable fdtable;
 
@@ -148,8 +151,14 @@ err1:
 
             // Write argv string values to the stack.
             for (int i = 0; i < argc; i++) {
-                usize len = strnlen(argv[i], ARGV_MAX);
+                usize len = strnlen(argv[i], ARGV_MAX) + 1;
+
+                if (p_argv + len >= stack_top) {
+                    goto err1;
+                }
+
                 memcpy(p_argv, argv[i], len);
+                p_argv[len - 1] = 0;
                 argv_ptrs[i] = p_argv;
                 p_argv += len;
             }
@@ -160,6 +169,9 @@ err1:
             *p_argc++ = argc;
             char** p_argvp = cast(char**) p_argc;
             for (int i = 0; i < argc; i++) {
+                if (cast(uintptr) p_argvp >= cast(uintptr) stack_top - PAGESIZE) {
+                    goto err1;
+                }
                 p_argvp[i] = argv_ptrs[i];
             }
             p_argvp[argc] = null;
@@ -336,6 +348,93 @@ err1:
         wq = q;
         q.push_front(&this);
         yield();
+    }
+
+    // These map functions assume the arguments have been sanitized.
+    bool map_any(usize length, int prot, int flags, int fd, ssize offset, ref uintptr map_start) {
+        usize size = ceilpg(length);
+        Interval!(Empty) i;
+        // Find a region that is large enough.
+        if (!free_vmas.find(size, i)) {
+            return false;
+        }
+
+        map_start = i.start;
+
+        return map(i.start, length, prot, flags, fd, offset);
+    }
+
+    bool map(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
+        usize size = ceilpg(length);
+        Interval!(MemRegion) v;
+        while (vmas.overlaps(start, size, v)) {
+            // TODO: handle allocation failure
+            ensure(vmas.remove(v.start, v.size));
+            if (v.start < start) {
+                ensure(vmas.add(v.start, start - v.start, v.val));
+            }
+            if ((v.start + v.size) > (start + size)) {
+                ensure(vmas.add(start + size, (v.start + v.size) - (start + size), v.val));
+            }
+        }
+
+        return map_no_overlap(start, length, prot, flags, fd, offset);
+    }
+
+    bool map_no_overlap(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
+        usize size = ceilpg(length);
+        Interval!(MemRegion) v;
+        if (vmas.overlaps(start, size, v)) {
+            return false;
+        }
+
+        Interval!(Empty) i;
+        free_vmas.overlaps(start, size, i);
+
+        // Split the free region.
+        bool ok = free_vmas.remove(i.start, i.size);
+        if (ok) {
+            // TODO: handle allocation failure
+            // This needs to be atomic with the remove.
+            if (start - i.start != 0) {
+                ok = free_vmas.add(i.start, start - i.start, Empty());
+                assert(ok);
+            }
+            if (i.size - size != 0) {
+                if (!free_vmas.add(start + size, i.size - (start - i.start) - size, Empty())) {
+                    // If this fails, we might have problems.
+                    return false;
+                }
+            }
+        }
+
+        auto mem = MemRegion.map(start, size, prot, flags, fd, offset);
+        if (!mem.valid()) {
+            return false;
+        }
+
+        if (!vmas.add(start, size, mem)) {
+            mem.unmap();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool unmap(uintptr start, usize size) {
+        Interval!(MemRegion) v;
+        if (!vmas.find_exact(start, size, v)) {
+            return false;
+        }
+
+        ensure(v.val.unmap() < 0);
+
+        // TODO: handle allocation failure
+        ensure(free_vmas.add(start, size, Empty()));
+        // Ok to ensure.
+        ensure(vmas.remove(start, size));
+
+        return true;
     }
 }
 

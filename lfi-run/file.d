@@ -11,16 +11,16 @@ enum {
 }
 
 private const(char)* flags2cmode(int flags) {
-    if ((flags & O_RDONLY) != 0) {
+    if ((flags & O_ACCMODE) == O_RDONLY) {
         return "r".ptr;
     }
-    if ((flags & O_WRONLY) != 0) {
+    if ((flags & O_ACCMODE) != O_WRONLY) {
         return "w".ptr;
     }
     return "r+".ptr;
 }
 
-int file_new(VFile* vf, char* name, int flags, int mode) {
+int file_new(VFile* vf, const(char)* name, int flags, int mode) {
     int kfd = open(name, flags, mode);
     if (kfd < 0)
         return kfd;

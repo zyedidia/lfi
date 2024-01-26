@@ -61,8 +61,6 @@ struct Context {
     ulong x27;
     ulong x28;
     ulong x29;
-    ulong nzcv;
-    ulong fpsr;
     ulong d8;
     ulong d9;
     ulong d10;

@@ -73,6 +73,8 @@ enum {
     MAP_FIXED     = 0x010,
     MAP_FILE      = 0x000,
     MAP_ANONYMOUS = 0x020,
+    MAP_DENYWRITE = 0x800,
+    MAP_HUGETLB   = 0x40000,
 }
 
 enum {
@@ -92,6 +94,7 @@ enum {
     O_RDONLY    = 0,
     O_WRONLY    = 1,
     O_RDWR      = 2,
+    O_ACCMODE   = 3,
     O_APPEND    = 0x0400,
     O_TRUNC     = 0x0200,
     O_CREAT     = 0x0040,

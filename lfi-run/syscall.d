@@ -106,6 +106,8 @@ extern (C) void syscall_handler(Proc* p) {
     }
 
     p.regs.x0 = ret;
+
+    // printf("syscall %ld = %lx\n", sysno, ret);
 }
 
 int sys_openat(Proc* p, int dirfd, uintptr pathname, int flags, int mode) {
@@ -256,11 +258,45 @@ noreturn sys_exit(Proc* p, int status) {
 }
 
 uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int fd, long offset) {
-    return -1;
+    addr = p.addr(truncpg(addr));
+
+    // TODO: check mmap region
+
+    if (fd >= 0) {
+        return Err.BADF;
+    }
+
+    if ((prot & PROT_EXEC) != 0) {
+        return Err.PERM;
+    }
+
+    enum illegal_mask = ~MAP_ANONYMOUS &
+        ~MAP_PRIVATE &
+        ~MAP_HUGETLB &
+        ~MAP_FIXED &
+        ~MAP_DENYWRITE;
+
+    if ((flags & illegal_mask) != 0) {
+        return Err.PERM;
+    }
+
+    if (addr == 0) {
+        if (!p.map_any(length, prot, flags, fd, offset, addr)) {
+            return Err.NOMEM;
+        }
+    } else {
+        if (!p.map(addr, length, prot, flags, fd, offset)) {
+            return Err.NOMEM;
+        }
+    }
+
+    return addr;
 }
 
 int sys_munmap(Proc* p, uintptr addr, usize length) {
-    return -1;
+    // TODO: check mmap region
+    addr = p.addr(truncpg(addr));
+    return p.unmap(addr, length);
 }
 
 enum {

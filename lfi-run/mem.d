@@ -10,14 +10,19 @@ struct MemRegion {
     enum MMAP_FLAGS = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS;
 
     static MemRegion map(uintptr base, usize len, int prot) {
+        return map(base, len, prot, MMAP_FLAGS, -1, 0);
+    }
+
+    static MemRegion map(uintptr base, usize len, int prot, int flags, int fd, ssize offset) {
         // TODO: disallow PROT_EXEC?
-        void* p = mmap(cast(void*) base, len, prot, MMAP_FLAGS, -1, 0);
+        void* p = mmap(cast(void*) base, len, prot, flags, fd, offset);
         return MemRegion(p, len, prot);
     }
 
-    void unmap() {
-        munmap(base, len);
+    int unmap() {
+        int ret = munmap(base, len);
         base = cast(void*) -1;
+        return ret;
     }
 
     int protect(int prot) {
