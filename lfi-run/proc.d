@@ -528,18 +528,22 @@ err1:
 
         return 0;
     }
+
+    SysTable* systable() {
+        return cast(SysTable*) sys.base;
+    }
 }
 
 struct SysTable {
     uintptr[256] rtcalls;
-    uintptr proc;
-    uintptr saved_tpidr;
+    Proc* proc;
+    uintptr kernel_tpidr;
 
     void setup(Proc* p) {
         rtcalls[0] = cast(uintptr) &syscall_entry;
         rtcalls[1] = cast(uintptr) &yield_entry;
-        proc = cast(uintptr) p;
-        saved_tpidr = SysReg.tpidr_el0;
+        proc = p;
+        kernel_tpidr = SysReg.tpidr_el0;
     }
 }
 
@@ -556,4 +560,10 @@ private int pflags(int prot) {
     return ((prot & PF_R) ? PROT_READ : 0) |
         ((prot & PF_W) ? PROT_WRITE : 0) |
         ((prot & PF_X) ? PROT_EXEC : 0);
+}
+
+Proc* proc_at(uintptr base) {
+    // assumes there is a proc at base
+    SysTable* sys = cast(SysTable*) base;
+    return sys.proc;
 }

@@ -12,6 +12,9 @@ import queue;
 struct ProcManager {
     void* allocator;
 
+    uintptr va_base;
+    usize va_size;
+
     enum PROC_ALIGN = gb(4);
 
     void setup(uintptr va_base, usize va_size) {
@@ -19,6 +22,13 @@ struct ProcManager {
         ensure(meta != null);
         allocator = buddy_init_alignment(meta, cast(void*) va_base, va_size, PROC_ALIGN);
         ensure(allocator != null);
+
+        this.va_base = va_base;
+        this.va_size = va_size;
+    }
+
+    bool in_user(uintptr addr) {
+        return addr >= va_base && addr < va_base + va_size;
     }
 
     uintptr make() {
@@ -42,6 +52,7 @@ Proc* runnable_proc() {
         if (p) {
             return p;
         }
+        // TODO: handle empty runq by waiting
         assert(0, "runq is empty");
     }
 }
