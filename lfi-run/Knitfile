@@ -12,6 +12,7 @@ local _, uconf = pcall(include, "conf.knit")
 
 local arch = cli.arch or uconf.arch or "arm64"
 local darch = string.upper(arch)
+local unified = cli.unified or uconf.unified or false
 
 local dsrc = knit.join(
     knit.glob("*.d"),
@@ -29,7 +30,12 @@ local ssrc = knit.join(
     knit.glob("*.S")
 )
 
-local obj = knit.join(knit.extrepl(dsrc, ".d", ".o"), knit.extrepl(ssrc, ".S", ".o"), knit.extrepl(csrc, ".c", ".o"))
+local obj = knit.join(knit.extrepl(ssrc, ".S", ".o"), knit.extrepl(csrc, ".c", ".o"))
+if unified then
+    obj = knit.join({"unified.o"}, obj)
+else
+    obj = knit.join(knit.extrepl(dsrc, ".d", ".o"), obj)
+end
 obj = knit.prefix(obj, ".")
 
 local dc = cli.dc or "ldc2"
@@ -52,6 +58,9 @@ local flags = {
 return b{
     $ lfi-run: $obj
         gcc $input -o $output -static $(flags.ld)
+
+    $ .unified.o: $dsrc
+        $(dc) -c $input -$o $output $(flags.dc)
 
     $ .%.o:D[.%.dep]: %.d
         $(dc) $(makedep(dc, dep)) -c $input -$o $output $(flags.dc)
