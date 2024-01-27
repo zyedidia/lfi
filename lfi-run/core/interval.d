@@ -64,4 +64,8 @@ struct IntervalTree(T) {
         }
         return false;
     }
+
+    bool copy_into(ref IntervalTree!(T) to) {
+        return intervals.copy_into(to.intervals);
+    }
 }

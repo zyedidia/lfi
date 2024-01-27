@@ -20,7 +20,7 @@ extern (C) {
     void yield_entry();
 }
 
-private enum {
+enum {
     GUARD_SIZE = kb(48),
     PROC_SIZE = gb(4),
     CODE_MAX = gb(1),
@@ -38,6 +38,11 @@ static assert(GUARD_SIZE % PAGESIZE == 0);
 struct Cwd {
     char[PATH_MAX] name;
     int fd;
+
+    void copy_into(ref Cwd cwd) {
+        memcpy(cwd.name.ptr, name.ptr, name.length);
+        cwd.fd = fd;
+    }
 }
 
 struct Proc {
@@ -65,6 +70,9 @@ struct Proc {
     uintptr brkp;
     IntervalTree!(MemRegion) vmas;
     IntervalTree!(Empty) free_vmas;
+
+    Proc* parent;
+    Vector!(Proc*) children;
 
     FdTable fdtable;
 
@@ -104,6 +112,72 @@ err1:
         return null;
     }
 
+    static Proc* make_from_parent(Proc* parent) {
+        if (manager.full())
+            return null;
+
+        Proc* p = Proc.make_empty();
+        if (!p)
+            return null;
+
+        p.base = manager.make();
+
+        printf("Fork process to %lx\n", p.base);
+
+        p.guards[0] = parent.guards[0].copy_to(p);
+        if (!p.guards[0].valid())
+            goto err;
+        p.guards[1] = parent.guards[1].copy_to(p);
+        if (!p.guards[1].valid())
+            goto err;
+        p.sys = parent.sys.copy_to(p);
+        if (!p.sys.valid())
+            goto err;
+
+        p.stack = parent.stack.copy_to(p);
+        if (!p.stack.valid())
+            goto err;
+        p.brk = parent.brk.copy_to(p);
+        if (!p.brk.valid())
+            goto err;
+
+        {
+            ensure(p.sys.protect(PROT_READ | PROT_WRITE) == 0);
+            SysTable* table = cast(SysTable*) p.sys.base;
+            table.setup(p);
+            ensure(p.sys.protect(PROT_READ) == 0);
+        }
+
+        foreach (ref seg; parent.segments) {
+            MemRegion m = seg.copy_to(p);
+            if (!m.valid())
+                goto err;
+            if (!p.segments.append(m))
+                goto err;
+        }
+
+        if (!parent.vmas.copy_into(p.vmas))
+            goto err;
+        if (!parent.free_vmas.copy_into(p.free_vmas))
+            goto err;
+
+        p.brkp = parent.brkp;
+        p.parent = parent;
+        p.mmap_start = parent.mmap_start;
+        p.mmap_end = parent.mmap_end;
+        p.regs = parent.regs;
+        p.regs.validate(p);
+        parent.cwd.copy_into(p.cwd);
+
+        p.state = Proc.State.RUNNABLE;
+
+        return p;
+
+err:
+        kfree(p);
+        return null;
+    }
+
     static Proc* make_from_file(const(char)* pathname, int argc, const(char)** argv, const(char)** envp) {
         void* f = fopen(pathname, "rb");
         if (!f)
@@ -136,7 +210,10 @@ err1:
         if (argc <= 0 || argc >= ARGC_MAX)
             return false;
 
-        base = 0x2_0000_0000;
+        if (manager.full())
+            return false;
+
+        base = manager.make();
         uintptr seg_base, last, entry;
         if (!load(base, buf, seg_base, last, entry))
             return false;
@@ -216,13 +293,8 @@ err1:
 
         {
             SysTable* table = cast(SysTable*) sys.base;
-            table.rtcalls[0] = cast(uintptr) &syscall_entry;
-            table.rtcalls[1] = cast(uintptr) &yield_entry;
-            table.proc = cast(uintptr) &this;
-            table.saved_tpidr = SysReg.tpidr_el0;
-            if (sys.protect(PROT_READ) == -1) {
-                goto err2;
-            }
+            table.setup(&this);
+            ensure(sys.protect(PROT_READ) == 0);
         }
 
         mmap_start = cast(uintptr) brk.base + brk.len;
@@ -344,7 +416,7 @@ err1:
         return true;
     }
 
-    int getpid() {
+    int pid() {
         return cast(int) (base >> 32);
     }
 
@@ -462,6 +534,13 @@ struct SysTable {
     uintptr[256] rtcalls;
     uintptr proc;
     uintptr saved_tpidr;
+
+    void setup(Proc* p) {
+        rtcalls[0] = cast(uintptr) &syscall_entry;
+        rtcalls[1] = cast(uintptr) &yield_entry;
+        proc = cast(uintptr) p;
+        saved_tpidr = SysReg.tpidr_el0;
+    }
 }
 
 static assert(SysTable.sizeof <= PAGESIZE);

@@ -1,10 +1,38 @@
 module schedule;
 
 import core.lib;
+import core.alloc;
 
+import buddy;
 import regs;
+import sys;
 import proc;
 import queue;
+
+struct ProcManager {
+    void* allocator;
+
+    enum PROC_ALIGN = gb(4);
+
+    void setup(uintptr va_base, usize va_size) {
+        ubyte* meta = kalloc(buddy_sizeof_alignment(va_size, PROC_ALIGN)).ptr;
+        ensure(meta != null);
+        allocator = buddy_init_alignment(meta, cast(void*) va_base, va_size, PROC_ALIGN);
+        ensure(allocator != null);
+    }
+
+    uintptr make() {
+        return cast(uintptr) buddy_malloc(allocator, PROC_SIZE);
+    }
+
+    void free(uintptr base) {
+        ensure(buddy_safe_free(allocator, cast(void*) base, PROC_SIZE));
+    }
+
+    bool full() {
+        return buddy_is_full(allocator);
+    }
+}
 
 // Returns the next process available to run, or blocks waiting for a process
 // to become available.
@@ -26,10 +54,13 @@ __gshared {
     Queue waitq;
     Context schedctx;
     Proc* mainp;
+    ProcManager manager;
 }
 
-void scheduler() {
-    assert(mainp, "main process does not exist");
+void scheduler(Proc* m) {
+
+    runq.push_front(m);
+    mainp = m;
 
     while (true) {
         Proc* p = runnable_proc();

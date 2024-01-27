@@ -17,7 +17,8 @@ local dsrc = knit.join(
     knit.glob("*.d"),
     knit.glob(f"arch/$arch/*.d"),
     knit.glob("core/*.d"),
-    knit.glob("alloc/*.d")
+    knit.glob("alloc/*.d"),
+    knit.glob("buddy/*.d")
 )
 
 local csrc = knit.join(

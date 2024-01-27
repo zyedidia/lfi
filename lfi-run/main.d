@@ -2,6 +2,7 @@ module main;
 
 import core.lib;
 
+import sys;
 import proc;
 import schedule;
 
@@ -11,6 +12,8 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
         return 1;
     }
 
+    manager.setup(gb(8), gb(512));
+
     const(char)* file = argv[1];
     Proc* proc = Proc.make_from_file(file, argc - 1, &argv[1], envp);
     if (!proc) {
@@ -18,10 +21,7 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
         return 1;
     }
 
-    runq.push_front(proc);
-    mainp = proc;
-
-    scheduler();
+    scheduler(proc);
 
     return 0;
 }

@@ -1,5 +1,7 @@
 module regs;
 
+import proc;
+
 struct Regs {
     ulong x0;
     ulong x1;
@@ -44,6 +46,15 @@ struct Regs {
         x18 = base;
         x23 = base;
         x24 = base;
+    }
+
+    void validate(Proc* p) {
+        x21 = p.base;
+        x30 = p.addr(x30);
+        x18 = p.addr(x18);
+        x23 = p.addr(x23);
+        x24 = p.addr(x24);
+        sp = p.addr(sp);
     }
 };
 

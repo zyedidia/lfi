@@ -26,6 +26,7 @@ enum Sys {
     EXIT_GROUP = 94,
     SET_TID_ADDRESS = 96,
     CLOCK_GETTIME = 113,
+    RT_SIGPROCMASK = 135,
     GETPID = 172,
     GETTID = 178,
     SYSINFO = 179,

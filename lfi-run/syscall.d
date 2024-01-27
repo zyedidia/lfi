@@ -2,6 +2,7 @@ module syscall;
 
 import core.lib;
 import core.math;
+import core.alloc;
 
 import sysno;
 import proc;
@@ -21,7 +22,7 @@ extern (C) void syscall_handler(Proc* p) {
 
     switch (sysno) {
     case Sys.GETPID:
-        ret = p.getpid();
+        ret = p.pid();
         break;
     case Sys.GETTID:
         ret = 0;
@@ -103,7 +104,10 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.SYSINFO:
         ret = sys_sysinfo(p, a0);
         break;
-    case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64:
+    case Sys.CLONE:
+        ret = sys_fork(p);
+        break;
+    case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64, Sys.RT_SIGPROCMASK:
         ret = 0;
         break;
     default:
@@ -259,7 +263,24 @@ uintptr sys_brk(Proc* p, uintptr addr) {
 }
 
 noreturn sys_exit(Proc* p, int status) {
+    if (mainp != p) {
+        // Exiting process's children all get reparented to mainp.
+        foreach (ref child; p.children) {
+            child.parent = mainp;
+            ensure(mainp.children.append(child));
+        }
+        p.children.clear();
+
+        // Alert parent of exiting process.
+        if (p.parent && p.parent.state == Proc.State.BLOCKED && p.parent.wq == &waitq) {
+            waitq.wake(p.parent);
+        }
+    }
+
+    // Enter the exit queue.
     p.block(&exitq, Proc.State.EXITED);
+
+    // should not return
     assert(0, "exited");
 }
 
@@ -350,11 +371,46 @@ int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags
 }
 
 int sys_fork(Proc* p) {
-    return -1;
+    Proc* child = Proc.make_from_parent(p);
+    if (!child) {
+        return Err.NOMEM;
+    }
+    child.regs.x0 = 0;
+    if (!p.children.append(child)) {
+        kfree(child);
+        return Err.NOMEM;
+    }
+
+    int pid = child.pid;
+    runq.push_front(child);
+    return pid;
 }
 
 int sys_wait4(Proc* p, int pid, uintptr wstatus) {
-    return -1;
+    if (pid != -1 || wstatus != 0)
+        return Err.INVAL;
+    if (p.children.length == 0)
+        return Err.CHILD;
+
+    while (1) {
+        foreach (ref zombie; exitq) {
+            if (zombie.parent == p) {
+                int zpid = zombie.pid();
+                for (usize i = 0; i < p.children.length; i++) {
+                    if (p.children[i] == zombie) {
+                        p.children.unordered_remove(i);
+                        break;
+                    }
+                }
+
+                exitq.remove(zombie);
+                kfree(zombie);
+                return zpid;
+            }
+        }
+
+        p.block(&waitq, Proc.State.BLOCKED);
+    }
 }
 
 ssize sys_getdents64(Proc* p, int fd, uintptr dirp, usize count) {

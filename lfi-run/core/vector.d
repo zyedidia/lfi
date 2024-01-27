@@ -11,6 +11,14 @@ struct Vector(T) {
         return data[0 .. length];
     }
 
+    bool copy_into(ref Vector!(T) to) {
+        for (usize i = 0; i < length; i++) {
+            if (!to.append(data[i]))
+                return false;
+        }
+        return true;
+    }
+
     ref T opIndex(usize i) {
         assert(i < length, "vector index out of bounds");
         return data[i];
