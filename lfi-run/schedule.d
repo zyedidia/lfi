@@ -58,6 +58,8 @@ Proc* runnable_proc() {
 }
 
 extern (C) void kswitch(Proc* p, Context* old, Context* new_);
+// old is unused by kswitch_nosave
+extern (C) void kswitch_nosave(Proc* p, Context* old, Context* new_);
 
 __gshared {
     Queue runq;

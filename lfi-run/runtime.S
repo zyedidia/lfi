@@ -178,6 +178,8 @@ kswitch:
     stp d12, d13, [x1, #8+16*8]
     stp d14, d15, [x1, #8+16*9]
 
+.globl kswitch_nosave
+kswitch_nosave:
     ldp lr, x9,   [x2, #0+16*0]
     ldp x19, x20, [x2, #0+16*1]
     ldp x21, x22, [x2, #0+16*2]

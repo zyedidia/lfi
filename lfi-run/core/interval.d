@@ -68,4 +68,16 @@ struct IntervalTree(T) {
     bool copy_into(ref IntervalTree!(T) to) {
         return intervals.copy_into(to.intervals);
     }
+
+    void free() {
+        intervals.clear();
+    }
+
+    int opApply(scope int delegate(ref Interval!(T)) dg) {
+        foreach (ref i; intervals) {
+            int r = dg(i);
+            if (r) return r;
+        }
+        return 0;
+    }
 }

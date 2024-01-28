@@ -51,10 +51,10 @@ T[] kallocarray(T)(usize nelem) {
     return p[0 .. nelem];
 }
 
-void kfree(void* ptr) {
+void kfree(inout(void)* ptr) {
     if (!ptr)
         return;
-    free(ptr);
+    free(cast(void*) ptr);
 }
 
 void kfree(T)(T* ptr) if (is(T == struct)) {
@@ -67,6 +67,12 @@ void kfree(T)(T* ptr) if (is(T == struct)) {
 }
 
 void kfree(T)(T[] arr) {
+    if (!arr)
+        return;
+    free(arr.ptr);
+}
+
+void kfree_all(T)(T[] arr) {
     if (!arr)
         return;
     static if (HasDtor!(T)) {

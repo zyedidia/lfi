@@ -107,6 +107,9 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.CLONE:
         ret = sys_fork(p);
         break;
+    case Sys.EXECVE:
+        ret = sys_execve(p, a0, a1, a2);
+        break;
     case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64, Sys.RT_SIGPROCMASK:
         ret = 0;
         break;
@@ -528,4 +531,69 @@ err2:
     p.fdtable.remove(fd0);
 err1:
     return -1;
+}
+
+const(char)*[] copy_args(const(char)** args) {
+    int n;
+    for (n = 0; args[n] != null; n++) {}
+
+    auto new_args = kallocarray!(const(char)*)(n);
+    if (!new_args)
+        return null;
+    for (int i = 0; i < n; i++) {
+        usize len = strnlen(args[i], ARGV_MAX);
+        char[] new_arg = kallocarray!(char)(len + 1);
+        if (!new_arg)
+            goto err;
+        memcpy(new_arg.ptr, args[i], len);
+        new_arg[len] = 0;
+        new_args[i] = new_arg.ptr;
+    }
+    return new_args;
+
+err:
+    kfree_all(new_args);
+    return null;
+}
+
+const(char)* copy_path(const(char)* path) {
+    usize len = strnlen(path, PATH_MAX);
+    char[] new_path = kallocarray!(char)(len + 1);
+    if (!new_path)
+        return null;
+    memcpy(new_path.ptr, path, len);
+    new_path[len] = 0;
+    return new_path.ptr;
+}
+
+int sys_execve(Proc* p, uintptr path, uintptr argv, uintptr envp) {
+    if (!p.checkpath(path))
+        return Err.FAULT;
+
+    const(char)* newpath = copy_path(cast(const(char)*) path);
+    if (!newpath)
+        return Err.NOMEM;
+
+    // TODO: check argv and envp
+    const(char)*[] k_argv = copy_args(cast(const(char)**) argv);
+    if (!k_argv) {
+        kfree(newpath);
+        return Err.NOMEM;
+    }
+    const(char)*[] k_envp = copy_args(cast(const(char)**) envp);
+    if (!k_envp) {
+        kfree(newpath);
+        kfree_all(k_argv);
+        return Err.NOMEM;
+    }
+
+    // Free old segments.
+    p.free_regions();
+
+    if (!p.init_from_file(newpath, cast(int) k_argv.length, k_argv.ptr, k_envp.ptr))
+        return -1;
+
+    p.exec();
+    // should not return
+    assert(0, "execve");
 }

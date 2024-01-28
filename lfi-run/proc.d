@@ -85,7 +85,29 @@ struct Proc {
     Proc* prev;
     State state;
 
+    void free_regions() {
+        guards[0].unmap();
+        guards[1].unmap();
+        sys.unmap();
+        stack.unmap();
+        brk.unmap();
+
+        foreach (ref seg; segments) {
+            seg.unmap();
+        }
+
+        foreach (ref mem; vmas) {
+            mem.val.unmap();
+        }
+
+        vmas.free();
+        free_vmas.free();
+    }
+
     static Proc* make_empty() {
+        if (manager.full())
+            return null;
+
         Proc* p = knew!(Proc)();
         if (!p)
             return null;
@@ -105,6 +127,8 @@ struct Proc {
 
         ensure(getcwd(&p.cwd.name[0], p.cwd.name.length) != null);
 
+        p.base = manager.make();
+
         return p;
 
 err1:
@@ -113,8 +137,6 @@ err1:
     }
 
     static Proc* make_from_parent(Proc* parent) {
-        if (manager.full())
-            return null;
 
         Proc* p = Proc.make_empty();
         if (!p)
@@ -179,27 +201,32 @@ err:
     }
 
     static Proc* make_from_file(const(char)* pathname, int argc, const(char)** argv, const(char)** envp) {
-        void* f = fopen(pathname, "rb");
-        if (!f)
-            return null;
-        ubyte[] buf = readfile(f);
-        if (!buf)
-            return null;
-        ensure(fclose(f) == 0);
-
         Proc* p = Proc.make_empty();
         if (!p)
             goto err1;
-        if (!p.setup(buf, argc, argv, envp))
+        if (!p.init_from_file(pathname, argc, argv, envp))
             goto err1;
-
-        kfree(buf);
 
         return p;
 err1:
-        kfree(buf);
         kfree(p);
         return null;
+    }
+
+    bool init_from_file(const(char)* pathname, int argc, const(char)** argv, const(char)** envp) {
+        void* f = fopen(pathname, "rb");
+        if (!f)
+            return false;
+        ubyte[] buf = readfile(f);
+        if (!buf)
+            return false;
+        ensure(fclose(f) == 0);
+        scope(exit) kfree(buf);
+
+        if (!setup(buf, argc, argv, envp))
+            return false;
+
+        return true;
     }
 
     static void entry(Proc* p) {
@@ -210,10 +237,6 @@ err1:
         if (argc <= 0 || argc >= ARGC_MAX)
             return false;
 
-        if (manager.full())
-            return false;
-
-        base = manager.make();
         uintptr seg_base, last, entry;
         if (!load(base, buf, seg_base, last, entry))
             return false;
@@ -527,6 +550,11 @@ err1:
         ensure(vmas.remove(start, size));
 
         return 0;
+    }
+
+    void exec() {
+        context = Context(cast(uintptr) kstackp, cast(uintptr) &Proc.entry, kstack.ptr);
+        kswitch_nosave(null, &context, &schedctx);
     }
 
     SysTable* systable() {
