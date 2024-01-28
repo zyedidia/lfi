@@ -533,9 +533,11 @@ err1:
     return -1;
 }
 
-const(char)*[] copy_args(const(char)** args) {
+const(char)*[] copy_args(Proc* p, const(char)** args) {
     int n;
-    for (n = 0; args[n] != null; n++) {}
+    for (n = 0; args[n] != null; n++) {
+        args[n] = cast(const(char)*) p.addr(cast(uintptr) args[n]);
+    }
 
     auto new_args = kallocarray!(const(char)*)(n);
     if (!new_args)
@@ -567,6 +569,10 @@ const(char)* copy_path(const(char)* path) {
 }
 
 int sys_execve(Proc* p, uintptr path, uintptr argv, uintptr envp) {
+    path = p.addr(path);
+    argv = p.addr(argv);
+    envp = p.addr(envp);
+
     if (!p.checkpath(path))
         return Err.FAULT;
 
@@ -575,12 +581,12 @@ int sys_execve(Proc* p, uintptr path, uintptr argv, uintptr envp) {
         return Err.NOMEM;
 
     // TODO: check argv and envp
-    const(char)*[] k_argv = copy_args(cast(const(char)**) argv);
+    const(char)*[] k_argv = copy_args(p, cast(const(char)**) argv);
     if (!k_argv) {
         kfree(newpath);
         return Err.NOMEM;
     }
-    const(char)*[] k_envp = copy_args(cast(const(char)**) envp);
+    const(char)*[] k_envp = copy_args(p, cast(const(char)**) envp);
     if (!k_envp) {
         kfree(newpath);
         kfree_all(k_argv);

@@ -15,6 +15,11 @@ usize gb(usize i) {
     return i * 1024 * 1024 * 1024;
 }
 
+pragma(inline, true)
+usize tb(usize i) {
+    return i * 1024 * 1024 * 1024 * 1024;
+}
+
 const char[] GenSysReg(string name) = GenSysRegRdOnly!(name) ~ GenSysRegWrOnly!(name);
 const char[] GenSysRegRdOnly(string name) =
 `pragma(inline, true) ` ~

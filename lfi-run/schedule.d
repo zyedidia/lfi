@@ -17,7 +17,9 @@ struct ProcManager {
 
     enum PROC_ALIGN = gb(4);
 
-    void setup(uintptr va_base, usize va_size) {
+    void setup(uintptr va_base, uintptr va_end) {
+        va_size = va_end - va_base;
+
         ubyte* meta = kalloc(buddy_sizeof_alignment(va_size, PROC_ALIGN)).ptr;
         ensure(meta != null);
         allocator = buddy_init_alignment(meta, cast(void*) va_base, va_size, PROC_ALIGN);
@@ -41,6 +43,10 @@ struct ProcManager {
 
     bool full() {
         return buddy_is_full(allocator);
+    }
+
+    usize maxproc() {
+        return va_size / PROC_SIZE;
     }
 }
 
