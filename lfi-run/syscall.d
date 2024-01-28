@@ -576,6 +576,11 @@ int sys_execve(Proc* p, uintptr path, uintptr argv, uintptr envp) {
     if (!p.checkpath(path))
         return Err.FAULT;
 
+    int fd = openat(p.cwd.fd, cast(const(char)*) path, O_RDONLY, 0);
+    if (fd < 0)
+        return Err.NOENT;
+    close(fd);
+
     const(char)* newpath = copy_path(cast(const(char)*) path);
     if (!newpath)
         return Err.NOMEM;
@@ -596,8 +601,10 @@ int sys_execve(Proc* p, uintptr path, uintptr argv, uintptr envp) {
     // Free old segments.
     p.free_regions();
 
-    if (!p.init_from_file(newpath, cast(int) k_argv.length, k_argv.ptr, k_envp.ptr))
+    if (!p.init_from_file(newpath, cast(int) k_argv.length, k_argv.ptr, k_envp.ptr)) {
+        printf("failed\n");
         return -1;
+    }
 
     p.exec();
     // should not return

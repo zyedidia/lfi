@@ -1,0 +1,3 @@
+[submodule "lfi-run/test/sbase"]
+	path = lfi-run/test/sbase
+	url = https://github.com/zyedidia/sbase

@@ -178,15 +178,19 @@ err1:
                 goto err;
         }
 
-        if (!parent.vmas.copy_into(p.vmas))
-            goto err;
-        if (!parent.free_vmas.copy_into(p.free_vmas))
-            goto err;
+        foreach (ref vma; parent.vmas) {
+            MemRegion val = vma.val;
+            val = val.copy_to(p);
+            ensure(p.vmas.add(p.addr(vma.start), vma.size, val));
+        }
+        foreach (ref fvma; parent.free_vmas) {
+            ensure(p.free_vmas.add(p.addr(fvma.start), fvma.size, fvma.val));
+        }
 
-        p.brkp = parent.brkp;
+        p.brkp = p.addr(parent.brkp);
         p.parent = parent;
-        p.mmap_start = parent.mmap_start;
-        p.mmap_end = parent.mmap_end;
+        p.mmap_start = p.addr(parent.mmap_start);
+        p.mmap_end = p.addr(parent.mmap_end);
         p.regs = parent.regs;
         p.regs.validate(p);
         parent.cwd.copy_into(p.cwd);
@@ -214,7 +218,10 @@ err1:
     }
 
     bool init_from_file(const(char)* pathname, int argc, const(char)** argv, const(char)** envp) {
-        void* f = fopen(pathname, "rb");
+        int fd = openat(cwd.fd, pathname, O_RDONLY, 0);
+        if (fd < 0)
+            return false;
+        void* f = fdopen(fd, "rb");
         if (!f)
             return false;
         ubyte[] buf = readfile(f);
@@ -444,11 +451,12 @@ err1:
     }
 
     int chdir(const(char*) path) {
-        int fd = open(path, O_DIRECTORY | O_PATH, 0);
+        int fd = openat(cwd.fd, path, O_DIRECTORY | O_PATH, 0);
         if (fd < 0)
             return fd;
         if (cwd.fd >= 0)
             close(cwd.fd);
+        // TODO: new cwd should be cwd.name + "/" + path if not absolute
         memcpy(cwd.name.ptr, path, cwd.name.length);
         cwd.fd = fd;
         return 0;
