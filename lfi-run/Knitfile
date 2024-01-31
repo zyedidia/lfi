@@ -8,6 +8,12 @@ function cmodel(dc, s)
     return sel(dc == "gdc", f"-mcmodel=$s", f"-code-model=$s")
 end
 
+function version(dc, s)
+    return sel(dc == "gdc", f"-fversion=$s", f"-d-version=$s")
+end
+
+local pagesize = knit.shell("getconf PAGESIZE")
+
 local _, uconf = pcall(include, "conf.knit")
 
 local arch = cli.arch or uconf.arch or "arm64"
@@ -56,6 +62,10 @@ local flags = {
     dc = dflags[dc],
     ld := -Wl,--gc-sections -fno-pic
 }
+
+if pagesize == "16384" then
+    flags.dc = flags.dc .. " " .. version(dc, "page16k")
+end
 
 return b{
     $ lfi-run: $obj
