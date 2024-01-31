@@ -9,19 +9,36 @@ struct MemRegion {
     usize len;
     int prot;
 
-    enum MMAP_FLAGS = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS;
+    int fd;
 
-    static MemRegion map(uintptr base, usize len, int prot) {
-        return map(base, len, prot, MMAP_FLAGS, -1, 0);
+    enum MMAP_PRIVATE = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS;
+    enum MMAP_SHARED = MAP_FIXED | MAP_SHARED;
+
+    static MemRegion map(uintptr base, usize len, int prot, bool share = false) {
+        int fd = -1;
+        int flags = MMAP_PRIVATE;
+        if (share) {
+            fd = memfd_create("", 0);
+            if (fd < 0)
+                return MemRegion(cast(void*) -1, 0, 0, 0);
+            ensure(ftruncate(fd, len) == 0);
+            flags = MMAP_SHARED;
+        }
+        return map(base, len, prot, flags, fd, 0);
     }
 
     static MemRegion map(uintptr base, usize len, int prot, int flags, int fd, ssize offset) {
         // TODO: disallow PROT_EXEC?
         void* p = mmap(cast(void*) base, len, prot, flags, fd, offset);
-        return MemRegion(p, len, prot);
+        return MemRegion(p, len, prot, fd);
     }
 
-    MemRegion copy_to(Proc* p) {
+    MemRegion copy_to_shared(Proc* p) {
+        MemRegion m = MemRegion.map(p.addr(cast(uintptr) this.base), this.len, this.prot, MMAP_SHARED, this.fd, 0L);
+        return m;
+    }
+
+    MemRegion copy_to_unshared(Proc* p) {
         int prot = this.prot;
         if (read(this.prot)) {
             // Force writable so that we can copy into it.
@@ -43,8 +60,17 @@ struct MemRegion {
         return m;
     }
 
+    MemRegion copy_to(Proc* p) {
+        if (this.fd >= 0 && !write(this.prot)) {
+            return copy_to_shared(p);
+        }
+        return copy_to_unshared(p);
+    }
+
     int unmap() {
         int ret = munmap(base, len);
+        // if (fd >= 0)
+        //     close(fd);
         base = cast(void*) -1;
         return ret;
     }

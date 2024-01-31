@@ -56,6 +56,8 @@ int renameat2(int oldfd, const(char)* oldpath, int newfd, const(char)* newpath, 
 int faccessat(int dirfd, const(char)* path, int mode, int flags);
 int readlinkat(int dirfd, const(char)* path, char* buf, usize size);
 char* getcwd(char* buf, usize size);
+int memfd_create(const(char)* name, uint flags);
+int ftruncate(int fd, long length);
 
 void* mmap(void* addr, usize length, int prot, int flags, int fd, long off);
 int munmap(void* addr, usize length);
@@ -280,3 +282,15 @@ enum {
     ITIMER_VIRTUAL = 1,
     ITIMER_PROF    = 2,
 }
+
+enum {
+    RLIMIT_NOFILE = 7,
+}
+
+struct RLimit {
+    ulong rlim_cur;
+    ulong rlim_max;
+}
+
+int setrlimit(int resource, RLimit* rlim);
+int getrlimit(int resource, RLimit* rlim);

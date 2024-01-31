@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <linux/limits.h>
 
 // Parsed command representation
 #define EXEC  1
@@ -161,7 +162,9 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  write(2, "$ ", 2);
+  char cwd[PATH_MAX];
+  getcwd(cwd, PATH_MAX);
+  fprintf(stderr, "%s$ ", cwd);
   memset(buf, 0, nbuf);
   fgets(buf, nbuf, stdin);
   if(buf[0] == 0) // EOF

@@ -292,6 +292,10 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
         return Err.BADF;
     }
 
+    if (length == 0) {
+        return Err.INVAL;
+    }
+
     if ((prot & PROT_EXEC) != 0) {
         return Err.PERM;
     }

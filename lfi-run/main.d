@@ -16,7 +16,17 @@ void show_maps() {
     fclose(maps);
 }
 
+void set_nofile_max() {
+    // Raise file descriptor limit to the max.
+    RLimit rlim;
+    ensure(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
+    rlim.rlim_cur = rlim.rlim_max;
+    ensure(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
+}
+
 extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
+    set_nofile_max();
+
     // Linux maps the stack at 262140 GiB, so we are ending the proc space at
     // 262100 to be safe (we could increase this to get a few more sandboxes).
     manager.setup(gb(8), gb(262100));

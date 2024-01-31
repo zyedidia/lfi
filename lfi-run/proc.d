@@ -13,6 +13,7 @@ import sys;
 import file;
 import queue;
 import schedule;
+import cwalk;
 
 extern (C) {
     void proc_entry(Proc* p);
@@ -143,8 +144,6 @@ err1:
             return null;
 
         p.base = manager.make();
-
-        printf("Fork process to %lx\n", p.base);
 
         p.guards[0] = parent.guards[0].copy_to(p);
         if (!p.guards[0].valid())
@@ -379,7 +378,12 @@ err1:
                 goto err3;
             }
 
-            MemRegion seg = MemRegion.map(seg_base + start, end - start, PROT_READ | PROT_WRITE);
+            bool write(int prot) {
+                return (prot & PROT_WRITE) != 0;
+            }
+
+            MemRegion seg = MemRegion.map(seg_base + start, end - start, PROT_READ | PROT_WRITE, !write(pflags(p.flags)));
+            // MemRegion seg = MemRegion.map(seg_base + start, end - start, PROT_READ | PROT_WRITE);
             if (!seg.valid()) {
                 goto err3;
             }
@@ -450,13 +454,18 @@ err1:
         return cast(int) (base >> 32);
     }
 
-    int chdir(const(char*) path) {
+    int chdir(const(char)* path) {
         int fd = openat(cwd.fd, path, O_DIRECTORY | O_PATH, 0);
         if (fd < 0)
             return fd;
         if (cwd.fd >= 0)
             close(cwd.fd);
-        // TODO: new cwd should be cwd.name + "/" + path if not absolute
+
+        if (!cwk_path_is_absolute(path)) {
+            char[PATH_MAX] buffer;
+            cwk_path_join(cwd.name.ptr, path, buffer.ptr, buffer.length);
+            path = buffer.ptr;
+        }
         memcpy(cwd.name.ptr, path, cwd.name.length);
         cwd.fd = fd;
         return 0;
@@ -531,7 +540,7 @@ err1:
             }
         }
 
-        auto mem = MemRegion.map(start, size, prot, flags, fd, offset);
+        auto mem = MemRegion.map(start, size, prot, flags | MAP_FIXED, fd, offset);
         if (!mem.valid()) {
             return false;
         }

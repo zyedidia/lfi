@@ -19,11 +19,13 @@ local dsrc = knit.join(
     knit.glob(f"arch/$arch/*.d"),
     knit.glob("core/*.d"),
     knit.glob("alloc/*.d"),
-    knit.glob("buddy/*.d")
+    knit.glob("buddy/*.d"),
+    knit.glob("cwalk/*.d")
 )
 
 local csrc = knit.join(
-    knit.glob("buddy/*.c")
+    knit.glob("buddy/*.c"),
+    knit.glob("cwalk/*.c")
 )
 
 local ssrc = knit.join(
@@ -67,5 +69,5 @@ return b{
     $ .%.o: %.S
         gcc -c $input -o $output -D$darch
     $ .%.o: %.c
-        gcc -O2 -Wall -c $input -o $output
+        gcc -O2 -Wall -c $input -o $output -I.
 }
