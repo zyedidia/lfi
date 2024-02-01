@@ -1,5 +1,7 @@
 module pipe;
 
+import core.alloc;
+
 import queue;
 import file;
 import proc;
@@ -52,6 +54,14 @@ bool pipe_new(ref VFile* f0, ref VFile* f1) {
     pipe.nwrite = 0;
     pipe.nread = 0;
 
+    f0 = knew!(VFile)();
+    if (!f0)
+        return false;
+    f1 = knew!(VFile)();
+    if (!f1) {
+        kfree(f0);
+        return false;
+    }
     f0.dev = pipe;
     f0.read = &pipe_read;
     f0.write = null;
