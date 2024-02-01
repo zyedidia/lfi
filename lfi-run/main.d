@@ -29,7 +29,8 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
 
     // Linux maps the stack at 262140 GiB, so we are ending the proc space at
     // 262100 to be safe (we could increase this to get a few more sandboxes).
-    manager.setup(gb(8), gb(262100));
+    // TODO: increase this back to 262100.
+    manager.setup(gb(8), gb(128));
 
     if (argc <= 1) {
         fprintf(stderr, "no input\n");
