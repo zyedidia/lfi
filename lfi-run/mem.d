@@ -67,6 +67,11 @@ struct MemRegion {
         return copy_to_unshared(p);
     }
 
+    void remap(usize new_len) {
+        ensure(mremap(base, len, new_len, 0) == base);
+        this.len = new_len;
+    }
+
     int unmap() {
         int ret = munmap(base, len);
         // if (fd >= 0)

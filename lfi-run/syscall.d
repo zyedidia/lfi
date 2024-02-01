@@ -260,8 +260,12 @@ uintptr sys_brk(Proc* p, uintptr addr) {
     }
     if (p.brkp < cast(uintptr) p.brk.base)
         p.brkp = cast(uintptr) p.brk.base;
-    if (p.brkp >= cast(uintptr) p.brk.base + p.brk.len)
-        p.brkp = cast(uintptr) p.brk.base + p.brk.len - 1;
+    if (p.brkp >= cast(uintptr) p.brk.base + BRK_SIZE)
+        p.brkp = cast(uintptr) p.brk.base + BRK_SIZE;
+    if (p.brkp >= cast(uintptr) p.brk.base + p.brk.len) {
+        usize new_len = p.brkp - cast(uintptr) p.brk.base + BRK_EXPAND;
+        p.brk.remap(new_len);
+    }
     return p.brkp;
 }
 

@@ -28,6 +28,7 @@ enum {
     STACK_SIZE = mb(2),
     KSTACK_SIZE = kb(64),
     BRK_SIZE = mb(512),
+    BRK_EXPAND = kb(64),
 
     ARGC_MAX = 1024,
     ARGV_MAX = 1024,
@@ -252,7 +253,7 @@ err1:
             return false;
 
         brkp = ceil(last, PAGESIZE);
-        brk = MemRegion.map(cast(uintptr) brkp, BRK_SIZE, PROT_READ | PROT_WRITE);
+        brk = MemRegion.map(cast(uintptr) brkp, BRK_EXPAND, PROT_READ | PROT_WRITE);
         if (!brk.valid())
             goto err1;
 

@@ -62,6 +62,7 @@ int ftruncate(int fd, long length);
 void* mmap(void* addr, usize length, int prot, int flags, int fd, long off);
 int munmap(void* addr, usize length);
 int mprotect(void* addr, usize len, int prot);
+void* mremap(void* old, usize old_size, usize new_size, int flags);
 
 noreturn exit(int status);
 
