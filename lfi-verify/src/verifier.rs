@@ -1,6 +1,9 @@
-use bad64::{Imm, Imm::{Signed, Unsigned}, Instruction, Op, Operand, Reg, Shift, Shift::LSL, SysReg};
+extern crate alloc;
 
 use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
+use alloc::{format, string::String};
+use bad64::Imm::{Signed, Unsigned};
+use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, Shift::LSL, SysReg};
 
 const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
@@ -12,7 +15,7 @@ const RES32_REG: Reg = Reg::X22;
 
 pub struct Verifier {
     pub failed: bool,
-    pub msg: String,
+    pub message: Option<fn(s: String)>,
 }
 
 fn modifies(inst: &Instruction, r: Reg) -> bool {
@@ -182,8 +185,14 @@ fn ok_mod(
         }
         if (inst.op() == Op::ADD || inst.op() == Op::SUB)
             && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: Some(LSL(n)) } if (x << n) <= 8192)
-            || matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x <= 8192)
-            || matches!(inst.operands()[2], Operand::Imm64 { imm: Signed(_), shift: None } ))
+                || matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x <= 8192)
+                || matches!(
+                    inst.operands()[2],
+                    Operand::Imm64 {
+                        imm: Signed(_),
+                        shift: None
+                    }
+                ))
         {
             let mut modifications = 1;
             while let Some(maybe_inst) = iter.peek() {
@@ -271,7 +280,10 @@ fn ok_mod(
 impl Verifier {
     fn error(self: &mut Self, inst: &Instruction, msg: &str) {
         self.failed = true;
-        self.msg = format!("error: {:x}: {}: {}", inst.address(), inst, msg);
+        if let Some(message) = self.message {
+            let s = format!("{:x}: {}: {}", inst.address(), inst, msg);
+            message(s);
+        }
     }
 
     // Makes sure that indirect branches only used reserved registers

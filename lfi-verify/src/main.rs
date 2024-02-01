@@ -10,6 +10,10 @@ use xmas_elf::{program::SegmentData, ElfFile};
 mod inst;
 mod verifier;
 
+fn show_error(s: String) {
+    eprintln!("error: {}", s);
+}
+
 fn main() {
     let argv: Vec<String> = env::args().collect();
     if argv.len() != 2 {
@@ -29,7 +33,7 @@ fn main() {
 
     let mut verif = Verifier {
         failed: false,
-        msg: String::new(),
+        message: Some(show_error),
     };
 
     for prog in elf.program_iter() {
@@ -58,7 +62,7 @@ fn main() {
     let duration = start.elapsed();
 
     if verif.failed {
-        eprintln!("verification failed: {}", verif.msg);
+        eprintln!("verification failed");
         process::exit(1);
     }
 

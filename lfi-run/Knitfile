@@ -68,7 +68,7 @@ if pagesize == "16384" then
 end
 
 return b{
-    $ lfi-run: $obj
+    $ lfi-run: $obj ../lfi-verify/target/release/liblfiverify.a
         gcc $input -o $output -static $(flags.ld)
 
     $ .unified.o: $dsrc
@@ -80,4 +80,6 @@ return b{
         gcc -c $input -o $output -D$darch
     $ .%.o: %.c
         gcc -O2 -Wall -c $input -o $output -I.
+
+    include("../lfi-verify/Knitfile")
 }

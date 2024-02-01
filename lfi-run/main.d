@@ -6,6 +6,16 @@ import sys;
 import proc;
 import schedule;
 
+struct Flags {
+    enum {
+        NOVERIFY = "no-verify",
+    }
+
+    bool noverify;
+}
+
+__gshared Flags flags;
+
 void show_maps() {
     void* maps = fopen("/proc/self/maps".ptr, "r".ptr);
     assert(maps);
@@ -24,6 +34,11 @@ void set_nofile_max() {
     ensure(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
 }
 
+void usage() {
+    fprintf(stderr, "usage: lfi-run [OPTIONS] FILE [ARGS]\n\n");
+    fprintf(stderr, "\t--no-verify\tdo not perform verification\n");
+}
+
 extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
     set_nofile_max();
 
@@ -33,14 +48,28 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
     manager.setup(gb(8), gb(128));
 
     if (argc <= 1) {
-        fprintf(stderr, "no input\n");
-        return 1;
+        usage();
+        return 0;
     }
 
-    const(char)* file = argv[1];
-    Proc* proc = Proc.make_from_file(file, argc - 1, &argv[1], envp);
+    int i = 1;
+    for (i = 1; i < argc; i++) {
+        const(char)* arg = argv[i];
+        if (arg[0] != '-') {
+            break;
+        }
+        arg++;
+        if (arg[0] == '-') arg++;
+        if (strncmp(arg, Flags.NOVERIFY.ptr, Flags.NOVERIFY.length) == 0) {
+            fprintf(stderr, "WARNING: verification disabled\n");
+            flags.noverify = true;
+        }
+    }
+
+    const(char)* file = argv[i];
+    Proc* proc = Proc.make_from_file(file, argc - i, &argv[i], envp);
     if (!proc) {
-        fprintf(stderr, "error: could not load %s\n", argv[1]);
+        fprintf(stderr, "error: could not load %s\n", argv[i]);
         return 1;
     }
 

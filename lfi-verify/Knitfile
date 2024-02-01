@@ -1,0 +1,7 @@
+local knit = require("knit")
+local rs = knit.rglob("src", "*.rs")
+
+return b{
+    $ target/release/liblfiverify.a target/release/lfi-verify: $rs
+        cargo build --release
+}

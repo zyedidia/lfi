@@ -3,6 +3,7 @@ module mem;
 import core.lib;
 
 import proc;
+import verify;
 
 struct MemRegion {
     void* base;
@@ -28,14 +29,14 @@ struct MemRegion {
     }
 
     static MemRegion map(uintptr base, usize len, int prot, int flags, int fd, ssize offset) {
-        // TODO: disallow PROT_EXEC?
+        assert(!exec(prot));
         void* p = mmap(cast(void*) base, len, prot, flags, fd, offset);
         return MemRegion(p, len, prot, fd);
     }
 
     MemRegion copy_to_shared(Proc* p) {
-        MemRegion m = MemRegion.map(p.addr(cast(uintptr) this.base), this.len, this.prot, MMAP_SHARED, this.fd, 0L);
-        return m;
+        void* ptr = mmap(cast(void*) p.addr(cast(uintptr) this.base), len, prot, MMAP_SHARED, fd, 0L);
+        return MemRegion(ptr, len, prot, fd);
     }
 
     MemRegion copy_to_unshared(Proc* p) {
@@ -91,7 +92,9 @@ struct MemRegion {
             if (write(prot)) {
                 return -1;
             }
-            // TODO: verify
+            if (!verify_bytes(base, len)) {
+                return -1;
+            }
         }
         this.prot = prot;
         return mprotect(base, len, prot);
