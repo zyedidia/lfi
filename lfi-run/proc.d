@@ -339,7 +339,7 @@ err1:
             ensure(sys.protect(PROT_READ) == 0);
         }
 
-        mmap_start = cast(uintptr) brk.base + brk.len;
+        mmap_start = cast(uintptr) brk.base + BRK_SIZE;
         mmap_end = truncpg(cast(uintptr) stack.base - 1);
         if (!free_vmas.add(mmap_start, mmap_end - mmap_start, Empty()))
             goto err2;
