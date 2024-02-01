@@ -42,6 +42,8 @@ struct Cwd {
     int fd;
 
     void copy_into(ref Cwd cwd) {
+        int fd = open(name.ptr, O_DIRECTORY | O_PATH, 0);
+        ensure(fd >= 0);
         memcpy(cwd.name.ptr, name.ptr, name.length);
         cwd.fd = fd;
     }
@@ -87,6 +89,16 @@ struct Proc {
     Proc* prev;
     State state;
 
+    ~this() {
+        free_regions();
+        if (cwd.fd >= 0)
+            close(cwd.fd);
+        kfree(kstack);
+        children.clear();
+        fdtable.clear();
+        manager.free(base);
+    }
+
     void free_regions() {
         guards[0].unmap();
         guards[1].unmap();
@@ -97,6 +109,7 @@ struct Proc {
         foreach (ref seg; segments) {
             seg.unmap();
         }
+        segments.clear();
 
         foreach (ref mem; vmas) {
             mem.val.unmap();
@@ -120,7 +133,6 @@ struct Proc {
         if (!kstack)
             goto err1;
 
-        p.fdtable.init();
         p.kstack = kstack;
 
         p.kstackp = p.kstack.ptr + KSTACK_SIZE;
@@ -139,12 +151,9 @@ err1:
     }
 
     static Proc* make_from_parent(Proc* parent) {
-
         Proc* p = Proc.make_empty();
         if (!p)
             return null;
-
-        p.base = manager.make();
 
         p.guards[0] = parent.guards[0].copy_to(p);
         if (!p.guards[0].valid())
@@ -194,6 +203,7 @@ err1:
         p.regs = parent.regs;
         p.regs.validate(p);
         parent.cwd.copy_into(p.cwd);
+        parent.fdtable.copy_into(p.fdtable);
 
         p.state = Proc.State.RUNNABLE;
 
@@ -210,6 +220,8 @@ err:
             goto err1;
         if (!p.init_from_file(pathname, argc, argv, envp))
             goto err1;
+
+        p.fdtable.init();
 
         return p;
 err1:

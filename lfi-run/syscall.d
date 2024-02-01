@@ -8,6 +8,7 @@ import sysno;
 import proc;
 import file;
 import schedule;
+import pipe;
 
 extern (C) void syscall_handler(Proc* p) {
     ulong sysno = p.regs.x8;
@@ -131,21 +132,21 @@ int sys_openat(Proc* p, int dirfd, uintptr pathname, int flags, int mode) {
     if (!p.checkpath(pathname)) {
         return Err.FAULT;
     }
-    int fd;
-    VFile* vf = p.fdtable.alloc(fd);
-    if (!vf) {
-        return Err.NFILE;
-    }
+    VFile* vf;
     int err = file_new(vf, p.cwd.fd, cast(char*) pathname, flags, mode);
-    if (err < 0) {
-        p.fdtable.remove(fd);
+    if (err < 0)
         return err;
+    if (!vf)
+        return Err.NOMEM;
+    int fd = p.fdtable.alloc(vf);
+    if (fd < 0) {
+        kfree(vf);
+        return Err.NFILE;
     }
     return fd;
 }
 
 int sys_close(Proc* p, int fd) {
-    // TODO: file refcount
     if (!p.fdtable.remove(fd)) {
         return Err.BADF;
     }
@@ -153,7 +154,7 @@ int sys_close(Proc* p, int fd) {
 }
 
 ssize sys_lseek(Proc* p, int fd, ssize off, int whence) {
-    VFile file;
+    VFile* file;
     if (!p.fdtable.get(fd, file))
         return Err.BADF;
     if (!file.lseek)
@@ -187,7 +188,7 @@ ssize sys_readv(Proc* p, int fd, uintptr iovp, usize iovcnt) {
 }
 
 ssize sys_read(Proc* p, int fd, uintptr buf, usize size) {
-    VFile file;
+    VFile* file;
     if (!p.fdtable.get(fd, file)) {
         return Err.BADF;
     }
@@ -231,7 +232,7 @@ ssize sys_writev(Proc* p, int fd, uintptr iovp, usize iovcnt) {
 }
 
 ssize sys_write(Proc* p, int fd, uintptr buf, usize size) {
-    VFile file;
+    VFile* file;
     if (!p.fdtable.get(fd, file)) {
         return Err.BADF;
     }
@@ -371,7 +372,7 @@ int sys_fstatat(Proc* p, int dirfd, uintptr pathname, uintptr statbuf, int flags
             return Err.BADF;
         return syserr(fstatat(p.cwd.fd, cast(const(char)*) pathname, stat, flags));
     }
-    VFile file;
+    VFile* file;
     if (!p.fdtable.get(dirfd, file))
         return Err.BADF;
     if (!file.stat)
@@ -425,7 +426,7 @@ int sys_wait4(Proc* p, int pid, uintptr wstatus) {
 }
 
 ssize sys_getdents64(Proc* p, int fd, uintptr dirp, usize count) {
-    VFile file;
+    VFile* file;
     if (!p.fdtable.get(fd, file)) {
         return Err.BADF;
     }
@@ -523,20 +524,27 @@ int sys_pipe2(Proc* p, uintptr pipefd, int flags) {
     int fd0, fd1;
     VFile* f0, f1;
 
-    f0 = p.fdtable.alloc(fd0);
-    if (!f0)
+    if (!pipe_new(f0, f1)) {
         goto err1;
-    f1 = p.fdtable.alloc(fd1);
-    if (!f1)
+    }
+
+    fd0 = p.fdtable.alloc(f0);
+    if (!f0)
         goto err2;
+    fd1 = p.fdtable.alloc(f1);
+    if (!f1)
+        goto err3;
 
     pipes[0] = fd0;
     pipes[1] = fd1;
 
     return 0;
 
-err2:
+err3:
     p.fdtable.remove(fd0);
+err2:
+    kfree(f0);
+    kfree(f1);
 err1:
     return -1;
 }

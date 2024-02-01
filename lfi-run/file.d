@@ -21,16 +21,18 @@ private const(char)* flags2cmode(int flags) {
     return "r+".ptr;
 }
 
-int file_new(VFile* vf, int dirfd, const(char)* name, int flags, int mode) {
+int file_new(ref VFile* vf, int dirfd, const(char)* name, int flags, int mode) {
     int kfd = syserr(openat(dirfd, name, flags, mode));
     if (kfd < 0)
         return kfd;
-    *vf = std_new(kfd);
+    vf = std_new(kfd);
     return 0;
 }
 
-VFile std_new(int kfd) {
-    VFile vf;
+VFile* std_new(int kfd) {
+    VFile* vf = knew!(VFile)();
+    if (!vf)
+        return null;
     vf.dev = cast(void*) kfd;
     vf.read = &file_read;
     vf.write = &file_write;
@@ -77,33 +79,34 @@ struct VFile {
     int function(void* dev, Proc* p) close;
     int function(void* dev, Proc* p, Stat* stat) stat;
     ssize function(void* dev, Proc* p, void* dirp, usize count) getdents64;
+    usize refcnt;
 }
 
 struct FdTable {
     enum {
-        NUM_FILE = 128,
+        NOFILE = 128,
     }
 
-    VFile[NUM_FILE] files;
-    bool[NUM_FILE] allocated;
+    VFile*[NOFILE] files;
 
-    void alloc(int fd, VFile f) {
-        assert(fd >= 0 && fd < NUM_FILE && !allocated[fd]);
-        allocated[fd] = true;
+    void alloc(int fd, VFile* f) {
+        assert(fd >= 0 && fd < NOFILE && files[fd] == null);
+
         files[fd] = f;
+        files[fd].refcnt++;
     }
 
-    VFile* alloc(ref int fd) return {
+    int alloc(VFile* vf) return {
         int i;
-        for (i = 0; i < NUM_FILE; i++) {
-            if (!allocated[i])
+        for (i = 0; i < NOFILE; i++) {
+            if (files[i] == null)
                 break;
         }
-        if (i >= NUM_FILE)
-            return null;
-        fd = i;
-        allocated[fd] = true;
-        return &files[fd];
+        if (i >= NOFILE)
+            return -1;
+        files[i] = vf;
+        files[i].refcnt++;
+        return i;
     }
 
     void init() {
@@ -112,7 +115,7 @@ struct FdTable {
         alloc(2, std_new(fileno(stderr)));
     }
 
-    bool get(int fd, ref VFile file) {
+    bool get(int fd, ref VFile* file) {
         if (has(fd)) {
             file = files[fd];
             return true;
@@ -122,13 +125,32 @@ struct FdTable {
 
     bool remove(int fd) {
         if (has(fd)) {
-            allocated[fd] = false;
+            files[fd].refcnt--;
+            if (files[fd].refcnt == 0) {
+                kfree(files[fd]);
+            }
+            files[fd] = null;
             return true;
         }
         return false;
     }
 
     bool has(int fd) {
-        return fd >= 0 && fd < NUM_FILE && allocated[fd];
+        return fd >= 0 && fd < files.length && files[fd] != null;
+    }
+
+    void copy_into(ref FdTable table) {
+        for (usize i = 0; i < files.length; i++) {
+            if (files[i] != null) {
+                files[i].refcnt++;
+                table.files[i] = files[i];
+            }
+        }
+    }
+
+    void clear() {
+        for (int fd = 0; fd < files.length; fd++) {
+            remove(fd);
+        }
     }
 }

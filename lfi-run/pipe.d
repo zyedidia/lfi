@@ -38,7 +38,7 @@ struct Pipe {
 
 private Pipe[NPIPE] pipes;
 
-bool pipe_new(ref VFile f0, ref VFile f1) {
+bool pipe_new(ref VFile* f0, ref VFile* f1) {
     Pipe* pipe;
     for (usize i = 0; i < NPIPE; i++) {
         if (!pipes[i].allocated) {

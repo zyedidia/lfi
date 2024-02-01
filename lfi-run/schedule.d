@@ -87,6 +87,7 @@ void scheduler(Proc* m) {
         kswitch(p, &schedctx, &p.context);
 
         if (mainp.state == Proc.State.EXITED) {
+            kfree(mainp);
             exit(0);
         }
 
