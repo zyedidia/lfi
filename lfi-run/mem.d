@@ -12,8 +12,19 @@ struct MemRegion {
 
     int fd;
 
-    enum MMAP_PRIVATE = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS;
-    enum MMAP_SHARED = MAP_FIXED | MAP_SHARED;
+    State state;
+
+    enum State {
+        NONE,
+        MAPPED_ANY,
+        MAPPED_FIXED,
+    }
+
+    enum {
+        MMAP_PRIVATE = MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
+        MMAP_SHARED = MAP_FIXED | MAP_SHARED,
+    }
+
 
     static MemRegion map(uintptr base, usize len, int prot, bool share = false) {
         int fd = -1;
@@ -28,10 +39,10 @@ struct MemRegion {
         return map(base, len, prot, flags, fd, 0);
     }
 
-    static MemRegion map(uintptr base, usize len, int prot, int flags, int fd, ssize offset) {
+    static MemRegion map(uintptr base, usize len, int prot, int flags, int fd, ssize offset, State state = State.NONE) {
         assert(!exec(prot));
         void* p = mmap(cast(void*) base, len, prot, flags, fd, offset);
-        return MemRegion(p, len, prot, fd);
+        return MemRegion(p, len, prot, fd, state);
     }
 
     MemRegion copy_to_shared(Proc* p) {

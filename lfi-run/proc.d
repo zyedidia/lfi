@@ -14,6 +14,8 @@ import file;
 import queue;
 import schedule;
 import cwalk;
+import buddy;
+import sysno;
 
 extern (C) {
     void proc_entry(Proc* p);
@@ -339,11 +341,13 @@ err1:
 
         mmap_start = cast(uintptr) brk.base + BRK_SIZE;
         mmap_end = truncpg(cast(uintptr) stack.base - 1);
-        ubyte* meta = kalloc(buddy_sizeof_alignment(mmap_end - mmap_start, PAGESIZE)).ptr;
-        if (!meta)
-            goto err2;
-        mmap_alloc = buddy_init_alignment(meta, cast(void*) mmap_start, mmap_end - mmap_start, PAGESIZE);
-        assert(mmap_alloc);
+        {
+            ubyte* meta = kalloc(buddy_sizeof_alignment(mmap_end - mmap_start, PAGESIZE)).ptr;
+            if (!meta)
+                goto err2;
+            mmap_alloc = buddy_init_alignment(meta, cast(void*) mmap_start, mmap_end - mmap_start, PAGESIZE);
+            assert(mmap_alloc);
+        }
 
         return true;
 err2:
@@ -447,6 +451,10 @@ err1:
         return ptr + size < base + PROC_SIZE && ptr >= base;
     }
 
+    bool inbrk(uintptr ptr, usize size) {
+        return ptr >= cast(uintptr) brk.base && ptr + size < cast(uintptr) brk.base + brk.len;
+    }
+
     bool checkmap(uintptr ptr, usize size) {
         if (!checkptr(ptr, size)) {
             return false;
@@ -501,29 +509,28 @@ err1:
         usize size = ceilpg(length);
         void* base = buddy_malloc(mmap_alloc, size);
         map_start = cast(uintptr) base;
-        return map(cast(uintptr) base, size, prot, flags, fd, offset);
+        return map(cast(uintptr) base, size, prot, flags, fd, offset, MemRegion.State.MAPPED_ANY);
     }
 
     bool map_fixed(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
         usize size = ceilpg(length);
+        if (map_overlaps(start, length)) {
+            return false;
+        }
         buddy_reserve_range(mmap_alloc, cast(void*) base, size);
-        MemRegion m = MemRegion.map(base, size, prot, flags, fd, offset);
-        if (!m.valid())
+        if (!map(start, size, prot, flags | MAP_FIXED, fd, offset, MemRegion.State.MAPPED_FIXED)) {
             goto err1;
-        if (!mmaps.append(m))
-            goto err2;
+        }
         return true;
 
-err2:
-        m.unmap();
 err1:
-        buddy_safe_free(mmap_alloc, base, size);
+        buddy_unsafe_release_range(mmap_alloc, cast(void*) base, size);
         return false;
     }
 
-    bool map(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
+    bool map(uintptr start, usize length, int prot, int flags, int fd, ssize offset, MemRegion.State state) {
         usize size = ceilpg(length);
-        MemRegion m = MemRegion.map(base, size, prot, flags, fd, offset);
+        MemRegion m = MemRegion.map(start, size, prot, flags, fd, offset, state);
         if (!m.valid())
             goto err1;
         if (!mmaps.append(m))
@@ -533,22 +540,41 @@ err1:
 err2:
         m.unmap();
 err1:
-        buddy_safe_free(mmap_alloc, base, size);
+        return false;
+    }
+
+
+    bool map_overlaps(uintptr start, usize length) {
+        foreach (ref mem; mmaps) {
+            if (start < cast(uintptr) mem.base + mem.len && start + length > cast(uintptr) mem.base) {
+                return true;
+            }
+        }
         return false;
     }
 
     int unmap(uintptr start, usize size) {
-        Interval!(MemRegion) v;
-        if (!vmas.find_exact(start, size, v)) {
-            return -1;
+        int i;
+        for (i = 0; i < mmaps.length; i++) {
+            if (cast(uintptr) mmaps[i].base == start && mmaps[i].len == size) {
+                break;
+            }
+        }
+        if (i >= mmaps.length) {
+            return Err.INVAL;
         }
 
-        ensure(v.val.unmap() == 0);
+        ensure(mmaps[i].unmap() == 0);
 
-        // TODO: handle allocation failure
-        ensure(free_vmas.add(start, size, Empty()));
-        // Ok to ensure.
-        ensure(vmas.remove(start, size));
+        switch (mmaps[i].state) {
+        case MemRegion.State.MAPPED_ANY:
+            ensure(buddy_safe_free(mmap_alloc, cast(void*) start, size));
+            break;
+        case MemRegion.State.MAPPED_FIXED:
+            buddy_unsafe_release_range(mmap_alloc, cast(void*) start, size);
+            break;
+        default:
+        }
 
         return 0;
     }

@@ -322,11 +322,16 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
     } else {
         addr = p.addr(truncpg(addr));
 
-        if (!p.checkmap(addr, length)) {
-            return false;
+        // TODO: mprotect the brk page
+        if (p.inbrk(addr, length)) {
+            return addr;
         }
 
-        if (!p.map(addr, length, prot, flags, fd, offset)) {
+        if (!p.checkmap(addr, length)) {
+            return Err.INVAL;
+        }
+
+        if (!p.map_fixed(addr, length, prot, flags, fd, offset)) {
             return Err.NOMEM;
         }
     }
