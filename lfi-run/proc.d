@@ -72,8 +72,8 @@ struct Proc {
     Cwd cwd;
 
     uintptr brkp;
-    IntervalTree!(MemRegion) vmas;
-    IntervalTree!(Empty) free_vmas;
+    void* mmap_alloc;
+    Vector!(MemRegion) mmaps;
 
     Proc* parent;
     Vector!(Proc*) children;
@@ -111,12 +111,12 @@ struct Proc {
         }
         segments.clear();
 
-        foreach (ref mem; vmas) {
-            mem.val.unmap();
+        foreach (ref mem; mmaps) {
+            mem.unmap();
         }
+        mmaps.clear();
 
-        vmas.free();
-        free_vmas.free();
+        kfree(mmap_alloc);
     }
 
     static Proc* make_empty() {
@@ -155,6 +155,13 @@ err1:
         if (!p)
             return null;
 
+        ubyte* meta = kalloc(buddy_sizeof_alignment(parent.mmap_end - parent.mmap_start, PAGESIZE)).ptr;
+        if (!meta)
+            goto err;
+        p.mmap_alloc = buddy_copy(meta, cast(void*) p.addr(parent.mmap_start), parent.mmap_alloc);
+        // buddy_copy should always succeed
+        assert(p.mmap_alloc);
+
         p.guards[0] = parent.guards[0].copy_to(p);
         if (!p.guards[0].valid())
             goto err;
@@ -185,15 +192,6 @@ err1:
                 goto err;
             if (!p.segments.append(m))
                 goto err;
-        }
-
-        foreach (ref vma; parent.vmas) {
-            MemRegion val = vma.val;
-            val = val.copy_to(p);
-            ensure(p.vmas.add(p.addr(vma.start), vma.size, val));
-        }
-        foreach (ref fvma; parent.free_vmas) {
-            ensure(p.free_vmas.add(p.addr(fvma.start), fvma.size, fvma.val));
         }
 
         p.brkp = p.addr(parent.brkp);
@@ -341,8 +339,11 @@ err1:
 
         mmap_start = cast(uintptr) brk.base + BRK_SIZE;
         mmap_end = truncpg(cast(uintptr) stack.base - 1);
-        if (!free_vmas.add(mmap_start, mmap_end - mmap_start, Empty()))
+        ubyte* meta = kalloc(buddy_sizeof_alignment(mmap_end - mmap_start, PAGESIZE)).ptr;
+        if (!meta)
             goto err2;
+        mmap_alloc = buddy_init_alignment(meta, cast(void*) mmap_start, mmap_end - mmap_start, PAGESIZE);
+        assert(mmap_alloc);
 
         return true;
 err2:
@@ -498,72 +499,42 @@ err1:
     // These map functions assume the arguments have been sanitized.
     bool map_any(usize length, int prot, int flags, int fd, ssize offset, ref uintptr map_start) {
         usize size = ceilpg(length);
-        Interval!(Empty) i;
-        // Find a region that is large enough.
-        if (!free_vmas.find(size, i)) {
-            return false;
-        }
+        void* base = buddy_malloc(mmap_alloc, size);
+        map_start = cast(uintptr) base;
+        return map(cast(uintptr) base, size, prot, flags, fd, offset);
+    }
 
-        map_start = i.start;
+    bool map_fixed(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
+        usize size = ceilpg(length);
+        buddy_reserve_range(mmap_alloc, cast(void*) base, size);
+        MemRegion m = MemRegion.map(base, size, prot, flags, fd, offset);
+        if (!m.valid())
+            goto err1;
+        if (!mmaps.append(m))
+            goto err2;
+        return true;
 
-        return map(i.start, length, prot, flags, fd, offset);
+err2:
+        m.unmap();
+err1:
+        buddy_safe_free(mmap_alloc, base, size);
+        return false;
     }
 
     bool map(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
         usize size = ceilpg(length);
-        Interval!(MemRegion) v;
-        while (vmas.overlaps(start, size, v)) {
-            // TODO: handle allocation failure
-            ensure(vmas.remove(v.start, v.size));
-            if (v.start < start) {
-                ensure(vmas.add(v.start, start - v.start, v.val));
-            }
-            if ((v.start + v.size) > (start + size)) {
-                ensure(vmas.add(start + size, (v.start + v.size) - (start + size), v.val));
-            }
-        }
-
-        return map_no_overlap(start, length, prot, flags, fd, offset);
-    }
-
-    bool map_no_overlap(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
-        usize size = ceilpg(length);
-        Interval!(MemRegion) v;
-        if (vmas.overlaps(start, size, v)) {
-            return false;
-        }
-
-        Interval!(Empty) i;
-        free_vmas.overlaps(start, size, i);
-
-        // Split the free region.
-        bool ok = free_vmas.remove(i.start, i.size);
-        if (ok) {
-            // TODO: handle allocation failure
-            // This needs to be atomic with the remove.
-            if (start - i.start != 0) {
-                ok = free_vmas.add(i.start, start - i.start, Empty());
-                assert(ok);
-            }
-            if (i.size - size != 0) {
-                if (!free_vmas.add(start + size, i.size - (start - i.start) - size, Empty())) {
-                    // If this fails, we might have problems.
-                    return false;
-                }
-            }
-        }
-
-        auto mem = MemRegion.map(start, size, prot, flags | MAP_FIXED, fd, offset);
-        if (!mem.valid()) {
-            return false;
-        }
-
-        if (!vmas.add(start, size, mem)) {
-            mem.unmap();
-            return false;
-        }
-
+        MemRegion m = MemRegion.map(base, size, prot, flags, fd, offset);
+        if (!m.valid())
+            goto err1;
+        if (!mmaps.append(m))
+            goto err2;
         return true;
+
+err2:
+        m.unmap();
+err1:
+        buddy_safe_free(mmap_alloc, base, size);
+        return false;
     }
 
     int unmap(uintptr start, usize size) {
