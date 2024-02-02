@@ -341,6 +341,7 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
 
 int sys_munmap(Proc* p, uintptr addr, usize length) {
     addr = p.addr(truncpg(addr));
+    length = ceilpg(length);
     if (!p.checkmap(addr, length)) {
         return Err.PERM;
     }

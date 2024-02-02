@@ -114,7 +114,7 @@ struct Proc {
         segments.clear();
 
         foreach (ref mem; mmaps) {
-            mem.unmap();
+            unmap_mmap(mem);
         }
         mmaps.clear();
 
@@ -507,24 +507,29 @@ err1:
     // These map functions assume the arguments have been sanitized.
     bool map_any(usize length, int prot, int flags, int fd, ssize offset, ref uintptr map_start) {
         usize size = ceilpg(length);
-        void* base = buddy_malloc(mmap_alloc, size);
-        map_start = cast(uintptr) base;
-        return map(cast(uintptr) base, size, prot, flags, fd, offset, MemRegion.State.MAPPED_ANY);
+        void* start = buddy_malloc(mmap_alloc, size);
+        map_start = cast(uintptr) start;
+        if (!map(map_start, size, prot, flags, fd, offset, MemRegion.State.MAPPED_ANY))
+            goto err1;
+        return true;
+err1:
+        ensure(buddy_safe_free(mmap_alloc, start, size));
+        return false;
     }
 
     bool map_fixed(uintptr start, usize length, int prot, int flags, int fd, ssize offset) {
         usize size = ceilpg(length);
-        if (map_overlaps(start, length)) {
+        if (map_overlaps(start, size)) {
             return false;
         }
-        buddy_reserve_range(mmap_alloc, cast(void*) base, size);
+        buddy_reserve_range(mmap_alloc, cast(void*) start, size);
         if (!map(start, size, prot, flags | MAP_FIXED, fd, offset, MemRegion.State.MAPPED_FIXED)) {
             goto err1;
         }
         return true;
 
 err1:
-        buddy_unsafe_release_range(mmap_alloc, cast(void*) base, size);
+        buddy_unsafe_release_range(mmap_alloc, cast(void*) start, size);
         return false;
     }
 
@@ -545,12 +550,13 @@ err1:
 
 
     bool map_overlaps(uintptr start, usize length) {
-        foreach (ref mem; mmaps) {
-            if (start < cast(uintptr) mem.base + mem.len && start + length > cast(uintptr) mem.base) {
-                return true;
-            }
-        }
         return false;
+        // foreach (ref mem; mmaps) {
+        //     if (start < cast(uintptr) mem.base + mem.len && start + length > cast(uintptr) mem.base) {
+        //         return true;
+        //     }
+        // }
+        // return false;
     }
 
     int unmap(uintptr start, usize size) {
@@ -564,19 +570,24 @@ err1:
             return Err.INVAL;
         }
 
-        ensure(mmaps[i].unmap() == 0);
+        unmap_mmap(mmaps[i]);
+        mmaps.unordered_remove(i);
 
-        switch (mmaps[i].state) {
+        return 0;
+    }
+
+    void unmap_mmap(MemRegion m) {
+        switch (m.state) {
         case MemRegion.State.MAPPED_ANY:
-            ensure(buddy_safe_free(mmap_alloc, cast(void*) start, size));
+            ensure(buddy_safe_free(mmap_alloc, m.base, m.len));
             break;
         case MemRegion.State.MAPPED_FIXED:
-            buddy_unsafe_release_range(mmap_alloc, cast(void*) start, size);
+            buddy_unsafe_release_range(mmap_alloc, m.base, m.len);
             break;
         default:
         }
 
-        return 0;
+        ensure(m.unmap() == 0);
     }
 
     void exec() {
