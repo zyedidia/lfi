@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
-use alloc::{format, string::String};
+use alloc::format;
 use bad64::Imm::{Signed, Unsigned};
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, Shift::LSL, SysReg};
 
@@ -15,7 +15,7 @@ const RES32_REG: Reg = Reg::X22;
 
 pub struct Verifier {
     pub failed: bool,
-    pub message: Option<fn(s: String)>,
+    pub message: Option<fn(bytes: *const u8, size: usize)>,
 }
 
 fn modifies(inst: &Instruction, r: Reg) -> bool {
@@ -282,7 +282,7 @@ impl Verifier {
         self.failed = true;
         if let Some(message) = self.message {
             let s = format!("{:x}: {}: {}", inst.address(), inst, msg);
-            message(s);
+            message(s.as_ptr(), s.len());
         }
     }
 

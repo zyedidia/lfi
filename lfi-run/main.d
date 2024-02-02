@@ -9,9 +9,11 @@ import schedule;
 struct Flags {
     enum {
         NOVERIFY = "no-verify",
+        VERBOSE = "verbose",
     }
 
     bool noverify;
+    bool verbose;
 }
 
 __gshared Flags flags;
@@ -35,8 +37,11 @@ void set_nofile_max() {
 }
 
 void usage() {
-    fprintf(stderr, "usage: lfi-run [OPTIONS] FILE [ARGS]\n\n");
-    fprintf(stderr, "\t--no-verify\tdo not perform verification\n");
+    fprintf(stderr, "usage:\n");
+    fprintf(stderr, "  lfi-run [OPTIONS] FILE [ARGS]\n\n");
+    fprintf(stderr, "options:\n");
+    fprintf(stderr, "  --no-verify\tdo not perform verification\n");
+    fprintf(stderr, "  --verbose\tshow verbose information\n");
 }
 
 extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
@@ -46,11 +51,6 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
     // 262100 to be safe (we could increase this to get a few more sandboxes).
     // TODO: increase this back to 262100.
     manager.setup(gb(8), gb(128));
-
-    if (argc <= 1) {
-        usage();
-        return 0;
-    }
 
     int i = 1;
     for (i = 1; i < argc; i++) {
@@ -63,7 +63,18 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
         if (strncmp(arg, Flags.NOVERIFY.ptr, Flags.NOVERIFY.length) == 0) {
             fprintf(stderr, "WARNING: verification disabled\n");
             flags.noverify = true;
+        } else if (strncmp(arg, Flags.VERBOSE.ptr, Flags.VERBOSE.length) == 0) {
+            flags.verbose = true;
+        } else {
+            fprintf(stderr, "unknown flag: %s\n", argv[i]);
+            return 1;
         }
+    }
+
+    if (i >= argc) {
+        fprintf(stderr, "error: no program given\n");
+        usage();
+        return 0;
     }
 
     const(char)* file = argv[i];
