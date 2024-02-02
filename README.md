@@ -68,6 +68,9 @@ sysroot in `toolchain`.
 
 ## Building from source
 
+Note: for artifact evaluation (reproducing paper results), please first check
+out the tag `ae-initial`.
+
 To build the LFI binaries from source, run the following:
 
 ```
