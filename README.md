@@ -36,6 +36,8 @@ are currently working on rewriting it to be fully secure. A paper with
 additional details will be publicly available in the next few months, so stay
 tuned for that.
 
+Please see the following paper for more details: https://zyedidia.github.io/papers/lfi_asplos24.pdf.
+
 # Tools
 
 The LFI project provides the following tools:
