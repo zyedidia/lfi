@@ -1,0 +1,11 @@
+local cc = "gcc"
+local lficc = "/opt/lfi/toolchain/bin/lfi-clang"
+
+return b{
+    $ all:VB: run.elf hello.elf
+
+    $ run.elf: run.c ../liblfi/liblfi.a ../lfi-verify/target/release/liblfiverify.a
+        $cc -O2 -I../liblfi $input -o $output -static
+    $ hello.elf: hello.c
+        $lficc -O2 $input -o $output -nostdlib
+}

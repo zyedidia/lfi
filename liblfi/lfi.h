@@ -53,12 +53,14 @@ enum {
 };
 
 enum {
-    LFI_ERR_NOMEM       = -1,
-    LFI_ERR_NOSLOT      = -2,
-    LFI_ERR_CANNOT_MAP  = -3,
-    LFI_ERR_INVPID      = -4,
-    LFI_ERR_MAX_VASPACE = -5,
-    LFI_ERR_INVALID_ELF = -6,
+    LFI_ERR_NOMEM         = -1,
+    LFI_ERR_NOSLOT        = -2,
+    LFI_ERR_CANNOT_MAP    = -3,
+    LFI_ERR_MAX_VASPACE   = -4,
+    LFI_ERR_INVALID_ELF   = -5,
+    LFI_ERR_VERIFY        = -6,
+    LFI_ERR_PROTECTION    = -7,
+    LFI_ERR_INVALID_STACK = -8,
 };
 
 enum {
@@ -72,18 +74,20 @@ struct lfi;
 
 struct lfi_proc;
 
-typedef uint64_t (*rtcall_handler_f)(void* ctxp, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+typedef uint64_t (*rtcall_handler_f)(void* ctxp, uint64_t, uint64_t[6]);
 
 struct lfi_options {
     int noverify;
     int verbose;
     int fast_yield;
-    size_t pagesize;
+    size_t page_size;
     size_t stack_size;
     rtcall_handler_f syscall_handler;
 };
 
 struct lfi_proc_info {
+    void* stack;
+    size_t stack_size;
     uint64_t last_va;
     uint64_t elf_entry;
     uint64_t elf_base;
@@ -118,11 +122,11 @@ struct lfi_proc* lfi_add_proc(struct lfi* lfi, uint8_t* prog, size_t size, void*
 // the given process and frees the process as well.
 void lfi_remove_proc(struct lfi* lfi, struct lfi_proc* proc);
 
-// Start running a given process.
-int lfi_start(struct lfi* lfi, struct lfi_proc* proc);
-
 // Delete the LFI engine and free all its resources.
 void lfi_delete(struct lfi* lfi);
+
+// Start running a given process.
+void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size);
 
 // Map a given memory region into a process. Regions may not be both
 // executable and writable.
