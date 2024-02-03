@@ -1,0 +1,20 @@
+local knit = require('knit')
+
+local cc = "gcc"
+local cflags = "-O2 -Wall -Wextra"
+
+local csrc = knit.rglob(".", "*.c")
+local ssrc = knit.rglob(".", "*.S")
+
+local obj = knit.join(
+    knit.extrepl(csrc, ".c", ".o"),
+    knit.extrepl(ssrc, ".S", ".o")
+)
+obj = knit.prefix(obj, ".")
+
+return b{
+    $ liblfi.a: $obj
+        ar rcs $output $input
+    $ .%.o:D[.%.dep]: %.c
+        $cc $cflags -MD -MF $dep -c $input -o $output
+}

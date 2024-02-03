@@ -12,3 +12,4 @@ lfi-verify/target
 *.dep
 todo.txt
 *.elf
+*.a
