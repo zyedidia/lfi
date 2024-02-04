@@ -59,7 +59,7 @@ static uint64_t reserve(uint64_t size, uint64_t threshold, void** base) {
         } else {
             munmap(p, size);
         }
-        if (size <= threshold) {
+        if (size < threshold) {
             return 0;
         }
     } while (p == (void*) -1);
@@ -72,7 +72,7 @@ int lfi_auto_add_vaspaces(struct lfi* lfi) {
     // and then work down from there with exponential backoff.
     uint64_t total = tb(256);
     uint64_t size = tb(255);
-    uint64_t min = gb(128);
+    uint64_t min = gb(32);
     int i;
     for (i = 0; i < LFI_VASPACE_MAX; i++) {
         void* base;
