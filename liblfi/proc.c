@@ -104,8 +104,8 @@ struct lfi_sys {
     uintptr_t k_tpidr;
 };
 
-extern void lfi_syscall_entry();
-extern void lfi_yield_entry();
+extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
+extern void lfi_yield_entry() asm ("lfi_yield_entry");
 
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
@@ -258,6 +258,8 @@ void lfi_proc_free(struct lfi_proc* proc) {
     free(proc);
 }
 
+void lfi_syscall_handler(struct lfi_proc* proc) asm ("lfi_syscall_handler");
+
 void lfi_syscall_handler(struct lfi_proc* proc) {
     uint64_t sysno = proc->regs.x8;
 
@@ -277,7 +279,7 @@ void lfi_syscall_handler(struct lfi_proc* proc) {
     proc->regs.x0 = ret;
 }
 
-extern void lfi_proc_entry(struct lfi_proc*, void** kstackp);
+extern void lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
 
 void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size) {
     proc->regs.x30 = entry;

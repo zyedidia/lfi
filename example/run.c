@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "lfi.h"
 
@@ -45,6 +46,21 @@ int main(int argc, char** argv) {
         .stack_size = STACK_SIZE,
         .syscall_handler = &syscall_handler,
     });
+
+    void* p = mmap(NULL, gb(1024 * 95), PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    printf("%p\n", p);
+
+    void* p2 = mmap(NULL, gb(1024 * 28), PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    printf("%p\n", p2);
+
+    void* p3 = mmap(NULL, gb(1024 * 3), PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    printf("%p\n", p3);
+
+    /* void* p4 = mmap(NULL, gb(1024 * 1), PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0); */
+    /* printf("%p\n", p4); */
+
+    printf("%d\n", getpid());
+    sleep(100);
 
     int err;
     if ((err = lfi_auto_add_vaspaces(lfi)) < 0) {
