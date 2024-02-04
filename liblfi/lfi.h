@@ -128,18 +128,6 @@ void lfi_delete(struct lfi* lfi);
 // Start running a given process.
 void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size);
 
-// Map a given memory region into a process. Regions may not be both
-// executable and writable.
-void* lfi_proc_mmap(struct lfi_proc* proc, void* base, size_t size, int prot);
-
-// Mark a memory region with a certain protection. If the protection includes
-// executable permissions, the verifier is run.
-int lfi_proc_mprotect(struct lfi_proc* proc, void* base, size_t size, int prot);
-
-// Unmap a region previously returned by `lfi_process_mmap`, allowing it to be
-// reused in a later map request.
-int lfi_proc_munmap(struct lfi_proc* proc, void* base, size_t size);
-
 // Fetch the register file for the given process and puts it in `regs`.
 void lfi_proc_get_regs(struct lfi_proc* proc, struct lfi_regs* regs);
 

@@ -236,21 +236,9 @@ void lfi_proc_set_regs(struct lfi_proc* proc, struct lfi_regs* regs) {
     proc->regs = *regs;
 }
 
-/* struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) { */
-/*     return NULL; */
-/* } */
-/*  */
-/* void* lfi_proc_mmap(struct lfi_proc* proc, void* base, size_t size, int prot) { */
-/*     return NULL; */
-/* } */
-/*  */
-/* int lfi_proc_mprotect(struct lfi_proc* proc, void* base, size_t size, int prot) { */
-/*     return -1; */
-/* } */
-/*  */
-/* int lfi_proc_munmap(struct lfi_proc* proc, void* base, size_t size) { */
-/*     return -1; */
-/* } */
+struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) {
+    return NULL;
+}
 
 void lfi_proc_free(struct lfi_proc* proc) {
     lfi_proc_clear_regions(proc);
