@@ -47,8 +47,8 @@ int main(int argc, char** argv) {
     });
 
     int err;
-    if ((err = lfi_add_vaspace(lfi, (void*) gb(8), gb(128))) < 0) {
-        fprintf(stderr, "error adding address space %d\n", err);
+    if ((err = lfi_auto_add_vaspaces(lfi)) < 0) {
+        fprintf(stderr, "error adding address spaces %d\n", err);
         exit(1);
     }
 

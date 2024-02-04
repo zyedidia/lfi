@@ -54,7 +54,7 @@ static uint64_t reserve(uint64_t size, uint64_t threshold, void** base) {
     void* p;
     do {
         p = mmap(NULL, size, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-        if (!p) {
+        if (p == (void*) -1) {
             size /= 2;
         } else {
             munmap(p, size);
@@ -62,7 +62,7 @@ static uint64_t reserve(uint64_t size, uint64_t threshold, void** base) {
         if (size <= threshold) {
             return 0;
         }
-    } while (!p);
+    } while (p == (void*) -1);
     *base = p;
     return size;
 }
@@ -71,15 +71,17 @@ int lfi_auto_add_vaspaces(struct lfi* lfi) {
     // Start by trying to reserve nearly all of the arm64 virtual address space
     // and then work down from there with exponential backoff.
     uint64_t total = tb(256);
+    uint64_t size = tb(255);
     uint64_t min = gb(128);
     int i;
     for (i = 0; i < LFI_VASPACE_MAX; i++) {
         void* base;
-        uint64_t got = reserve(total, min, &base);
+        uint64_t got = reserve(size, min, &base);
         if (!got) {
             break;
         }
         total = total - got;
+        size = total;
         int err = lfi_add_vaspace(lfi, base, got);
         if (err < 0) {
             return err;

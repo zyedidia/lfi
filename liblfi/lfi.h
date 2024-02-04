@@ -44,10 +44,6 @@ struct lfi_regs {
     uint64_t vector[64];
 };
 
-static inline void lfi_regs_set_stack(struct lfi_regs* regs, uint64_t stack) {
-    regs->sp = stack;
-}
-
 enum {
     LFI_VASPACE_MAX = 16,
 };
@@ -78,7 +74,6 @@ typedef uint64_t (*rtcall_handler_f)(void* ctxp, uint64_t, uint64_t[6]);
 
 struct lfi_options {
     int noverify;
-    int verbose;
     int fast_yield;
     size_t page_size;
     size_t stack_size;
@@ -150,9 +145,6 @@ void lfi_proc_get_regs(struct lfi_proc* proc, struct lfi_regs* regs);
 
 // Copy the contents of `regs` into the process's register file.
 void lfi_proc_set_regs(struct lfi_proc* proc, struct lfi_regs* regs);
-
-// Assign the process's stack register to the given stack pointer.
-void lfi_proc_set_stack(struct lfi_proc* proc, void* stack);
 
 // Copy an LFI process. This function returns a new process initialized with
 // the current state of `proc`. It will be given a new sandbox slot. This

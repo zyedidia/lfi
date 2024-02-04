@@ -235,10 +235,6 @@ void lfi_proc_set_regs(struct lfi_proc* proc, struct lfi_regs* regs) {
     proc->regs = *regs;
 }
 
-void lfi_proc_set_stack(struct lfi_proc* proc, void* stack) {
-    lfi_regs_set_stack(&proc->regs, (uint64_t) stack);
-}
-
 /* struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) { */
 /*     return NULL; */
 /* } */
