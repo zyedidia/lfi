@@ -40,6 +40,57 @@ static struct buddy* buddy_new(void* base, size_t size, size_t align) {
     return buddy_init_alignment(at, base, size, align);
 }
 
+static uint64_t gb(uint64_t n) {
+    return n * 1024 * 1024 * 1024;
+}
+
+static uint64_t tb(uint64_t n) {
+    return n * 1024 * 1024 * 1024 * 1024;
+}
+
+// Attempt to reserve as much virtual address space as possible, starting with
+// `size`. Returns 0 if it is not able to reserve at least `threshold`.
+static uint64_t reserve(uint64_t size, uint64_t threshold, void** base) {
+    void* p;
+    do {
+        p = mmap(NULL, size, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        if (!p) {
+            size /= 2;
+        } else {
+            munmap(p, size);
+        }
+        if (size <= threshold) {
+            return 0;
+        }
+    } while (!p);
+    *base = p;
+    return size;
+}
+
+int lfi_auto_add_vaspaces(struct lfi* lfi) {
+    // Start by trying to reserve nearly all of the arm64 virtual address space
+    // and then work down from there with exponential backoff.
+    uint64_t total = tb(256);
+    uint64_t min = gb(128);
+    int i;
+    for (i = 0; i < LFI_VASPACE_MAX; i++) {
+        void* base;
+        uint64_t got = reserve(total, min, &base);
+        if (!got) {
+            break;
+        }
+        total = total - got;
+        int err = lfi_add_vaspace(lfi, base, got);
+        if (err < 0) {
+            return err;
+        }
+    }
+    if (i == 0) {
+        return LFI_ERR_CANNOT_MAP;
+    }
+    return 0;
+}
+
 int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size) {
     if (lfi->n_vaspaces >= LFI_VASPACE_MAX) {
         return LFI_ERR_MAX_VASPACE;
