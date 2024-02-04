@@ -121,8 +121,9 @@ static void lfi_proc_clear(struct lfi_mem** mems) {
     struct lfi_mem* mem = *mems;
     while (mem) {
         lfi_mem_unmap(mem);
+        struct lfi_mem* next = mem->next;
         free(mem);
-        mem = mem->next;
+        mem = next;
     }
     *mems = NULL;
 }
