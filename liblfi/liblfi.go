@@ -1,0 +1,3 @@
+package liblfi
+
+import "C"
