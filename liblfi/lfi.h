@@ -128,7 +128,7 @@ void lfi_delete(struct lfi* lfi);
 // Start running a given process.
 void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size);
 
-// Fetch the register file for the given process and puts it in `regs`.
+// Fetch the register file for the given process and put it in `regs`.
 void lfi_proc_get_regs(struct lfi_proc* proc, struct lfi_regs* regs);
 
 // Copy the contents of `regs` into the process's register file.

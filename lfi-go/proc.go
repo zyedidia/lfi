@@ -12,6 +12,7 @@ import "C"
 
 type Proc struct {
 	proc *C.lfi_proc_t
+	ctxp unsafe.Pointer
 }
 
 func (p *Proc) Start(entry uint64, stack []byte) {
