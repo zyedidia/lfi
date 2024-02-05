@@ -184,8 +184,8 @@ fn ok_mod(
             return true;
         }
         if (inst.op() == Op::ADD || inst.op() == Op::SUB)
-            && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: Some(LSL(n)) } if (x << n) <= 8192)
-                || matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x <= 8192)
+            && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: Some(LSL(n)) } if (x << n) <= 1024 * 48)
+                || matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x <= 1024 * 48)
                 || matches!(
                     inst.operands()[2],
                     Operand::Imm64 {
