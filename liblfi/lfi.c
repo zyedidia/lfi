@@ -19,7 +19,9 @@ struct lfi* lfi_new(struct lfi_options options) {
 uint64_t lfi_max_procs(struct lfi* lfi) {
     uint64_t total = 0;
     for (uint8_t i = 0; i < lfi->n_vaspaces; i++) {
-        total += lfi->vaspaces[i].size / LFI_PROC_SIZE;
+        // Subtract 2 because of the guard slots that are reserved on either
+        // end of a vaspace.
+        total += lfi->vaspaces[i].size / LFI_PROC_SIZE - 2;
     }
     return total;
 }
@@ -104,10 +106,16 @@ int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size) {
     }
 
     void* region = mmap(base, size, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-    if (region == (void*) -1) {
+    if (region != base) {
         free(alloc);
         return LFI_ERR_CANNOT_MAP;
     }
+
+    // To be safe we will reserve the start and end sandboxes of the region, in
+    // case the region is directly adjacent to some sensitive data.
+    buddy_reserve_range(alloc, base, LFI_PROC_SIZE);
+    buddy_reserve_range(alloc, (void*) ((uintptr_t) base + size - LFI_PROC_SIZE), LFI_PROC_SIZE);
+
     lfi->vaspaces[lfi->n_vaspaces++] = (struct lfi_vaspace) {
         .base = base,
         .size = size,

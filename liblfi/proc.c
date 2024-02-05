@@ -242,7 +242,6 @@ struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) {
 
 void lfi_proc_free(struct lfi_proc* proc) {
     lfi_proc_clear_regions(proc);
-    // TODO: free mmapper
     free(proc);
 }
 

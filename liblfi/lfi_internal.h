@@ -42,8 +42,6 @@ struct lfi_proc {
     struct lfi_mem* mmaps;
     struct lfi_mem stack;
 
-    struct buddy* mmapper;
-
     struct lfi* lfi;
     void* ctxp;
 };
