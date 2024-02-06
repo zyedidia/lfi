@@ -36,7 +36,7 @@ static void readfile(FILE* f, void** buf, size_t* size) {
 
 uint64_t syscall_handler(void* ctxp, uint64_t sysno, uint64_t args[6]) {
     printf("received syscall %ld: %s\n", sysno, (char*) args[0]);
-    exit(1);
+    return 0;
 }
 
 int main(int argc, char** argv) {

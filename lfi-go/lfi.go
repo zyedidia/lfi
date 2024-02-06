@@ -11,7 +11,7 @@ import (
 /*
 #cgo LDFLAGS: -llfiverify
 #include "lfi.h"
-uint64_t lfi_cb(void* ctxp, uint64_t num, uint64_t args[6]);
+extern uint64_t lfi_cb(void* ctxp, uint64_t num, uint64_t args[6]);
 */
 import "C"
 
@@ -138,8 +138,9 @@ type callback struct {
 	data any
 }
 
-//export _lfi_go_cb
-func _lfi_go_cb(v unsafe.Pointer, num C.uint64_t, a0, a1, a2, a3, a4, a5 C.uint64_t) C.uint64_t {
+//export lfi_go_cb
+func lfi_go_cb(v unsafe.Pointer, num C.uint64_t, a0, a1, a2, a3, a4, a5 C.uint64_t) C.uint64_t {
 	cb := pointer.Restore(v).(*callback)
-	return C.uint64_t(cb.fn(cb.data, uint64(num), [6]uint64{uint64(a0), uint64(a1), uint64(a2), uint64(a3), uint64(a4), uint64(a5)}))
+	r := C.uint64_t(cb.fn(cb.data, uint64(num), [6]uint64{uint64(a0), uint64(a1), uint64(a2), uint64(a3), uint64(a4), uint64(a5)}))
+	return r
 }

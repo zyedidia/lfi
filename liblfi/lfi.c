@@ -100,25 +100,28 @@ int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size) {
         return LFI_ERR_MAX_VASPACE;
     }
 
-    struct buddy* alloc = buddy_new(base, size, LFI_PROC_SIZE);
+    uintptr_t align_base = ceil_p((uintptr_t) base, LFI_PROC_SIZE);
+    size_t align_size = trunc_p(align_base + (size - (align_base - (uintptr_t) base)), LFI_PROC_SIZE) - align_base;
+
+    struct buddy* alloc = buddy_new((void*) align_base, align_size, LFI_PROC_SIZE);
     if (!alloc) {
         return LFI_ERR_NOMEM;
     }
 
-    void* region = mmap(base, size, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-    if (region != base) {
+    void* region = mmap((void*) align_base, align_size, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+    if (region != (void*) align_base) {
         free(alloc);
         return LFI_ERR_CANNOT_MAP;
     }
 
     // To be safe we will reserve the start and end sandboxes of the region, in
     // case the region is directly adjacent to some sensitive data.
-    buddy_reserve_range(alloc, base, LFI_PROC_SIZE);
-    buddy_reserve_range(alloc, (void*) ((uintptr_t) base + size - LFI_PROC_SIZE), LFI_PROC_SIZE);
+    buddy_reserve_range(alloc, (void*) align_base, LFI_PROC_SIZE);
+    buddy_reserve_range(alloc, (void*) (align_base + align_size - LFI_PROC_SIZE), LFI_PROC_SIZE);
 
     lfi->vaspaces[lfi->n_vaspaces++] = (struct lfi_vaspace) {
-        .base = base,
-        .size = size,
+        .base = (void*) align_base,
+        .size = align_size,
         .alloc = alloc,
     };
     return 0;
