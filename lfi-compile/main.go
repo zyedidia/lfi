@@ -88,7 +88,7 @@ func compile(cmdargs []string) {
 			}
 			out = cmdargs[i+1]
 			i++
-		case "-MT":
+		case "-MT", "-MQ":
 			if i+1 >= len(cmdargs) {
 				fatal("-MT needs an argument")
 			}

@@ -143,4 +143,7 @@ struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp);
 // address space. This can be used to implement an "execve" operation.
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info);
 
+// Return the base address of the process.
+uintptr_t lfi_proc_base(struct lfi_proc* proc);
+
 #endif

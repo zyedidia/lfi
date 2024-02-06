@@ -2,7 +2,6 @@ package lfi
 
 import (
 	"errors"
-	"reflect"
 	"unsafe"
 
 	"github.com/mattn/go-pointer"
@@ -68,7 +67,7 @@ type Options struct {
 	FastYield bool
 	PageSize  uint64
 	StackSize uint64
-	Syscall   func(ctx any, num uint64, args [6]uint64) uint64
+	Syscall   func(ctx any, num uint64, args [6]uint64) int64
 }
 
 type Engine struct {
@@ -113,16 +112,12 @@ func (e *Engine) AddProc(prog []byte, ctx any) (*Proc, Info, error) {
 		return nil, Info{}, cerr(err)
 	}
 
-	var stack []byte
-
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&stack))
-	sh.Data = uintptr(cinfo.stack)
-	sh.Len = int(cinfo.stack_size)
-	sh.Cap = int(cinfo.stack_size)
+	stack := unsafe.Slice((*byte)(cinfo.stack), cinfo.stack_size)
 
 	return &Proc{
 			proc: proc,
 			ctxp: ctxp,
+			Base: uintptr(C.lfi_proc_base(proc)),
 		}, Info{
 			Stack:        stack,
 			LastVa:       uint64(cinfo.last_va),
@@ -139,7 +134,7 @@ func (e *Engine) RemoveProc(proc *Proc) {
 }
 
 type callback struct {
-	fn   func(any, uint64, [6]uint64) uint64
+	fn   func(any, uint64, [6]uint64) int64
 	data any
 }
 

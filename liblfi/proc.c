@@ -277,3 +277,7 @@ void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t 
     proc->regs.sp = (uintptr_t) stack + stack_size - 16;
     lfi_proc_entry(proc, &proc->kstackp);
 }
+
+uintptr_t lfi_proc_base(struct lfi_proc* proc) {
+    return proc->base;
+}
