@@ -16,7 +16,7 @@ static int elf_check(struct elf_file_header* ehdr) {
     return ehdr->magic == ELF_MAGIC &&
         ehdr->width == ELFCLASS64 &&
         ehdr->version == EV_CURRENT &&
-        ehdr->type == ET_DYN;
+        (ehdr->type == ET_DYN || ehdr->type == ET_EXEC);
 }
 
 static int prot_exec(int flags) {
@@ -170,19 +170,29 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     assert(lfi_mem_valid(&proc->sys));
     sys_setup(proc->sys, proc);
 
+    if (ehdr->entry >= CODE_MAX) {
+        goto err1;
+    }
+
     for (int i = 0; i < ehdr->phnum; i++) {
         struct elf_prog_header* p = &phdr[i];
         if (p->type != PT_LOAD) {
             continue;
         }
+
         uintptr_t start = trunc_p(p->vaddr, p->align);
         uintptr_t end = ceil_p(p->vaddr + p->memsz, p->align);
         uintptr_t offset = p->vaddr - start;
 
+        if (ehdr->type == ET_EXEC) {
+            start = start - (base - proc->base);
+            end = end - (base - proc->base);
+        }
+
         if (p->memsz < p->filesz) {
             goto err1;
         }
-        if (end - start >= CODE_MAX) {
+        if (end <= start || start >= CODE_MAX || end >= CODE_MAX) {
             goto err1;
         }
 
@@ -214,7 +224,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         .stack = (void*) proc->stack.base,
         .stacksize = proc->stack.size,
         .lastva = last,
-        .elfentry = base + ehdr->entry,
+        .elfentry = ehdr->type == ET_DYN ? base + ehdr->entry : proc->base + ehdr->entry,
         .elfbase = base,
         .elfphoff = ehdr->phoff,
         .elfphnum = ehdr->phnum,
