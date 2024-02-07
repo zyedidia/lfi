@@ -262,13 +262,13 @@ void lfi_syscall_handler(struct lfi_proc* proc) {
 
 extern void lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
 
-void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stacksize) {
+void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
     proc->regs.x30 = entry;
     proc->regs.x21 = proc->base;
     proc->regs.x18 = proc->base;
     proc->regs.x23 = proc->base;
     proc->regs.x24 = proc->base;
-    proc->regs.sp = (uintptr_t) stack + stacksize - 16;
+    proc->regs.sp = sp;
 }
 
 void lfi_proc_start(struct lfi_proc* proc) {

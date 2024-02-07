@@ -126,7 +126,7 @@ void lfi_remove_proc(struct lfi* lfi, struct lfi_proc* proc);
 void lfi_delete(struct lfi* lfi);
 
 // Initialize the process's registers.
-void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stacksize);
+void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp);
 
 // Start running a given process.
 void lfi_proc_start(struct lfi_proc* proc);
