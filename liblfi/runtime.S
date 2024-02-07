@@ -54,7 +54,7 @@
 	ldr x21,    [x21, #8+16*10+8]
 .endm
 
-// lfi_proc_entry(Proc* p, void** kstackp)
+// lfi_proc_entry(Proc* p)
 .align 16
 .globl lfi_proc_entry
 lfi_proc_entry:

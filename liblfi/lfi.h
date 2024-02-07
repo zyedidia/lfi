@@ -125,8 +125,11 @@ void lfi_remove_proc(struct lfi* lfi, struct lfi_proc* proc);
 // Delete the LFI engine and free all its resources.
 void lfi_delete(struct lfi* lfi);
 
+// Initialize the process's registers.
+void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stacksize);
+
 // Start running a given process.
-void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size);
+void lfi_proc_start(struct lfi_proc* proc);
 
 // Fetch the register file for the given process and put it in `regs`. The regs can then be
 // edited by modifying the returned pointer.

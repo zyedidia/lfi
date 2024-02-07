@@ -34,16 +34,16 @@ static void readfile(FILE* f, void** buf, size_t* size) {
     *size = sz;
 }
 
-uint64_t syscall_handler(void* ctxp, uint64_t sysno, uint64_t args[6]) {
-    printf("received syscall %ld: %s\n", sysno, (char*) args[0]);
-    return 0;
+uint64_t syshandler(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
+    printf("received syscall %ld: %s\n", sysno, (char*) a0);
+    exit(0);
 }
 
 int main(int argc, char** argv) {
     struct lfi* lfi = lfi_new((struct lfi_options) {
-        .page_size = getpagesize(),
-        .stack_size = STACK_SIZE,
-        .syscall_handler = &syscall_handler,
+        .pagesize = getpagesize(),
+        .stacksize = STACK_SIZE,
+        .syshandler = &syshandler,
     });
 
     int err;
@@ -75,9 +75,10 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    printf("loaded %s, entry: %lx, stack: %p\n", argv[1], info.elf_entry, info.stack);
+    printf("loaded %s, entry: %lx, stack: %p\n", argv[1], info.elfentry, info.stack);
 
-    lfi_proc_start(proc, info.elf_entry, info.stack, info.stack_size);
+    lfi_proc_init_regs(proc, info.elfentry, info.stack, info.stacksize);
+    lfi_proc_start(proc);
 
     return 0;
 }
