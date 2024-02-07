@@ -70,25 +70,25 @@ struct lfi;
 
 struct lfi_proc;
 
-typedef uint64_t (*rtcall_handler_f)(void* ctxp, uint64_t, uint64_t[6]);
+typedef uint64_t (*lfi_syshandler)(void* ctxp, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 struct lfi_options {
     int noverify;
-    int fast_yield;
-    size_t page_size;
-    size_t stack_size;
-    rtcall_handler_f syscall_handler;
+    int fastyield;
+    size_t pagesize;
+    size_t stacksize;
+    lfi_syshandler syshandler;
 };
 
 struct lfi_proc_info {
     void* stack;
-    size_t stack_size;
-    uint64_t last_va;
-    uint64_t elf_entry;
-    uint64_t elf_base;
-    uint64_t elf_phoff;
-    uint16_t elf_phnum;
-    uint16_t elf_phentsize;
+    size_t stacksize;
+    uint64_t lastva;
+    uint64_t elfentry;
+    uint64_t elfbase;
+    uint64_t elfphoff;
+    uint16_t elfphnum;
+    uint16_t elfphentsize;
 };
 
 // Create a new LFI engine with the following options. Returns the new object
@@ -128,11 +128,9 @@ void lfi_delete(struct lfi* lfi);
 // Start running a given process.
 void lfi_proc_start(struct lfi_proc* proc, uintptr_t entry, void* stack, size_t stack_size);
 
-// Fetch the register file for the given process and put it in `regs`.
-void lfi_proc_get_regs(struct lfi_proc* proc, struct lfi_regs* regs);
-
-// Copy the contents of `regs` into the process's register file.
-void lfi_proc_set_regs(struct lfi_proc* proc, struct lfi_regs* regs);
+// Fetch the register file for the given process and put it in `regs`. The regs can then be
+// edited by modifying the returned pointer.
+struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc);
 
 // Copy an LFI process. This function returns a new process initialized with
 // the current state of `proc`. It will be given a new sandbox slot. This

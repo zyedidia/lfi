@@ -245,7 +245,7 @@ ssize sys_write(Proc* p, int fd, uintptr buf, usize size) {
     }
     ssize i = 0;
     while (size > 0) {
-        ssize n = file.write(file.dev, p, cast(ubyte*) buf, size);
+        ssize n = file.write(file.dev, p, cast(ubyte*) &buf[i], size);
         i += n;
         if (n < size) {
             break;
@@ -535,10 +535,10 @@ int sys_pipe2(Proc* p, uintptr pipefd, int flags) {
     }
 
     fd0 = p.fdtable.alloc(f0);
-    if (!f0)
+    if (f0 < 0)
         goto err2;
     fd1 = p.fdtable.alloc(f1);
-    if (!f1)
+    if (f1 < 0)
         goto err3;
 
     pipes[0] = fd0;

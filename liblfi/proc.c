@@ -110,7 +110,7 @@ extern void lfi_yield_entry() asm ("lfi_yield_entry");
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
-    if (proc->lfi->opts.fast_yield) {
+    if (proc->lfi->opts.fastyield) {
         table->rtcalls[1] = (uintptr_t) &lfi_yield_entry;
     }
     table->proc = proc;
@@ -151,12 +151,12 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     }
 
     struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.page_size, GUARD_SIZE, PROT_NONE);
+    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[0]));
     proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[1]));
 
-    size_t stack_size = proc->lfi->opts.stack_size;
+    size_t stack_size = proc->lfi->opts.stacksize;
     proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
     if (!lfi_mem_valid(&proc->stack)) {
         err = LFI_ERR_INVALID_STACK;
@@ -166,7 +166,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     uintptr_t base = proc->guards[0].base + proc->guards[0].size;
     uintptr_t last = 0;
 
-    proc->sys = lfi_mem_map(proc->base, proc->lfi->opts.page_size, PROT_READ | PROT_WRITE);
+    proc->sys = lfi_mem_map(proc->base, proc->lfi->opts.pagesize, PROT_READ | PROT_WRITE);
     assert(lfi_mem_valid(&proc->sys));
     sys_setup(proc->sys, proc);
 
@@ -212,13 +212,13 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
     *info = (struct lfi_proc_info) {
         .stack = (void*) proc->stack.base,
-        .stack_size = proc->stack.size,
-        .last_va = last,
-        .elf_entry = base + ehdr->entry,
-        .elf_base = base,
-        .elf_phoff = ehdr->phoff,
-        .elf_phnum = ehdr->phnum,
-        .elf_phentsize = ehdr->phentsize,
+        .stacksize = proc->stack.size,
+        .lastva = last,
+        .elfentry = base + ehdr->entry,
+        .elfbase = base,
+        .elfphoff = ehdr->phoff,
+        .elfphnum = ehdr->phnum,
+        .elfphentsize = ehdr->phentsize,
     };
 
     return 0;
@@ -228,12 +228,8 @@ err1:;
     return err;
 }
 
-void lfi_proc_get_regs(struct lfi_proc* proc, struct lfi_regs* regs) {
-    *regs = proc->regs;
-}
-
-void lfi_proc_set_regs(struct lfi_proc* proc, struct lfi_regs* regs) {
-    proc->regs = *regs;
+struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc) {
+    return &proc->regs;
 }
 
 struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) {
@@ -257,11 +253,9 @@ void lfi_syscall_handler(struct lfi_proc* proc) {
     uint64_t a4 = proc->regs.x4;
     uint64_t a5 = proc->regs.x5;
 
-    assert(proc->lfi->opts.syscall_handler);
+    assert(proc->lfi->opts.syshandler);
 
-    uint64_t args[6] = {a0, a1, a2, a3, a4, a5};
-
-    uint64_t ret = proc->lfi->opts.syscall_handler(proc->ctxp, sysno, args);
+    uint64_t ret = proc->lfi->opts.syshandler(proc->ctxp, sysno, a0, a1, a2, a3, a4, a5);
 
     proc->regs.x0 = ret;
 }
