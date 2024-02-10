@@ -49,6 +49,7 @@ func main() {
 	} else {
 		branchPass(ops)
 		fixupReservedPass(ops)
+		posObliviousPass(ops)
 		if *opt >= 2 {
 			rangePass(ops)
 		}
