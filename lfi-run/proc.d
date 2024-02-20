@@ -446,6 +446,10 @@ err1:
         return (cast(uint) p) | base;
     }
 
+    uintptr addrpoc(uintptr p) {
+        return (cast(uint) p);
+    }
+
     bool checkptr(uintptr ptr, usize size) {
         // TODO: check if ptr is accessible?
         return ptr + size < base + PROC_SIZE && ptr >= base;

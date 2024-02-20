@@ -10,10 +10,12 @@ struct Flags {
     enum {
         NOVERIFY = "no-verify",
         VERBOSE = "verbose",
+        POC = "poc",
     }
 
     bool noverify;
     bool verbose;
+    bool poc;
 }
 
 __gshared Flags flags;
@@ -65,6 +67,8 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
             flags.noverify = true;
         } else if (strncmp(arg, Flags.VERBOSE.ptr, Flags.VERBOSE.length) == 0) {
             flags.verbose = true;
+        } else if (strncmp(arg, Flags.POC.ptr, Flags.POC.length) == 0) {
+            flags.poc = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
             return 1;

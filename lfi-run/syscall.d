@@ -9,6 +9,7 @@ import proc;
 import file;
 import schedule;
 import pipe;
+import main = main;
 
 extern (C) void syscall_handler(Proc* p) {
     ulong sysno = p.regs.x8;
@@ -334,6 +335,10 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
         if (!p.map_fixed(addr, length, prot, flags, fd, offset)) {
             return Err.NOMEM;
         }
+    }
+
+    if (main.flags.poc) {
+        addr = p.addrpoc(addr);
     }
 
     return addr;

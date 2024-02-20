@@ -24,6 +24,7 @@ var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
 var opt = pflag.IntP("opt", "O", 2, "optimization level")
 var noloads = pflag.Bool("no-loads", false, "do not sandbox loads")
 var poc = pflag.Bool("poc", false, "enable position-oblivious code")
+var gas = pflag.Bool("gas", false, "enable gas metering")
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
@@ -52,6 +53,9 @@ func main() {
 		fixupReservedPass(ops)
 		if *poc {
 			posObliviousPass(ops)
+		}
+		if *gas {
+			gasPass(ops)
 		}
 		if *opt >= 2 {
 			rangePass(ops)

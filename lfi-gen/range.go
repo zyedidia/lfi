@@ -100,9 +100,11 @@ loop:
 			builder.Add(mask)
 			break loop
 		case *Inst:
+			modhi, _ := isModify(n, i, hiReg(reg))
+			modlo, _ := isModify(n, i, loReg(reg))
 			if isMask(i, reg, optReg) {
 				break loop
-			} else if mod, _ := isModify(n, i, reg); mod {
+			} else if modhi || modlo {
 				builder.Locate(n)
 				builder.Add(mask)
 				break loop
