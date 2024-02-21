@@ -74,6 +74,9 @@ uint64_t lfi_max_procs(struct lfi* lfi);
 // Return the current number of processes that are currently allocated.
 uint64_t lfi_num_procs(struct lfi* lfi);
 
+// Create an empty and uninitialized proc. Returns NULL on failure.
+struct lfi_proc* lfi_new_proc(void);
+
 // Create a new LFI process in `proc` from the given ELF file. The process is
 // also associated with a context pointer `ctxp` that is passed to the user
 // callback when a runtime call happens. Additional info about the ELF file is
@@ -152,47 +155,5 @@ struct lfi_regs {
     uint64_t tpidr;
     uint64_t vector[64];
 };
-
-// private
-
-struct lfi_vaspace {
-    void* base;
-    size_t size;
-    uint64_t active;
-    struct buddy* alloc;
-};
-
-struct lfi {
-    struct lfi_vaspace vaspaces[LFI_VASPACE_MAX];
-    uint8_t n_vaspaces;
-
-    struct lfi_options opts;
-};
-
-struct lfi_mem {
-    uintptr_t base;
-    size_t size;
-    int prot;
-
-    struct lfi_mem* next;
-    struct lfi_mem* prev;
-};
-
-struct lfi_proc {
-    void* kstackp;
-    struct lfi_regs regs;
-
-    uintptr_t base;
-
-    struct lfi_mem sys;
-    struct lfi_mem guards[2];
-    struct lfi_mem* segments;
-    struct lfi_mem* mmaps;
-    struct lfi_mem stack;
-
-    struct lfi* lfi;
-    void* ctxp;
-};
-
 
 #endif

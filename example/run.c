@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
     readfile(f, &buf, &size);
 
     struct lfi_proc_info info;
-    struct lfi_proc proc;
-    err = lfi_add_proc(&proc, lfi, buf, size, (void*) &proc, &info);
+    struct lfi_proc* proc = lfi_new_proc();
+    err = lfi_add_proc(proc, lfi, buf, size, (void*) proc, &info);
     if (err < 0) {
         fprintf(stderr, "error loading: %d\n", err);
         exit(1);
@@ -78,8 +78,8 @@ int main(int argc, char** argv) {
 
     printf("loaded %s, entry: %lx, stack: %p\n", argv[1], info.elfentry, info.stack);
 
-    lfi_proc_init_regs(&proc, info.elfentry, (uintptr_t) info.stack + info.stacksize - 16);
-    int code = lfi_proc_start(&proc);
+    lfi_proc_init_regs(proc, info.elfentry, (uintptr_t) info.stack + info.stacksize - 16);
+    int code = lfi_proc_start(proc);
 
     printf("exited with code %d\n", code);
 

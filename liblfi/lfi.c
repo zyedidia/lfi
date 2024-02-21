@@ -164,6 +164,10 @@ void lfi_delete(struct lfi* lfi) {
     free(lfi);
 }
 
+struct lfi_proc* lfi_new_proc(void) {
+    return malloc(sizeof(struct lfi_proc));
+}
+
 int lfi_add_proc(struct lfi_proc* proc, struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info) {
     if (lfi_is_full(lfi)) {
         return LFI_ERR_NOSLOT;
