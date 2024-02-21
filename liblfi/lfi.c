@@ -164,16 +164,9 @@ void lfi_delete(struct lfi* lfi) {
     free(lfi);
 }
 
-struct lfi_proc* lfi_add_proc(struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info, int* err) {
+int lfi_add_proc(struct lfi_proc* proc, struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info) {
     if (lfi_is_full(lfi)) {
-        if (err) *err = LFI_ERR_NOSLOT;
-        return NULL;
-    }
-
-    struct lfi_proc* proc = malloc(sizeof(struct lfi_proc));
-    if (!proc) {
-        if (err) *err = LFI_ERR_NOMEM;
-        return NULL;
+        return LFI_ERR_NOSLOT;
     }
 
     *proc = (struct lfi_proc) {
@@ -184,11 +177,10 @@ struct lfi_proc* lfi_add_proc(struct lfi* lfi, uint8_t* prog, size_t size, void*
 
     int err_exec = lfi_proc_exec(proc, prog, size, info);
     if (err_exec < 0) {
-        if (err) *err = err_exec;
-        return NULL;
+        return err_exec;
     }
 
-    return proc;
+    return 0;
 }
 
 void lfi_remove_proc(struct lfi* lfi, struct lfi_proc* proc) {

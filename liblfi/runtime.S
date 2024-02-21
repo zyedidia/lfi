@@ -59,10 +59,20 @@
 .globl lfi_proc_entry
 lfi_proc_entry:
 	// save stack to kstackp
+	stp x29, x30, [sp, #-16]!
 	mov x2, sp
 	str x2, [x1]
 	b lfi_restore_regs
 	brk #0
+
+// lfi_asm_proc_exit(uintptr kstackp)
+.align 16
+.globl lfi_asm_proc_exit
+lfi_asm_proc_exit:
+	mov sp, x0
+	mov x0, x1
+	ldp x29, x30, [sp], 16
+	ret
 
 .align 16
 .globl lfi_syscall_entry

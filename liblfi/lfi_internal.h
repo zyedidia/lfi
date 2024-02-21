@@ -7,45 +7,6 @@ enum {
     LFI_PROC_SIZE  = 4ULL * 1024 * 1024 * 1024,
 };
 
-struct lfi_vaspace {
-    void* base;
-    size_t size;
-    uint64_t active;
-    struct buddy* alloc;
-};
-
-struct lfi {
-    struct lfi_vaspace vaspaces[LFI_VASPACE_MAX];
-    uint8_t n_vaspaces;
-
-    struct lfi_options opts;
-};
-
-struct lfi_mem {
-    uintptr_t base;
-    size_t size;
-    int prot;
-
-    struct lfi_mem* next;
-    struct lfi_mem* prev;
-};
-
-struct lfi_proc {
-    void* kstackp;
-    struct lfi_regs regs;
-
-    uintptr_t base;
-
-    struct lfi_mem sys;
-    struct lfi_mem guards[2];
-    struct lfi_mem* segments;
-    struct lfi_mem* mmaps;
-    struct lfi_mem stack;
-
-    struct lfi* lfi;
-    void* ctxp;
-};
-
 uintptr_t lfi_is_full(struct lfi* lfi);
 
 uintptr_t lfi_alloc_slot(struct lfi* lfi);

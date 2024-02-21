@@ -270,7 +270,7 @@ void lfi_syscall_handler(struct lfi_proc* proc) {
     proc->regs.x0 = ret;
 }
 
-extern void lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
+extern int lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
 
 void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
     proc->regs.x30 = entry;
@@ -281,8 +281,14 @@ void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
     proc->regs.sp = sp;
 }
 
-void lfi_proc_start(struct lfi_proc* proc) {
-    lfi_proc_entry(proc, &proc->kstackp);
+int lfi_proc_start(struct lfi_proc* proc) {
+    return lfi_proc_entry(proc, &proc->kstackp);
+}
+
+extern void lfi_asm_proc_exit(void* kstackp, int code) asm ("lfi_asm_proc_exit");
+
+void lfi_proc_exit(struct lfi_proc* proc, int code) {
+    lfi_asm_proc_exit(proc->kstackp, code);
 }
 
 uintptr_t lfi_proc_base(struct lfi_proc* proc) {

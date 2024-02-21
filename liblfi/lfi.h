@@ -5,45 +5,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-struct lfi_regs {
-    uint64_t x0;
-    uint64_t x1;
-    uint64_t x2;
-    uint64_t x3;
-    uint64_t x4;
-    uint64_t x5;
-    uint64_t x6;
-    uint64_t x7;
-    uint64_t x8;
-    uint64_t x9;
-    uint64_t x10;
-    uint64_t x11;
-    uint64_t x12;
-    uint64_t x13;
-    uint64_t x14;
-    uint64_t x15;
-    uint64_t x16;
-    uint64_t x17;
-    uint64_t x18;
-    uint64_t x19;
-    uint64_t x20;
-    uint64_t x21;
-    uint64_t x22;
-    uint64_t x23;
-    uint64_t x24;
-    uint64_t x25;
-    uint64_t x26;
-    uint64_t x27;
-    uint64_t x28;
-    uint64_t x29;
-    uint64_t x30;
-    uint64_t sp;
-    uint64_t nzcv;
-    uint64_t fpsr;
-    uint64_t tpidr;
-    uint64_t vector[64];
-};
-
 enum {
     LFI_VASPACE_MAX = 16,
 };
@@ -69,6 +30,8 @@ enum {
 struct lfi;
 
 struct lfi_proc;
+
+struct lfi_regs;
 
 typedef uint64_t (*lfi_syshandler)(void* ctxp, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
@@ -111,12 +74,11 @@ uint64_t lfi_max_procs(struct lfi* lfi);
 // Return the current number of processes that are currently allocated.
 uint64_t lfi_num_procs(struct lfi* lfi);
 
-// Create a new LFI process from the given ELF file. The process is also
-// associated with a context pointer `ctxp` that is passed to the user callback
-// when a runtime call happens. Additional info about the ELF file is placed in
-// `info`. If an error occurs, the function returns null and places the error
-// code in `err` (if it is non-null).
-struct lfi_proc* lfi_add_proc(struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info, int* err);
+// Create a new LFI process in `proc` from the given ELF file. The process is
+// also associated with a context pointer `ctxp` that is passed to the user
+// callback when a runtime call happens. Additional info about the ELF file is
+// placed in `info`. If an error occurs, the function returns the error.
+int lfi_add_proc(struct lfi_proc* proc, struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info);
 
 // Remove a process from the LFI engine. This frees the sandbox slot used by
 // the given process and frees the process as well.
@@ -129,7 +91,12 @@ void lfi_delete(struct lfi* lfi);
 void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp);
 
 // Start running a given process.
-void lfi_proc_start(struct lfi_proc* proc);
+int lfi_proc_start(struct lfi_proc* proc);
+
+// Exit a process. This causes execution to redirect to where lfi_proc_start
+// was called, as if that function has now returned. The error code is returned
+// from lfi_proc_start.
+void lfi_proc_exit(struct lfi_proc* proc, int code);
 
 // Fetch the register file for the given process and put it in `regs`. The regs can then be
 // edited by modifying the returned pointer.
@@ -146,5 +113,86 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
 // Return the base address of the process.
 uintptr_t lfi_proc_base(struct lfi_proc* proc);
+
+struct lfi_regs {
+    uint64_t x0;
+    uint64_t x1;
+    uint64_t x2;
+    uint64_t x3;
+    uint64_t x4;
+    uint64_t x5;
+    uint64_t x6;
+    uint64_t x7;
+    uint64_t x8;
+    uint64_t x9;
+    uint64_t x10;
+    uint64_t x11;
+    uint64_t x12;
+    uint64_t x13;
+    uint64_t x14;
+    uint64_t x15;
+    uint64_t x16;
+    uint64_t x17;
+    uint64_t x18;
+    uint64_t x19;
+    uint64_t x20;
+    uint64_t x21;
+    uint64_t x22;
+    uint64_t x23;
+    uint64_t x24;
+    uint64_t x25;
+    uint64_t x26;
+    uint64_t x27;
+    uint64_t x28;
+    uint64_t x29;
+    uint64_t x30;
+    uint64_t sp;
+    uint64_t nzcv;
+    uint64_t fpsr;
+    uint64_t tpidr;
+    uint64_t vector[64];
+};
+
+// private
+
+struct lfi_vaspace {
+    void* base;
+    size_t size;
+    uint64_t active;
+    struct buddy* alloc;
+};
+
+struct lfi {
+    struct lfi_vaspace vaspaces[LFI_VASPACE_MAX];
+    uint8_t n_vaspaces;
+
+    struct lfi_options opts;
+};
+
+struct lfi_mem {
+    uintptr_t base;
+    size_t size;
+    int prot;
+
+    struct lfi_mem* next;
+    struct lfi_mem* prev;
+};
+
+struct lfi_proc {
+    void* kstackp;
+    struct lfi_regs regs;
+
+    uintptr_t base;
+
+    struct lfi_mem sys;
+    struct lfi_mem guards[2];
+    struct lfi_mem* segments;
+    struct lfi_mem* mmaps;
+    struct lfi_mem stack;
+
+    struct lfi* lfi;
+    void* ctxp;
+};
+
 
 #endif
