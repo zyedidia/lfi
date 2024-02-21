@@ -52,34 +52,37 @@ instloop:
 			builder.Locate(op)
 			if inst.Name == "add" || inst.Name == "sub" {
 				if r, ok := inst.Args[0].(Reg); ok && r == "sp" {
-					o := op
-					for o != nil {
-						if inner, ok := o.Value.(*Inst); ok {
-							if loads[inner.Name] || multiloads[inner.Name] || stores[inner.Name] || multistores[inner.Name] {
-								var m Arg
-								if loads[inner.Name] || stores[inner.Name] {
-									m = inner.Args[1]
-								} else {
-									m = inner.Args[2]
+					if len(inst.Args) < 4 {
+						// only apply optimizations when there is no shift modifier
+						o := op
+						for o != nil {
+							if inner, ok := o.Value.(*Inst); ok {
+								if loads[inner.Name] || multiloads[inner.Name] || stores[inner.Name] || multistores[inner.Name] {
+									var m Arg
+									if loads[inner.Name] || stores[inner.Name] {
+										m = inner.Args[1]
+									} else {
+										m = inner.Args[2]
+									}
+									var base Reg
+									switch m := m.(type) {
+									case MemAddr:
+										base = m.Reg
+									case MemAddrPost:
+										base = m.Reg
+									case MemAddrPre:
+										base = m.Reg
+									}
+									if base == "sp" {
+										op = op.Next
+										continue instloop
+									}
+								} else if branches[inner.Name] {
+									break
 								}
-								var base Reg
-								switch m := m.(type) {
-								case MemAddr:
-									base = m.Reg
-								case MemAddrPost:
-									base = m.Reg
-								case MemAddrPre:
-									base = m.Reg
-								}
-								if base == "sp" {
-									op = op.Next
-									continue instloop
-								}
-							} else if branches[inner.Name] {
-								break
 							}
+							o = o.Next
 						}
-						o = o.Next
 					}
 					inst.Args[0] = loReg(scratchReg)
 					inst.Args[1] = loReg(inst.Args[1].(Reg))

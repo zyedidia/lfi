@@ -3,7 +3,7 @@ extern crate alloc;
 use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
 use alloc::format;
 use bad64::Imm::{Signed, Unsigned};
-use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, Shift::LSL, SysReg};
+use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
 
 const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
@@ -183,16 +183,9 @@ fn ok_mod(
         if ok_check_sp(iter.peek_range(0, 2)) {
             return true;
         }
-        if (inst.op() == Op::ADD || inst.op() == Op::SUB)
-            && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: Some(LSL(n)) } if (x << n) <= 1024 * 48)
-                || matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x <= 1024 * 48)
-                || matches!(
-                    inst.operands()[2],
-                    Operand::Imm64 {
-                        imm: Signed(_),
-                        shift: None
-                    }
-                ))
+        if (inst.op() == Op::ADD || inst.op() == Op::SUB) && matches!(inst.operands()[1], Operand::Reg { reg: r, .. } if r == SP_REG)
+            && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x < 1024 * 4)
+                || matches!(inst.operands()[2], Operand::Imm64 { imm: Signed(x), shift: None } if x.abs() < 1024 * 4))
         {
             let mut modifications = 1;
             while let Some(maybe_inst) = iter.peek() {
