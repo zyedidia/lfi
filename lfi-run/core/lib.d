@@ -66,6 +66,8 @@ void* mremap(void* old, usize old_size, usize new_size, int flags);
 
 noreturn exit(int status);
 
+int getpagesize();
+
 __gshared {
     extern void* stdout;
     extern void* stderr;

@@ -41,8 +41,6 @@ bool __equals(scope const string lhs, scope const string rhs) {
     return true;
 }
 
-version (page16k) {
-    enum PAGESIZE = 4096 * 4;
-} else {
-    enum PAGESIZE = 4096;
+__gshared {
+    usize PAGESIZE = 4096;
 }

@@ -37,7 +37,7 @@ enum {
 }
 
 // This will fail if using 64kB pages and 48kB guards.
-static assert(GUARD_SIZE % PAGESIZE == 0);
+// static assert(GUARD_SIZE % PAGESIZE == 0);
 
 struct Cwd {
     char[PATH_MAX] name;
@@ -617,7 +617,7 @@ struct SysTable {
     }
 }
 
-static assert(SysTable.sizeof <= PAGESIZE);
+// static assert(SysTable.sizeof <= PAGESIZE);
 
 private bool elf_check(FileHeader* ehdr) {
     return ehdr.magic == ELF_MAGIC &&

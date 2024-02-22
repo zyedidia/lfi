@@ -23,7 +23,7 @@ __gshared Flags flags;
 void show_maps() {
     void* maps = fopen("/proc/self/maps".ptr, "r".ptr);
     assert(maps);
-    ubyte[PAGESIZE] buf;
+    ubyte[4096] buf;
     while (fread(buf.ptr, 1, buf.length, maps) > 0) {
         write(fileno(stdout), buf.ptr, buf.length);
     }
@@ -48,6 +48,7 @@ void usage() {
 
 extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
     set_nofile_max();
+    PAGESIZE = getpagesize();
 
     // Linux maps the stack at 262140 GiB, so we are ending the proc space at
     // 262100 to be safe (we could increase this to get a few more sandboxes).
