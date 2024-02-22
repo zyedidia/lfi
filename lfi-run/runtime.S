@@ -73,10 +73,6 @@ syscall_entry:
 	b  restore_partial_regs
 	brk #0
 
-.globl yield_entry
-yield_entry:
-	brk #0
-
 // Restore only caller-saved registers.
 .globl restore_partial_regs
 restore_partial_regs:
@@ -98,6 +94,18 @@ restore_partial_regs:
 	mov sp, x1
 	ldp x0, x1,   [x0, #8+16*0]
 	ret
+
+// Yields directly to the sandbox referred to in x0, specified by pid. If no
+// such sandbox exists, this will trap and the runtime can handle the fault.
+.globl yield_entry
+yield_entry:
+	SAVE_REGS
+	lsl x21, x0, #32
+	// This access assumes every 4GB-aligned page is either accessible and
+	// corresponds to a valid sandbox, or is inaccessible and will cause a
+	// trap.
+	ldr x0, [x21, #N_RTCALLS*8]
+	// fallthrough to restore_regs
 
 // restore_regs(Proc* p)
 // Restores registers from the given Proc struct.
