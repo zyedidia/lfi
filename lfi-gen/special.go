@@ -52,7 +52,7 @@ instloop:
 			builder.Locate(op)
 			if inst.Name == "add" || inst.Name == "sub" {
 				if r, ok := inst.Args[0].(Reg); ok && r == "sp" {
-					if len(inst.Args) < 4 {
+					if r2, ok := inst.Args[1].(Reg); ok && r2 == "sp" && len(inst.Args) < 4 {
 						// only apply optimizations when there is no shift modifier
 						o := op
 						for o != nil {
