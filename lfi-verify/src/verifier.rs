@@ -314,6 +314,17 @@ impl Verifier {
         }
     }
 
+    fn check_rel_load(self: &mut Self, inst: &Instruction) {
+        let operand = match inst.op() {
+            Op::LDR => inst.operands()[1],
+            Op::LDRSW => inst.operands()[1],
+            _ => return
+        };
+        if let Operand::Label(_) = operand {
+            self.error(inst, "disallowed relative load");
+        }
+    }
+
     pub fn check_insn(
         self: &mut Self,
         inst: &Instruction,
@@ -329,6 +340,8 @@ impl Verifier {
         self.check_branch(&inst);
         // make sure system instructions (MRS/MSR) only access legal registers
         self.check_sys(&inst);
+        // check relative memory accesses (only ldr{sw})
+        self.check_rel_load(&inst);
 
         // check memory addressing operands for legality
         for op in inst.operands().iter() {
