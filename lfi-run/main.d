@@ -11,11 +11,13 @@ struct Flags {
         NOVERIFY = "no-verify",
         VERBOSE = "verbose",
         POC = "poc",
+        GAS = "gas",
     }
 
     bool noverify;
     bool verbose;
     bool poc;
+    bool gas;
 }
 
 __gshared Flags flags;
@@ -70,6 +72,8 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
             flags.verbose = true;
         } else if (strncmp(arg, Flags.POC.ptr, Flags.POC.length) == 0) {
             flags.poc = true;
+        } else if (strncmp(arg, Flags.GAS.ptr, Flags.GAS.length) == 0) {
+            flags.gas = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
             return 1;

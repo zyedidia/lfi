@@ -10,6 +10,7 @@ const (
 	optReg2    = Reg("x24")
 	spReg      = Reg("sp")
 	retReg     = Reg("x30")
+	gasReg     = Reg("x23")
 )
 
 var sandboxed = map[Reg]bool{

@@ -1,6 +1,7 @@
 module regs;
 
 import proc;
+import main = main;
 
 struct Regs {
     ulong x0;
@@ -44,16 +45,22 @@ struct Regs {
         x21 = base;
         x30 = entry;
         x18 = base;
-        x23 = base;
-        x24 = base;
+        if (main.flags.gas) {
+            x23 = 100000;
+        } else {
+            x23 = base;
+            x24 = base;
+        }
     }
 
     void validate(Proc* p) {
         x21 = p.base;
         x30 = p.addr(x30);
         x18 = p.addr(x18);
-        x23 = p.addr(x23);
-        x24 = p.addr(x24);
+        if (!main.flags.gas) {
+            x23 = p.addr(x23);
+            x24 = p.addr(x24);
+        }
         sp = p.addr(sp);
     }
 };

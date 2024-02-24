@@ -54,10 +54,7 @@ func main() {
 		if *poc {
 			posObliviousPass(ops)
 		}
-		if *gas {
-			gasPass(ops)
-		}
-		if *opt >= 2 {
+		if *opt >= 2 && !*gas {
 			rangePass(ops)
 		}
 		memPass(ops)
@@ -66,8 +63,11 @@ func main() {
 		if *instrument {
 			instrumentPass(ops)
 		}
-		if *opt >= 2 && !*noloads {
+		if *opt >= 2 && !*noloads && !*gas {
 			preExtensionPass(ops)
+		}
+		if *gas {
+			gasPass(ops)
 		}
 		branchFixupPass(ops)
 	}
