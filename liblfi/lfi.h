@@ -105,10 +105,10 @@ void lfi_proc_exit(struct lfi_proc* proc, int code);
 // edited by modifying the returned pointer.
 struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc);
 
-// Copy an LFI process. This function returns a new process initialized with
-// the current state of `proc`. It will be given a new sandbox slot. This
-// function can be used to implement a "fork" operation.
-struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp);
+// Copy an LFI process. This function creates a new process initialized with
+// the current state of `proc` in the `childp` pointer. It will be given a new
+// sandbox slot. This function can be used to implement a "fork" operation.
+int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* proc, void* new_ctxp);
 
 // Reset a process's address space and load the given ELF file into its
 // address space. This can be used to implement an "execve" operation.

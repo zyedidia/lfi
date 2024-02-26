@@ -12,6 +12,19 @@ enum {
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
 };
 
+static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
+    return base | ((uint32_t) addr);
+}
+
+static void regs_validate(struct lfi_proc* proc) {
+    proc->regs.x21 = proc->base;
+    proc->regs.x30 = proc_addr(proc->base, proc->regs.x30);
+    proc->regs.x18 = proc_addr(proc->base, proc->regs.x18);
+    proc->regs.x23 = proc_addr(proc->base, proc->regs.x23);
+    proc->regs.x24 = proc_addr(proc->base, proc->regs.x24);
+    proc->regs.sp = proc_addr(proc->base, proc->regs.sp);
+}
+
 static int elf_check(struct elf_file_header* ehdr) {
     return ehdr->magic == ELF_MAGIC &&
         ehdr->width == ELFCLASS64 &&
@@ -25,6 +38,10 @@ static int prot_exec(int flags) {
 
 static int prot_write(int flags) {
     return (flags & PROT_WRITE) != 0;
+}
+
+static int prot_read(int flags) {
+    return (flags & PROT_READ) != 0;
 }
 
 static int pflags(int prot) {
@@ -64,6 +81,7 @@ static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, i
     if (mprotect((void*) mem->base, mem->size, prot) != 0) {
         return LFI_ERR_PROTECTION;
     }
+    mem->prot = prot;
     return 0;
 }
 
@@ -78,6 +96,29 @@ static int lfi_mem_unmap(struct lfi_mem* mem) {
     munmap((void*) mem->base, mem->size);
     mem->base = (uintptr_t) -1;
     return 0;
+}
+
+static struct lfi_mem lfi_mem_copy_to(struct lfi_mem* mem, uintptr_t newbase) {
+    // Force writable so that we can copy to into it.
+    int prot = mem->prot;
+    if (prot_read(prot)) {
+        prot |= PROT_WRITE;
+        prot &= ~PROT_EXEC;
+    }
+    struct lfi_mem copy = lfi_mem_map(proc_addr(newbase, mem->base), mem->size, prot);
+    if (!lfi_mem_valid(&copy)) {
+        return copy;
+    }
+    if (prot_read(mem->prot)) {
+        // Copy and reset permissions.
+        memcpy((void*) copy.base, (void*) mem->base, mem->size);
+        if (mem->prot != prot) {
+            // No verification necessary since we are copying from an existing
+            // region (already verified).
+            lfi_mem_protect(&copy, newbase, mem->prot, 1);
+        }
+    }
+    return copy;
 }
 
 static int lfi_mem_append(struct lfi_mem** mem, struct lfi_mem add) {
@@ -108,13 +149,16 @@ extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 extern void lfi_yield_entry() asm ("lfi_yield_entry");
 
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
+    lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
     if (proc->lfi->opts.fastyield) {
         table->rtcalls[1] = (uintptr_t) &lfi_yield_entry;
     }
     table->proc = proc;
+    // TODO: problem for multi-threading with thread locals
     table->k_tpidr = rd_tpidr();
+    lfi_mem_protect(&sys, proc->base, PROT_READ, 0);
 }
 
 static void lfi_proc_clear(struct lfi_mem** mems) {
@@ -134,7 +178,6 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_mem_unmap(&proc->sys);
     lfi_mem_unmap(&proc->stack);
     lfi_proc_clear(&proc->segments);
-    lfi_proc_clear(&proc->mmaps);
 }
 
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
@@ -242,8 +285,31 @@ struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc) {
     return &proc->regs;
 }
 
-struct lfi_proc* lfi_proc_copy(struct lfi_proc* proc, void* new_ctxp) {
-    return NULL;
+int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* proc, void* new_ctxp) {
+    if (lfi_is_full(lfi)) {
+        return LFI_ERR_NOSLOT;
+    }
+    struct lfi_proc* child = *childp;
+    *child = (struct lfi_proc) {
+        .base = lfi_alloc_slot(lfi),
+        .lfi = lfi,
+        .ctxp = new_ctxp,
+        .regs = proc->regs,
+    };
+
+    child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base);
+    child->guards[1] = lfi_mem_copy_to(&proc->guards[1], child->base);
+    child->stack = lfi_mem_copy_to(&proc->stack, child->base);
+    struct lfi_mem* segment = proc->segments;
+    while (segment) {
+        lfi_mem_append(&child->segments, lfi_mem_copy_to(segment, child->base));
+        segment = segment->next;
+    }
+    child->sys = lfi_mem_copy_to(&proc->sys, child->base);
+    sys_setup(child->sys, child);
+    regs_validate(child);
+
+    return 0;
 }
 
 void lfi_proc_free(struct lfi_proc* proc) {
