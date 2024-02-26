@@ -3,3 +3,5 @@ nop
 
 foo:
 	ret
+
+blr x0

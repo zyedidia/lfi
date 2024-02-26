@@ -122,6 +122,12 @@ var multistores = map[string]bool{
 	"stnp": true,
 }
 
+var indbranches = map[string]bool{
+	"blr": true,
+	"br":  true,
+	"ret": true,
+}
+
 var branches = map[string]bool{
 	"b":    true,
 	"b.eq": true,
@@ -161,6 +167,13 @@ func IsStore(op Op) bool {
 func IsBranch(op Op) bool {
 	if i, ok := op.(*Inst); ok {
 		return branches[i.Name]
+	}
+	return false
+}
+
+func IsDirectBranch(op Op) bool {
+	if i, ok := op.(*Inst); ok {
+		return branches[i.Name] && !indbranches[i.Name]
 	}
 	return false
 }
