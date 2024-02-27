@@ -9,6 +9,7 @@
 	stp x2, x3,   [x21, #8+16*1]
 	stp x4, x5,   [x21, #8+16*2]
 	stp x6, x7,   [x21, #8+16*3]
+	stp x8, x9,   [x21, #8+16*4]
 	stp x18, x19, [x21, #8+16*9]
 	str x20,      [x21, #8+16*10]
 	stp x22, x23, [x21, #8+16*11]
@@ -77,7 +78,7 @@ lfi_asm_proc_exit:
 .align 16
 .globl lfi_syscall_entry
 lfi_syscall_entry:
-	SAVE_PARTIAL_REGS
+	SAVE_REGS
 	ldr x0, [x21, #N_RTCALLS*8+8] // load kernel tpidr_el0
 	msr tpidr_el0, x0
 	ldr x0, [x21, #N_RTCALLS*8]  // load Proc*
@@ -85,7 +86,7 @@ lfi_syscall_entry:
 	mov sp, x1
 	bl lfi_syscall_handler
 	ldr x0, [x21, #N_RTCALLS*8]
-	b  lfi_restore_partial_regs
+	b  lfi_restore_regs
 	brk #0
 
 .align 16
@@ -130,16 +131,11 @@ lfi_restore_regs:
 	ldp x2, x3,   [x0, #8+16*1]
 	ldp x4, x5,   [x0, #8+16*2]
 	ldp x6, x7,   [x0, #8+16*3]
-	mov x8, #0
-	mov x9, #0
-	mov x10, #0
-	mov x11, #0
-	mov x12, #0
-	mov x13, #0
-	mov x14, #0
-	mov x15, #0
-	mov x16, #0
-	mov x17, #0
+	ldp x8, x9,   [x0, #8+16*4]
+	ldp x10, x11, [x0, #8+16*5]
+	ldp x12, x13, [x0, #8+16*6]
+	ldp x14, x15, [x0, #8+16*7]
+	ldp x16, x17, [x0, #8+16*8]
 	ldp x18, x19, [x0, #8+16*9]
 	ldp x20, x21, [x0, #8+16*10]
 	ldp x22, x23, [x0, #8+16*11]
