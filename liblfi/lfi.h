@@ -74,14 +74,11 @@ uint64_t lfi_max_procs(struct lfi* lfi);
 // Return the current number of processes that are currently allocated.
 uint64_t lfi_num_procs(struct lfi* lfi);
 
-// Create an empty and uninitialized proc. Returns NULL on failure.
-struct lfi_proc* lfi_new_proc(void);
-
-// Create a new LFI process in `proc` from the given ELF file. The process is
-// also associated with a context pointer `ctxp` that is passed to the user
-// callback when a runtime call happens. Additional info about the ELF file is
-// placed in `info`. If an error occurs, the function returns the error.
-int lfi_add_proc(struct lfi_proc* proc, struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info);
+// Create a new LFI process in `proc`. The process is also associated with a
+// context pointer `ctxp` that is passed to the user callback when a runtime
+// call happens. The process will be runnable after calling lfi_proc_exec and
+// initializing the registers.
+int lfi_add_proc(struct lfi* lfi, struct lfi_proc** proc, void* ctxp);
 
 // Remove a process from the LFI engine. This frees the sandbox slot used by
 // the given process and frees the process as well.

@@ -45,6 +45,8 @@ enum {
     LFI_PROC_SIZE  = 4ULL * 1024 * 1024 * 1024,
 };
 
+struct lfi_proc* lfi_new_proc();
+
 uintptr_t lfi_is_full(struct lfi* lfi);
 
 uintptr_t lfi_alloc_slot(struct lfi* lfi);

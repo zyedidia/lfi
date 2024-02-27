@@ -181,6 +181,10 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
 }
 
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
+    if (proc->guards[0].base != 0) {
+        lfi_proc_clear_regions(proc);
+    }
+
     int err = LFI_ERR_INVALID_ELF;
 
     struct elf_file_header* ehdr = (struct elf_file_header*) prog;
@@ -276,7 +280,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
     return 0;
 
-err1:;
+err1:
     lfi_proc_clear_regions(proc);
     return err;
 }
@@ -289,13 +293,17 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
     if (lfi_is_full(lfi)) {
         return LFI_ERR_NOSLOT;
     }
-    struct lfi_proc* child = *childp;
+    struct lfi_proc* child = lfi_new_proc();
+    if (!child) {
+        return LFI_ERR_NOMEM;
+    }
     *child = (struct lfi_proc) {
         .base = lfi_alloc_slot(lfi),
         .lfi = lfi,
         .ctxp = new_ctxp,
         .regs = proc->regs,
     };
+    *childp = child;
 
     child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base);
     child->guards[1] = lfi_mem_copy_to(&proc->guards[1], child->base);

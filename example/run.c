@@ -36,7 +36,7 @@ static void readfile(FILE* f, void** buf, size_t* size) {
 
 uint64_t syshandler(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     printf("received syscall %ld: %s\n", sysno, (char*) a0);
-    lfi_proc_exit((struct lfi_proc*) ctxp, 42);
+    lfi_proc_exit(*((struct lfi_proc**) ctxp), 42);
 }
 
 int main(int argc, char** argv) {
@@ -68,9 +68,14 @@ int main(int argc, char** argv) {
     size_t size;
     readfile(f, &buf, &size);
 
+    struct lfi_proc* proc;
+    err = lfi_add_proc(lfi, &proc, (void*) &proc);
+    if (err < 0) {
+        fprintf(stderr, "error adding: %d\n", err);
+        exit(1);
+    }
     struct lfi_proc_info info;
-    struct lfi_proc* proc = lfi_new_proc();
-    err = lfi_add_proc(proc, lfi, buf, size, (void*) proc, &info);
+    err = lfi_proc_exec(proc, buf, size, &info);
     if (err < 0) {
         fprintf(stderr, "error loading: %d\n", err);
         exit(1);

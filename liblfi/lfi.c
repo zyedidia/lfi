@@ -168,21 +168,21 @@ struct lfi_proc* lfi_new_proc(void) {
     return malloc(sizeof(struct lfi_proc));
 }
 
-int lfi_add_proc(struct lfi_proc* proc, struct lfi* lfi, uint8_t* prog, size_t size, void* ctxp, struct lfi_proc_info* info) {
+int lfi_add_proc(struct lfi* lfi, struct lfi_proc** proc, void* ctxp) {
     if (lfi_is_full(lfi)) {
         return LFI_ERR_NOSLOT;
     }
 
-    *proc = (struct lfi_proc) {
+    struct lfi_proc* p = lfi_new_proc();
+    if (!p) {
+        return LFI_ERR_NOMEM;
+    }
+    *p = (struct lfi_proc) {
         .base = lfi_alloc_slot(lfi),
         .lfi = lfi,
         .ctxp = ctxp,
     };
-
-    int err_exec = lfi_proc_exec(proc, prog, size, info);
-    if (err_exec < 0) {
-        return err_exec;
-    }
+    *proc = p;
 
     return 0;
 }
