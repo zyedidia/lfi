@@ -177,3 +177,15 @@ func IsDirectBranch(op Op) bool {
 	}
 	return false
 }
+
+func BranchTarget(inst *Inst) Label {
+	// must be a direct branch
+	switch inst.Name {
+	case "cbnz", "cbz":
+		return inst.Args[1].(Label)
+	case "tbnz", "tbz":
+		return inst.Args[2].(Label)
+	default:
+		return inst.Args[0].(Label)
+	}
+}

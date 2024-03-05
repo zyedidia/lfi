@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func gasPass(ops *OpList) {
 	btiPass(ops)
 	markJumps(ops)
@@ -40,6 +38,7 @@ func markJumps(ops *OpList) {
 			if IsDirectBranch(inst) {
 				builder.Locate(op)
 				label := builder.AddBefore(NewNode(Label("1024")))
+				orig := inst
 				// now find the instruction right before the branch
 				if label.Prev != nil {
 					for inst, ok = label.Prev.Value.(*Inst); !ok; inst, ok = label.Prev.Value.(*Inst) {
@@ -50,17 +49,24 @@ func markJumps(ops *OpList) {
 					builder.Locate(label.Prev)
 				}
 				sub := builder.AddBefore(NewNode(&Inst{
-					Name: "subs",
+					Name: "adr",
 					Args: []Arg{
-						gasReg,
-						gasReg,
-						Label(fmt.Sprintf("#(1024f - %s)", string(inst.Args[0].(Label)))),
+						scratchReg,
+						BranchTarget(orig),
 					},
 				}))
 				builder.AddBefore(NewNode(&Directive{
 					Val: ".p2align 5",
 				}))
 				builder.Locate(sub)
+				builder.Add(NewNode(&Inst{
+					Name: "subs",
+					Args: []Arg{
+						gasReg,
+						gasReg,
+						scratchReg,
+					},
+				}))
 				builder.Add(NewNode(&Inst{
 					Name: "bcc",
 					Args: []Arg{
@@ -74,7 +80,7 @@ func markJumps(ops *OpList) {
 				op := builder.AddBefore(NewNode(&Inst{
 					Name: "adr",
 					Args: []Arg{
-						loReg(scratchReg),
+						scratchReg,
 						Label("1024f"),
 					},
 				}))
