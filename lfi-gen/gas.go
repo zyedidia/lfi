@@ -57,18 +57,10 @@ func markJumps(ops *OpList) {
 		if inst, ok := op.Value.(*Inst); ok {
 			if IsBranch(inst) {
 				builder.Locate(op)
-				label := builder.AddBefore(NewNode(Label("1024")))
-
-				// now find the instruction right before the branch to pull it in
-				prev := label.Prev
-				if prev != nil {
-					if inst, ok := prev.Value.(*Inst); ok && !IsBranch(inst) {
-						builder.Locate(prev)
-					}
-				}
+				builder.AddBefore(NewNode(Label("1024")))
 
 				sub := builder.AddBefore(NewNode(&Inst{
-					Name: "subs",
+					Name: "sub",
 					Args: []Arg{
 						gasReg,
 						gasReg,
@@ -80,11 +72,21 @@ func markJumps(ops *OpList) {
 				}))
 				builder.Locate(sub)
 				builder.Add(NewNode(&Inst{
-					Name: "bcc",
+					Name: "tbz",
 					Args: []Arg{
-						Label("#(1 << 20 - 4)"),
+						gasReg,
+						Number("63"),
+						Label("1024f"),
 					},
 				}))
+				builder.Add(NewNode(&Inst{
+					Name: "brk",
+					Args: []Arg{
+						Number("0"),
+					},
+				}))
+				builder.Locate(op)
+				builder.Add(NewNode(Label("1023")))
 			}
 		}
 		op = op.Next
