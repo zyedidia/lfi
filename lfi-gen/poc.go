@@ -20,6 +20,10 @@ func posObliviousPass(ops *OpList) {
 					op = op.Next
 					continue
 				}
+				// reading from sp into another register
+				// TODO: this currently causes the read to use x18 as a scratch
+				// register, which may not verify properly if the instruction
+				// writing to x18 is an arbitrary add.
 				for _, a := range inst.Args[1:] {
 					if r, ok := a.(Reg); ok && r == "sp" {
 						builder.Add(NewNode(&Inst{
