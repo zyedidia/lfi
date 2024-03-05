@@ -1,0 +1,8 @@
+return b{
+    $ liblfiverify.a: verifier.o
+        ar rcs $output $input
+    $ verifier.o: verifier.c lfi.bdd.h[I]
+        gcc -O3 -c $input -o $output
+    $ lfi.bdd.h: generator/lfi.bdd
+        xxd -i $input > $output
+}

@@ -1,0 +1,12 @@
+return b{
+    $ lfi.bdd: genbdd
+        ./genbdd lfi.bdd.txt
+        go run bdd.go lfi.bdd.txt > $output
+    $ genbdd: genbdd.o ../capstone/verify.o
+        g++ $input -o $output -lbdd -lcapstone
+    $ %.o: %.cc
+        g++ -c -O2 $input -o $output
+    $ %.o: %.c
+        gcc -c -O2 $input -o $output
+
+}

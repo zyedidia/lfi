@@ -13,3 +13,8 @@ lfi-verify/target
 todo.txt
 *.elf
 *.a
+*.dot
+*.svg
+*.pdf
+*.bdd.txt
+*.bdd.h

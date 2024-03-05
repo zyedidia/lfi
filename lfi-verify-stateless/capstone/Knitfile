@@ -1,0 +1,7 @@
+return b{
+    $ all:VB: generate
+    $ generate: generate.o verify.o
+        gcc $input -o $output -lcapstone
+    $ %.o:D[.dep/%.dep]: %.c
+        gcc -O3 $input -o $output -c
+}
