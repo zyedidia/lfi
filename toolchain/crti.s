@@ -4,7 +4,7 @@
 _init:
 	stp x29,x30,[sp,-16]!
 	mov x29,sp
-	.p2align 3
+	.p2align 4
 
 .section .fini
 .global _fini
@@ -12,4 +12,4 @@ _init:
 _fini:
 	stp x29,x30,[sp,-16]!
 	mov x29,sp
-	.p2align 3
+	.p2align 4
