@@ -8,8 +8,8 @@ mkdir -p $PREFIX
 LLVM_VERSION=15.0.7
 MUSL_VERSION=1.2.4
 
-CC=$PWD/../compiler/lfi-gas-nolib-clang
-CXX=$PWD/../compiler/lfi-gas-nolib-clang++
+CC=$PWD/../compiler/lfi-nolib-clang
+CXX=$PWD/../compiler/lfi-nolib-clang++
 
 if [ ! -d llvm-project-$LLVM_VERSION.src ]; then
     ./download-llvm.sh $LLVM_VERSION
