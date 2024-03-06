@@ -64,7 +64,7 @@ func markJumps(ops *OpList) {
 					Args: []Arg{
 						gasReg,
 						gasReg,
-						Label("#(1024f - 1023b)"),
+						Label("#((1024f - 1023b) / 4)"),
 					},
 				}))
 				builder.AddBefore(NewNode(&Directive{

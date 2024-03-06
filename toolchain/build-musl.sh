@@ -14,6 +14,7 @@ CC=$1
 
 cp memset.S musl-$VERSION/src/string/aarch64/memset.S
 cp getopt.c musl-$VERSION/src/misc/getopt.c
+cp crti.s musl-$VERSION/crt/aarch64/crti.s
 
 export CC=$CC
 export CFLAGS="--rtlib=compiler-rt -resource-dir $COMPRT"

@@ -46,7 +46,8 @@ struct Regs {
         x30 = entry;
         x18 = base;
         if (main.flags.gas) {
-            x23 = 100000;
+            // max gas
+            x23 = 0x7fffffffffffffff;
         } else {
             x23 = base;
             x24 = base;
