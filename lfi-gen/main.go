@@ -36,6 +36,10 @@ func main() {
 		log.Fatal("no input")
 	}
 
+	if (*poc || *gas) && *opt >= 2 {
+		*opt = 1
+	}
+
 	f, err := os.Open(args[0])
 	if err != nil {
 		log.Fatal(err)
@@ -51,19 +55,19 @@ func main() {
 	} else {
 		branchPass(ops)
 		fixupReservedPass(ops)
+		syscallPass(false, ops)
 		if *poc {
 			posObliviousPass(ops)
 		}
-		if *opt >= 2 && !*gas {
+		if *opt >= 2 {
 			rangePass(ops)
 		}
 		memPass(ops)
-		syscallPass(false, ops)
 		specialRegPass(ops)
 		if *instrument {
 			instrumentPass(ops)
 		}
-		if *opt >= 2 && !*noloads && !*gas {
+		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
 		}
 		if *gas {

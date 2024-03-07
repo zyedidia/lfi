@@ -30,11 +30,11 @@ func posObliviousPass(ops *OpList) {
 					builder.AddBefore(NewNode(&Inst{
 						Name: "mov",
 						Args: []Arg{
-							loReg(scratchReg),
+							loReg(Reg("x24")),
 							loReg(retReg),
 						},
 					}))
-					inst.Args[0] = scratchReg
+					inst.Args[0] = Reg("x24")
 					op = op.Next
 					continue
 				}
@@ -43,11 +43,11 @@ func posObliviousPass(ops *OpList) {
 					builder.AddBefore(NewNode(&Inst{
 						Name: "mov",
 						Args: []Arg{
-							loReg(scratchReg),
+							loReg(Reg("x24")),
 							loReg(retReg),
 						},
 					}))
-					inst.Args[1] = scratchReg
+					inst.Args[1] = Reg("x24")
 					op = op.Next
 					continue
 				}
@@ -56,11 +56,11 @@ func posObliviousPass(ops *OpList) {
 					builder.AddBefore(NewNode(&Inst{
 						Name: "mov",
 						Args: []Arg{
-							loReg(scratchReg),
+							loReg(Reg("x24")),
 							loReg(retReg),
 						},
 					}))
-					inst.Args[0] = scratchReg
+					inst.Args[0] = Reg("x24")
 					op = op.Next
 					continue
 				}

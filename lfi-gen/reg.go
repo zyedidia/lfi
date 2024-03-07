@@ -23,7 +23,7 @@ var rangereg = map[Reg]bool{
 }
 
 func sandboxed(r Reg) bool {
-	if *opt >= 2 && !*gas {
+	if *opt >= 2 {
 		return sandboxedreg[r] || rangereg[r]
 	}
 	return sandboxedreg[r]
