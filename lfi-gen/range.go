@@ -200,12 +200,12 @@ func rangeAnalysisPass(ops *OpList) {
 			switch {
 			case basicloads[inst.Name], basicstores[inst.Name], loads[inst.Name], stores[inst.Name]:
 				r, ok := getReg(inst.Args[1])
-				if ok && !sandboxed[r] {
+				if ok && !sandboxed(r) {
 					curLabel.memCounts[r]++
 				}
 			case multiloads[inst.Name], multistores[inst.Name]:
 				r, ok := getReg(inst.Args[2])
-				if ok && !sandboxed[r] {
+				if ok && !sandboxed(r) {
 					curLabel.memCounts[r]++
 				}
 			}

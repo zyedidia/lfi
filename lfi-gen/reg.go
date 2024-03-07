@@ -13,11 +13,20 @@ const (
 	gasReg     = Reg("x23")
 )
 
-var sandboxed = map[Reg]bool{
-	spReg:   true,
-	resReg:  true,
+var sandboxedreg = map[Reg]bool{
+	spReg:  true,
+	resReg: true,
+}
+var rangereg = map[Reg]bool{
 	optReg:  true,
 	optReg2: true,
+}
+
+func sandboxed(r Reg) bool {
+	if *opt >= 2 && !*gas {
+		return sandboxedreg[r] || rangereg[r]
+	}
+	return sandboxedreg[r]
 }
 
 var reserved = map[Reg]bool{

@@ -8,7 +8,7 @@ import (
 func sandboxMemAddr(a *Arg, builder *Builder) bool {
 	switch m := (*a).(type) {
 	case MemAddr:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return true
 		}
 		if m.Reg == segmentReg {
@@ -53,7 +53,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			}
 		}
 	case MemAddrPost:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return true
 		}
 		*a = MemAddrComplex{
@@ -74,7 +74,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 	case MemAddrPostReg:
 		return false
 	case MemAddrPre:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return true
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -93,7 +93,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 			},
 		}
 	case MemAddrComplex:
-		if sandboxed[m.Reg1] {
+		if sandboxed(m.Reg1) {
 			return true
 		}
 		if m.Extend == nil {
@@ -139,7 +139,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 	switch m := (*a).(type) {
 	case MemAddr:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return
 		}
 		if m.Reg == segmentReg {
@@ -160,7 +160,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			Imm: m.Imm,
 		}
 	case MemAddrPre:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -180,12 +180,12 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
-				m.Reg,
-				resReg,
+				loReg(m.Reg),
+				loReg(resReg),
 			},
 		}))
 	case MemAddrPost:
-		if sandboxed[m.Reg] {
+		if sandboxed(m.Reg) {
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{
@@ -205,8 +205,8 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
-				m.Reg,
-				resReg,
+				loReg(m.Reg),
+				loReg(resReg),
 			},
 		}))
 	case MemAddrPostReg:
@@ -232,7 +232,7 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			},
 		}))
 	case MemAddrComplex:
-		if sandboxed[m.Reg1] {
+		if sandboxed(m.Reg1) {
 			return
 		}
 		if m.Extend == nil {

@@ -16,7 +16,7 @@ func posObliviousPass(ops *OpList) {
 				}))
 				inst.Args[0] = scratchReg
 			} else if len(inst.Args) >= 1 {
-				if r, ok := inst.Args[0].(Reg); (ok && r == "sp" || r == "x30" && inst.Name != "str") || !ok {
+				if r, ok := inst.Args[0].(Reg); (ok && r == "sp") || !ok {
 					op = op.Next
 					continue
 				}
@@ -25,11 +25,20 @@ func posObliviousPass(ops *OpList) {
 					op = op.Next
 					continue
 				}
-				if inst.Name == "stp" {
-					if r, ok := inst.Args[1].(Reg); !ok || r != "x30" {
-						op = op.Next
-						continue
-					}
+				if inst.Name == "stp" && inst.Args[0].(Reg) == retReg {
+					builder.Locate(op)
+					builder.AddBefore(NewNode(&Inst{
+						Name: "mov",
+						Args: []Arg{
+							loReg(scratchReg),
+							loReg(retReg),
+						},
+					}))
+					inst.Args[0] = scratchReg
+					op = op.Next
+					continue
+				}
+				if inst.Name == "stp" && inst.Args[1].(Reg) == retReg {
 					builder.Locate(op)
 					builder.AddBefore(NewNode(&Inst{
 						Name: "mov",

@@ -147,7 +147,7 @@ func fixupReservedPass(ops *OpList) {
 				} else if o2 && reserved[r2] {
 					inst.Args[1] = Reg("xzr")
 				} else {
-					if o1 && sandboxed[r1] {
+					if o1 && sandboxed(r1) {
 						if r1 == spReg {
 							log.Fatal("error: loading into stack pointer")
 						}
@@ -163,7 +163,7 @@ func fixupReservedPass(ops *OpList) {
 							},
 						}))
 					}
-					if o2 && sandboxed[r2] {
+					if o2 && sandboxed(r2) {
 						if r2 == spReg {
 							log.Fatal("error: loading into stack pointer")
 						}
