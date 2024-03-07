@@ -54,7 +54,7 @@ func compile(cmdargs []string) {
 	compiler := cmdargs[0]
 
 	var args, lfiargs, inputs, objs []string
-	var compile, assemble, verbose, lto bool
+	var compile, assemble, preprocess, verbose, lto bool
 	var out string
 
 	lfienv := os.Getenv("LFIFLAGS")
@@ -74,6 +74,8 @@ func compile(cmdargs []string) {
 		case "-flto", "-flto=full", "-flto=thin":
 			lto = true
 			args = append(args, arg)
+		case "-E":
+			preprocess = true
 		case "-c":
 			compile = true
 		case "-S":
@@ -125,6 +127,10 @@ func compile(cmdargs []string) {
 
 	if len(inputs) == 0 {
 		var oldout string
+		if preprocess {
+			run(compiler, append(args, "-E")...)
+			return
+		}
 		if lto {
 			oldout = out
 			out = temp(os.TempDir())
@@ -158,7 +164,15 @@ func compile(cmdargs []string) {
 	inputdir := filepath.Dir(input)
 
 	asm := input
-	if lto && compile {
+	if preprocess {
+		flags := []string{
+			"-E",
+			input,
+		}
+		flags = append(flags, args...)
+		run(compiler, flags...)
+		return
+	} else if lto && compile {
 		if out == "" {
 			out = targeto
 		}
