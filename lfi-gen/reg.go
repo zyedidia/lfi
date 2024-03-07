@@ -122,6 +122,8 @@ var regs = map[string]bool{
 	"w30": true,
 	"w31": true,
 	"wsp": true,
+	"xzr": true,
+	"wzr": true,
 }
 
 func IsReg(r string) bool {

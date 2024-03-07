@@ -17,6 +17,8 @@ import cwalk;
 import buddy;
 import sysno;
 
+import main = main;
+
 extern (C) {
     void proc_entry(Proc* p);
     void syscall_entry();
@@ -301,7 +303,7 @@ err1:
                 if (cast(uintptr) p_argvp >= cast(uintptr) stack_top - PAGESIZE) {
                     goto err1;
                 }
-                p_argvp[i] = argv_ptrs[i];
+                p_argvp[i] = cast(char*) this.addrpoc(cast(uintptr) argv_ptrs[i]);
             }
             p_argvp[argc] = null;
             // Empty envp.
@@ -314,11 +316,11 @@ err1:
             // Set up auxv.
             Auxv* av = cast(Auxv*) p_envp;
             *av++ = Auxv(AT_SECURE, 0);
-            *av++ = Auxv(AT_PHDR, seg_base + ehdr.phoff);
+            *av++ = Auxv(AT_PHDR, this.addrpoc(seg_base + ehdr.phoff));
             *av++ = Auxv(AT_PHNUM, ehdr.phnum);
             *av++ = Auxv(AT_PHENT, ProgHeader.sizeof);
-            *av++ = Auxv(AT_ENTRY, entry);
-            *av++ = Auxv(AT_EXECFN, cast(ulong) p_argvp[0]);
+            *av++ = Auxv(AT_ENTRY, this.addrpoc(entry));
+            *av++ = Auxv(AT_EXECFN, this.addrpoc(cast(ulong) p_argvp[0]));
             *av++ = Auxv(AT_PAGESZ, PAGESIZE);
             // *av++ = Auxv(AT_RANDOM, p_argvp_start[0]);
             *av++ = Auxv(AT_HWCAP, 0x0);
@@ -447,7 +449,10 @@ err1:
     }
 
     uintptr addrpoc(uintptr p) {
-        return (cast(uint) p);
+        if (main.flags.poc) {
+            return (cast(uint) p);
+        }
+        return p;
     }
 
     bool checkptr(uintptr ptr, usize size) {

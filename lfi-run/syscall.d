@@ -116,13 +116,13 @@ extern (C) void syscall_handler(Proc* p) {
         ret = 0;
         break;
     default:
-        fprintf(stderr, "unknown syscall: %ld\n", sysno);
+        fprintf(stderr, "unknown syscall: %ld, from %lx\n", sysno, p.regs.x30);
         exit(1);
     }
 
     p.regs.x0 = ret;
 
-    // printf("syscall %ld = %lx\n", sysno, ret);
+    // printf("syscall %ld = %lx from %lx\n", sysno, ret, p.regs.x30);
 }
 
 int sys_openat(Proc* p, int dirfd, uintptr pathname, int flags, int mode) {
@@ -268,7 +268,7 @@ uintptr sys_brk(Proc* p, uintptr addr) {
         usize new_len = p.brkp - cast(uintptr) p.brk.base + BRK_EXPAND;
         p.brk.remap(new_len);
     }
-    return p.brkp;
+    return main.flags.poc ? p.addrpoc(p.brkp) : p.brkp;
 }
 
 noreturn sys_exit(Proc* p, int status) {
@@ -325,7 +325,7 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
 
         // TODO: mprotect the brk page
         if (p.inbrk(addr, length)) {
-            return addr;
+            return main.flags.poc ? p.addrpoc(addr) : addr;
         }
 
         if (!p.checkmap(addr, length)) {
@@ -337,11 +337,7 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
         }
     }
 
-    if (main.flags.poc) {
-        addr = p.addrpoc(addr);
-    }
-
-    return addr;
+    return main.flags.poc ? p.addrpoc(addr) : addr;
 }
 
 int sys_munmap(Proc* p, uintptr addr, usize length) {
