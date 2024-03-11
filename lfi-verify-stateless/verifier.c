@@ -22,7 +22,11 @@ static bool lookup(struct node* nodes, struct node* n, uint32_t val) {
 }
 
 static struct node* bdd_nodes = (struct node*) generator_lfi_bdd;
-static struct node* bdd_entry = (struct node*) (&generator_lfi_bdd)[sizeof(generator_lfi_bdd) / sizeof(struct node) - 1];
+static struct node* bdd_entry = &((struct node*) &generator_lfi_bdd)[(sizeof(generator_lfi_bdd) / sizeof(struct node)) - 1];
+
+bool lfi_verify_insn(uint32_t insn) {
+    return lookup(bdd_nodes, bdd_entry, insn);
+}
 
 bool lfi_verify_bytes(char* b, size_t size, void* error) {
     (void) error;
