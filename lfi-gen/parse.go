@@ -112,6 +112,16 @@ func ParseOp(list *OpList, line string, loc string) error {
 		return nil
 	}
 	if strings.HasPrefix(line, ".") {
+		if strings.HasPrefix(line, ".file") {
+			fields := strings.Fields(line)
+			if len(fields) > 3 {
+				dir := fields[2]
+				dir = dir[1 : len(dir)-1]
+				file := fields[3]
+				file = file[1 : len(file)-1]
+				line = fmt.Sprintf(".file %s \"%s/%s\"", fields[1], dir, file)
+			}
+		}
 		list.PushBack(NewNode(Directive{
 			Val: line,
 		}))
@@ -148,7 +158,7 @@ func ParseFile(in io.Reader, name string) (*OpList, error) {
 		} else {
 			line = strings.TrimSpace(line)
 		}
-		if line == "" || strings.HasPrefix(line, "//") {
+		if line == "" || strings.HasPrefix(line, "//") || strings.HasPrefix(line, ";") {
 			n++
 			continue
 		}

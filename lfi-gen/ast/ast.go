@@ -8,7 +8,7 @@ import (
 )
 
 var lex = lexer.MustSimple([]lexer.SimpleRule{
-	{`Ident`, `[_@.a-zA-Z$][a-zA-Z_\d@.+\d$]*`},
+	{`Ident`, `[\\_@.a-zA-Z$][a-zA-Z_\d@.+\d$]*`},
 	{`Number`, `[-+]?(0x)?[0-9a-fA-F.+\-]+\b`},
 	{`Punct`, `[{},:()\[\]#!+\-]`},
 	{`Newline`, `\r?\n`},
