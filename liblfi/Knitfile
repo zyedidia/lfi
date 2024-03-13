@@ -19,4 +19,8 @@ return b{
         $cc $cflags -MD -MF $dep -c $input -o $output
     $ .%.o: %.S
         $cc -c $input -o $output
+
+    $ install:VB: liblfi.a
+        install $input /usr/local/lib
+        install lfi.h /usr/local/include
 }

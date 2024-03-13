@@ -140,6 +140,7 @@ uintptr_t lfi_is_full(struct lfi* lfi) {
 uintptr_t lfi_alloc_slot(struct lfi* lfi) {
     for (uint8_t i = 0; i < lfi->n_vaspaces; i++) {
         if (!buddy_is_full(lfi->vaspaces[i].alloc)) {
+            lfi->vaspaces[i].active++;
             return (uintptr_t) buddy_malloc(lfi->vaspaces[i].alloc, LFI_PROC_SIZE);
         }
     }
@@ -153,6 +154,7 @@ void lfi_delete_slot(struct lfi* lfi, uintptr_t base) {
         if (base >= va_base && base < va_base + lfi->vaspaces[i].size) {
             int b = buddy_safe_free(lfi->vaspaces[i].alloc, (void*) base, LFI_PROC_SIZE);
             assert(b);
+            lfi->vaspaces[i].active--;
         }
     }
 }
