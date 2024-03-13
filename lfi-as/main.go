@@ -44,6 +44,7 @@ func main() {
 	var args, lfiflags []string
 	var keep, verbose bool
 	verbose = true
+	// keep = true
 
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
@@ -72,7 +73,7 @@ func main() {
 				if strings.HasPrefix(arg, "-flfi") {
 					lfiflags = append(lfiflags, arg[len("-flfi"):])
 				} else {
-					args = append(args, "-Wa,"+arg)
+					args = append(args, arg)
 				}
 			}
 		}
@@ -88,6 +89,7 @@ func main() {
 		as = filepath.Base(os.Args[0])
 	}
 
+	// asmmc := in
 	asmmc := temp(os.TempDir())
 	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-o", asmmc, in)
 	lfi := temp(os.TempDir())
