@@ -41,6 +41,8 @@ struct lfi_options {
     size_t pagesize;
     size_t stacksize;
     lfi_syshandler syshandler;
+    uint64_t gas;
+    int poc;
 };
 
 struct lfi_proc_info {
