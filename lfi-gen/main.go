@@ -24,11 +24,15 @@ var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
 var opt = pflag.IntP("opt", "O", 2, "optimization level")
 var noloads = pflag.Bool("no-loads", false, "do not sandbox loads")
 var poc = pflag.Bool("poc", false, "enable position-oblivious code")
-var gas = pflag.Bool("gas", false, "enable gas metering")
+var gasDirect = pflag.Bool("gas-direct", false, "enable direct gas metering")
+var gasRel = pflag.Bool("gas-rel", false, "enable relative gas metering")
+var gas bool
 
 func main() {
 	out := pflag.StringP("output", "o", "", "output file")
 	native := pflag.Bool("native", false, "do not include any guards")
+
+	gas = *gasDirect || *gasRel
 
 	pflag.Parse()
 	args := pflag.Args()
@@ -36,7 +40,7 @@ func main() {
 		log.Fatal("no input")
 	}
 
-	if (*poc || *gas) && *opt >= 2 {
+	if (*poc || gas) && *opt >= 2 {
 		*opt = 1
 	}
 
@@ -70,8 +74,10 @@ func main() {
 		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
 		}
-		if *gas {
-			gasPass(ops)
+		if *gasDirect {
+			gasDirectPass(ops)
+		} else if *gasRel {
+			gasRelativePass(ops)
 		}
 		branchFixupPass(ops)
 	}
