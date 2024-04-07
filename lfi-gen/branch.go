@@ -52,11 +52,42 @@ func branchFixupPass(ops *OpList) {
 							inst.Name = "tbz"
 						}
 
-						tmplabel := Label(fmt.Sprintf(".ISOL%d", ln))
+						tmplabel := Label(fmt.Sprintf(".LFI_FIXUP%d", ln))
 						inst.Args[2] = tmplabel
 						ln++
 
 						b.Locate(op)
+
+						if *gasRel {
+							// have to insert a gas sequence for the new branch
+							b.Add(NewNode(&Directive{
+								Val: ".p2align 4",
+							}))
+							b.Add(NewNode(&Inst{
+								Name: "sub",
+								Args: []Arg{
+									gasReg,
+									gasReg,
+									Number("0"),
+								},
+							}))
+							b.Add(NewNode(&Inst{
+								Name: "tbz",
+								Args: []Arg{
+									gasReg,
+									Number("63"),
+									Label("1024f"),
+								},
+							}))
+							b.Add(NewNode(&Inst{
+								Name: "brk",
+								Args: []Arg{
+									Number("0"),
+								},
+							}))
+							b.Add(NewNode(Label("1024")))
+						}
+
 						b.Add(NewNode(&Inst{"b", []Arg{l}}))
 						op = b.Add(NewNode(tmplabel))
 					}

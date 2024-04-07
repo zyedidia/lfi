@@ -71,6 +71,9 @@ int main(int argc, char* argv[]) {
         if (p->type != PT_LOAD) {
             continue;
         }
+        if ((p->flags & PF_X) == 0) {
+            continue;
+        }
 
         uint32_t* insns = (uint32_t*) (&buf[p->offset]);
         size_t n = p->filesz / sizeof(uint32_t);
@@ -78,7 +81,7 @@ int main(int argc, char* argv[]) {
         for (size_t i = 0; i < n; i++) {
             // disasm instruction
             cs_insn* csi;
-            size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), 0, 1, &csi);
+            size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), p->vaddr + i * 4, 1, &csi);
             if (count != 1) {
                 continue;
             }
@@ -104,13 +107,17 @@ int main(int argc, char* argv[]) {
             default:
                 continue;
             }
+            if (insns[i - 1] != 0xd4200000) {
+                printf("BAD: %lx, %x\n", csi->address, insns[i]);
+                continue;
+            }
             if ((target - (int64_t) csi->address) > 0) {
                 // forward branches: turn tbz check into nops
                 insns[i - 1] = NOP;
                 insns[i - 2] = NOP;
-                insns[i - 3] = arm64_add_x23(target - (int64_t) csi->address);
+                insns[i - 3] = arm64_add_x23((target - (int64_t) csi->address) >> 2);
             } else {
-                insns[i - 3] = arm64_sub_x23((int64_t) csi->address - target);
+                insns[i - 3] = arm64_sub_x23(((int64_t) csi->address - target) >> 2);
             }
         }
     }

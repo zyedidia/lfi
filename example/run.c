@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     FILE* f = fopen(argv[1], "r");
     if (!f) {
         fprintf(stderr, "error opening %s: %s\n", argv[1], strerror(errno));
+        exit(1);
     }
 
     void* buf;

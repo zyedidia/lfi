@@ -14,4 +14,5 @@ nop
 cmp x, y
 b.cc foo, hi
 
-tbnz x0, 1, foo
+tbnz w0, #0, X
+b X

@@ -59,7 +59,6 @@ func main() {
 	} else {
 		branchPass(ops)
 		fixupReservedPass(ops)
-		syscallPass(false, ops)
 		if *poc {
 			posObliviousPass(ops)
 		}
@@ -79,6 +78,7 @@ func main() {
 		} else if *gasRel {
 			gasRelativePass(ops)
 		}
+		syscallPass(false, ops)
 		branchFixupPass(ops)
 	}
 
