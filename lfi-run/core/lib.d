@@ -93,6 +93,7 @@ enum {
     PROT_READ  = 1,
     PROT_WRITE = 2,
     PROT_EXEC  = 4,
+    PROT_BTI   = 16,
 }
 
 enum {

@@ -9,3 +9,5 @@ nop
 nop
 nop
 b bar
+
+b.ls bar

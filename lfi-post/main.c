@@ -14,11 +14,18 @@ enum {
     OP_ADD = (0b100100010UL << 23),
 };
 
+static uint32_t ceilimm(uint32_t imm, uint32_t align) {
+    uint32_t mask = align - 1;
+    return (imm + mask) & ~mask;
+}
+
 static uint32_t arm64_sub_x23(int64_t imm) {
     if (imm < 4096) {
         return OP_SUB | (imm << 10) | (23 << 5) | (23);
     }
-    // TODO: ceil the immediate correctly
+    if (imm % 4096 != 0) {
+        imm = ceilimm(imm, 4096);
+    }
     return OP_SUB | (1 << 22) | ((imm >> 12) << 10) | (23 << 5) | (23);
 }
 
@@ -88,14 +95,19 @@ int main(int argc, char* argv[]) {
 
             // direct branches: check forward or backward
             int64_t target = 0;
+            bool cond = false;
             switch (csi->id) {
             case AArch64_INS_B:
+                cond = csi->detail->aarch64.cc != AArch64CC_AL && csi->detail->aarch64.cc != AArch64CC_NV && csi->detail->aarch64.cc != AArch64CC_Invalid;
+                target = csi->detail->aarch64.operands[0].imm;
+                break;
             case AArch64_INS_BL:
                 target = csi->detail->aarch64.operands[0].imm;
                 break;
             case AArch64_INS_CBZ:
             case AArch64_INS_CBNZ:
                 target = csi->detail->aarch64.operands[1].imm;
+                cond = true;
                 break;
             case AArch64_INS_TBZ:
             case AArch64_INS_TBNZ:
@@ -103,6 +115,7 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 target = csi->detail->aarch64.operands[2].imm;
+                cond = true;
                 break;
             default:
                 continue;
@@ -115,7 +128,11 @@ int main(int argc, char* argv[]) {
                 // forward branches: turn tbz check into nops
                 insns[i - 1] = NOP;
                 insns[i - 2] = NOP;
-                insns[i - 3] = arm64_add_x23((target - (int64_t) csi->address) >> 2);
+                if (cond) {
+                    insns[i - 3] = NOP;
+                } else {
+                    insns[i - 3] = arm64_add_x23(((target - (int64_t) csi->address) >> 2) - 1);
+                }
             } else {
                 insns[i - 3] = arm64_sub_x23(((int64_t) csi->address - target) >> 2);
             }

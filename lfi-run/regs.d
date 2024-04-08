@@ -47,7 +47,8 @@ struct Regs {
         x18 = base;
         if (main.flags.gas) {
             // max gas
-            x23 = 0x7fffffffffffffff;
+            x23 = 0x0fffffffffffffff;
+            // x23 = 100_000_000_000;
         } else {
             x23 = base;
             x24 = base;
