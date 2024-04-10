@@ -177,11 +177,17 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			Imm: m.Imm,
 		}
 		builder.Locate(op)
+		tReg := m.Reg
+		sReg := resReg
+		if *poc {
+			tReg = loReg(tReg)
+			sReg = loReg(sReg)
+		}
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
-				loReg(m.Reg),
-				loReg(resReg),
+				tReg,
+				sReg,
 			},
 		}))
 	case MemAddrPost:
@@ -202,11 +208,17 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 			Imm: m.Imm,
 		}
 		builder.Locate(op)
+		tReg := m.Reg
+		sReg := resReg
+		if *poc {
+			tReg = loReg(tReg)
+			sReg = loReg(sReg)
+		}
 		builder.Add(NewNode(&Inst{
 			Name: "mov",
 			Args: []Arg{
-				loReg(m.Reg),
-				loReg(resReg),
+				tReg,
+				sReg,
 			},
 		}))
 	case MemAddrPostReg:

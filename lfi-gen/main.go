@@ -24,7 +24,7 @@ var instrument = pflag.Bool("inst", false, "add instrumentation for profiling")
 var opt = pflag.IntP("opt", "O", 2, "optimization level")
 var noloads = pflag.Bool("no-loads", false, "do not sandbox loads")
 var poc = pflag.Bool("poc", false, "enable position-oblivious code")
-var gasDirect = pflag.Bool("gas-direct", false, "enable direct gas metering")
+var gasDirect = pflag.Bool("gas", false, "enable direct gas metering")
 var gasRel = pflag.Bool("gas-rel", false, "enable relative gas metering")
 var gas bool
 
