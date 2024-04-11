@@ -28,6 +28,8 @@ void* malloc(usize size);
 void* aligned_alloc(usize alignment, usize size);
 void free(void* ptr);
 
+ulong strtoull(const(char)* nptr, char** endptr, int base);
+
 usize strlen(const(char)* s);
 usize strnlen(const(char)* s, usize len);
 int strncmp(const(char)* s1, const(char)* s2, usize size);

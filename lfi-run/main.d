@@ -18,6 +18,7 @@ struct Flags {
     bool verbose;
     bool poc;
     bool gas;
+    ulong ngas;
 }
 
 __gshared Flags flags;
@@ -46,6 +47,8 @@ void usage() {
     fprintf(stderr, "options:\n");
     fprintf(stderr, "  --no-verify\tdo not perform verification\n");
     fprintf(stderr, "  --verbose\tshow verbose information\n");
+    fprintf(stderr, "  --poc\tenable position-oblivious code\n");
+    fprintf(stderr, "  --gas <n>\tuse <n> gas\n");
 }
 
 extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
@@ -73,6 +76,8 @@ extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
         } else if (strncmp(arg, Flags.POC.ptr, Flags.POC.length) == 0) {
             flags.poc = true;
         } else if (strncmp(arg, Flags.GAS.ptr, Flags.GAS.length) == 0) {
+            i++;
+            flags.ngas = strtoull(argv[i], null, 10);
             flags.gas = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);

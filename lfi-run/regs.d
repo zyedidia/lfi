@@ -47,8 +47,12 @@ struct Regs {
         x18 = base;
         if (main.flags.gas) {
             // max gas
-            x23 = 0x0fffffffffffffff;
-            // x23 = 100_000_000_000;
+            if (main.flags.ngas == 0) {
+                x23 = 0x0fffffffffffffff;
+            } else {
+                x23 = main.flags.ngas;
+            }
+            // x23 = 1_000_000_000;
         } else {
             x23 = base;
             x24 = base;
@@ -57,13 +61,13 @@ struct Regs {
 
     void validate(Proc* p) {
         x21 = p.base;
-        x30 = p.addr(x30);
-        x18 = p.addr(x18);
+        x30 = p.addrpoc(x30);
+        x18 = p.addrpoc(x18);
         if (!main.flags.gas) {
-            x23 = p.addr(x23);
-            x24 = p.addr(x24);
+            x23 = p.addrpoc(x23);
+            x24 = p.addrpoc(x24);
         }
-        sp = p.addr(sp);
+        sp = p.addrpoc(sp);
     }
 };
 

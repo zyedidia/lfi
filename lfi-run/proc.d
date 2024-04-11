@@ -452,7 +452,7 @@ err1:
         if (main.flags.poc) {
             return (cast(uint) p);
         }
-        return p;
+        return addr(p);
     }
 
     bool checkptr(uintptr ptr, usize size) {
