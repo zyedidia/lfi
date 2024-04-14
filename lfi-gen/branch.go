@@ -98,6 +98,63 @@ func branchFixupPass(ops *OpList) {
 	}
 }
 
+func oppCond(name string) string {
+	switch name {
+	case "cbz":
+		return "cbnz"
+	case "cbnz":
+		return "cbz"
+	case "tbz":
+		return "tbnz"
+	case "tbnz":
+		return "tbz"
+	}
+	return "error"
+}
+
+func branchPrecisePass(ops *OpList) {
+	labels := make(map[Label]*OpNode)
+	FindLabels(labels, *ops)
+
+	op := ops.Front
+	b := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			var l Label
+			var li int
+			switch inst.Name {
+			case "cbz", "cbnz":
+				l = inst.Args[1].(Label)
+				li = 1
+			case "tbz", "tbnz":
+				l = inst.Args[2].(Label)
+				li = 2
+			default:
+				op = op.Next
+				continue
+			}
+			if n, ok := labels[l]; ok {
+				if n.IdxEstimate < op.IdxEstimate {
+					// backwards branch, rewrite into forwards branch
+					inst.Name = oppCond(inst.Name)
+					b.Locate(op)
+					newLabel := Label(fmt.Sprintf(".LFI_NOTTAKEN%d", ln))
+					ln++
+					inst.Args[li] = newLabel
+					b.Add(NewNode(&Inst{
+						Name: "b",
+						Args: []Arg{
+							l,
+						},
+					}))
+					b.Add(NewNode(newLabel))
+				}
+			}
+		}
+		op = op.Next
+	}
+}
+
 func abs(i int) int {
 	if i < 0 {
 		return -i

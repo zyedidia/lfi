@@ -27,6 +27,7 @@ var poc = pflag.Bool("poc", false, "enable position-oblivious code")
 var gasDirect = pflag.Bool("gas", false, "enable direct gas metering")
 var gasRel = pflag.Bool("gas-rel", false, "enable relative gas metering")
 var hideSys = pflag.Bool("hide-sys", false, "keep the syspage outside the sandbox")
+var precise = pflag.Bool("precise", false, "use precise relative gas")
 var gas bool
 
 func main() {
@@ -73,6 +74,9 @@ func main() {
 		}
 		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
+		}
+		if *gasRel && *precise {
+			branchPrecisePass(ops)
 		}
 		if *gasDirect {
 			gasDirectPass(ops)
