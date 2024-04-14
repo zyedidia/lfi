@@ -26,6 +26,7 @@ var noloads = pflag.Bool("no-loads", false, "do not sandbox loads")
 var poc = pflag.Bool("poc", false, "enable position-oblivious code")
 var gasDirect = pflag.Bool("gas", false, "enable direct gas metering")
 var gasRel = pflag.Bool("gas-rel", false, "enable relative gas metering")
+var hideSys = pflag.Bool("hide-sys", false, "keep the syspage outside the sandbox")
 var gas bool
 
 func main() {

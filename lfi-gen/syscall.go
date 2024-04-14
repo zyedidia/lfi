@@ -49,12 +49,17 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		imm = Number(fmt.Sprintf("%d", offset))
 	}
 
+	sysPageReg := segmentReg
+	if *hideSys {
+		sysPageReg = sysReg
+	}
+
 	b.Add(NewNode(&Inst{
 		Name: "ldr",
 		Args: []Arg{
 			retReg,
 			MemAddr{
-				Reg: segmentReg,
+				Reg: sysPageReg,
 				Imm: imm,
 			},
 		},
