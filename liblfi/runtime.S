@@ -60,10 +60,10 @@
 .globl lfi_proc_entry
 lfi_proc_entry:
 	// save callee-saved registers to stack
-	stp q8, q9,   [sp, #-16]!
-	stp q10, q11, [sp, #-16]!
-	stp q12, q13, [sp, #-16]!
-	stp q14, q15, [sp, #-16]!
+	stp d8, d9,   [sp, #-16]!
+	stp d10, d11, [sp, #-16]!
+	stp d12, d13, [sp, #-16]!
+	stp d14, d15, [sp, #-16]!
 	stp x19, x20, [sp, #-16]!
 	stp x21, x22, [sp, #-16]!
 	stp x23, x24, [sp, #-16]!
@@ -88,10 +88,10 @@ lfi_asm_proc_exit:
 	ldp x23, x24, [sp], 16
 	ldp x21, x22, [sp], 16
 	ldp x19, x20, [sp], 16
-	ldp q14, q15, [sp], 16
-	ldp q12, q13, [sp], 16
-	ldp q10, q11, [sp], 16
-	ldp q8, q9,   [sp], 16
+	ldp d14, d15, [sp], 16
+	ldp d12, d13, [sp], 16
+	ldp d10, d11, [sp], 16
+	ldp d8, d9,   [sp], 16
 	ret
 
 .align 16
