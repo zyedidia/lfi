@@ -374,3 +374,24 @@ void lfi_proc_exit(struct lfi_proc* proc, int code) {
 uintptr_t lfi_proc_base(struct lfi_proc* proc) {
     return proc->base;
 }
+
+static uint64_t r_tpidr() {
+    uint64_t val;
+    asm volatile ("mrs %0, tpidr_el0" : "=r"(val));
+    return val;
+}
+
+static void w_tpidr(uint64_t val) {
+    asm volatile ("msr tpidr_el0, %0" :: "r"(val));
+}
+
+uint64_t lfi_signal_start(uint64_t syspage) {
+    struct lfi_sys* sys = (struct lfi_sys*) syspage;
+    uint64_t saved = r_tpidr();
+    w_tpidr(sys->k_tpidr);
+    return saved;
+}
+
+void lfi_signal_end(uint64_t saved) {
+    w_tpidr(saved);
+}
