@@ -2,12 +2,6 @@ package main
 
 import "strings"
 
-func gasDirectPass(ops *OpList) {
-	btiPass(ops)
-	markLabels(ops)
-	markJumps(ops)
-}
-
 func gasRelativePass(ops *OpList) {
 	op := ops.Front
 	builder := NewBuilder(ops)
@@ -15,8 +9,18 @@ func gasRelativePass(ops *OpList) {
 		if inst, ok := op.Value.(*Inst); ok {
 			builder.Locate(op)
 			if IsDirectBranch(inst) {
-				builder.AddBefore(NewNode(&Directive{
-					Val: ".p2align 4",
+				if *align {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 4",
+					}))
+				}
+				builder.Add(NewNode(&Inst{
+					Name: "sub",
+					Args: []Arg{
+						gasReg,
+						gasReg,
+						Number("0"),
+					},
 				}))
 				builder.Add(NewNode(&Inst{
 					Name: "sub",
@@ -49,9 +53,11 @@ func gasRelativePass(ops *OpList) {
 					target = inst.Args[0].(Reg)
 				}
 				// indirect branch
-				builder.AddBefore(NewNode(&Directive{
-					Val: ".p2align 4",
-				}))
+				if *align {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 4",
+					}))
+				}
 				builder.Add(NewNode(&Inst{
 					Name: "adr",
 					Args: []Arg{
@@ -110,6 +116,12 @@ func gasRelativePass(ops *OpList) {
 	}
 }
 
+func gasDirectPass(ops *OpList) {
+	btiPass(ops)
+	// markLabels(ops)
+	markJumps(ops)
+}
+
 func btiPass(ops *OpList) {
 	op := ops.Front
 	builder := NewBuilder(ops)
@@ -129,6 +141,23 @@ func btiPass(ops *OpList) {
 					},
 				}))
 				builder.list.Remove(op)
+			}
+		}
+		op = op.Next
+	}
+}
+
+func alignmentPass(ops *OpList) {
+	op := ops.Front
+	builder := NewBuilder(ops)
+	for op != nil {
+		if inst, ok := op.Value.(*Inst); ok {
+			builder.Locate(op)
+			switch inst.Name {
+			case "bl", "blr":
+				builder.AddBefore(NewNode(&Directive{
+					Val: ".p2align 4",
+				}))
 			}
 		}
 		op = op.Next
@@ -155,40 +184,61 @@ func markLabels(ops *OpList) {
 func markJumps(ops *OpList) {
 	op := ops.Front
 	builder := NewBuilder(ops)
+
+	epilogue := func() {
+		builder.AddBefore(NewNode(Label("1024")))
+
+		sub := builder.AddBefore(NewNode(&Inst{
+			Name: "sub",
+			Args: []Arg{
+				gasReg,
+				gasReg,
+				Number("#((1023f - 1023b) / 4 - 1)"),
+			},
+		}))
+		if *align {
+			builder.AddBefore(NewNode(&Directive{
+				Val: ".p2align 4",
+			}))
+		}
+		builder.Locate(sub)
+		builder.Add(NewNode(&Inst{
+			Name: "tbz",
+			Args: []Arg{
+				gasReg,
+				Number("63"),
+				Label("1024f"),
+			},
+		}))
+		builder.Add(NewNode(&Inst{
+			Name: "brk",
+			Args: []Arg{
+				Number("0"),
+			},
+		}))
+	}
+
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
 			if IsBranch(inst) {
 				builder.Locate(op)
-				builder.AddBefore(NewNode(Label("1024")))
-
-				sub := builder.AddBefore(NewNode(&Inst{
-					Name: "sub",
-					Args: []Arg{
-						gasReg,
-						gasReg,
-						Label("#((1024f - 1023b) / 4)"),
-					},
-				}))
-				builder.AddBefore(NewNode(&Directive{
-					Val: ".p2align 4",
-				}))
-				builder.Locate(sub)
-				builder.Add(NewNode(&Inst{
-					Name: "tbz",
-					Args: []Arg{
-						gasReg,
-						Number("63"),
-						Label("1024f"),
-					},
-				}))
-				builder.Add(NewNode(&Inst{
-					Name: "brk",
-					Args: []Arg{
-						Number("0"),
-					},
-				}))
+				epilogue()
 				builder.Locate(op)
-				builder.Add(NewNode(Label("1023")))
+				op = builder.Add(NewNode(Label("1023")))
+			}
+		} else if _, ok := op.Value.(Label); ok {
+			if op.Prev != nil {
+				if inst, ok := op.Prev.Value.(*Inst); ok && !IsBranch(inst) {
+					builder.Locate(op)
+					epilogue()
+				}
+			}
+			builder.Locate(op)
+			op = builder.Add(NewNode(Label("1023")))
+		} else if d, ok := op.Value.(Directive); ok {
+			if strings.HasPrefix(d.Val, ".section") {
+				builder.Locate(op)
+				op = builder.Add(NewNode(Label("1023")))
 			}
 		}
 		op = op.Next

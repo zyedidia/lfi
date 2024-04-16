@@ -28,6 +28,7 @@ var gasDirect = pflag.Bool("gas", false, "enable direct gas metering")
 var gasRel = pflag.Bool("gas-rel", false, "enable relative gas metering")
 var hideSys = pflag.Bool("hide-sys", false, "keep the syspage outside the sandbox")
 var precise = pflag.Bool("precise", false, "use precise relative gas")
+var align = pflag.Bool("align", false, "use 16-byte aligned bundles")
 var gas bool
 
 func main() {
@@ -69,6 +70,9 @@ func main() {
 		}
 		memPass(ops)
 		specialRegPass(ops)
+		if *align {
+			alignmentPass(ops)
+		}
 		if *instrument {
 			instrumentPass(ops)
 		}
@@ -82,6 +86,9 @@ func main() {
 			gasDirectPass(ops)
 		} else if *gasRel {
 			gasRelativePass(ops)
+		}
+		if *align {
+			alignLabelsPass(ops)
 		}
 		syscallPass(false, ops)
 		branchFixupPass(ops)

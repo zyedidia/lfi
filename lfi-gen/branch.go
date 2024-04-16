@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 func branchPass(ops *OpList) {
@@ -108,6 +109,34 @@ func oppCond(name string) string {
 		return "tbnz"
 	case "tbnz":
 		return "tbz"
+	case "b.ge":
+		return "b.lt"
+	case "b.lt":
+		return "b.ge"
+	case "b.eq":
+		return "b.ne"
+	case "b.ne":
+		return "b.eq"
+	case "b.cs", "b.hs":
+		return "b.cc"
+	case "b.cc", "b.lo":
+		return "b.cs"
+	case "b.mi":
+		return "b.pl"
+	case "b.pl":
+		return "b.mi"
+	case "b.vs":
+		return "b.vc"
+	case "b.vc":
+		return "b.vs"
+	case "b.hi":
+		return "b.ls"
+	case "b.ls":
+		return "b.hi"
+	case "b.gt":
+		return "b.le"
+	case "b.le":
+		return "b.gt"
 	}
 	return "error"
 }
@@ -122,14 +151,16 @@ func branchPrecisePass(ops *OpList) {
 		if inst, ok := op.Value.(*Inst); ok {
 			var l Label
 			var li int
-			switch inst.Name {
-			case "cbz", "cbnz":
+			if strings.HasPrefix(inst.Name, "b.") {
+				l = inst.Args[0].(Label)
+				li = 0
+			} else if inst.Name == "cbz" || inst.Name == "cbnz" {
 				l = inst.Args[1].(Label)
 				li = 1
-			case "tbz", "tbnz":
+			} else if inst.Name == "tbz" || inst.Name == "tbnz" {
 				l = inst.Args[2].(Label)
 				li = 2
-			default:
+			} else {
 				op = op.Next
 				continue
 			}
@@ -150,6 +181,20 @@ func branchPrecisePass(ops *OpList) {
 					b.Add(NewNode(newLabel))
 				}
 			}
+		}
+		op = op.Next
+	}
+}
+
+func alignLabelsPass(ops *OpList) {
+	op := ops.Front
+	b := NewBuilder(ops)
+	for op != nil {
+		if _, ok := op.Value.(Label); ok {
+			b.Locate(op)
+			b.AddBefore(NewNode(&Directive{
+				Val: ".p2align 4",
+			}))
 		}
 		op = op.Next
 	}
