@@ -120,6 +120,8 @@ uint64_t lfi_signal_start(uint64_t syspage);
 
 void lfi_signal_end(uint64_t saved);
 
+struct lfi_proc* lfi_sys_proc(uint64_t syspage);
+
 struct lfi_regs {
     uint64_t x0;
     uint64_t x1;

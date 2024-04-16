@@ -392,6 +392,11 @@ uint64_t lfi_signal_start(uint64_t syspage) {
     return saved;
 }
 
+struct lfi_proc* lfi_sys_proc(uint64_t syspage) {
+    struct lfi_sys* sys = (struct lfi_sys*) syspage;
+    return sys->proc;
+}
+
 void lfi_signal_end(uint64_t saved) {
     w_tpidr(saved);
 }
