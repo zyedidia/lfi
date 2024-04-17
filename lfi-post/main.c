@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <stdbool.h>
 #include "elf.h"
 
 #include <capstone/capstone.h>
@@ -40,6 +41,23 @@ int main(int argc, char* argv[]) {
     if (argc <= 1) {
         fprintf(stderr, "no input binary\n");
         exit(1);
+    }
+
+    bool gasrel = false;
+    bool gasdir = false;
+    bool precise = false;
+    bool aligned = false;
+
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--gas-rel") == 0) {
+            gasrel = true;
+        } else if (strcmp(argv[i], "--gas") == 0) {
+            gasdir = true;
+        } else if (strcmp(argv[i], "--precise") == 0) {
+            precise = true;
+        } else if (strcmp(argv[i], "--aligned") == 0) {
+            aligned = true;
+        }
     }
 
     FILE* f = fopen(argv[1], "r+");
@@ -85,6 +103,67 @@ int main(int argc, char* argv[]) {
         uint32_t* insns = (uint32_t*) (&buf[p->offset]);
         size_t n = p->filesz / sizeof(uint32_t);
 
+        bool* leaders = malloc(sizeof(bool) * n);
+        assert(leaders);
+
+        // first instruction is a leader
+        leaders[0] = true;
+
+        if (gasdir) {
+            // calculate basic blocks
+            for (size_t i = 0; i < n; i++) {
+                cs_insn* csi;
+                size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), i * 4, 1, &csi);
+                if (count != 1) {
+                    continue;
+                }
+
+                // target of a branch is a leader
+                int64_t target = 0;
+                switch (csi->id) {
+                case AArch64_INS_B:
+                case AArch64_INS_BL:
+                    target = csi->detail->aarch64.operands[0].imm;
+                    leaders[target / 4] = true;
+                    break;
+                case AArch64_INS_CBZ:
+                case AArch64_INS_CBNZ:
+                    target = csi->detail->aarch64.operands[1].imm;
+                    leaders[target / 4] = true;
+                    break;
+                case AArch64_INS_TBZ:
+                case AArch64_INS_TBNZ:
+                    if (csi->detail->aarch64.operands[0].reg == AArch64_REG_X23) {
+                        continue;
+                    }
+                    target = csi->detail->aarch64.operands[2].imm;
+                    leaders[target / 4] = true;
+                    break;
+                case AArch64_INS_BLR:
+                case AArch64_INS_BR:
+                case AArch64_INS_RET:
+                    break;
+                case AArch64_BTI_JC:
+                case AArch64_BTI_C:
+                case AArch64_BTI_J:
+                    // rewrite bti c and bti j into bti jc
+                    leaders[i] = true;
+                    cs_free(csi, 1);
+                    continue;
+                default:
+                    cs_free(csi, 1);
+                    continue;
+                }
+                // instruction immediately following a branch is a leader
+                if (i + 1 < n) {
+                    leaders[i + 1] = true;
+                }
+
+                cs_free(csi, 1);
+            }
+        }
+
+        size_t cur_leader = 0;
         for (size_t i = 0; i < n; i++) {
             // disasm instruction
             cs_insn* csi;
@@ -93,50 +172,122 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
+            if (leaders[i]) {
+                cur_leader = i;
+            }
+
             // direct branches: check forward or backward
             int64_t target = 0;
             bool cond = false;
+            bool branch = false;
             switch (csi->id) {
             case AArch64_INS_B:
                 cond = csi->detail->aarch64.cc != AArch64CC_AL && csi->detail->aarch64.cc != AArch64CC_NV && csi->detail->aarch64.cc != AArch64CC_Invalid;
                 target = csi->detail->aarch64.operands[0].imm;
+                branch = true;
                 break;
             case AArch64_INS_BL:
                 target = csi->detail->aarch64.operands[0].imm;
+                branch = true;
                 break;
             case AArch64_INS_CBZ:
             case AArch64_INS_CBNZ:
                 target = csi->detail->aarch64.operands[1].imm;
                 cond = true;
+                branch = true;
                 break;
             case AArch64_INS_TBZ:
             case AArch64_INS_TBNZ:
                 if (csi->detail->aarch64.operands[0].reg == AArch64_REG_X23) {
+                    cs_free(csi, 1);
                     continue;
                 }
                 target = csi->detail->aarch64.operands[2].imm;
                 cond = true;
+                branch = true;
                 break;
             default:
-                continue;
+                if (gasrel) {
+                    // relative gas doesn't need to anything for non-direct branches
+                    cs_free(csi, 1);
+                    continue;
+                }
+                switch (csi->id) {
+                    case AArch64_INS_BR:
+                    case AArch64_INS_BLR:
+                    case AArch64_INS_RET:
+                        if (csi->id == AArch64_INS_BLR && csi->detail->aarch64.operands[0].reg == AArch64_REG_X30) {
+                            cs_free(csi, 1);
+                            continue;
+                        }
+                        branch = true;
+                        break;
+                }
             }
-            if (insns[i - 1] != 0xd4200000) {
-                printf("BAD: %lx, %x\n", csi->address, insns[i]);
+            size_t idx = i;
+            if (gasdir) {
+                if (branch) {
+                    // current instruction is a branch
+                } else if (i + 1 < n && leaders[i + 1] && leaders) {
+                    // next instruction is a leader
+                    idx = i + 1;
+                } else {
+                    cs_free(csi, 1);
+                    continue;
+                }
+            }
+            if (insns[idx - 1] != 0xd4200000) {
+                /* printf("error, did not see brk #0 before direct branch: %lx, %x %d\n", csi->address, insns[idx], leaders[idx]); */
+                insns[idx - 1] = 0;
+                cs_free(csi, 1);
                 continue;
             }
             if ((target - (int64_t) csi->address) > 0) {
                 // forward branches: turn tbz check into nops
-                insns[i - 1] = NOP;
-                insns[i - 2] = NOP;
-                if (cond) {
-                    insns[i - 3] = NOP;
-                } else {
-                    insns[i - 3] = arm64_add_x23(((target - (int64_t) csi->address) >> 2) - 1);
+                insns[idx - 1] = NOP;
+                insns[idx - 2] = NOP;
+                if (cond && gasrel) {
+                    // relative gas cannot refund a forwards conditional branch
+                    insns[idx - 3] = NOP;
+                    if (precise) {
+                        // precise version uses double sub
+                        insns[idx - 4] = NOP;
+                    }
+                } else if (gasrel) {
+                    // calculate relative gas immediate
+                    int64_t imm = ((target - (int64_t) csi->address) >> 2) - 1;
+                    if (precise) {
+                        // precise version uses double sub
+                        insns[idx - 4] = arm64_add_x23(imm / 4096 * 4096);
+                        insns[idx - 3] = arm64_add_x23(imm % 4096);
+                    } else {
+                        insns[idx - 3] = arm64_add_x23(imm);
+                    }
+                } else if (gasdir) {
+                    // calculate direct gas immediate
+                    int64_t imm = idx - cur_leader + (branch ? 1 : 0);
+                    insns[idx - 3] = arm64_sub_x23(imm);
                 }
             } else {
-                insns[i - 3] = arm64_sub_x23(((int64_t) csi->address - target) >> 2);
+                if (gasrel) {
+                    // calculate relative gas immediate
+                    int64_t imm = ((int64_t) csi->address - target) >> 2;
+                    if (precise) {
+                        // precise version uses double sub
+                        insns[idx - 4] = arm64_sub_x23(imm / 4096 * 4096);
+                        insns[idx - 3] = arm64_sub_x23(imm % 4096);
+                    } else {
+                        insns[idx - 3] = arm64_sub_x23(imm);
+                    }
+                } else if (gasdir) {
+                    // calculate direct gas immediate
+                    int64_t imm = idx - cur_leader - 1 + (branch ? 1 : 0); // don't charge for the brk #0
+                    insns[idx - 3] = arm64_sub_x23(imm);
+                }
             }
+            cs_free(csi, 1);
         }
+        free(leaders);
     }
 
     munmap(buf, sz);
