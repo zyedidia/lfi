@@ -14,14 +14,16 @@ func gasRelativePass(ops *OpList) {
 						Val: ".p2align 4",
 					}))
 				}
-				builder.Add(NewNode(&Inst{
-					Name: "sub",
-					Args: []Arg{
-						gasReg,
-						gasReg,
-						Number("0"),
-					},
-				}))
+				if *precise {
+					builder.Add(NewNode(&Inst{
+						Name: "sub",
+						Args: []Arg{
+							gasReg,
+							gasReg,
+							Number("0"),
+						},
+					}))
+				}
 				builder.Add(NewNode(&Inst{
 					Name: "sub",
 					Args: []Arg{
@@ -101,14 +103,16 @@ func gasRelativePass(ops *OpList) {
 					},
 				}))
 				builder.Add(NewNode(Label("1023")))
-				// builder.Add(NewNode(&Inst{
-				// 	Name: "bic",
-				// 	Args: []Arg{
-				// 		target,
-				// 		target,
-				// 		Number("0xf"),
-				// 	},
-				// }))
+				if *align {
+					builder.Add(NewNode(&Inst{
+						Name: "bic",
+						Args: []Arg{
+							target,
+							target,
+							Number("0xf"),
+						},
+					}))
+				}
 				builder.Add(NewNode(Label("1024")))
 			}
 		}
@@ -117,7 +121,9 @@ func gasRelativePass(ops *OpList) {
 }
 
 func gasDirectPass(ops *OpList) {
-	btiPass(ops)
+	if !*align {
+		btiPass(ops)
+	}
 	// markLabels(ops)
 	markJumps(ops)
 }
@@ -193,7 +199,8 @@ func markJumps(ops *OpList) {
 			Args: []Arg{
 				gasReg,
 				gasReg,
-				Number("#((1023f - 1023b) / 4 - 1)"),
+				Number("0"),
+				// Number("#((1023f - 1023b) / 4 - 1)"),
 			},
 		}))
 		if *align {
@@ -227,7 +234,7 @@ func markJumps(ops *OpList) {
 				op = builder.Add(NewNode(Label("1023")))
 			}
 		} else if _, ok := op.Value.(Label); ok {
-			if op.Prev != nil {
+			if op.Prev != nil && *precise {
 				if inst, ok := op.Prev.Value.(*Inst); ok && !IsBranch(inst) {
 					builder.Locate(op)
 					epilogue()

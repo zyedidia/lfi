@@ -79,6 +79,9 @@ func main() {
 		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
 		}
+		if *align {
+			alignLabelsPass(ops)
+		}
 		if *gasRel && *precise {
 			branchPrecisePass(ops)
 		}
@@ -86,9 +89,6 @@ func main() {
 			gasDirectPass(ops)
 		} else if *gasRel {
 			gasRelativePass(ops)
-		}
-		if *align {
-			alignLabelsPass(ops)
 		}
 		syscallPass(false, ops)
 		branchFixupPass(ops)
