@@ -177,3 +177,10 @@ func IsDirectBranch(op Op) bool {
 	}
 	return false
 }
+
+func IsLFISyscall(op Op) bool {
+	if i, ok := op.(*Inst); ok {
+		return i.Name == "blr" && i.Args[0].(Reg) == retReg
+	}
+	return false
+}

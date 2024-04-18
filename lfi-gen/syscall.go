@@ -94,20 +94,6 @@ func addSyscall(offset int, native bool, b *Builder) *OpNode {
 		},
 	}))
 
-	if !native {
-		b.Add(NewNode(&Inst{
-			Name: "add",
-			Args: []Arg{
-				Reg("x30"),
-				segmentReg,
-				Reg("w30"),
-				Extend{
-					Op: "uxtw",
-				},
-			},
-		}))
-	}
-
 	return n
 }
 

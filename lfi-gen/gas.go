@@ -47,7 +47,7 @@ func gasRelativePass(ops *OpList) {
 					},
 				}))
 				builder.Add(NewNode(Label("1024")))
-			} else if IsBranch(inst) {
+			} else if IsBranch(inst) && !IsLFISyscall(inst) {
 				var target Reg
 				if len(inst.Args) == 0 {
 					target = Reg("x30")
@@ -133,6 +133,10 @@ func btiPass(ops *OpList) {
 	builder := NewBuilder(ops)
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
+			if IsLFISyscall(inst) {
+				op = op.Next
+				continue
+			}
 			builder.Locate(op)
 			switch inst.Name {
 			case "bl", "blr":
@@ -158,6 +162,10 @@ func alignmentPass(ops *OpList) {
 	builder := NewBuilder(ops)
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
+			if IsLFISyscall(inst) {
+				op = op.Next
+				continue
+			}
 			builder.Locate(op)
 			switch inst.Name {
 			case "bl", "blr":
@@ -227,7 +235,7 @@ func markJumps(ops *OpList) {
 
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
-			if IsBranch(inst) {
+			if IsBranch(inst) && !IsLFISyscall(inst) {
 				builder.Locate(op)
 				epilogue()
 				builder.Locate(op)
