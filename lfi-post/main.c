@@ -11,6 +11,7 @@
 
 enum {
     NOP = 0xd503201f,
+    BTI_JC = 0xd50324df;
     OP_SUB = (0b110100010UL << 23),
     OP_ADD = (0b100100010UL << 23),
 };
@@ -147,6 +148,7 @@ int main(int argc, char* argv[]) {
                 case AArch64_BTI_C:
                 case AArch64_BTI_J:
                     // rewrite bti c and bti j into bti jc
+                    insns[i] = BTI_JC;
                     leaders[i] = true;
                     cs_free(csi, 1);
                     continue;
