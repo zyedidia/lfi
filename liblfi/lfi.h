@@ -60,9 +60,9 @@ struct lfi_proc_info {
 // or NULL if there was an error allocating.
 struct lfi* lfi_new(struct lfi_options options);
 
-// Automatically reserves as much virtual address space from the OS as possible
-// for sandbox slots.
-int lfi_auto_add_vaspaces(struct lfi* lfi);
+// Automatically try to 'size' bytes of virtual address space from the OS. If
+// 'size' is 0, this will reserve as much space as possible.
+int lfi_auto_add_vaspaces(struct lfi* lfi, size_t size);
 
 // Add a new region of virtual address space for allocating sandboxes. It must
 // be possible to mmap the given region. The number of VA regions cannot exceed
