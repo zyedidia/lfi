@@ -215,7 +215,7 @@ func compile(cmdargs []string) {
 	}
 
 	asmmc := temp(inputdir)
-	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-o", asmmc, asm)
+	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-mattr=+crypto,+aes", "-o", asmmc, asm)
 
 	lfiasm := temp(inputdir)
 	lfiflags := []string{asmmc, "-o", lfiasm}
