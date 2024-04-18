@@ -150,6 +150,12 @@ struct lfi_sys {
 extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 extern void lfi_yield_entry() asm ("lfi_yield_entry");
 
+// Stub for dynarmic syscalls
+uint32_t syshandler_stub[2] = {
+    0xd4000001, // svc #0
+    0xd65f03c0, // ret
+};
+
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
