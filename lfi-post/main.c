@@ -11,7 +11,7 @@
 
 enum {
     NOP = 0xd503201f,
-    BTI_JC = 0xd50324df;
+    BTI_JC = 0xd50324df,
     OP_SUB = (0b110100010UL << 23),
     OP_ADD = (0b100100010UL << 23),
 };
@@ -182,6 +182,7 @@ int main(int argc, char* argv[]) {
             int64_t target = 0;
             bool cond = false;
             bool branch = false;
+            bool indbranch = false;
             switch (csi->id) {
             case AArch64_INS_B:
                 cond = csi->detail->aarch64.cc != AArch64CC_AL && csi->detail->aarch64.cc != AArch64CC_NV && csi->detail->aarch64.cc != AArch64CC_Invalid;
@@ -222,6 +223,7 @@ int main(int argc, char* argv[]) {
                             cs_free(csi, 1);
                             continue;
                         }
+                        indbranch = true;
                         branch = true;
                         break;
                 }
@@ -238,30 +240,42 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
             }
-            if (insns[idx - 1] != 0xd4200000) {
+            if (!indbranch && insns[idx - 1] != 0xd4200000) {
                 /* printf("error, did not see brk #0 before direct branch: %lx, %x %d\n", csi->address, insns[idx], leaders[idx]); */
                 insns[idx - 1] = 0;
                 cs_free(csi, 1);
                 continue;
             }
-            if ((target - (int64_t) csi->address) > 0) {
+            if (indbranch && gasdir) {
+                // calculate direct gas immediate
+                int64_t imm = idx - cur_leader + (branch ? 1 : 0);
+                if (aligned) {
+                    insns[idx - 7] = arm64_sub_x23(imm);
+                } else {
+                    insns[idx - 3] = arm64_sub_x23(imm);
+                }
+            } else if ((target - (int64_t) csi->address) > 0) {
                 // forward branches: turn tbz check into nops
                 insns[idx - 1] = NOP;
                 insns[idx - 2] = NOP;
+                if (gasrel && precise) {
+                    insns[idx - 3] = NOP;
+                }
                 if (cond && gasrel) {
                     // relative gas cannot refund a forwards conditional branch
                     insns[idx - 3] = NOP;
                     if (precise) {
                         // precise version uses double sub
                         insns[idx - 4] = NOP;
+                        insns[idx - 5] = NOP;
                     }
                 } else if (gasrel) {
                     // calculate relative gas immediate
                     int64_t imm = ((target - (int64_t) csi->address) >> 2) - 1;
                     if (precise) {
                         // precise version uses double sub
-                        insns[idx - 4] = arm64_add_x23(imm / 4096 * 4096);
-                        insns[idx - 3] = arm64_add_x23(imm % 4096);
+                        insns[idx - 5] = arm64_add_x23(imm / 4096 * 4096);
+                        insns[idx - 4] = arm64_add_x23(imm % 4096);
                     } else {
                         insns[idx - 3] = arm64_add_x23(imm);
                     }
@@ -276,8 +290,8 @@ int main(int argc, char* argv[]) {
                     int64_t imm = ((int64_t) csi->address - target) >> 2;
                     if (precise) {
                         // precise version uses double sub
-                        insns[idx - 4] = arm64_sub_x23(imm / 4096 * 4096);
-                        insns[idx - 3] = arm64_sub_x23(imm % 4096);
+                        insns[idx - 5] = arm64_sub_x23(imm / 4096 * 4096);
+                        insns[idx - 4] = arm64_sub_x23(imm % 4096);
                     } else {
                         insns[idx - 3] = arm64_sub_x23(imm);
                     }

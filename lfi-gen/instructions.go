@@ -171,6 +171,13 @@ func IsBranch(op Op) bool {
 	return false
 }
 
+func IsIndirectBranch(op Op) bool {
+	if i, ok := op.(*Inst); ok {
+		return indbranches[i.Name]
+	}
+	return false
+}
+
 func IsDirectBranch(op Op) bool {
 	if i, ok := op.(*Inst); ok {
 		return branches[i.Name] && !indbranches[i.Name]
