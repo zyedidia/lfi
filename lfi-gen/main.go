@@ -35,13 +35,13 @@ func main() {
 	out := pflag.StringP("output", "o", "", "output file")
 	native := pflag.Bool("native", false, "do not include any guards")
 
-	gas = *gasDirect || *gasRel
-
 	pflag.Parse()
 	args := pflag.Args()
 	if len(args) < 1 {
 		log.Fatal("no input")
 	}
+
+	gas = *gasDirect || *gasRel
 
 	if (*poc || gas) && *opt >= 2 {
 		*opt = 1
@@ -77,9 +77,9 @@ func main() {
 		if *opt >= 2 && !*noloads {
 			preExtensionPass(ops)
 		}
-		if gas {
-			alignLabelsPass(ops)
-		}
+		// if gas {
+		// 	alignLabelsPass(ops)
+		// }
 		if *gasRel && *precise {
 			branchPrecisePass(ops)
 		}

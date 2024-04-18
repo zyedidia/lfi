@@ -59,7 +59,7 @@ func branchFixupPass(ops *OpList) {
 
 						b.Locate(op)
 
-						if *gasRel {
+						if gas {
 							// have to insert a gas sequence for the new branch
 							b.Add(NewNode(&Directive{
 								Val: ".p2align 4",
@@ -191,10 +191,14 @@ func alignLabelsPass(ops *OpList) {
 	b := NewBuilder(ops)
 	for op != nil {
 		if _, ok := op.Value.(Label); ok {
-			b.Locate(op)
-			b.AddBefore(NewNode(&Directive{
-				Val: ".p2align 4",
-			}))
+			if op.Next != nil {
+				if _, ok := op.Next.Value.(*Inst); ok {
+					b.Locate(op)
+					b.AddBefore(NewNode(&Directive{
+						Val: ".p2align 4",
+					}))
+				}
+			}
 		}
 		op = op.Next
 	}

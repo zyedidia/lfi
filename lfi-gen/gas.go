@@ -53,6 +53,10 @@ func gasRelativePass(ops *OpList) {
 						Number("0"),
 					},
 				}))
+				if *align {
+					builder.Add(NewNode(&Inst{Name: "nop"}))
+					builder.Add(NewNode(&Inst{Name: "nop"}))
+				}
 				builder.Add(NewNode(Label("1024")))
 			} else if IsBranch(inst) && !IsLFISyscall(inst) {
 				var target Reg
@@ -107,6 +111,9 @@ func gasRelativePass(ops *OpList) {
 						Number("0"),
 					},
 				}))
+				if *align {
+					builder.Add(NewNode(&Inst{Name: "nop"}))
+				}
 				builder.Add(NewNode(Label("1023")))
 				if *align {
 					builder.Add(NewNode(&Inst{
@@ -219,10 +226,6 @@ func markJumps(ops *OpList) {
 			Val: ".p2align 4",
 		}))
 		builder.Locate(sub)
-		if inst != nil && IsIndirectBranch(inst) && *align {
-			builder.Add(NewNode(&Inst{Name: "nop"}))
-			builder.Add(NewNode(&Inst{Name: "nop"}))
-		}
 		builder.Add(NewNode(&Inst{
 			Name: "tbz",
 			Args: []Arg{
@@ -231,6 +234,10 @@ func markJumps(ops *OpList) {
 				Label("1024f"),
 			},
 		}))
+		if inst != nil && IsIndirectBranch(inst) && *align {
+			builder.Add(NewNode(&Inst{Name: "nop"}))
+			builder.Add(NewNode(&Inst{Name: "nop"}))
+		}
 		builder.Add(NewNode(&Inst{
 			Name: "brk",
 			Args: []Arg{
