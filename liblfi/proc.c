@@ -227,7 +227,7 @@ void lfi_proc_init(struct lfi_proc* proc) {
     proc->code = (struct lfi_mem) {
         .base = proc->guards[0].base + proc->guards[0].size,
         .size = CODE_SIZE,
-        .prot = PROT_READ | PROT_EXEC | PROT_WRITE,
+        .prot = PROT_READ | PROT_EXEC,
     };
     int* m = mmap((void*) proc->code.base, proc->code.size, proc->code.prot, MAP_SHARED | MAP_FIXED, proc->codefd, 0);
     assert(m != (void*) -1);
