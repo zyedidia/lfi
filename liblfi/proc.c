@@ -300,7 +300,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             base = proc->code.base + start;
         }
         if (seg + start + end > last) {
-            last = proc->code.base + start + end;
+            last = EXEC_SIZE;
         }
     }
 
