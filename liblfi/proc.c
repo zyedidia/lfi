@@ -49,8 +49,8 @@ void sync_idmem(void* start, size_t size) {
 enum {
     GUARD_SIZE = 48ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
-    EXEC_SIZE = 20ULL * 1024 * 1024, // 20mib of executable code
-    CODE_SIZE = 80ULL * 1024 * 1024, // 40mib of code
+    EXEC_SIZE = 128 * 1024 + GUARD_SIZE + 16 * 1024, // 128k of executable code
+    CODE_SIZE = 256 * 1024 + GUARD_SIZE + 16 * 1024, // 256k total
 };
 
 static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
@@ -333,10 +333,6 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             assert(start + offset < EXEC_SIZE);
         } else {
             assert(start + offset >= EXEC_SIZE);
-            /* mprotect((void*) (seg.base + start), end - start, pflags(p->flags)); */
-            /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
-            /*     goto err1; */
-            /* } */
         }
 
         if (base == 0) {
