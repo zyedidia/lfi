@@ -228,7 +228,7 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     /* lfi_mem_unmap(&proc->stack); */
     /* lfi_proc_clear(&proc->segments); */
     if (proc->guards[0].base != 0) {
-        memset(proc->codealias, 0, proc->code.size);
+        /* memset(proc->codealias, 0, proc->code.size); */
         memset((void*) proc->stack.base, 0, proc->stack.size);
     }
 }
@@ -298,6 +298,8 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         goto err1;
     }
 
+    uintptr_t prev_seg_end = (uintptr_t) proc->codealias;
+
     for (int i = 0; i < ehdr->phnum; i++) {
         struct elf_prog_header* p = &phdr[i];
         if (p->type != PT_LOAD) {
@@ -307,10 +309,6 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         uintptr_t start = trunc_p(p->vaddr, p->align);
         uintptr_t end = ceil_p(p->vaddr + p->memsz, p->align);
         uintptr_t offset = p->vaddr - start;
-
-        if (pflags(p->flags) == PROT_READ && start + offset < EXEC_SIZE) {
-            continue;
-        }
 
         if (ehdr->type == ET_EXEC) {
             start = start - (base - proc->base);
@@ -325,6 +323,8 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         }
 
         uintptr_t seg = (uintptr_t) proc->codealias;
+
+        memset((void*) prev_seg_end, 0, (seg + start + offset) - prev_seg_end);
 
         memcpy((void*) (seg + start + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg + start + offset + p->filesz), 0, p->memsz - p->filesz);
@@ -342,7 +342,11 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         if (proc->code.base + end > last) {
             last = proc->code.base + end;
         }
+
+        prev_seg_end = seg + start + offset + p->memsz;
     }
+
+    memset((void*) prev_seg_end, 0, ((uintptr_t) proc->codealias + proc->code.size) - prev_seg_end);
 
     *info = (struct lfi_proc_info) {
         .stack = (void*) proc->stack.base,
