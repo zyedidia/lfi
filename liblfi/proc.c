@@ -228,7 +228,7 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     /* lfi_mem_unmap(&proc->stack); */
     /* lfi_proc_clear(&proc->segments); */
     if (proc->guards[0].base != 0) {
-        /* memset(proc->codealias, 0, proc->code.size); */
+        memset(proc->codealias, 0, proc->code.size);
         memset((void*) proc->stack.base, 0, proc->stack.size);
     }
 }
@@ -324,7 +324,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
         uintptr_t seg = (uintptr_t) proc->codealias;
 
-        memset((void*) prev_seg_end, 0, (seg + start + offset) - prev_seg_end);
+        // memset((void*) prev_seg_end, 0, (seg + start + offset) - prev_seg_end);
 
         memcpy((void*) (seg + start + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg + start + offset + p->filesz), 0, p->memsz - p->filesz);
@@ -340,13 +340,13 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             base = proc->code.base + start;
         }
         if (proc->code.base + end > last) {
-            last = proc->code.base + end;
+            last = proc->code.base + start + offset + p->memsz;
         }
 
         prev_seg_end = seg + start + offset + p->memsz;
     }
 
-    memset((void*) prev_seg_end, 0, ((uintptr_t) proc->codealias + proc->code.size) - prev_seg_end);
+    // memset((void*) prev_seg_end, 0, ((uintptr_t) proc->codealias + proc->code.size) - prev_seg_end);
 
     *info = (struct lfi_proc_info) {
         .stack = (void*) proc->stack.base,
