@@ -49,6 +49,7 @@ struct lfi_proc_info {
     void* stack;
     size_t stacksize;
     uint64_t lastva;
+    uint64_t extradata;
     uint64_t elfentry;
     uint64_t elfbase;
     uint64_t elfphoff;

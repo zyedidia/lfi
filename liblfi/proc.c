@@ -187,8 +187,10 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     /* lfi_mem_unmap(&proc->sys); */
     /* lfi_mem_unmap(&proc->stack); */
     /* lfi_proc_clear(&proc->segments); */
-    lfi_mem_protect(&proc->code, proc->base, PROT_READ | PROT_WRITE, proc->lfi->opts.noverify);
-    memset((void*) proc->stack.base, 0, proc->stack.size);
+    if (proc->guards[0].base != 0) {
+        lfi_mem_protect(&proc->code, proc->base, PROT_READ | PROT_WRITE, proc->lfi->opts.noverify);
+        memset((void*) proc->stack.base, 0, proc->stack.size);
+    }
 }
 
 void lfi_proc_init(struct lfi_proc* proc) {
@@ -287,6 +289,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         .stack = (void*) proc->stack.base,
         .stacksize = proc->stack.size,
         .lastva = last,
+        .extradata = proc->code.base + proc->code.size - last,
         .elfentry = ehdr->type == ET_DYN ? base + ehdr->entry : proc->base + ehdr->entry,
         .elfbase = base,
         .elfphoff = ehdr->phoff,
