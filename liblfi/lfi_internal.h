@@ -37,6 +37,8 @@ struct lfi_proc {
     struct lfi_mem guards[2];
     struct lfi_mem* segments;
     struct lfi_mem stack;
+    int codefd;
+    void* codealias;
 
     struct lfi* lfi;
     void* ctxp;

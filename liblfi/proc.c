@@ -1,7 +1,10 @@
+#define _GNU_SOURCE
+
 #include "arm64.h"
 #include "lfi_internal.h"
 #include "elf.h"
 
+#include <unistd.h>
 #include <assert.h>
 #include <sys/mman.h>
 #include <stdlib.h>
@@ -10,6 +13,7 @@
 enum {
     GUARD_SIZE = 48ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
+    EXEC_SIZE = 20ULL * 1024 * 1024, // 20mib of executable code
     CODE_SIZE = 40ULL * 1024 * 1024, // 40mib of code
 };
 
@@ -188,7 +192,7 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     /* lfi_mem_unmap(&proc->stack); */
     /* lfi_proc_clear(&proc->segments); */
     if (proc->guards[0].base != 0) {
-        lfi_mem_protect(&proc->code, proc->base, PROT_READ | PROT_WRITE, proc->lfi->opts.noverify);
+        memset(proc->codealias, 0, proc->code.size);
         memset((void*) proc->stack.base, 0, proc->stack.size);
     }
 }
@@ -209,8 +213,24 @@ void lfi_proc_init(struct lfi_proc* proc) {
     assert(lfi_mem_valid(&proc->sys));
     sys_setup(proc->sys, proc);
 
-    proc->code = lfi_mem_map(proc->guards[0].base + proc->guards[0].size, CODE_SIZE, PROT_READ | PROT_WRITE);
-    assert(lfi_mem_valid(&proc->code));
+    int fd = memfd_create("", 0);
+    assert(fd > 0);
+    int r = ftruncate(fd, CODE_SIZE);
+    assert(r >= 0);
+
+    void* c = mmap(NULL, CODE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    assert(c != (void*) -1);
+
+    proc->codefd = fd;
+    proc->codealias = c;
+
+    proc->code = (struct lfi_mem) {
+        .base = proc->guards[0].base + proc->guards[0].size,
+        .size = CODE_SIZE,
+        .prot = PROT_READ | PROT_EXEC,
+    };
+    int* m = mmap((void*) proc->code.base, proc->code.size, proc->code.prot, MAP_SHARED | MAP_FIXED, proc->codefd, 0);
+    assert(m != (void*) -1);
 }
 
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
@@ -261,27 +281,27 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             goto err1;
         }
 
-        struct lfi_mem seg = proc->code;
+        uintptr_t seg = (uintptr_t) proc->codealias;
 
-        memcpy((void*) (seg.base + start + offset), &prog[p->offset], p->filesz);
-        memset((void*) (seg.base + start + offset + p->filesz), 0, p->memsz - p->filesz);
+        memcpy((void*) (seg + start + offset), &prog[p->offset], p->filesz);
+        memset((void*) (seg + start + offset + p->filesz), 0, p->memsz - p->filesz);
 
-        if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) {
-            mprotect((void*) (seg.base + start), end - start, pflags(p->flags));
+        /* if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) { */
+            /* mprotect((void*) (seg + start), end - start, pflags(p->flags)); */
             /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
             /*     goto err1; */
             /* } */
-        }
+        /* } */
 
         /* if ((err = lfi_mem_append(&proc->segments, seg)) < 0) { */
         /*     goto err1; */
         /* } */
 
         if (base == 0) {
-            base = seg.base + start;
+            base = seg + start;
         }
-        if (seg.base + start + end > last) {
-            last = seg.base + start + end;
+        if (seg + start + end > last) {
+            last = seg + start + end;
         }
     }
 
