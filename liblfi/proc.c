@@ -14,7 +14,7 @@ enum {
     GUARD_SIZE = 48ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
     EXEC_SIZE = 20ULL * 1024 * 1024, // 20mib of executable code
-    CODE_SIZE = 40ULL * 1024 * 1024, // 40mib of code
+    CODE_SIZE = 80ULL * 1024 * 1024, // 40mib of code
 };
 
 static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
@@ -229,7 +229,9 @@ void lfi_proc_init(struct lfi_proc* proc) {
         .size = CODE_SIZE,
         .prot = PROT_READ | PROT_EXEC,
     };
-    int* m = mmap((void*) proc->code.base, proc->code.size, proc->code.prot, MAP_SHARED | MAP_FIXED, proc->codefd, 0);
+    int* m = mmap((void*) proc->code.base, EXEC_SIZE, proc->code.prot, MAP_SHARED | MAP_FIXED, proc->codefd, 0);
+    assert(m != (void*) -1);
+    m = mmap((void*) (proc->code.base + EXEC_SIZE), CODE_SIZE - EXEC_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, proc->codefd, EXEC_SIZE);
     assert(m != (void*) -1);
 }
 
@@ -299,8 +301,8 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         if (base == 0) {
             base = proc->code.base + start;
         }
-        if (seg + start + end > last) {
-            last = EXEC_SIZE;
+        if (proc->code.base + start + end > last) {
+            last = proc->code.base + start + end;
         }
     }
 
