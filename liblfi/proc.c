@@ -28,7 +28,7 @@ static void clean_dcache(void* start, size_t size) {
 }
 
 static void clean_icache(void* start, size_t size) {
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i += 64) {
         asm volatile ("ic ivau, %0" :: "r"(start + i));
     }
 }
@@ -38,11 +38,12 @@ static void sync_fence() {
 }
 
 void sync_idmem(void* start, size_t size) {
-    clean_dcache(start, size);
-    sync_fence();
-    clean_icache(start, size);
-    sync_fence();
-    isb();
+    /* clean_dcache(start, size); */
+    /* sync_fence(); */
+    /* clean_icache(start, size); */
+    /* sync_fence(); */
+    /* isb(); */
+    __builtin___clear_cache(start, start + size);
 }
 
 enum {
