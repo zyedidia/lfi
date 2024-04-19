@@ -227,7 +227,7 @@ void lfi_proc_init(struct lfi_proc* proc) {
     proc->code = (struct lfi_mem) {
         .base = proc->guards[0].base + proc->guards[0].size,
         .size = CODE_SIZE,
-        .prot = PROT_READ | PROT_EXEC,
+        .prot = PROT_READ | PROT_EXEC | PROT_WRITE,
     };
     int* m = mmap((void*) proc->code.base, proc->code.size, proc->code.prot, MAP_SHARED | MAP_FIXED, proc->codefd, 0);
     assert(m != (void*) -1);
@@ -269,9 +269,9 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         uintptr_t end = ceil_p(p->vaddr + p->memsz, p->align);
         uintptr_t offset = p->vaddr - start;
 
-        /* if (pflags(p->flags) == PROT_READ && start + offset < EXEC_SIZE) { */
-        /*     continue; */
-        /* } */
+        if (pflags(p->flags) == PROT_READ && start + offset < EXEC_SIZE) {
+            continue;
+        }
 
         if (ehdr->type == ET_EXEC) {
             start = start - (base - proc->base);
@@ -292,23 +292,15 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
         if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) {
             assert(start + offset < EXEC_SIZE);
-            /* mprotect((void*) (seg + start), end - start, pflags(p->flags)); */
-            /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
-            /*     goto err1; */
-            /* } */
         } else {
             assert(start + offset >= EXEC_SIZE);
         }
 
-        /* if ((err = lfi_mem_append(&proc->segments, seg)) < 0) { */
-        /*     goto err1; */
-        /* } */
-
         if (base == 0) {
-            base = seg + start;
+            base = proc->code.base + start;
         }
         if (seg + start + end > last) {
-            last = seg + start + end;
+            last = proc->code.base + start + end;
         }
     }
 
