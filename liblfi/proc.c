@@ -269,6 +269,7 @@ void lfi_proc_init(struct lfi_proc* proc) {
     assert(m != (void*) -1);
     m = mmap((void*) (proc->code.base + EXEC_SIZE), CODE_SIZE - EXEC_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, proc->codefd, EXEC_SIZE);
     assert(m != (void*) -1);
+    close(fd);
 }
 
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
@@ -338,8 +339,8 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         if (base == 0) {
             base = proc->code.base + start;
         }
-        if (proc->code.base + start + end > last) {
-            last = proc->code.base + start + end;
+        if (proc->code.base + end > last) {
+            last = proc->code.base + end;
         }
     }
 
