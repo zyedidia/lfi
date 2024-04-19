@@ -10,6 +10,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+static void isb() {
+    asm volatile ("isb sy");
+}
+
+static void inv_dcache(void* start, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        asm volatile ("dc civac, %0" :: "r"(start + i));
+    }
+}
+
+static void clean_dcache(void* start, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        asm volatile ("dc cvau, %0" :: "r"(start + i));
+    }
+}
+
+static void clean_icache(void* start, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        asm volatile ("ic ivau, %0" :: "r"(start + i));
+    }
+}
+
+static void sync_fence() {
+    asm volatile ("dsb ish" ::: "memory");
+}
+
+void sync_idmem(void* start, size_t size) {
+    clean_dcache(start, size);
+    sync_fence();
+    clean_icache(start, size);
+    sync_fence();
+    isb();
+}
+
 enum {
     GUARD_SIZE = 48ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
@@ -293,9 +328,14 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         memset((void*) (seg + start + offset + p->filesz), 0, p->memsz - p->filesz);
 
         if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) {
+            sync_idmem((void*) (proc->code.base + start), end - start);
             assert(start + offset < EXEC_SIZE);
         } else {
             assert(start + offset >= EXEC_SIZE);
+            /* mprotect((void*) (seg.base + start), end - start, pflags(p->flags)); */
+            /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
+            /*     goto err1; */
+            /* } */
         }
 
         if (base == 0) {
