@@ -10,6 +10,7 @@
 enum {
     GUARD_SIZE = 48ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
+    CODE_SIZE = 40ULL * 1024 * 1024, // 40mib of code
 };
 
 static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
@@ -181,11 +182,33 @@ static void lfi_proc_clear(struct lfi_mem** mems) {
 }
 
 static void lfi_proc_clear_regions(struct lfi_proc* proc) {
-    lfi_mem_unmap(&proc->guards[0]);
-    lfi_mem_unmap(&proc->guards[1]);
-    lfi_mem_unmap(&proc->sys);
-    lfi_mem_unmap(&proc->stack);
-    lfi_proc_clear(&proc->segments);
+    /* lfi_mem_unmap(&proc->guards[0]); */
+    /* lfi_mem_unmap(&proc->guards[1]); */
+    /* lfi_mem_unmap(&proc->sys); */
+    /* lfi_mem_unmap(&proc->stack); */
+    /* lfi_proc_clear(&proc->segments); */
+    lfi_mem_protect(&proc->code, proc->base, PROT_READ | PROT_WRITE, proc->lfi->opts.noverify);
+    memset((void*) proc->stack.base, 0, proc->stack.size);
+}
+
+void lfi_proc_init(struct lfi_proc* proc) {
+    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
+    assert(lfi_mem_valid(&proc->guards[0]));
+    proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
+    assert(lfi_mem_valid(&proc->guards[1]));
+
+    size_t stack_size = proc->lfi->opts.stacksize;
+    proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
+    if (!lfi_mem_valid(&proc->stack)) {
+        assert(0);
+    }
+
+    proc->sys = lfi_mem_map(proc->base, proc->lfi->opts.pagesize, PROT_READ | PROT_WRITE);
+    assert(lfi_mem_valid(&proc->sys));
+    sys_setup(proc->sys, proc);
+
+    proc->code = lfi_mem_map(proc->guards[0].base + proc->guards[0].size, CODE_SIZE, PROT_READ | PROT_WRITE);
+    assert(lfi_mem_valid(&proc->code));
 }
 
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
@@ -206,24 +229,9 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     }
 
     struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[0]));
-    proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[1]));
-
-    size_t stack_size = proc->lfi->opts.stacksize;
-    proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
-    if (!lfi_mem_valid(&proc->stack)) {
-        err = LFI_ERR_INVALID_STACK;
-        goto err1;
-    }
 
     uintptr_t base = proc->guards[0].base + proc->guards[0].size;
     uintptr_t last = 0;
-
-    proc->sys = lfi_mem_map(proc->base, proc->lfi->opts.pagesize, PROT_READ | PROT_WRITE);
-    assert(lfi_mem_valid(&proc->sys));
-    sys_setup(proc->sys, proc);
 
     if (ehdr->entry >= CODE_MAX) {
         goto err1;
@@ -251,27 +259,27 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             goto err1;
         }
 
-        struct lfi_mem seg = lfi_mem_map(base + start, end - start, PROT_READ | PROT_WRITE);
-        if (!lfi_mem_valid(&seg)) {
-            goto err1;
+        struct lfi_mem seg = proc->code;
+
+        memcpy((void*) (seg.base + start + offset), &prog[p->offset], p->filesz);
+        memset((void*) (seg.base + start + offset + p->filesz), 0, p->memsz - p->filesz);
+
+        if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) {
+            mprotect((void*) (seg.base + start), end - start, pflags(p->flags));
+            /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
+            /*     goto err1; */
+            /* } */
         }
 
-        memcpy((void*) (seg.base + offset), &prog[p->offset], p->filesz);
-        memset((void*) (seg.base + offset + p->filesz), 0, p->memsz - p->filesz);
-
-        if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) {
-            goto err1;
-        }
-
-        if ((err = lfi_mem_append(&proc->segments, seg)) < 0) {
-            goto err1;
-        }
+        /* if ((err = lfi_mem_append(&proc->segments, seg)) < 0) { */
+        /*     goto err1; */
+        /* } */
 
         if (base == 0) {
-            base = seg.base;
+            base = seg.base + start;
         }
-        if (seg.base + end > last) {
-            last = seg.base + end;
+        if (seg.base + start + end > last) {
+            last = seg.base + start + end;
         }
     }
 

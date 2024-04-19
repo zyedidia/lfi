@@ -189,6 +189,8 @@ int lfi_add_proc(struct lfi* lfi, struct lfi_proc** proc, void* ctxp) {
     };
     *proc = p;
 
+    lfi_proc_init(p);
+
     return 0;
 }
 

@@ -33,6 +33,7 @@ struct lfi_proc {
     uintptr_t base;
 
     struct lfi_mem sys;
+    struct lfi_mem code;
     struct lfi_mem guards[2];
     struct lfi_mem* segments;
     struct lfi_mem stack;
@@ -66,5 +67,7 @@ static inline uintptr_t ceil_p(uintptr_t addr, size_t align) {
     size_t align_mask = align - 1;
     return (addr + align_mask) & ~align_mask;
 }
+
+void lfi_proc_init(struct lfi_proc* p);
 
 #endif
