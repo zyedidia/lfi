@@ -242,13 +242,14 @@ int main(int argc, char* argv[]) {
             }
             if (!indbranch && insns[idx - 1] != 0xd4200000) {
                 /* printf("error, did not see brk #0 before direct branch: %lx, %x %d\n", csi->address, insns[idx], leaders[idx]); */
-                insns[idx - 1] = 0;
+                /* insns[idx - 1] = 0; */
+                leaders[idx] = false;
                 cs_free(csi, 1);
                 continue;
             }
             if (indbranch && gasdir) {
                 // calculate direct gas immediate
-                int64_t imm = idx - cur_leader + (branch ? 1 : 0);
+                int64_t imm = idx - cur_leader - 1 + (branch ? 1 : 0);
                 if (aligned) {
                     insns[idx - 7] = arm64_sub_x23(imm);
                 } else {
@@ -298,6 +299,7 @@ int main(int argc, char* argv[]) {
                 } else if (gasdir) {
                     // calculate direct gas immediate
                     int64_t imm = idx - cur_leader - 1 + (branch ? 1 : 0); // don't charge for the brk #0
+
                     insns[idx - 3] = arm64_sub_x23(imm);
                 }
             }

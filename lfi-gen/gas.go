@@ -11,11 +11,13 @@ func gasRelativePass(ops *OpList) {
 	builder := NewBuilder(ops)
 	for op != nil {
 		if inst, ok := op.Value.(*Inst); ok {
-			builder.Locate(op)
 			if IsDirectBranch(inst) {
-				builder.AddBefore(NewNode(&Directive{
-					Val: ".p2align 4",
-				}))
+				builder.Locate(op)
+				if *align {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 4",
+					}))
+				}
 				if *precise {
 					builder.Add(NewNode(&Inst{
 						Name: "sub",
@@ -59,6 +61,7 @@ func gasRelativePass(ops *OpList) {
 				}
 				builder.Add(NewNode(Label("1024")))
 			} else if IsBranch(inst) && !IsLFISyscall(inst) {
+				builder.Locate(op)
 				var target Reg
 				if len(inst.Args) == 0 {
 					target = Reg("x30")
@@ -66,9 +69,11 @@ func gasRelativePass(ops *OpList) {
 					target = inst.Args[0].(Reg)
 				}
 				// indirect branch
-				builder.AddBefore(NewNode(&Directive{
-					Val: ".p2align 4",
-				}))
+				if *align {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 4",
+					}))
+				}
 				builder.Add(NewNode(&Inst{
 					Name: "adr",
 					Args: []Arg{
@@ -222,9 +227,11 @@ func markJumps(ops *OpList) {
 				Number("0"),
 			},
 		}))
-		builder.AddBefore(NewNode(&Directive{
-			Val: ".p2align 4",
-		}))
+		if *align {
+			builder.AddBefore(NewNode(&Directive{
+				Val: ".p2align 4",
+			}))
+		}
 		builder.Locate(sub)
 		builder.Add(NewNode(&Inst{
 			Name: "tbz",
@@ -267,22 +274,16 @@ func markJumps(ops *OpList) {
 			if IsBranch(inst) && !IsLFISyscall(inst) {
 				builder.Locate(op)
 				epilogue(inst)
-				builder.Locate(op)
-				op = builder.Add(NewNode(Label("1023")))
 			}
 		} else if _, ok := op.Value.(Label); ok {
 			if op.Prev != nil && *precise {
 				if inst, ok := op.Prev.Value.(*Inst); ok && !IsBranch(inst) {
 					builder.Locate(op)
 					epilogue(nil)
+					if *align {
+						builder.Add(NewNode(&Inst{Name: "nop"}))
+					}
 				}
-			}
-			builder.Locate(op)
-			op = builder.Add(NewNode(Label("1023")))
-		} else if d, ok := op.Value.(Directive); ok {
-			if strings.HasPrefix(d.Val, ".section") {
-				builder.Locate(op)
-				op = builder.Add(NewNode(Label("1023")))
 			}
 		}
 		op = op.Next
