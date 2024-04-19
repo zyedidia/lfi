@@ -286,12 +286,15 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         memcpy((void*) (seg + start + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg + start + offset + p->filesz), 0, p->memsz - p->filesz);
 
-        /* if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) { */
+        if (pflags(p->flags) != (PROT_READ | PROT_WRITE) && pflags(p->flags) != PROT_READ) {
+            assert(seg + start + offset >= EXEC_SIZE);
             /* mprotect((void*) (seg + start), end - start, pflags(p->flags)); */
             /* if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) { */
             /*     goto err1; */
             /* } */
-        /* } */
+        } else {
+            assert(seg + start + offset < CODE_SIZE);
+        }
 
         /* if ((err = lfi_mem_append(&proc->segments, seg)) < 0) { */
         /*     goto err1; */
