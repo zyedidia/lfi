@@ -17,6 +17,10 @@ func gasRelativePass(ops *OpList) {
 					builder.AddBefore(NewNode(&Directive{
 						Val: ".p2align 4",
 					}))
+				} else {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 0",
+					}))
 				}
 				if *precise {
 					builder.Add(NewNode(&Inst{
@@ -72,6 +76,10 @@ func gasRelativePass(ops *OpList) {
 				if *align {
 					builder.AddBefore(NewNode(&Directive{
 						Val: ".p2align 4",
+					}))
+				} else {
+					builder.AddBefore(NewNode(&Directive{
+						Val: ".p2align 0",
 					}))
 				}
 				builder.Add(NewNode(&Inst{
