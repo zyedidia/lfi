@@ -4,7 +4,7 @@ lfi-compile clang++ \
     -mllvm --aarch64-enable-compress-jump-tables=false \
     -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x23 -ffixed-x24 -ffixed-x30 \
     -mbranch-protection=bti \
-    -flfi--gas -flfi--poc \
+    -flfi--gas -flfi--poc -flfi--precise \
     "$@" \
     --sysroot $TOOLCHAIN/sysroot \
     --rtlib=compiler-rt \

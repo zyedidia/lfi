@@ -240,6 +240,7 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
             }
+            // check for break
             if (!indbranch && insns[idx - 1] != 0xd4200000) {
                 /* printf("error, did not see brk #0 before direct branch: %lx, %x %d\n", csi->address, insns[idx], leaders[idx]); */
                 /* insns[idx - 1] = 0; */
