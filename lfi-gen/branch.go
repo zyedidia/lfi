@@ -72,6 +72,16 @@ func branchFixupPass(ops *OpList) {
 									Number("0"),
 								},
 							}))
+							if *gasRel && *precise {
+								b.Add(NewNode(&Inst{
+									Name: "sub",
+									Args: []Arg{
+										gasReg,
+										gasReg,
+										Number("0"),
+									},
+								}))
+							}
 							b.Add(NewNode(&Inst{
 								Name: "tbz",
 								Args: []Arg{
@@ -80,6 +90,9 @@ func branchFixupPass(ops *OpList) {
 									Label("1024f"),
 								},
 							}))
+							if *gasRel && *precise {
+								b.Add(NewNode(&Inst{Name: "nop"}))
+							}
 							b.Add(NewNode(&Inst{
 								Name: "brk",
 								Args: []Arg{
