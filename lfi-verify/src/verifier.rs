@@ -1,6 +1,7 @@
 extern crate alloc;
 
-use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, lo, lo_reg, nomodify};
+use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, nomodify};
+use crate::reg::{lo_reg, lo};
 use alloc::format;
 use bad64::Imm::{Signed, Unsigned};
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};

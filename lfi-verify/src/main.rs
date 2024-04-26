@@ -9,6 +9,8 @@ use xmas_elf::{program::SegmentData, ElfFile};
 
 mod inst;
 mod verifier;
+mod autogen;
+mod reg;
 
 fn show_error(bytes: *const u8, size: usize) {
     let s = unsafe { String::from_utf8_lossy(std::slice::from_raw_parts(bytes, size)) };

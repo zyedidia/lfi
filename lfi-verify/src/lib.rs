@@ -7,6 +7,8 @@ use verifier::Verifier;
 
 mod inst;
 mod verifier;
+mod autogen;
+mod reg;
 
 #[no_mangle]
 pub extern "C" fn lfi_verify_bytes(raw_bytes: *const u8, size: usize, error: *const ()) -> bool {
