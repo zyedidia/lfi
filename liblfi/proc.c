@@ -346,6 +346,10 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         prev_seg_end = seg + start + offset + p->memsz;
     }
 
+    if (last < proc->code.base + EXEC_SIZE) {
+        last = proc->code.base + EXEC_SIZE;
+    }
+
     // memset((void*) prev_seg_end, 0, ((uintptr_t) proc->codealias + proc->code.size) - prev_seg_end);
 
     *info = (struct lfi_proc_info) {
