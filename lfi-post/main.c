@@ -228,11 +228,14 @@ int main(int argc, char* argv[]) {
                         break;
                 }
             }
+            if (gasrel) {
+                assert(branch);
+            }
             size_t idx = i;
             if (gasdir) {
                 if (branch) {
                     // current instruction is a branch
-                } else if (i + 1 < n && leaders[i + 1] && leaders) {
+                } else if (i + 1 < n && leaders[i + 1]) {
                     // next instruction is a leader
                     idx = i + 1;
                 } else {
@@ -241,7 +244,7 @@ int main(int argc, char* argv[]) {
                 }
             }
             if (!indbranch && insns[idx - 1] != 0xd4200000) {
-                /* printf("error, did not see brk #0 before direct branch: %lx, %x %d\n", csi->address, insns[idx], leaders[idx]); */
+                printf("error, %d did not see brk #0 before direct branch: %lx, %x %d\n", branch, csi->address, insns[idx], leaders[idx]);
                 /* insns[idx - 1] = 0; */
                 leaders[idx] = false;
                 cs_free(csi, 1);
@@ -267,16 +270,31 @@ int main(int argc, char* argv[]) {
                     insns[idx - 3] = NOP;
                     if (precise) {
                         // precise version uses double sub
+                        if (((insns[idx - 4] >> 23) & 0b111111) != 0b100010) {
+                            assert(!"bad");
+                        }
+                        if (((insns[idx - 5] >> 23) & 0b111111) != 0b100010) {
+                            assert(!"bad");
+                        }
                         insns[idx - 4] = NOP;
                         insns[idx - 5] = NOP;
+                        assert(!aligned && branch && !indbranch);
                     }
                 } else if (gasrel) {
                     // calculate relative gas immediate
                     int64_t imm = ((target - (int64_t) csi->address) >> 2) - 1;
                     if (precise) {
                         // precise version uses double sub
-                        insns[idx - 5] = arm64_add_x23(imm / 4096 * 4096);
-                        insns[idx - 4] = arm64_add_x23(imm % 4096);
+                        if (((insns[idx - 4] >> 23) & 0b111111) != 0b100010) {
+                            printf("%lx\n", csi->address);
+                            assert(!"bad");
+                        }
+                        if (((insns[idx - 5] >> 23) & 0b111111) != 0b100010) {
+                            assert(!"bad");
+                        }
+                        insns[idx - 4] = arm64_add_x23(imm / 4096 * 4096);
+                        insns[idx - 5] = arm64_add_x23(imm % 4096);
+                        assert(!aligned);
                     } else {
                         insns[idx - 3] = arm64_add_x23(imm);
                     }
@@ -291,8 +309,15 @@ int main(int argc, char* argv[]) {
                     int64_t imm = ((int64_t) csi->address - target) >> 2;
                     if (precise) {
                         // precise version uses double sub
-                        insns[idx - 5] = arm64_sub_x23(imm / 4096 * 4096);
-                        insns[idx - 4] = arm64_sub_x23(imm % 4096);
+                        if (((insns[idx - 4] >> 23) & 0b111111) != 0b100010) {
+                            assert(!"bad");
+                        }
+                        if (((insns[idx - 5] >> 23) & 0b111111) != 0b100010) {
+                            assert(!"bad");
+                        }
+                        insns[idx - 4] = arm64_sub_x23(imm / 4096 * 4096);
+                        insns[idx - 5] = arm64_sub_x23(imm % 4096);
+                        assert(!aligned);
                     } else {
                         insns[idx - 3] = arm64_sub_x23(imm);
                     }
