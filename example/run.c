@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 
 #include "lfi.h"
 
@@ -35,7 +36,7 @@ static void readfile(FILE* f, void** buf, size_t* size) {
 }
 
 uint64_t syshandler(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
-    printf("received syscall %ld: %s\n", sysno, (char*) a0);
+    //printf("received syscall %ld: %s\n", sysno, (char*) a0);
     lfi_proc_exit(*((struct lfi_proc**) ctxp), 42);
 }
 
@@ -75,6 +76,11 @@ int main(int argc, char** argv) {
         fprintf(stderr, "error adding: %d\n", err);
         exit(1);
     }
+
+    clock_t begin = clock();
+    int code;
+    for (size_t i = 0; i < 100000; i++) {
+
     struct lfi_proc_info info;
     err = lfi_proc_exec(proc, buf, size, &info);
     if (err < 0) {
@@ -82,10 +88,14 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    printf("loaded %s, entry: %lx, stack: %p\n", argv[1], info.elfentry, info.stack);
-
     lfi_proc_init_regs(proc, info.elfentry, (uintptr_t) info.stack + info.stacksize - 16);
-    int code = lfi_proc_start(proc);
+
+        code = lfi_proc_start(proc);
+    }
+
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("%.3lf\n", time_spent);
 
     printf("exited with code %d\n", code);
 
