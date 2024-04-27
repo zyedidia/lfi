@@ -15,6 +15,8 @@ produces assembly files that will pass verification. Currently, we also provide
 wrapper tools to transparently use the assembly rewriter with any version of
 Clang, as well as prebuilt LFI-compatible libraries for an LLVM-based C/C++
 toolchain (`compiler-rt`, `musl-libc`, `libc++`, `libc++abi`, `libunwind`).
+Support for GCC is currently experimental but we have a working prototype that
+we hope to provide soon.
 
 LFI-compatible programs are performant: on the SPEC 2017 benchmark suite, we
 observe a runtime overhead of 7% and a code size overhead of 14%. This compares
@@ -30,11 +32,9 @@ LFI supports all source-level language features and targets the ARMv8.0-A ISA
 planning to add support for ARMv8.1+ extensions.
 
 LFI is currently in development. For now, please only use it for
-experimentation. In particular, so far the runtime has just been used for
-collecting measurements, and does not provide a fully sandboxed environment. We
-are currently working on rewriting it to be fully secure. A paper with
-additional details will be publicly available in the next few months, so stay
-tuned for that.
+experimentation. In particular, so far the runtime has been primarily used for
+collecting measurements, and may not provide a fully sandboxed environment. We
+are currently working on ensuring it is fully secure.
 
 Please see the following paper for more details: https://zyedidia.github.io/papers/lfi_asplos24.pdf.
 
@@ -130,10 +130,12 @@ following features:
 
 * New capabilities and full security for the runtime.
 * Support for additional ARM extensions.
+* Support for GCC (in-progress).
+* Optimized integration with WebAssembly (efficiently run WebAssembly inside LFI).
+* Instrumentation of static binaries, so you don't need to recompile your program.
 * Support for cool new features that are not yet announced.
-* Support for dynamic code generation.
 * Support for ARM software context IDs for mitigating Spectre attacks (requires
   modifications to Linux, which Arm will hopefully implement soon).
 
-In the future, we may explore support for additional architectures such as
-x86-64 and RISC-V, but there is currently no plan to do so.
+We are currently exploring support for x86-64 and hope to have a prototype
+available the coming months.
