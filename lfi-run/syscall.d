@@ -112,7 +112,7 @@ extern (C) void syscall_handler(Proc* p) {
     case Sys.EXECVE:
         ret = sys_execve(p, a0, a1, a2);
         break;
-    case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64, Sys.RT_SIGPROCMASK:
+    case Sys.IOCTL, Sys.FCNTL, Sys.PRLIMIT64, Sys.RT_SIGPROCMASK, 132, 134:
         ret = 0;
         break;
     default:
@@ -293,6 +293,10 @@ noreturn sys_exit(Proc* p, int status) {
     assert(0, "exited");
 }
 
+private bool map_fixed(int flags) {
+    return (flags & MAP_FIXED) != 0;
+}
+
 uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int fd, long offset) {
     if (fd >= 0) {
         return Err.BADF;
@@ -316,7 +320,7 @@ uintptr sys_mmap(Proc* p, uintptr addr, usize length, int prot, int flags, int f
         return Err.PERM;
     }
 
-    if (addr == 0) {
+    if (addr == 0 && !map_fixed(flags)) {
         if (!p.map_any(length, prot, flags, fd, offset, addr)) {
             return Err.NOMEM;
         }

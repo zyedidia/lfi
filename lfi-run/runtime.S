@@ -4,7 +4,7 @@
 
 // save registers, assuming sandbox base is x21
 .macro SAVE_REGS
-	ldr x21,      [x21, #N_RTCALLS*8] // x21 now points to struct proc
+	ldr x21,      [x25, #N_RTCALLS*8] // x21 now points to struct proc
 	stp x0, x1,   [x21, #8+16*0]
 	stp x2, x3,   [x21, #8+16*1]
 	stp x4, x5,   [x21, #8+16*2]
@@ -32,7 +32,7 @@
 
 // save caller-saved registers, assuming sandbox base is x21
 .macro SAVE_PARTIAL_REGS
-	ldr x21,      [x21, #N_RTCALLS*8] // x21 now points to struct proc
+	ldr x21,      [x25, #N_RTCALLS*8] // x21 now points to struct proc
 	stp x0, x1,   [x21, #8+16*0]
 	stp x2, x3,   [x21, #8+16*1]
 	stp x4, x5,   [x21, #8+16*2]
@@ -63,13 +63,13 @@ proc_entry:
 .globl syscall_entry
 syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [x21, #N_RTCALLS*8+8] // load kernel tpidr_el0
+	ldr x0, [x25, #N_RTCALLS*8+8] // load kernel tpidr_el0
 	msr tpidr_el0, x0
-	ldr x0, [x21, #N_RTCALLS*8]  // load Proc*
+	ldr x0, [x25, #N_RTCALLS*8]  // load Proc*
 	ldr x1, [x0]         // load stack
 	mov sp, x1
 	bl syscall_handler
-	ldr x0, [x21, #N_RTCALLS*8]
+	ldr x0, [x25, #N_RTCALLS*8]
 	b  restore_partial_regs
 	brk #0
 
@@ -104,7 +104,7 @@ yield_entry:
 	// This access assumes every 4GB-aligned page is either accessible and
 	// corresponds to a valid sandbox, or is inaccessible and will cause a
 	// trap.
-	ldr x0, [x21, #N_RTCALLS*8]
+	ldr x0, [x25, #N_RTCALLS*8]
 	// fallthrough to restore_regs
 
 // restore_regs(Proc* p)

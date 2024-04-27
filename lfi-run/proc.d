@@ -184,10 +184,10 @@ err1:
             goto err;
 
         {
-            ensure(p.sys.protect(PROT_READ | PROT_WRITE) == 0);
+            // ensure(p.sys.protect(PROT_READ | PROT_WRITE) == 0);
             SysTable* table = cast(SysTable*) p.sys.base;
             table.setup(p);
-            ensure(p.sys.protect(PROT_READ) == 0);
+            // ensure(p.sys.protect(PROT_READ) == 0);
         }
 
         foreach (ref seg; parent.segments) {
@@ -338,10 +338,11 @@ err1:
         {
             SysTable* table = cast(SysTable*) sys.base;
             table.setup(&this);
-            ensure(sys.protect(PROT_READ) == 0);
+            // ensure(sys.protect(PROT_READ) == 0);
         }
 
-        mmap_start = cast(uintptr) brk.base + BRK_SIZE;
+        // mmap_start = cast(uintptr) brk.base + BRK_SIZE;
+        mmap_start = base;
         mmap_end = truncpg(cast(uintptr) stack.base - 1);
         {
             ubyte* meta = kalloc(buddy_sizeof_alignment(mmap_end - mmap_start, PAGESIZE)).ptr;
@@ -372,17 +373,20 @@ err1:
 
         ProgHeader[] phdr = (cast(ProgHeader*) (&buf[ehdr.phoff]))[0 .. ehdr.phnum];
 
-        sys = MemRegion.map(base, PAGESIZE, PROT_READ | PROT_WRITE);
-        if (!sys.valid())
-            return false;
-        guards[0] = MemRegion.map(base + PAGESIZE, GUARD_SIZE, PROT_NONE);
-        if (!guards[0].valid())
-            goto err1;
+        sys.base = malloc(PAGESIZE);
+        sys.len = PAGESIZE;
+        // sys = MemRegion.map(null, PAGESIZE, PROT_READ | PROT_WRITE);
+        // if (!sys.valid())
+        //     return false;
+        // guards[0] = MemRegion.map(base + PAGESIZE, GUARD_SIZE, PROT_NONE);
+        // if (!guards[0].valid())
+        //     goto err1;
         guards[1] = MemRegion.map(base + PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
         if (!guards[1].valid())
             goto err2;
 
-        seg_base = cast(uintptr) guards[0].base + guards[0].len;
+        // seg_base = cast(uintptr) guards[0].base + guards[0].len;
+        seg_base = base + (3UL * 1024 * 1024 * 1024); // 3GiB
 
         foreach (ref ProgHeader p; phdr) {
             if (p.type != PT_LOAD)
@@ -619,6 +623,7 @@ struct SysTable {
         rtcalls[1] = cast(uintptr) &yield_entry;
         proc = p;
         kernel_tpidr = SysReg.tpidr_el0;
+        proc.regs.x25 = cast(uintptr) &this;
     }
 }
 

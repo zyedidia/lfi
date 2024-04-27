@@ -38,6 +38,7 @@ enum Sys {
     MMAP            = 222,
     WAIT4           = 260,
     PRLIMIT64       = 261,
+    STATX           = 291,
 }
 
 enum Err {
