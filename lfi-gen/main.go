@@ -55,6 +55,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if *opt <= 1 {
+		reserved[optReg] = false
+		reserved[optReg2] = false
+	}
+	if *hideSys {
+		sysReg = Reg("x25")
+	}
 
 	// MarkLeaders(*ops)
 	if *native {

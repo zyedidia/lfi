@@ -11,7 +11,7 @@ func sandboxMemAddr(a *Arg, builder *Builder) bool {
 		if sandboxed(m.Reg) {
 			return true
 		}
-		if m.Reg == segmentReg {
+		if m.Reg == sysReg {
 			return false
 		}
 		if m.Imm == nil {
@@ -142,8 +142,8 @@ func sandboxMemAddrNoOpt(op *OpNode, a *Arg, builder *Builder) {
 		if sandboxed(m.Reg) {
 			return
 		}
-		if m.Reg == segmentReg {
-			// allow 'ldr [x21, #n]' without rewriting
+		if m.Reg == sysReg {
+			// allow 'ldr [sys, #n]' without rewriting
 			return
 		}
 		builder.AddBefore(NewNode(&Inst{

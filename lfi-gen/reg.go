@@ -11,8 +11,9 @@ const (
 	spReg      = Reg("sp")
 	retReg     = Reg("x30")
 	gasReg     = Reg("x23")
-	sysReg     = Reg("x25")
 )
+
+var sysReg = Reg("x21")
 
 var sandboxedreg = map[Reg]bool{
 	spReg:  true,
