@@ -7,10 +7,10 @@ ALL="gcc_r omnetpp_r mcf_r xalancbmk_r deepsjeng_r leela_r xz_r namd_r parest_r 
 
 # --- lfi ---
 
-LFIFLAGS=-O0 LOADER=lfi-run runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
-LFIFLAGS=-O1 LOADER=lfi-run runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
-LFIFLAGS=-O2 LOADER=lfi-run runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
-LFIFLAGS=--no-loads LOADER=lfi-run runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
+LOADER="lfi-run --no-verify" runcpu --config=lfi-o0 --size=ref $ALL --action=run --rebuild
+LOADER="lfi-run --no-verify" runcpu --config=lfi-o1 --size=ref $ALL --action=run --rebuild
+LOADER="lfi-run --no-verify" runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
+LFIFLAGS=--no-loads LOADER="lfi-run --no-verify" runcpu --config=lfi-lto --size=ref $ALL --action=run --rebuild
 
 # --- native ---
 
