@@ -1,0 +1,9 @@
+#!/bin/bash
+lfi-compile clang++ \
+    -mllvm --aarch64-enable-compress-jump-tables=false \
+    -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x30 \
+    -flfi-O0 \
+    "$@" \
+    -fuse-ld=lld \
+    -fPIC \
+    -Wno-unused-command-line-argument
