@@ -72,10 +72,21 @@ AddrOpt = (
         tfree(r); tfree(i);
     }
     | (LB r:XREG COMMA i:IMM RB) {
-        $$ = (Transform) {
-            .guard = xasprintf("add x22, %s, %s", r.val, i.val),
-            .val = strdup("[x21, w22, uxtw]"),
-        };
+        char* ival = i.val;
+        if (i.val[0] == '#')
+            ival++;
+        int ii = atoi(ival);
+        if (ii > 4096) {
+            $$ = (Transform) {
+                .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+                .val = xasprintf("[x18, %s]", i.val),
+            };
+        } else {
+            $$ = (Transform) {
+                .guard = xasprintf("add x22, %s, %s", r.val, i.val),
+                .val = strdup("[x21, w22, uxtw]"),
+            };
+        }
         tfree(r); tfree(i);
     }
     | (LB r:XREG RB COMMA i:IMM) {
@@ -143,6 +154,8 @@ LDST_BASIC = < (
     | 'ldtr' [bh]?
     | 'stlr' [bh]?
     | 'sttr' [bh]?
+    | 'prfum'
+    | 'ld' [1234]
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 LDST_MULTI = < (
@@ -225,24 +238,19 @@ RESREG = < (
     | 'sp'
 ) > - { $$.val = strndup(yytext, yyleng) }
 
-REG = XREG | WREG
+REG = XREG | WREG | SIMD_REG
 
-XREG = < 'x' r:REGNUM > { $$.val = strndup(yytext, yyleng) }
+SIMD_REG = < (
+      (LC ([^}])* RC (LB (!RB .)* RB)?)
+    | ID
+    ) > - { $$.val = strndup(yytext, yyleng) }
 
-WREG = < 'w' r:REGNUM > { $$.val = strndup(yytext, yyleng) }
+XREG = < 'x' r:REGNUM > - { $$.val = strndup(yytext, yyleng) }
+
+WREG = < 'w' r:REGNUM > - { $$.val = strndup(yytext, yyleng) }
 
 REGNUM = (
-      '0'
-    | '1'
-    | '2'
-    | '3'
-    | '4'
-    | '5'
-    | '6'
-    | '7'
-    | '8'
-    | '9'
-    | '10'
+      '10'
     | '11'
     | '12'
     | '13'
@@ -263,7 +271,17 @@ REGNUM = (
     | '28'
     | '29'
     | '30'
-) -
+    | '0'
+    | '1'
+    | '2'
+    | '3'
+    | '4'
+    | '5'
+    | '6'
+    | '7'
+    | '8'
+    | '9'
+)
 
 ID = [a-zA-Z_.][-a-zA-Z0-9_.]*
 
@@ -273,6 +291,8 @@ LB      = '[' -
 RB      = ']' -
 LP      = '(' -
 RP      = ')' -
+LC      = '{' -
+RC      = '}' -
 -       = [ \t]*
 EOL     = '\n' | '\r\n' | '\r'
 
