@@ -408,7 +408,9 @@ EOL     = '\n' | '\r\n' | '\r'
 
 %%
 
-int main() {
+int
+main()
+{
     while (yyparse())
         ;
     return 0;

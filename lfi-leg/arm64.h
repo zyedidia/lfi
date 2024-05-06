@@ -31,3 +31,10 @@ isres(const char* reg)
         return true;
     return false;
 }
+
+static const char*
+opp(const char* tbz) {
+    if (strcmp(tbz, "tbz"))
+        return "tbnz";
+    return "tbz";
+}
