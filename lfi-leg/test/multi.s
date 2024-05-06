@@ -22,3 +22,7 @@ stur x8, [x29, #-8] // 8-byte Folded Spill
 stp xzr, xzr, [x8], #32
 
 stp xzr, xzr, [x8, #32]!
+
+ldp x29, x30, [sp], 16
+
+ldr x30, [sp, #16]

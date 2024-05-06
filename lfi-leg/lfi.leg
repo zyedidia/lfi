@@ -17,6 +17,42 @@ tfree(Transform t)
     free(t.post);
 }
 
+// These functions are for the load/store rewriter.
+
+static void
+ldst(Transform l, Transform rt, Transform addr, bool isload)
+{
+    if (addr.guard)
+        printf("%s\n", addr.guard);
+    if (isload && isres(rt.val)) {
+        printf("%s x22, %s\n", l.val, addr.val);
+        printf("add %s, x21, w22, uxtw\n", rt.val);
+    } else {
+        printf("%s %s, %s\n", l.val, rt.val, addr.val);
+    }
+    if (addr.post)
+        printf("%s\n", addr.post);
+    tfree(l); tfree(rt); tfree(addr);
+}
+
+static void
+ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload)
+{
+    printf("%s\n", addr.guard);
+    if (isload && (isres(rt1.val) || isres(rt2.val))) {
+        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+        if (isres(rt1.val))
+            printf("add %s, x21, %s, uxtw\n", rt2.val, lo(rt2.val));
+        if (isres(rt2.val))
+            printf("add %s, x21, %s, uxtw\n", rt2.val, lo(rt2.val));
+    } else {
+        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+    }
+    if (addr.post)
+        printf("%s\n", addr.post);
+    tfree(l); tfree(rt1); tfree(rt2); tfree(addr);
+}
+
 #define YYSTYPE Transform
 %}
 
@@ -25,6 +61,7 @@ Insn = INDENT Label? (
     | Branch
     | Syscall
     | ModSpecial
+    | ModLR
     | Any
 ) COMMENT? EOL
 
@@ -41,49 +78,30 @@ INDENT = < [ \t]* > {
 
 # --- loads and stores ---
 
-LdSt = LdStOpt | LdStNoOpt | LdStMulti
+LdSt = LdOpt | LdNoOpt | LdMulti | StOpt | StNoOpt | StMulti
 
-LdStOpt = l:LDST rt:REG COMMA addr:AddrOpt {
-    if (addr.guard)
-        printf("%s\n", addr.guard);
-    if (isload(l.val) && isres(rt.val)) {
-        printf("%s x22, %s\n", l.val, addr.val);
-        printf("add %s, x21, w22, uxtw\n", rt.val);
-    } else {
-        printf("%s %s, %s\n", l.val, rt.val, addr.val);
-    }
-    if (addr.post)
-        printf("%s\n", addr.post);
-    tfree(l); tfree(rt); tfree(addr);
+LdOpt = l:LD rt:REG COMMA addr:AddrOpt {
+    ldst(l, rt, addr, true);
 }
 
-LdStNoOpt = l:LDST_BASIC rt:REG COMMA addr:AddrNoOpt {
-    printf("%s\n", addr.guard);
-    if (isload(l.val) && isres(rt.val)) {
-        printf("%s x22, %s\n", l.val, addr.val);
-        printf("add %s, x21, w22, uxtw\n", rt.val);
-    } else {
-        printf("%s %s, %s\n", l.val, rt.val, addr.val);
-    }
-    if (addr.post)
-        printf("%s\n", addr.post);
-    tfree(l); tfree(rt); tfree(addr);
+LdNoOpt = l:LD_BASIC rt:REG COMMA addr:AddrNoOpt {
+    ldst(l, rt, addr, true);
 }
 
-LdStMulti = l:LDST_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
-    printf("%s\n", addr.guard);
-    if (isload(l.val) && (isres(rt1.val) || isres(rt2.val))) {
-        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
-        if (isres(rt1.val))
-            printf("add %s, x21, %s, uxtw", rt2.val, lo(rt2.val));
-        if (isres(rt2.val))
-            printf("add %s, x21, %s, uxtw", rt2.val, lo(rt2.val));
-    } else {
-        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
-    }
-    if (addr.post)
-        printf("%s\n", addr.post);
-    tfree(l); tfree(rt1); tfree(rt2); tfree(addr);
+LdMulti = l:LD_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
+    ldstmulti(l, rt1, rt2, addr, true);
+}
+
+StOpt = l:ST rt:REG COMMA addr:AddrOpt {
+    ldst(l, rt, addr, false);
+}
+
+StNoOpt = l:ST_BASIC rt:REG COMMA addr:AddrNoOpt {
+    ldst(l, rt, addr, false);
+}
+
+StMulti = l:ST_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
+    ldstmulti(l, rt1, rt2, addr, false);
 }
 
 # Address mode transformations that use [x21, wN, uxtw].
@@ -187,35 +205,50 @@ AddrNoOpt = (
 )
 
 # Loads/stores that have all addressing modes available.
-LDST = < (
+LD = < (
       'ldrs' [bhw]
     | 'ldr' [bh]?
     | 'prfm'
-    | 'str' [bh]?
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+ST = < (
+    'str' [bh]?
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # Loads/stores that only have basic addressing modes available.
-LDST_BASIC = < (
+LD_BASIC = < (
       'ldurs' [bhw]
     | 'ldur' [bh]?
-    | 'stur' [bh]?
     | 'ld' [ax] 'r' [bh]?
     | 'ldtrs' [bhw]?
     | 'ldtr' [bh]?
-    | 'stlr' [bh]?
-    | 'sttr' [bh]?
     | 'prfum'
     | 'ld' [1234]
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-LDST_MULTI = < (
+ST_BASIC = < (
+      'stur' [bh]?
+    | 'stlr' [bh]?
+    | 'sttr' [bh]?
+    | 'st' [1234]
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+LD_MULTI = < (
       'ldpsw'
     | 'ldp'
-    | 'stp'
     | 'ld' 'a'? 'xp'
     | 'ldnp'
-    | 'st' 'l'? 'xr' # not really a multi-store since one arg is the exclusive monitor result
-    | 'st' 'l'? 'xp' # note: has 3 args
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+ST_MULTI = < (
+      'stp'
+    | 'stnp'
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+# special case for stores with exclusive monitor
+ST_SPECIAL = < (
+      'st' 'l'? 'xr'
+    | 'st' 'l'? 'xp'
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- branches ---
@@ -245,6 +278,27 @@ ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
     printf("add %s, x21, w22, uxtw\n", res.val);
     tfree(r); tfree(res); tfree(i);
 }
+
+ModLR = ModNormalLR | ModMultiLR1 | ModMultiLR2
+
+ModNormalLR = 'ldr' - 'x30' - COMMA r:REMAINDER {
+    printf("ldr x22, %s\n", r.val);
+    printf("add x30, x21, w22, uxtw\n");
+    tfree(r);
+}
+
+ModMultiLR1 = 'ldp' - 'x30' - COMMA reg:REG COMMA r:REMAINDER {
+    printf("ldp x22, %s, %s\n", reg.val, r.val);
+    printf("add x30, x21, w22, uxtw\n");
+    tfree(r); tfree(reg);
+}
+
+ModMultiLR2 = 'ldp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
+    printf("ldp %s, x22, %s\n", reg.val, r.val);
+    printf("add x30, x21, w22, uxtw\n");
+    tfree(r); tfree(reg);
+}
+
 
 MODINST = < (
       'add'
