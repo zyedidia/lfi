@@ -4,14 +4,10 @@
 #include <stdbool.h>
 
 static const char*
-lo(const char* reg)
+num(const char* reg)
 {
-    if (strncmp(reg, "sp", 2) == 0) {
-        return "wsp";
-    } else if (reg[0] == 'x') {
-        char* s = strndup(reg, 3);
-        s[0] = 'w';
-        return s;
+    if (reg[0] == 'x' || reg[0] == 'w') {
+        return &reg[1];
     }
     return reg;
 }

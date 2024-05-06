@@ -1,3 +1,5 @@
+ldr x0, [x11]
+
 ldp x9, x10, [x2]
 
 ldrh w12, [x16, w12, uxtw]

@@ -42,9 +42,9 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
     if (isload && (isres(rt1.val) || isres(rt2.val))) {
         printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
         if (isres(rt1.val))
-            printf("add %s, x21, %s, uxtw\n", rt2.val, lo(rt2.val));
+            printf("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
         if (isres(rt2.val))
-            printf("add %s, x21, %s, uxtw\n", rt2.val, lo(rt2.val));
+            printf("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
     } else {
         printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
     }
@@ -71,10 +71,6 @@ INDENT = < [ \t]* > {
     if (yyleng > 0)
         printf("%s", yytext);
 }
-
-# TODO: load/store addressing modes [x]
-# TODO: special reg guards (Op)
-# TODO: handle small branch resizing
 
 # --- loads and stores ---
 
@@ -110,7 +106,7 @@ AddrOpt = (
       (LB r:XREG COMMA i:IMM RB EXCLAM) {
         $$ = (Transform) {
             .guard = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
-            .val = xasprintf("[x21, %s, uxtw]", lo(r.val)),
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
         };
         tfree(r); tfree(i);
     }
@@ -122,7 +118,7 @@ AddrOpt = (
         int ii = atoi(ival);
         if (ii > 4096) {
             $$ = (Transform) {
-                .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+                .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
                 .val = xasprintf("[x18, %s]", i.val),
             };
         } else {
@@ -136,7 +132,7 @@ AddrOpt = (
     # [xN], i
     | (LB r:XREG RB COMMA i:IMM) {
         $$ = (Transform) {
-            .val = xasprintf("[x21, %s, uxtw]", lo(r.val)),
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
             .post = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
         };
         tfree(r); tfree(i);
@@ -144,7 +140,7 @@ AddrOpt = (
     # [xN]
     | (LB r:XREG RB) {
         $$ = (Transform) {
-            .val = xasprintf("[x21, %s, uxtw]", lo(r.val)),
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
         };
         tfree(r);
     }
@@ -171,7 +167,7 @@ AddrNoOpt = (
     # [xN, i]!
       (LB r:XREG COMMA i:IMM RB EXCLAM) {
         $$ = (Transform) {
-            .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+            .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18, %s]!", i.val),
             .post = xasprintf("mov %s, x18", r.val),
         };
@@ -180,7 +176,7 @@ AddrNoOpt = (
     # [xN, i]
     | (LB r:XREG COMMA i:IMM RB) {
         $$ = (Transform) {
-            .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+            .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18, %s]", i.val),
         };
         tfree(i); tfree(r);
@@ -188,7 +184,7 @@ AddrNoOpt = (
     # [xN], i
     | (LB r:XREG RB COMMA i:IMM) {
         $$ = (Transform) {
-            .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+            .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18], %s", i.val),
             .post = xasprintf("mov %s, x18", r.val),
         };
@@ -197,7 +193,7 @@ AddrNoOpt = (
     # [xN]
     | (LB r:XREG RB) {
         $$ = (Transform) {
-            .guard = xasprintf("add x18, x21, %s, uxtw", lo(r.val)),
+            .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = strdup("[x18]"),
         };
         tfree(r);
@@ -245,7 +241,7 @@ ST_MULTI = < (
     | 'stnp'
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-# special case for stores with exclusive monitor
+# TODO: special case for stores with exclusive monitor
 ST_SPECIAL = < (
       'st' 'l'? 'xr'
     | 'st' 'l'? 'xp'
@@ -254,7 +250,7 @@ ST_SPECIAL = < (
 # --- branches ---
 
 Branch = b:BRANCH r:XREG {
-    printf("add x18, x21, %s, uxtw\n", lo(r.val));
+    printf("add x18, x21, w%s, uxtw\n", num(r.val));
     printf("%s x18\n", b.val);
     tfree(r); tfree(b);
 }
@@ -321,8 +317,6 @@ Label = < ID ':' > - {
 
 # --- common definitions ---
 
-Op = r:XREG { $$ = (Transform) { .val = r.val } }
-
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_RAW = (
@@ -358,11 +352,11 @@ REG = XREG | WREG | SIMD_REG
 SIMD_REG = < (
       (LC ([^}])* RC (LB (!RB .)* RB)?)
     | ID
-    ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-XREG = < 'x' r:REGNUM > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+XREG = < 'x' REGNUM > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-WREG = < 'w' r:REGNUM > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+WREG = < 'w' REGNUM > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 REGNUM = (
       '10'
