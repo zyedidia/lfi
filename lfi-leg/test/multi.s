@@ -12,3 +12,13 @@ ldr x1, [x1, #4188]
 fmov d10, 2.5e1-1
 fmov d10, 2.5e1+1
 ldr x1, [x1, #:lo12:map]
+
+ldr x0, [x1, #-56]
+
+ldr x19, [x9, :lo12:.L_MergedGlobals+456]
+
+stur x8, [x29, #-8] // 8-byte Folded Spill
+
+stp xzr, xzr, [x8], #32
+
+stp xzr, xzr, [x8, #32]!

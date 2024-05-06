@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string.h>
+#include <stdbool.h>
 
 static const char*
 lo(const char* reg)
@@ -13,4 +14,24 @@ lo(const char* reg)
         return s;
     }
     return reg;
+}
+
+static bool
+isload(const char* inst)
+{
+    return true;
+}
+
+static bool
+isres(const char* reg)
+{
+    if (strncmp(reg, "x21", 3) == 0)
+        return true;
+    if (strncmp(reg, "x18", 3) == 0)
+        return true;
+    if (strncmp(reg, "x30", 3) == 0)
+        return true;
+    if (strncmp(reg, "sp", 2) == 0)
+        return true;
+    return false;
 }
