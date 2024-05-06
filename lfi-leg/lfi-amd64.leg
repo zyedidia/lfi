@@ -1,0 +1,177 @@
+%{
+#include <stdio.h>
+#include <util.h>
+#include <assert.h>
+
+#include "arm64.h"
+#include "ht.h"
+#include "op.h"
+
+typedef struct transform {
+    char* val;
+    char* guard;
+    char* post;
+} Transform;
+
+static void
+tfree(Transform t)
+{
+    free(t.val);
+    free(t.guard);
+    free(t.post);
+}
+
+#define YYSTYPE Transform
+%}
+
+Insn = INDENT Label? (
+      Directive
+    | COMMENT
+    | Any
+) COMMENT? EOL
+
+COMMENT = '//' (!EOL .)*
+
+INDENT = < [ \t]* > {
+    // if (yyleng > 0)
+        // printf("%s", yytext);
+}
+
+# --- loads and stores ---
+
+# --- branches ---
+
+Branch = 'jmp' - '*' r:XREG {
+    mkinsn("jmp *%gs:%s\n", lo(r.val));
+    tfree(b);
+}
+
+# --- syscalls ---
+
+Syscall = < 'syscall' > - {
+    mkinsn("int 0x80")
+}
+
+# --- reserved register modification ---
+
+# --- everything else ---
+
+Any = < (!EOL .)* > {
+    if (yyleng > 0)
+        mkinsn("%s\n", yytext);
+}
+
+Label = < ID > ':' - {
+    mklabel(strndup(yytext, yyleng));
+}
+
+Directive = < '.' (!EOL .)* > - {
+    mkdirective(xasprintf("%s\n", yytext));
+}
+
+NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+# --- common definitions ---
+
+IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+IMM_RAW = (
+    ('#' -)? 
+    (
+          [-0-9]+
+        | BALANCED
+        | RELOC
+    )
+)
+
+BALANCED = LP ([^()] | BALANCED)* RP
+
+RELOC = ':' ID ':' ID
+
+XREG = (
+      '%rax'
+    | '%rcx'
+    | '%rdx'
+    | '%rbx'
+    | '%rsi'
+    | '%rdi'
+    | '%rsp'
+    | '%rbp'
+    | '%r8'
+    | '%r9'
+    | '%r10'
+    | '%r11'
+    | '%r12'
+    | '%r13'
+    | '%r14'
+    | '%r15'
+)
+
+ID = [a-zA-Z_.][-a-zA-Z0-9_.+]*
+
+COMMA   = ',' -
+EXCLAM  = '!' -
+LB      = '[' -
+RB      = ']' -
+LP      = '(' -
+RP      = ')' -
+LC      = '{' -
+RC      = '}' -
+-       = [ \t]*
+EOL     = '\n' | '\r\n' | '\r'
+
+%%
+
+enum {
+    FIXUP_DIST = 8000,
+};
+
+static int
+dist(int a, int b)
+{
+    int d = a - b;
+    if (d < 0)
+        d = -d;
+    return d;
+}
+
+int
+main()
+{
+    while (yyparse())
+        ;
+
+    struct ht labels;
+    int icount = 0;
+    int r = ht_alloc(&labels, 1024);
+    assert(r == 0);
+
+    struct op* op = ops;
+    while (op) {
+        if (op->label != NULL) {
+            ht_put(&labels, op->label, icount);
+        }
+        icount += op->insn ? 1 : 0;
+        op = op->next;
+    }
+
+    icount = 0;
+    op = ops;
+    while (op) {
+        if (op->shortbr) {
+            bool found;
+            int tcount = ht_get(&labels, op->target, &found);
+            if (found && op->replace && dist(tcount, icount) > FIXUP_DIST) {
+                printf("%s", op->replace);
+            } else {
+                printf("%s", op->text);
+            }
+        } else {
+            printf("%s", op->text);
+        }
+        icount += op->insn ? 1 : 0;
+        op = op->next;
+    }
+
+    return 0;
+}

@@ -470,7 +470,7 @@ main()
         if (op->shortbr) {
             bool found;
             int tcount = ht_get(&labels, op->target, &found);
-            if (found && dist(tcount, icount) > FIXUP_DIST) {
+            if (found && op->replace && dist(tcount, icount) > FIXUP_DIST) {
                 printf("%s", op->replace);
             } else {
                 printf("%s", op->text);
