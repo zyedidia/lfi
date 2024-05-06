@@ -48,3 +48,5 @@ void ht_free(struct ht* tbl);
 
 ht_val_t ht_get(struct ht* tbl, ht_key_t key, bool* found);
 int ht_put(struct ht* tbl, ht_key_t key, ht_val_t val);
+
+extern struct ht labels;

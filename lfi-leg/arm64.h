@@ -34,7 +34,7 @@ isres(const char* reg)
 
 static const char*
 opp(const char* tbz) {
-    if (strcmp(tbz, "tbz"))
+    if (strcmp(tbz, "tbz") == 0)
         return "tbnz";
     return "tbz";
 }

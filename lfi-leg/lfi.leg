@@ -1,7 +1,11 @@
 %{
 #include <stdio.h>
-#include <arm64.h>
 #include <util.h>
+#include <assert.h>
+
+#include "arm64.h"
+#include "ht.h"
+#include "op.h"
 
 typedef struct transform {
     char* val;
@@ -23,33 +27,33 @@ static void
 ldst(Transform l, Transform rt, Transform addr, bool isload)
 {
     if (addr.guard)
-        printf("%s\n", addr.guard);
+        mkinsn("%s\n", addr.guard);
     if (isload && isres(rt.val)) {
-        printf("%s x22, %s\n", l.val, addr.val);
-        printf("add %s, x21, w22, uxtw\n", rt.val);
+        mkinsn("%s x22, %s\n", l.val, addr.val);
+        mkinsn("add %s, x21, w22, uxtw\n", rt.val);
     } else {
-        printf("%s %s, %s\n", l.val, rt.val, addr.val);
+        mkinsn("%s %s, %s\n", l.val, rt.val, addr.val);
     }
     if (addr.post)
-        printf("%s\n", addr.post);
+        mkinsn("%s\n", addr.post);
     tfree(l); tfree(rt); tfree(addr);
 }
 
 static void
 ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload)
 {
-    printf("%s\n", addr.guard);
+    mkinsn("%s\n", addr.guard);
     if (isload && (isres(rt1.val) || isres(rt2.val))) {
-        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+        mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
         if (isres(rt1.val))
-            printf("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
+            mkinsn("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
         if (isres(rt2.val))
-            printf("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
+            mkinsn("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
     } else {
-        printf("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+        mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
     }
     if (addr.post)
-        printf("%s\n", addr.post);
+        mkinsn("%s\n", addr.post);
     tfree(l); tfree(rt1); tfree(rt2); tfree(addr);
 }
 
@@ -58,18 +62,21 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
 
 Insn = INDENT Label? (
       LdSt
+    | ShortBranch
     | Branch
     | Syscall
     | ModSpecial
     | ModLR
+    | Directive
+    | COMMENT
     | Any
 ) COMMENT? EOL
 
 COMMENT = '//' (!EOL .)*
 
 INDENT = < [ \t]* > {
-    if (yyleng > 0)
-        printf("%s", yytext);
+    // if (yyleng > 0)
+        // printf("%s", yytext);
 }
 
 # --- loads and stores ---
@@ -249,9 +256,16 @@ ST_SPECIAL = < (
 
 # --- branches ---
 
+ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
+    mktbz(b.val, r.val, imm.val, name.val);
+    tfree(b); tfree(r); tfree(imm); tfree(name);
+}
+
+TBZ = < ('tbz' | 'tbnz') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
 Branch = b:BRANCH r:XREG {
-    printf("add x18, x21, w%s, uxtw\n", num(r.val));
-    printf("%s x18\n", b.val);
+    mkinsn("add x18, x21, w%s, uxtw\n", num(r.val));
+    mkinsn("%s x18\n", b.val);
     tfree(r); tfree(b);
 }
 
@@ -260,38 +274,38 @@ BRANCH = < ('br' | 'blr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng
 # --- syscalls ---
 
 Syscall = < 'svc' - '#0' > - {
-    printf("str x30, [sp, #16]!\n");
-    printf("ldr x30, [x21]\n");
-    printf("blr x30\n");
-    printf("ldr x30, [sp], 16\n");
-    printf("add x30, x21, w30, uxtw\n");
+    mkinsn("str x30, [sp, #16]!\n");
+    mkinsn("ldr x30, [x21]\n");
+    mkinsn("blr x30\n");
+    mkinsn("ldr x30, [sp], 16\n");
+    mkinsn("add x30, x21, w30, uxtw\n");
 }
 
 # --- reserved register modification ---
 
 ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
-    printf("%s x22, %s\n", i.val, r.val);
-    printf("add %s, x21, w22, uxtw\n", res.val);
+    mkinsn("%s x22, %s\n", i.val, r.val);
+    mkinsn("add %s, x21, w22, uxtw\n", res.val);
     tfree(r); tfree(res); tfree(i);
 }
 
 ModLR = ModNormalLR | ModMultiLR1 | ModMultiLR2
 
 ModNormalLR = 'ldr' - 'x30' - COMMA r:REMAINDER {
-    printf("ldr x22, %s\n", r.val);
-    printf("add x30, x21, w22, uxtw\n");
+    mkinsn("ldr x22, %s\n", r.val);
+    mkinsn("add x30, x21, w22, uxtw\n");
     tfree(r);
 }
 
 ModMultiLR1 = 'ldp' - 'x30' - COMMA reg:REG COMMA r:REMAINDER {
-    printf("ldp x22, %s, %s\n", reg.val, r.val);
-    printf("add x30, x21, w22, uxtw\n");
+    mkinsn("ldp x22, %s, %s\n", reg.val, r.val);
+    mkinsn("add x30, x21, w22, uxtw\n");
     tfree(r); tfree(reg);
 }
 
 ModMultiLR2 = 'ldp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
-    printf("ldp %s, x22, %s\n", reg.val, r.val);
-    printf("add x30, x21, w22, uxtw\n");
+    mkinsn("ldp %s, x22, %s\n", reg.val, r.val);
+    mkinsn("add x30, x21, w22, uxtw\n");
     tfree(r); tfree(reg);
 }
 
@@ -309,11 +323,20 @@ REMAINDER = < (!EOL .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } 
 
 # --- everything else ---
 
-Any = < (!EOL .)* > { printf("%s\n", yytext); }
-
-Label = < ID ':' > - {
-    printf("%s", yytext);
+Any = < (!EOL .)* > {
+    if (yyleng > 0)
+        mkinsn("%s\n", yytext);
 }
+
+Label = < ID > ':' - {
+    mklabel(strndup(yytext, yyleng));
+}
+
+Directive = < '.' (!EOL .)* > - {
+    mkdirective(xasprintf("%s\n", yytext));
+}
+
+NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- common definitions ---
 
@@ -408,10 +431,56 @@ EOL     = '\n' | '\r\n' | '\r'
 
 %%
 
+enum {
+    FIXUP_DIST = 8000,
+};
+
+static int
+dist(int a, int b)
+{
+    int d = a - b;
+    if (d < 0)
+        d = -d;
+    return d;
+}
+
 int
 main()
 {
     while (yyparse())
         ;
+
+    struct ht labels;
+    int icount = 0;
+    int r = ht_alloc(&labels, 1024);
+    assert(r == 0);
+
+    struct op* op = ops;
+    while (op) {
+        if (op->label != NULL) {
+            ht_put(&labels, op->label, icount);
+        }
+        icount += op->insn ? 1 : 0;
+        op = op->next;
+    }
+
+    icount = 0;
+    op = ops;
+    while (op) {
+        if (op->shortbr) {
+            bool found;
+            int tcount = ht_get(&labels, op->target, &found);
+            if (found && dist(tcount, icount) > FIXUP_DIST) {
+                printf("%s", op->replace);
+            } else {
+                printf("%s", op->text);
+            }
+        } else {
+            printf("%s", op->text);
+        }
+        icount += op->insn ? 1 : 0;
+        op = op->next;
+    }
+
     return 0;
 }
