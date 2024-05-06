@@ -15,6 +15,8 @@ lo(const char* reg)
         return "%ebx";
     if (strcmp(reg, "%rsi") == 0)
         return "%esi";
+    if (strcmp(reg, "%rdi") == 0)
+        return "%edi";
     if (strcmp(reg, "%rsp") == 0)
         return "%esp";
     if (strcmp(reg, "%rbp") == 0)

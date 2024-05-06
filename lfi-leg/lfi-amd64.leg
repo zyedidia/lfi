@@ -3,7 +3,7 @@
 #include <util.h>
 #include <assert.h>
 
-#include "arm64.h"
+#include "amd64.h"
 #include "ht.h"
 #include "op.h"
 
@@ -26,6 +26,10 @@ tfree(Transform t)
 
 Insn = INDENT Label? (
       Directive
+    | Store
+    | Load
+    | Branch
+    | Syscall
     | COMMENT
     | Any
 ) COMMENT? EOL
@@ -39,17 +43,66 @@ INDENT = < [ \t]* > {
 
 # --- loads and stores ---
 
+Load = m:MOV a:Addr COMMA r:REG {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("%s %s, %s\n", m.val, a.val, r.val);
+}
+
+Store = m:MOV r:REG COMMA a:Addr {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("%s %s, %s\n", m.val, r.val, a.val);
+}
+
+Addr = (
+    # (%rxx)
+      (LP r:XREG_NOSP RP) {
+        $$ = (Transform) {
+            .val = xasprintf("%%gs:(%s)", lo(r.val)),
+        }
+    }
+    # imm(%rxx)
+    | (i:IMM LP r:XREG_NOSP RP) {
+        $$ = (Transform) {
+            .val = xasprintf("%%gs:%s(%s)", i.val, lo(r.val)),
+        }
+    }
+    # imm(...)
+    | (i:IMM b:BALANCED) {
+        $$ = (Transform) {
+            .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
+            .val = xasprintf("%%gs:(%%r15d)"),
+        }
+    }
+    # (...)
+    | (b:BALANCED) {
+        $$ = (Transform) {
+            .guard = xasprintf("lea %s, %%r15", b.val),
+            .val = xasprintf("%%gs:(%%r15d)"),
+        }
+    }
+)
+
+BALANCED = < BALANCED_RAW > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
+
+MOV = < ('mov' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
 # --- branches ---
 
-Branch = 'jmp' - '*' r:XREG {
-    mkinsn("jmp *%gs:%s\n", lo(r.val));
-    tfree(b);
+Branch = j:JUMP '*' r:XREG {
+    mkinsn("%s *%%gs:(%s)\n", j.val, lo(r.val));
+    tfree(j); tfree(r);
 }
+
+JUMP = < ('jmp' | 'call') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- syscalls ---
 
-Syscall = < 'syscall' > - {
-    mkinsn("int 0x80")
+Syscall = (( 'syscall' - ) | ( 'int' - '0x80' - )) {
+    mkinsn("call *%%gs:0x0\n")
 }
 
 # --- reserved register modification ---
@@ -76,19 +129,37 @@ NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_RAW = (
-    ('#' -)? 
+    ('$' -)? 
     (
           [-0-9]+
-        | BALANCED
+        | BALANCED_RAW
         | RELOC
     )
 )
 
-BALANCED = LP ([^()] | BALANCED)* RP
+BALANCED_RAW = LP ([^()] | BALANCED_RAW)* RP
 
 RELOC = ':' ID ':' ID
 
-XREG = (
+XREG_NOSP = < (
+      '%rax'
+    | '%rcx'
+    | '%rdx'
+    | '%rbx'
+    | '%rsi'
+    | '%rdi'
+    | '%rbp'
+    | '%r8'
+    | '%r9'
+    | '%r10'
+    | '%r11'
+    | '%r12'
+    | '%r13'
+    | '%r14'
+    | '%r15'
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+REG = < (
       '%rax'
     | '%rcx'
     | '%rdx'
@@ -105,7 +176,42 @@ XREG = (
     | '%r13'
     | '%r14'
     | '%r15'
-)
+    | '%eax'
+    | '%ecx'
+    | '%edx'
+    | '%ebx'
+    | '%esi'
+    | '%edi'
+    | '%esp'
+    | '%ebp'
+    | '%r8d'
+    | '%r9d'
+    | '%r10d'
+    | '%r11d'
+    | '%r12d'
+    | '%r13d'
+    | '%r14d'
+    | '%r15d'
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+XREG = < (
+      '%rax'
+    | '%rcx'
+    | '%rdx'
+    | '%rbx'
+    | '%rsi'
+    | '%rdi'
+    | '%rsp'
+    | '%rbp'
+    | '%r8'
+    | '%r9'
+    | '%r10'
+    | '%r11'
+    | '%r12'
+    | '%r13'
+    | '%r14'
+    | '%r15'
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 ID = [a-zA-Z_.][-a-zA-Z0-9_.+]*
 
