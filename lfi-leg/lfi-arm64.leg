@@ -7,6 +7,9 @@
 #include "ht.h"
 #include "op.h"
 
+extern FILE* input;
+extern FILE* output;
+
 typedef struct transform {
     char* val;
     char* guard;
@@ -58,6 +61,11 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
 }
 
 #define YYSTYPE Transform
+
+#define YY_INPUT(buf, result, max_size)      \
+{                                            \
+    result = fread(buf, 1, max_size, input); \
+}                                            \
 %}
 
 Insn = INDENT Label? (
@@ -444,8 +452,8 @@ dist(int a, int b)
     return d;
 }
 
-int
-main()
+void
+lfigen()
 {
     while (yyparse())
         ;
@@ -471,16 +479,14 @@ main()
             bool found;
             int tcount = ht_get(&labels, op->target, &found);
             if (found && op->replace && dist(tcount, icount) > FIXUP_DIST) {
-                printf("%s", op->replace);
+                fprintf(output, "%s", op->replace);
             } else {
-                printf("%s", op->text);
+                fprintf(output, "%s", op->text);
             }
         } else {
-            printf("%s", op->text);
+            fprintf(output, "%s", op->text);
         }
         icount += op->insn ? 1 : 0;
         op = op->next;
     }
-
-    return 0;
 }

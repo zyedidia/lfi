@@ -1,8 +1,8 @@
 all: lfi-leg-arm64 lfi-leg-amd64
 
-lfi-leg-%: lfi-%.c util.c ht.c op.c
+lfi-leg-%: lfi-%.c util.c ht.c op.c main.c
 	clang $^ -o $@ -I. -D_GNU_SOURCE -O2 -g
 %.c: %.leg
 	leg -P -o $@ $<
-install: lfi-arm64-leg
+install: lfi-leg-arm64
 	install $< /usr/local/bin
