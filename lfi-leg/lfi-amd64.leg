@@ -34,6 +34,7 @@ tfree(Transform t)
 
 Insn = INDENT Label? (
       Directive
+    | Lea
     | Store
     | Load
     | Branch
@@ -51,13 +52,19 @@ INDENT = < [ \t]* > {
 
 # --- loads and stores ---
 
-Load = m:MOV a:Addr COMMA r:REG {
+Lea = l:LEA a:AddrNoMod COMMA r:REG {
+    mkinsn("%s %s, %s\n", l.val, a.val, r.val);
+}
+
+LEA = < ('lea' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+Load = m:NAME a:Addr COMMA r:REG {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, a.val, r.val);
 }
 
-Store = m:MOV r:REG COMMA a:Addr {
+Store = m:NAME r:REG COMMA a:Addr {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
@@ -88,6 +95,21 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("lea %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
+        }
+    }
+)
+
+AddrNoMod = (
+    # imm(...)
+      (i:IMM b:BALANCED) {
+        $$ = (Transform) {
+            .val = xasprintf("%s%s", i.val, b.val),
+        }
+    }
+    # (...)
+    | (b:BALANCED) {
+        $$ = (Transform) {
+            .val = xasprintf("%s", b.val),
         }
     }
 )
