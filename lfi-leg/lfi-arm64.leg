@@ -196,6 +196,15 @@ AddrNoOpt = (
         };
         tfree(i); tfree(r);
     }
+    # [xN], xM
+    | (LB r1:XREG RB COMMA r2:XREG) {
+        $$ = (Transform) {
+            .guard = xasprintf("add x18, x21, w%s, uxtw", num(r1.val)),
+            .val = xasprintf("[x18]", i.val),
+            .post = xasprintf("add %s, %s, %s", r1.val, r1.val, r2.val),
+        };
+        tfree(r1); tfree(r2);
+    }
     # [xN], i
     | (LB r:XREG RB COMMA i:IMM) {
         $$ = (Transform) {
