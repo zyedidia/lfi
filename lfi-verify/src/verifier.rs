@@ -171,6 +171,8 @@ impl Verifier {
             if !legal_sysreg(r) {
                 self.error(inst, "attempt to access illegal system register");
             }
+        } else {
+            self.error(inst, "attempt to access illegal system register");
         }
     }
 
