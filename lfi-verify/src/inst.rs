@@ -81,7 +81,7 @@ pub fn is_allowed(op: Op) -> bool {
         Op::DMB => true,
         Op::BFC => true,
         Op::UXTL2 | Op::SXTL2 => true,
-        Op::UADDW2 => true,
+        Op::UADDW2 | Op::UADDL2 | Op::SSUBW2 | Op::USUBL2 | Op::UMULL2 | Op::UMLAL2 => true,
         Op::FMLA | Op::FMLS => true,
         Op::FABD => true,
         Op::FADDP => true,
