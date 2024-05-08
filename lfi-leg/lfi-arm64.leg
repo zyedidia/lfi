@@ -72,6 +72,7 @@ Insn = INDENT Label? (
       LdSt
     | ShortBranch
     | Branch
+    | BranchTLS
     | Syscall
     | ModSpecial
     | ModLR
@@ -89,7 +90,7 @@ INDENT = < [ \t]* > {
 
 # --- loads and stores ---
 
-LdSt = LdOpt | LdNoOpt | LdMulti | StOpt | StNoOpt | StMulti
+LdSt = LdOpt | LdNoOpt | LdMulti | StOpt | StNoOpt | StMulti | Atomic1 | Atomic2
 
 LdOpt = l:LD rt:REG COMMA addr:AddrOpt {
     ldst(l, rt, addr, true);
@@ -115,6 +116,14 @@ StMulti = l:ST_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
     ldstmulti(l, rt1, rt2, addr, false);
 }
 
+Atomic1 = a:ATOMIC_1 rt:REG COMMA addr:AddrNoOpt {
+    ldst(a, rt, addr, false);
+}
+
+Atomic2 = a:ATOMIC_2 rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
+    ldstmulti(a, rt1, rt2, addr, false);
+}
+
 # Address mode transformations that use [x21, wN, uxtw].
 AddrOpt = (
     # [xN, i]!
@@ -131,7 +140,7 @@ AddrOpt = (
         if (i.val[0] == '#')
             ival++;
         int ii = atoi(ival);
-        if (ii > 4096) {
+        if (ii > 4096 || (ival[0] == ':' && strncmp(ival, ":lo12:", strlen(":lo12:")) != 0)) {
             $$ = (Transform) {
                 .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
                 .val = xasprintf("[x18, %s]", i.val),
@@ -239,7 +248,9 @@ ST = < (
 LD_BASIC = < (
       'ldurs' [bhw]
     | 'ldur' [bh]?
-    | 'ld' [ax] 'r' [bh]?
+    | 'ldxr' [bh]?
+    | 'ldar' [bh]?
+    | 'ldaxr' [bh]?
     | 'ldtrs' [bhw]?
     | 'ldtr' [bh]?
     | 'prfum'
@@ -263,13 +274,25 @@ LD_MULTI = < (
 ST_MULTI = < (
       'stp'
     | 'stnp'
+    | 'st' 'l'? 'xr' # note: first arg is a result
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # TODO: special case for stores with exclusive monitor
-ST_SPECIAL = < (
-      'st' 'l'? 'xr'
-    | 'st' 'l'? 'xp'
+ST_MULTI_3 = < (
+      'st' 'l'? 'xp'
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+ATOMIC_1 = < (
+      'st' AO 'a'? 'l'? [bh]?
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+ATOMIC_2 = < (
+      'cas' 'a'? 'l'? [bh]?
+    | 'ld' AO 'a'? 'l'? [bh]?
+    | 'swp' 'a'? 'l'? [bh]?
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+AO = 'add' | 'clr' | 'eor' | 'set'
 
 # --- branches ---
 
@@ -279,6 +302,19 @@ ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
 }
 
 TBZ = < ('tbz' | 'tbnz') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+# TODO: we probably want a similar thing for .tlsdescadd and .tlsdescldr
+
+BranchTLS = tls:TLS_DESCCALL EOL INDENT Label? b:BRANCH r:XREG {
+    mkinsn("add x18, x21, w%s, uxtw\n", num(r.val));
+    mkdirective(xasprintf("%s\n", tls.val));
+    mkinsn("%s x18\n", b.val);
+    tfree(r); tfree(b);
+}
+
+TLS_DESCCALL = < '.tlsdesccall' (!EOL .)* > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
 
 Branch = b:BRANCH r:XREG {
     mkinsn("add x18, x21, w%s, uxtw\n", num(r.val));
@@ -290,12 +326,12 @@ BRANCH = < ('br' | 'blr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng
 
 # --- syscalls ---
 
-Syscall = < 'svc' - '#0' > - {
-    mkinsn("str x30, [sp, #16]!\n");
+Syscall = < 'svc' - (!EOL .)* > - {
+    mkinsn("str x30, [sp, #-16]!\n");
     mkinsn("ldr x30, [x21]\n");
     mkinsn("blr x30\n");
-    mkinsn("ldr x30, [sp], 16\n");
-    mkinsn("add x30, x21, w30, uxtw\n");
+    mkinsn("ldr x22, [sp], 16\n");
+    mkinsn("add x30, x21, w22, uxtw\n");
 }
 
 # --- reserved register modification ---
@@ -345,7 +381,7 @@ Any = < (!EOL .)* > {
         mkinsn("%s\n", yytext);
 }
 
-Label = < ID > ':' - {
+Label = < ([0-9]+ | ID) > ':' - {
     mklabel(strndup(yytext, yyleng));
 }
 
