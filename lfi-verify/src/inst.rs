@@ -63,68 +63,6 @@ pub fn nomodify(op: Op) -> bool {
     }
 }
 
-pub fn is_branch(op: Op) -> bool {
-    match op {
-        Op::RET => true,
-        Op::BLR => true,
-        Op::BR => true,
-        Op::BL => true,
-        Op::BTI => true,
-        Op::B_AL => true,
-        Op::B_CC => true,
-        Op::B_CS => true,
-        Op::B_EQ => true,
-        Op::B_GE => true,
-        Op::B_GT => true,
-        Op::B_HI => true,
-        Op::B_LE => true,
-        Op::B_LS => true,
-        Op::B_LT => true,
-        Op::B_MI => true,
-        Op::B_NE => true,
-        Op::B_NV => true,
-        Op::B_PL => true,
-        Op::B_VC => true,
-        Op::B_VS => true,
-        Op::B => true,
-        Op::TBZ => true,
-        Op::TBNZ => true,
-        Op::CBZ => true,
-        Op::CBNZ => true,
-        _ => false,
-    }
-}
-
-// Instructions that are accesses -- does not necessarily including every access instruction. This
-// list is used to validate stack pointer modifications that happen before an access. In this case,
-// being incomplete is not a problem, since it just means more programs are disallowed.
-pub fn is_access_incomplete(op: Op) -> bool {
-    match op {
-        Op::LDP => true,
-        Op::LDPSW => true,
-        Op::LDR => true,
-        Op::LDRB => true,
-        Op::LDRH => true,
-        Op::LDRSB => true,
-        Op::LDRSH => true,
-        Op::LDRSW => true,
-        Op::LDUR => true,
-        Op::LDURB => true,
-        Op::LDURH => true,
-        Op::LDURSB => true,
-        Op::LDURSH => true,
-        Op::LDURSW => true,
-        Op::STP => true,
-        Op::STR => true,
-        Op::STRB => true,
-        Op::STRH => true,
-        Op::STUR => true,
-        Op::STURB => true,
-        Op::STURH => true,
-        _ => false,
-    }
-}
-
 pub fn is_multimod(op: Op) -> bool {
     match op {
         Op::LDP => true,
@@ -138,31 +76,25 @@ pub fn is_multimod(op: Op) -> bool {
 
 pub fn is_allowed(op: Op) -> bool {
     match op {
-        Op::MSR => true,
-        Op::MRS => true,
+        Op::NOP => true,
+        Op::MSR | Op::MRS => true,
         Op::DMB => true,
         Op::BFC => true,
-        Op::UXTL2 => true,
-        Op::SXTL2 => true,
-        Op::NOP => true,
+        Op::UXTL2 | Op::SXTL2 => true,
         Op::UADDW2 => true,
-        Op::FMLA => true,
-        Op::FCVTN2 => true,
-        Op::FCVTL2 => true,
+        Op::FMLA | Op::FMLS => true,
         Op::FABD => true,
-        Op::FCMGE => true,
-        Op::FCMGT => true,
-        Op::FCMLE => true,
-        Op::FCMEQ => true,
-        Op::FCMLT => true,
-        Op::FMLS => true,
+        Op::FADDP => true,
+        Op::FCVTN2 | Op::FCVTL2 => true,
+        Op::FCMGE | Op::FCMGT | Op::FCMLE | Op::FCMEQ | Op::FCMLT => true,
         Op::BRK => true,
         Op::XTN2 => true,
         Op::SHRN2 => true,
-        Op::AUTIB1716 => true,
-        Op::AUTIA1716 => true,
+        Op::AUTIA1716 | Op::AUTIB1716 => true,
         Op::STLR => true,
-        Op::FADDP => true,
+        Op::BTI => true,
+        Op::XPACLRI | Op::XPACI | Op::XPACD => true,
+        Op::CNTD | Op::CNTB | Op::CNTH | Op::CNTP | Op::CNTW => true,
         _ => is_allowed_autogen(op),
     }
 }

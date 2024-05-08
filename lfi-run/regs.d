@@ -53,9 +53,6 @@ struct Regs {
                 x23 = main.flags.ngas;
             }
             // x23 = 1_000_000_000;
-        } else {
-            x23 = base;
-            x24 = base;
         }
     }
 
@@ -63,10 +60,6 @@ struct Regs {
         x21 = p.base;
         x30 = p.addrpoc(x30);
         x18 = p.addrpoc(x18);
-        if (!main.flags.gas) {
-            x23 = p.addrpoc(x23);
-            x24 = p.addrpoc(x24);
-        }
         sp = p.addrpoc(sp);
     }
 };

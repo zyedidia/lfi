@@ -90,11 +90,9 @@ func main() {
 	}
 
 	// asmmc := in
-	asmmc := temp(os.TempDir())
-	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-o", asmmc, in)
 	lfi := temp(os.TempDir())
-	lfiflags = append(lfiflags, "-o", lfi, asmmc)
-	run("lfi-gen", lfiflags...)
+	lfiflags = append(lfiflags, "-o", lfi, in)
+	run("lfi-leg-arm64", lfiflags...)
 
 	asflags := []string{
 		"-o", out,

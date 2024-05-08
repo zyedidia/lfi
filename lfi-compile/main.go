@@ -214,13 +214,13 @@ func compile(cmdargs []string) {
 		run(compiler, stage1...)
 	}
 
-	asmmc := temp(inputdir)
-	run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-mattr=+crypto,+aes", "-o", asmmc, asm)
+	// asmmc := temp(inputdir)
+	// run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-mattr=+crypto,+aes", "-o", asmmc, asm)
 
 	lfiasm := temp(inputdir)
-	lfiflags := []string{asmmc, "-o", lfiasm}
+	lfiflags := []string{asm, "-o", lfiasm}
 	lfiflags = append(lfiflags, lfiargs...)
-	run("lfi-gen", lfiflags...)
+	run("lfi-leg-arm64", lfiflags...)
 
 	if !assemble {
 		if compile && out == "" {

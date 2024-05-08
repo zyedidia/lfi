@@ -1,64 +1,40 @@
 extern crate alloc;
 
-use crate::inst::{is_access_incomplete, is_allowed, is_branch, is_multimod, nomodify};
+use crate::inst::{is_allowed, is_multimod, nomodify};
 use crate::reg::{lo_reg, lo};
 use alloc::format;
-use bad64::Imm::{Signed, Unsigned};
 use bad64::{Imm, Instruction, Op, Operand, Reg, Shift, SysReg};
 
 const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
 const SP_REG: Reg = Reg::SP;
-const OPT_REG: Reg = Reg::X23;
-const OPT_REG2: Reg = Reg::X24;
 const BASE_REG: Reg = Reg::X21;
-const RES32_REG: Reg = Reg::X22;
+const SYS_REG: Reg = Reg::X25;
 
 pub struct Verifier {
     pub failed: bool,
     pub message: Option<fn(bytes: *const u8, size: usize)>,
 }
 
-fn modifies(inst: &Instruction, r: Reg) -> bool {
-    if nomodify(inst.op()) || inst.operands().len() == 0 {
-        return false;
-    }
-    if let Operand::Reg { reg, .. } = inst.operands()[0] {
-        if reg == r {
-            return true;
-        }
-        if is_multimod(inst.op()) {
-            if let Operand::Reg { reg, .. } = inst.operands()[1] {
-                return reg == r;
-            }
-        }
-    }
-    return false;
-}
-
 // List of registers that may be used as load targets
 fn data_reg(r: Reg) -> bool {
     match r {
-        RES_REG | SP_REG | OPT_REG | OPT_REG2 => true,
+        RES_REG | SP_REG => true,
         _ => false,
     }
 }
 
 // List of registers that may never be modified.
 fn fixed_reg(r: Reg) -> bool {
-    r == BASE_REG || r == lo(BASE_REG) || r == RES32_REG
+    r == BASE_REG || r == lo(BASE_REG) || r == SYS_REG || r == lo(SYS_REG)
 }
 
 // List of registers that may be modified only via guards.
 fn restricted_reg(r: Reg) -> bool {
     r == RET_REG
-        || r == OPT_REG
-        || r == OPT_REG2
         || r == RES_REG
         || r == SP_REG
         || r == lo(RET_REG)
-        || r == lo(OPT_REG)
-        || r == lo(OPT_REG2)
         || r == lo(RES_REG)
         || r == lo(SP_REG)
 }
@@ -106,39 +82,6 @@ fn ok_operand(op: &Operand) -> bool {
     }
 }
 
-// Returns true if the sequence next[0], next[1] properly forms a stack pointer guard sequence
-fn ok_check_sp(next: &[Option<Result<Instruction, bad64::DecodeError>>]) -> bool {
-    if let Some(Ok(next1)) = &next[0] {
-        if let Some(Ok(next2)) = &next[1] {
-            if next1.op() != Op::MOV
-                || next1.operands().len() != 2
-                || next2.op() != Op::ADD
-                || next2.operands().len() != 3
-            {
-                return false;
-            }
-            let (ops1, ops2) = (next1.operands(), next2.operands());
-            match (ops1[0], ops1[1], ops2[0], ops2[1], ops2[2]) {
-                (
-                    Operand::Reg { reg: res32, .. },
-                    Operand::Reg { reg: wsp, .. },
-                    Operand::Reg { reg: sp, .. },
-                    Operand::Reg { reg: base, .. },
-                    Operand::Reg { reg: res32_x, .. },
-                ) => {
-                    return res32 == lo(RES32_REG)
-                        && wsp == Reg::WSP
-                        && sp == Reg::SP
-                        && base == BASE_REG
-                        && res32_x == RES32_REG;
-                }
-                _ => return false,
-            }
-        }
-    }
-    return false;
-}
-
 // Returns true if an instruction, with 'reg' as its first operand, does not modify a reserved
 // register illegaly.
 fn ok_mod(
@@ -164,64 +107,12 @@ fn ok_mod(
                         return true;
                     }
                 }
-                // 'add restricted, base, RES32_REG' is allowed
-                (Operand::Reg { reg: base, .. }, Operand::Reg { reg, .. }) => {
-                    if base == BASE_REG && reg == RES32_REG {
-                        return true;
-                    }
-                }
                 _ => {}
             };
         }
     }
 
-    if reg == SP_REG {
-        // must be followed by
-        // mov lo(RES32_REG), wsp
-        // add sp, BASE_REG, RES32_REG
-        //
-        // or a load/store before the next branch or modification to SP
-        if ok_check_sp(iter.peek_range(0, 2)) {
-            return true;
-        }
-        if (inst.op() == Op::ADD || inst.op() == Op::SUB) && matches!(inst.operands()[1], Operand::Reg { reg: r, .. } if r == SP_REG)
-            && (matches!(inst.operands()[2], Operand::Imm64 { imm: Unsigned(x), shift: None } if x < 1024 * 4)
-                || matches!(inst.operands()[2], Operand::Imm64 { imm: Signed(x), shift: None } if x.abs() < 1024 * 4))
-        {
-            let mut modifications = 1;
-            while let Some(maybe_inst) = iter.peek() {
-                if let Ok(inst) = maybe_inst {
-                    if is_branch(inst.op()) {
-                        break;
-                    }
-                    if modifies(inst, SP_REG) {
-                        if modifications >= 2 {
-                            break;
-                        }
-                        modifications += 1;
-                    }
-                    if !is_access_incomplete(inst.op()) {
-                        iter.advance_cursor();
-                        continue;
-                    }
-                    for op in inst.operands() {
-                        match op {
-                            Operand::MemReg(r) if *r == SP_REG => return true,
-                            Operand::MemOffset { reg, mul_vl, .. } if *reg == SP_REG && !mul_vl => {
-                                return true
-                            }
-                            Operand::MemPreIdx { reg, .. } if *reg == SP_REG => return true,
-                            Operand::MemPostIdxImm { reg, .. } if *reg == SP_REG => return true,
-                            _ => {}
-                        }
-                    }
-                    iter.advance_cursor();
-                } else {
-                    return false;
-                }
-            }
-        }
-    } else if reg == RET_REG {
+    if reg == RET_REG {
         if inst.op() == Op::LDR {
             // 'ldr x30, [x21]' is legal but must be followed by 'blr x30'
             match inst.operands()[1] {
@@ -240,30 +131,6 @@ fn ok_mod(
                     }
                 }
                 _ => {}
-            };
-        }
-        // must be followed by
-        // add RET_REG, BASE_REG, lo(RET_REG), uxtw
-        if let Some(Ok(next)) = iter.peek() {
-            if next.op() != Op::ADD || next.operands().len() != 3 {
-                return false;
-            }
-            let ops = next.operands();
-            match (ops[0], ops[1], ops[2]) {
-                (
-                    Operand::Reg { reg: ret, .. },
-                    Operand::Reg { reg: base, .. },
-                    Operand::ShiftReg { reg: loret, shift },
-                ) => {
-                    if ret == RET_REG
-                        && base == BASE_REG
-                        && loret == lo(RET_REG)
-                        && shift == Shift::UXTW(0)
-                    {
-                        return true;
-                    }
-                }
-                _ => return false,
             };
         }
     }
