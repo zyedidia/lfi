@@ -17,7 +17,7 @@ func fatal(err ...interface{}) {
 
 func run(command string, args ...string) {
 	cmd := exec.Command(command, args...)
-	// log.Println(cmd)
+	log.Println(cmd)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -43,7 +43,7 @@ func main() {
 	var in, out, as string
 	var args, lfiflags []string
 	var keep, verbose bool
-	verbose = true
+	// verbose = true
 	// keep = true
 
 	for i := 1; i < len(os.Args); i++ {
