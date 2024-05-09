@@ -53,11 +53,15 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
         if (isfixed(rt2.val)) {
             free(rt2.val); rt2.val = strdup("xzr");
         }
-        mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
-        if (isres(rt1.val))
-            mkinsn("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
-        if (isres(rt2.val))
-            mkinsn("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
+        if (isres(rt1.val)) {
+            mkinsn("%s x22, %s, %s\n", l.val, rt2.val, addr.val);
+            mkinsn("add %s, x21, w22, uxtw\n", rt1.val);
+        } else if (isres(rt2.val)) {
+            mkinsn("%s %s, x22, %s\n", l.val, rt1.val, addr.val);
+            mkinsn("add %s, x21, w22, uxtw\n", rt2.val);
+        } else {
+            mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+        }
     } else {
         mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
     }
@@ -260,7 +264,7 @@ LD_BASIC = < (
     | 'ldtrs' [bhw]?
     | 'ldtr' [bh]?
     | 'prfum'
-    | 'ld' [1234]
+    | 'ld' [1234] 'r'?
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 ST_BASIC = < (
