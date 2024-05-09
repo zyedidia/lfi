@@ -1,6 +1,7 @@
 #include "arm64.h"
 #include "lfi_internal.h"
 #include "elf.h"
+#include "dynarmic.h"
 
 #include <assert.h>
 #include <sys/mman.h>
@@ -151,7 +152,7 @@ extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 extern void lfi_yield_entry() asm ("lfi_yield_entry");
 
 // Stub for dynarmic syscalls
-uint32_t syshandler_stub[2] = {
+static uint32_t syshandler_stub[2] = {
     0xd4000001, // svc #0
     0xd65f03c0, // ret
 };
@@ -159,7 +160,11 @@ uint32_t syshandler_stub[2] = {
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
+#ifdef DYNARMIC_ENABLED
+    table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
+#else
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
+#endif
     if (proc->lfi->opts.fastyield) {
         table->rtcalls[1] = (uintptr_t) &lfi_yield_entry;
     }
@@ -368,7 +373,11 @@ void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
 }
 
 int lfi_proc_start(struct lfi_proc* proc) {
+#ifdef DYNARMIC_ENABLED
+    return lfi_proc_entry_dynarmic(proc);
+#else
     return lfi_proc_entry(proc, &proc->kstackp);
+#endif
 }
 
 extern void lfi_asm_proc_exit(void* kstackp, int code) asm ("lfi_asm_proc_exit");

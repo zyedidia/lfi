@@ -1,13 +1,16 @@
 local knit = require('knit')
 
 local cc = "gcc"
+local cxx = "g++"
 local cflags = "-O2 -Wall -Wextra"
 
 local csrc = knit.rglob(".", "*.c")
+local cppsrc = knit.rglob(".", "*.cpp")
 local ssrc = knit.rglob(".", "*.S")
 
 local obj = knit.join(
     knit.extrepl(csrc, ".c", ".o"),
+    knit.extrepl(cppsrc, ".cpp", ".o"),
     knit.extrepl(ssrc, ".S", ".o")
 )
 obj = knit.prefix(obj, ".")
@@ -16,9 +19,11 @@ return b{
     $ liblfi.a: $obj
         ar rcs $output $input
     $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output
+        $cc $cflags -MD -MF $dep -c $input -o $output -DDYNARMIC_ENABLED
     $ .%.o: %.S
         $cc -c $input -o $output
+    $ .%.o:D[.%.dep]: %.cpp
+        $cxx $cflags -MD -MF $dep -c $input -o $output -std=c++20
 
     $ install:VB: liblfi.a
         install $input /usr/local/lib

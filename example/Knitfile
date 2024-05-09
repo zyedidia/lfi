@@ -1,11 +1,13 @@
 local cc = "gcc"
 local lficc = "/opt/lfi/toolchain/bin/lfi-clang"
 
+local libs = "-ldynarmic -lfmt -lmcl -lstdc++"
+
 return b{
     $ all:VB: run.elf hello.elf
 
     $ run.elf: run.c ../liblfi/liblfi.a ../lfi-verify/target/release/liblfiverify.a
-        $cc -O2 -I../liblfi $input -o $output -static
+        $cc -O2 -I../liblfi $input -o $output $libs -static
     $ hello.elf: hello.c
         $lficc -O2 $input -o $output -nostdlib
 }
