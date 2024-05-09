@@ -2,7 +2,6 @@
 extern crate alloc;
 
 use alloc::format;
-use peekmore::PeekMore;
 use verifier::Verifier;
 
 mod inst;
@@ -25,11 +24,11 @@ pub extern "C" fn lfi_verify_bytes(raw_bytes: *const u8, size: usize, error: *co
         message: fnptr,
     };
 
-    let mut iter = bad64::disasm(bytes, 0).peekmore();
+    let mut iter = bad64::disasm(bytes, 0);
     while let Some(maybe_decoded) = iter.next() {
         match maybe_decoded {
             Ok(inst) => {
-                verif.check_insn(&inst, &mut iter);
+                verif.check_insn(&inst);
             }
             Err(e) => {
                 if let Some(message) = fnptr {

@@ -98,9 +98,6 @@ fn ok_operand(op: &Operand) -> bool {
 fn ok_mod(
     inst: &Instruction,
     reg: Reg,
-    iter: &mut peekmore::PeekMoreIterator<
-        impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
-    >,
 ) -> bool {
     if fixed_reg(reg) {
         return false;
@@ -125,7 +122,7 @@ fn ok_mod(
 
     if reg == RET_REG {
         if inst.op() == Op::LDR {
-            // 'ldr x30, [x21]' is legal but must be followed by 'blr x30'
+            // 'ldr x30, [x21]' is legal
             match inst.operands()[1] {
                 Operand::MemOffset {
                     reg,
@@ -133,12 +130,8 @@ fn ok_mod(
                     mul_vl,
                     ..
                 } => {
-                    if reg == BASE_REG && !mul_vl && (zero(offset) || nimm(offset, 8)) {
-                        if let Some(Ok(next)) = iter.peek() {
-                            if next.op() == Op::BLR {
-                                return true;
-                            }
-                        }
+                    if reg == BASE_REG && !mul_vl && (zero(offset)) {
+                        return true;
                     }
                 }
                 _ => {}
@@ -214,9 +207,6 @@ impl Verifier {
     pub fn check_insn(
         self: &mut Self,
         inst: &Instruction,
-        iter: &mut peekmore::PeekMoreIterator<
-            impl Iterator<Item = Result<Instruction, bad64::DecodeError>>,
-        >,
     ) {
         // check if the instruction is in the allowlist.
         if !is_allowed(inst.op()) {
@@ -242,14 +232,14 @@ impl Verifier {
         }
         // check that reserved registers are only modified according to the right rules
         if let Operand::Reg { reg, .. } = inst.operands()[0] {
-            let ok = ok_mod(&inst, reg, iter);
+            let ok = ok_mod(&inst, reg);
             if !ok {
                 self.error(inst, "disallowed modification");
             }
             if is_multimod(inst.op()) {
                 if let Operand::Reg { reg, .. } = inst.operands()[1] {
                     // these instructions also modify their second operand, so we check that too
-                    let ok = ok_mod(&inst, reg, iter);
+                    let ok = ok_mod(&inst, reg);
                     if !ok {
                         self.error(inst, "disallowed modification");
                     }

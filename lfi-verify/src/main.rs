@@ -3,7 +3,6 @@ use std::fs;
 use std::process;
 use std::time::Instant;
 
-use peekmore::PeekMore;
 use verifier::Verifier;
 use xmas_elf::{program::SegmentData, ElfFile};
 
@@ -47,11 +46,11 @@ fn main() {
         size += prog.file_size();
 
         if let Ok(SegmentData::Undefined(bytes)) = prog.get_data(&elf) {
-            let mut iter = bad64::disasm(bytes, base).peekmore();
+            let mut iter = bad64::disasm(bytes, base);
             while let Some(maybe_decoded) = iter.next() {
                 match maybe_decoded {
                     Ok(inst) => {
-                        verif.check_insn(&inst, &mut iter);
+                        verif.check_insn(&inst);
                     }
                     Err(e) => eprintln!("{:x}: unknown instruction: {}", e.address(), e),
                 }
