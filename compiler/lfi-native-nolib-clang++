@@ -1,7 +1,0 @@
-#!/bin/bash
-lfi-compile clang++ \
-    -flfi--native \
-    "$@" \
-    -fuse-ld=lld \
-    -fPIC \
-    -Wno-unused-command-line-argument

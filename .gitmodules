@@ -1,3 +1,9 @@
 [submodule "lfi-run/test/sbase"]
 	path = lfi-run/test/sbase
 	url = https://github.com/zyedidia/sbase
+[submodule "toolchain/lfi-gcc"]
+	path = toolchain/lfi-gcc
+	url = https://github.com/zyedidia/lfi-gcc
+[submodule "toolchain/lfi-clang"]
+	path = toolchain/lfi-clang
+	url = https://github.com/zyedidia/lfi-clang
