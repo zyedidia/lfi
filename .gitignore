@@ -14,4 +14,4 @@ lfi-verify/target
 todo.txt
 *.elf
 *.a
-decl-verify
+/extra/decl-verify/decl-verify
