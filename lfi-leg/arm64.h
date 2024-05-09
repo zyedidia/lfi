@@ -19,12 +19,20 @@ isload(const char* inst)
 }
 
 static bool
-isres(const char* reg)
+isfixed(const char* reg)
 {
-    if (strncmp(reg, "x21", 3) == 0)
-        return true;
     if (strncmp(reg, "x18", 3) == 0)
         return true;
+    if (strncmp(reg, "x21", 3) == 0)
+        return true;
+    if (strncmp(reg, "x25", 3) == 0)
+        return true;
+    return false;
+}
+
+static bool
+isres(const char* reg)
+{
     if (strncmp(reg, "x30", 3) == 0)
         return true;
     if (strncmp(reg, "sp", 2) == 0)

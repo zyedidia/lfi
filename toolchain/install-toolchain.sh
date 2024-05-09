@@ -5,7 +5,7 @@ set -e
 PREFIX=$1
 mkdir -p $PREFIX
 
-LLVM_VERSION=15.0.7
+LLVM_VERSION=16.0.6
 MUSL_VERSION=1.2.4
 
 CC=$PWD/../compiler/lfi-nolib-clang

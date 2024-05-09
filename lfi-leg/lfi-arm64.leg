@@ -46,7 +46,13 @@ static void
 ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload)
 {
     mkinsn("%s\n", addr.guard);
-    if (isload && (isres(rt1.val) || isres(rt2.val))) {
+    if (isload && (isres(rt1.val) || isres(rt2.val) || isfixed(rt1.val) || isfixed(rt2.val))) {
+        if (isfixed(rt1.val)) {
+            free(rt1.val); rt1.val = strdup("xzr");
+        }
+        if (isfixed(rt2.val)) {
+            free(rt2.val); rt2.val = strdup("xzr");
+        }
         mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
         if (isres(rt1.val))
             mkinsn("add %s, x21, w%s, uxtw\n", rt2.val, num(rt2.val));
@@ -398,7 +404,7 @@ IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 IMM_RAW = (
     ('#' -)? 
     (
-          [-0-9]+
+          [-0-9abcdefxABCDEF]+
         | BALANCED
         | RELOC
     )

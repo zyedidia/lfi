@@ -47,3 +47,7 @@ stlxp w15, w14, w16, [x1]
 0: ldaxr x0, [x1]
 
 ldr x0, [x0, #8]
+
+ldp x20, x18, [x0]
+
+ldp x20, x21, [x0]

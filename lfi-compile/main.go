@@ -214,9 +214,6 @@ func compile(cmdargs []string) {
 		run(compiler, stage1...)
 	}
 
-	// asmmc := temp(inputdir)
-	// run("llvm-mc", "-arch=aarch64", "-filetype=asm", "-mattr=+crypto,+aes", "-o", asmmc, asm)
-
 	lfiasm := temp(inputdir)
 	lfiflags := []string{asm, "-o", lfiasm}
 	lfiflags = append(lfiflags, lfiargs...)

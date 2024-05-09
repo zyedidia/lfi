@@ -1,7 +1,7 @@
 #!/bin/bash
 lfi-compile clang \
     -mllvm --aarch64-enable-compress-jump-tables=false \
-    -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x23 -ffixed-x24 -ffixed-x30 \
+    -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x25 -ffixed-x30 \
     "$@" \
     -fuse-ld=lld \
     -fPIC \
