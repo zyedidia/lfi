@@ -59,7 +59,7 @@ struct op*
 mklabel(char* name)
 {
     struct op* op = mkop();
-    op->text = xasprintf("%s: \n", name);
+    op->text = xasprintf("%s:\n", name);
     op->label = name;
     return op;
 }

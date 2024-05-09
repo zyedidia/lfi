@@ -1,0 +1,13 @@
+return b{
+    $ all:VB: lfi-leg-arm64 lfi-leg-amd64
+
+    $ lfi-leg-%: lfi-%.c util.c ht.c op.c main.c
+        cc $input -o $output -I. -D_GNU_SOURCE -O2 -g
+    $ %.c: %.leg
+        leg -o $output $input
+    $ install-%:VB: %
+        sudo install $input /usr/local/bin
+    $ install:VB: install-lfi-leg-arm64 install-lfi-leg-amd64
+    $ test:VB: ./lfi-leg-arm64
+        go run test/runtest.go $input test/arm64/*.s
+}
