@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# usage: ./install.sh $PREFIX # must be absolute path
+
 set -ex
 
 git submodule update --init
