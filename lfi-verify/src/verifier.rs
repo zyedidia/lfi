@@ -39,6 +39,17 @@ fn restricted_reg(r: Reg) -> bool {
         || r == lo(SP_REG)
 }
 
+fn legal_implspec(reg: Operand) -> bool {
+    match reg {
+        Operand::ImplSpec{ o0: 3, o1: 0, cm: 0, cn: 4, o2: 1 } => true, // id_aa64pfr1_el1
+        Operand::ImplSpec{ o0: 3, o1: 0, cm: 0, cn: 4, o2: 0 } => true, // id_aa64pfr0_el1
+        Operand::ImplSpec{ o0: 3, o1: 0, cm: 0, cn: 4, o2: 4 } => true, // id_aa64zfr0_el1
+        Operand::ImplSpec{ o0: 3, o1: 0, cm: 0, cn: 6, o2: 0 } => true, // id_aa64isar0_el1
+        Operand::ImplSpec{ o0: 3, o1: 0, cm: 0, cn: 6, o2: 1 } => true, // id_aa64isar1_el1
+        _ => false,
+    }
+}
+
 fn legal_sysreg(reg: SysReg) -> bool {
     match reg {
         SysReg::TPIDR_EL0 => true,
@@ -169,6 +180,11 @@ impl Verifier {
     fn check_sysreg(self: &mut Self, inst: &Instruction, i: usize) {
         if let Operand::SysReg(r) = inst.operands()[i] {
             if !legal_sysreg(r) {
+                self.error(inst, "attempt to access illegal system register");
+            }
+        } else if let ispec @ Operand::ImplSpec{ .. } = inst.operands()[i] {
+            // Read of system registers that the disassembler doesn't pretty-print for us.
+            if i == 1 && !legal_implspec(ispec) {
                 self.error(inst, "attempt to access illegal system register");
             }
         } else {
