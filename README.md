@@ -65,7 +65,7 @@ The LFI project provides the following tools:
 * `lfi-leg-arm64`: reads a `.s` file, and produces an LFI-compatible `.s` file.
 * `lfi-verify`: verifies ELF binaries for LFI-compatibility.
 * `lfi-run`: runs an LFI-compatible binary.
-* `lfi-compile`: acts like a compiler, but invokes creates an intermediate `.s`
+* `lfi-compile`: acts like a compiler, but creates an intermediate `.s`
   file during compilation and runs `lfi-leg-arm64` on it. Meant to be used with
   `clang`/`clang++`.
 * `lfi-as`: acts like an assembler, but invokes `lfi-leg-arm64` first.
