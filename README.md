@@ -85,12 +85,25 @@ Alternatively, you can use the prebuilt toolchain.
 
 ## Prebuilt toolchain
 
-A prebuilt toolchain is provided in the GitHub releases:
-https://github.com/zyedidia/lfi/releases/tag/prerelease. It is built for Linux
-AArch64.
+Prebuilt toolchains are provided in the GitHub releases:
+https://github.com/zyedidia/lfi/releases/. The prebuilt toolchain includes
+a full GCC compiler, as well as LLVM runtime libraries and Clang wrappers.
+Note: to use the Clang toolchain you must have an externally installed
+version of Clang, while the GCC toolchain provides all necessary binaries
+internally.
 
-The tarball provides the LFI binaries in the `bin` directory, and a compiler
-sysroot in `toolchain`.
+When you download a prebuilt toolchain, you will see the following directories:
+
+* `bin/`: contains the LFI rewriter, verifier, and runtime. Put this on your
+  `PATH`.
+* `gcc/`: contains a complete LFI GCC toolchain. The C and C++ compilers can be
+  found in `gcc/aarch64_lfi-linux-musl/bin/` as `aarch64_lfi-linux-musl-gcc`
+  and `aarch64_lfi-linux-musl-g++`. You may want to put this directory on your
+  `PATH` (`gcc/aarch64_lfi-linux-musl/bin/`).
+* `clang/`: contains a Clang-compatible LFI sysroot and runtime libraries,
+  plus wrapper scripts. You can run the `lfi-clang` and `lfi-clang++` scripts
+  in `clang/bin/` to invoke your system Clang with the LFI sysroot. You may
+  want to put this directory on your `PATH` (`clang/bin/`).
 
 ## Building from source
 
@@ -132,11 +145,21 @@ int main() {
 }
 ```
 
+With Clang:
+
 ```
 $ lfi-clang hello.c -O2 -o hello
 $ lfi-verify hello # check if it verifies (also performed by lfi-run)
 verifying test
 verification passed (3.2 MB/s)
+$ lfi-run hello
+Hello from LFI
+```
+
+And with GCC:
+
+```
+$ aarch64_lfi-linux-musl-gcc hello.c -O2 -o hello
 $ lfi-run hello
 Hello from LFI
 ```

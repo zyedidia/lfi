@@ -15,6 +15,9 @@ go build -o $PREFIX/bin ./lfi-as
 go build -o $PREFIX/bin ./lfi-compile
 go build -o $PREFIX/bin ./specinvoke
 
+cp LICENSE $PREFIX
+cp README.md $PREFIX
+
 (cd lfi-leg && make lfi-leg-arm64 && mv lfi-leg-arm64 $PREFIX/bin)
 
 export PATH=$PREFIX/bin:$PATH
