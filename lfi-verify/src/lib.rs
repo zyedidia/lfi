@@ -10,6 +10,20 @@ mod autogen;
 mod reg;
 
 #[no_mangle]
+pub extern "C" fn lfi_verify_insn(insn: u32) -> bool {
+    let mut verif = Verifier {
+        failed: false,
+        message: None,
+    };
+
+    if let Ok(decoded) = bad64::decode(insn, 0) {
+        verif.check_insn(&decoded);
+        return !verif.failed;
+    }
+    return false;
+}
+
+#[no_mangle]
 pub extern "C" fn lfi_verify_bytes(raw_bytes: *const u8, size: usize, error: *const ()) -> bool {
     let bytes = unsafe { core::slice::from_raw_parts(raw_bytes, size) };
 

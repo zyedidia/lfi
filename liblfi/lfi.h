@@ -57,6 +57,10 @@ struct lfi_proc_info {
     uint16_t elfphentsize;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Create a new LFI engine with the following options. Returns the new object
 // or NULL if there was an error allocating.
 struct lfi* lfi_new(struct lfi_options options);
@@ -122,6 +126,14 @@ uint64_t lfi_signal_start(uint64_t syspage);
 void lfi_signal_end(uint64_t saved);
 
 struct lfi_proc* lfi_sys_proc(uint64_t syspage);
+
+int lfi_verify_bytes(void* b, size_t size, void* fn);
+
+int lfi_verify_insn(uint32_t insn);
+
+#ifdef __cplusplus
+}
+#endif
 
 struct lfi_regs {
     uint64_t x0;

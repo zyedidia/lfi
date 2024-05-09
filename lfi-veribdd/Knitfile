@@ -1,0 +1,15 @@
+return b{
+    $ liblfiveribdd.a: verifier.o
+        ar rcs $output $input
+    $ bench: bench.o verifier.o
+        gcc $input -o $output
+    $ bench.o: bench.c
+        gcc -O3 -c $input -o $output
+    $ verifier.o: verifier.c lfi.bdd.h[I]
+        gcc -O3 -c $input -o $output
+    $ lfi.bdd.h: generator/lfi.bdd
+        xxd -i $input > $output
+    $ test: test.c verifier.c ../lfi-verify/target/release/liblfiverify.a
+        gcc $input -O2 -o $output -DPREFIX_VERIBDD
+    include("../lfi-verify/Knitfile")
+}
