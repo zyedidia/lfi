@@ -105,6 +105,17 @@ When you download a prebuilt toolchain, you will see the following directories:
   in `clang/bin/` to invoke your system Clang with the LFI sysroot. You may
   want to put this directory on your `PATH` (`clang/bin/`).
 
+## Prebuilt liblfi
+
+You may also want to use `liblfi` to write your own runtime that manages LFI
+sandboxes. The prebuilt releases provide the following libraries:
+
+* `liblfi.a`: the LFI runtime management library.
+* `liblfiverify.a`: the LFI verifier as a library.
+* `liblfiveribdd.a`: the LFI verifier as a library, using a more efficient
+  implementation.
+* `lfi.h`: function signatures for exported functions from all libraries.
+
 ## Building from source
 
 To build the LFI binaries from source, run the following:
