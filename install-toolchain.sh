@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# usage: ./install.sh $PREFIX # must be absolute path
+# usage: ./install-toolchain.sh $PREFIX # must be absolute path
 
 set -ex
 
