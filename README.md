@@ -1,6 +1,7 @@
 
 <h1>Lightweight Fault Isolation <img src="assets/lfi-logo.svg" alt="logo" width="30px"/></h1>
 
+![Test Workflow](https://github.com/zyedidia/lfi/actions/workflows/test.yaml/badge.svg)
 [![MPL License](https://img.shields.io/badge/license-MPL%202.0-blue)](https://github.com/zyedidia/lfi/blob/master/LICENSE)
 
 LFI is a performant and secure software sandboxing system targeting the ARM64

@@ -8,6 +8,6 @@ return b{
     $ install-%:VB: %
         sudo install $input /usr/local/bin
     $ install:VB: install-lfi-leg-arm64 install-lfi-leg-amd64
-    $ test:VB: ./lfi-leg-arm64
-        go run test/runtest.go $input test/arm64/*.s
+    $ test:VB: lfi-leg-arm64
+        go run test/runtest.go ./$input test/arm64/*.s
 }

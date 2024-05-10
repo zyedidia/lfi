@@ -1,0 +1,22 @@
+on: [push, pull_request]
+name: Build
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+    - uses: actions/checkout@v3
+    - uses: zyedidia/setup-knit@v1
+
+    - name: Install Leg
+      run: sudo apt install peg
+
+    - name: Test
+      run: |
+        knit -C lfi-leg test
