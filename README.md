@@ -1,4 +1,5 @@
-<img alt="lfi logo" src="./assets/lfi-logo.svg" width="500px"/>
+
+<h1>Lightweight Fault Isolation <img src="assets/lfi-logo.svg" alt="logo" width="30px"/></h1>
 
 [![MPL License](https://img.shields.io/badge/license-MPL%202.0-blue)](https://github.com/zyedidia/lfi/blob/master/LICENSE)
 
