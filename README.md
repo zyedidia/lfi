@@ -75,16 +75,10 @@ The LFI project provides the following tools:
 
 # Installation
 
-To install the tools, you must have the following dependencies installed:
-
-* Go: for `lfi-compile` and `lfi-as`.
-* Leg: for `lfi-leg-arm64` (`sudo apt install peg`).
-* C: for `lfi-leg-arm64` and `liblfi`.
-* Rust: for `lfi-verify`.
-* LDC: for `lfi-run`.
-* Knit: to build `lfi-run`.
-
-Alternatively, you can use the prebuilt toolchain.
+There are two components to LFI: a compiler toolchain that can build
+LFI-compatible binaries, and a runtime library for creating, verifying, and
+managing sandboxes. For either of these components, you can either use prebuilt
+versions provided with releases, or build from source.
 
 ## Prebuilt toolchain
 
@@ -120,6 +114,15 @@ sandboxes. The prebuilt releases provide the following libraries:
 * `lfi.h`: function signatures for exported functions from all libraries.
 
 ## Building from source
+
+To install the tools, you must have the following dependencies installed:
+
+* Go: for `lfi-compile` and `lfi-as`.
+* Leg: for `lfi-leg-arm64` (`sudo apt install peg`).
+* C: for `lfi-leg-arm64` and `liblfi`.
+* Rust: for `lfi-verify`.
+* LDC: for `lfi-run`.
+* Knit: to build `lfi-run`.
 
 To build the LFI binaries from source, run the following:
 
