@@ -1,11 +1,12 @@
-# Lightweight Fault Isolation
+<img alt="lfi logo" src="./assets/lfi-logo.svg" width="500px"/>
 
-Lightweight Fault Isolation (LFI) is a performant and secure software
-sandboxing system targeting the ARM64 architecture. LFI allows you to run up to
-64K sandboxes in a single address space while guaranteeing that the sandboxes
-are completely isolated from each other. Each sandbox may be given up to 4GiB
-of memory. These sandboxes are extremely efficient, and run with roughly 7%
-overhead compared to native code.
+[![MPL License](https://img.shields.io/badge/license-MPL%202.0-blue)](https://github.com/zyedidia/lfi/blob/master/LICENSE)
+
+LFI is a performant and secure software sandboxing system targeting the ARM64
+architecture. LFI allows you to run up to 64K sandboxes in a single address
+space while guaranteeing that the sandboxes are completely isolated from each
+other. Each sandbox may be given up to 4GiB of memory. These sandboxes are
+extremely efficient, and run with roughly 7% overhead compared to native code.
 
 The LFI sandboxer only accepts ELF binaries that pass a verification step to
 ensure they are safe to run. This verifier works by analyzing binary machine
