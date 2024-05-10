@@ -134,6 +134,7 @@ lfi_restore_partial_regs:
 	ldp x30, x1,  [x0, #8+16*15]
 	mov sp, x1
 	ldp x0, x1,   [x0, #8+16*0]
+	add x30, x21, w30, uxtw
 	ret
 
 // lfi_restore_regs(Proc* p)
@@ -193,4 +194,5 @@ lfi_restore_regs:
 	movi v31.2D, #0
 	mov sp, x1
 	ldp x0, x1,   [x0, #8+16*0]
+	add x30, x21, w30, uxtw
 	ret
