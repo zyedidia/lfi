@@ -25,6 +25,7 @@ local dsrc = knit.join(
     knit.glob(f"arch/$arch/*.d"),
     knit.glob("core/*.d"),
     knit.glob("alloc/*.d"),
+    knit.glob("lfi/*.d"),
     knit.glob("buddy/*.d"),
     knit.glob("cwalk/*.d")
 )
@@ -60,7 +61,7 @@ local dflags = {
 
 local flags = {
     dc = dflags[dc],
-    ld := -Wl,--gc-sections -fno-pic
+    ld := -Wl,--gc-sections -fno-pic -llfi -llfiverify
 }
 
 if pagesize == "16384" then
@@ -68,7 +69,7 @@ if pagesize == "16384" then
 end
 
 return b{
-    $ lfi-run: $obj ../lfi-verify/target/release/liblfiverify.a
+    $ lfi-run: $obj
         gcc $input -o $output -static $(flags.ld)
 
     $ .unified.o: $dsrc
@@ -80,6 +81,4 @@ return b{
         gcc -c $input -o $output -D$darch
     $ .%.o: %.c
         gcc -O2 -Wall -c $input -o $output -I.
-
-    include("../lfi-verify/Knitfile")
 }

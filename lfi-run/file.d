@@ -3,154 +3,60 @@ module file;
 import core.lib;
 import core.alloc;
 
+import fd;
 import proc;
-import sysno;
+import sys;
 
-enum {
-    AT_FDCWD = -100,
-    AT_EMPTY_PATH = 0x1000,
-}
-
-private const(char)* flags2cmode(int flags) {
-    if ((flags & O_ACCMODE) == O_RDONLY) {
-        return "r".ptr;
-    }
-    if ((flags & O_ACCMODE) != O_WRONLY) {
-        return "w".ptr;
-    }
-    return "r+".ptr;
-}
-
-int file_new(ref VFile* vf, int dirfd, const(char)* name, int flags, int mode) {
+FDFile* filenew(int dirfd, const(char)* name, int flags, int mode) {
     int kfd = syserr(openat(dirfd, name, flags, mode));
     if (kfd < 0)
-        return kfd;
-    vf = std_new(kfd);
-    return 0;
-}
-
-VFile* std_new(int kfd) {
-    VFile* vf = knew!(VFile)();
-    if (!vf)
         return null;
-    vf.dev = cast(void*) kfd;
-    vf.read = &file_read;
-    vf.write = &file_write;
-    vf.lseek = &file_lseek;
-    vf.stat = &file_stat;
-    vf.getdents64 = &file_getdents64;
-    vf.close = &file_close;
-    return vf;
+    return filefdnew(kfd);
 }
 
-private int file_fd(void* dev) {
+FDFile* filefdnew(int kfd) {
+    FDFile* ff = knew!(FDFile)();
+    if (!ff)
+        return null;
+    ff.dev = cast(void*) kfd;
+    ff.read = &fileread;
+    ff.write = &filewrite;
+    ff.lseek = &filelseek;
+    ff.stat = &filestat;
+    ff.close = &fileclose;
+    ff.getdents = &filegetdents;
+    ff.mapfd = &filemapfd;
+    return ff;
+}
+
+private int filefd(void* dev) {
     return cast(int) dev;
 }
 
-ssize file_read(void* dev, Proc* p, ubyte* buf, usize n) {
-    return syserr(read(file_fd(dev), buf, n));
+ssize fileread(void* dev, Proc* p, ubyte[] buf) {
+    return syserr(read(filefd(dev), buf.ptr, buf.length));
 }
 
-ssize file_write(void* dev, Proc* p, ubyte* buf, usize n) {
-    return syserr(write(file_fd(dev), buf, n));
+ssize filewrite(void* dev, Proc* p, ubyte[] buf) {
+    return syserr(write(filefd(dev), buf.ptr, buf.length));
 }
 
-int file_stat(void* dev, Proc* p, Stat* statbuf) {
-    return syserr(fstatat(file_fd(dev), "".ptr, statbuf, AT_EMPTY_PATH));
+ssize filelseek(void* dev, Proc* p, ssize off, uint whence) {
+    return syserr(lseek(filefd(dev), off, whence));
 }
 
-ssize file_lseek(void* dev, Proc* p, ssize off, uint whence) {
-    return syserr(lseek(file_fd(dev), off, whence));
+int filestat(void* dev, Proc* p, Stat* st) {
+    return syserr(fstatat(filefd(dev), "".ptr, st, AT_EMPTY_PATH));
 }
 
-ssize file_getdents64(void* dev, Proc* p, void* dirp, usize count) {
-    return syserr(getdents64(file_fd(dev), dirp, count));
+int fileclose(void* dev, Proc* p) {
+    return syserr(close(filefd(dev)));
 }
 
-int file_close(void* dev, Proc* p) {
-    return syserr(close(file_fd(dev)));
+ssize filegetdents(void* dev, Proc* p, void* dirp, usize count) {
+    return syserr(getdents64(filefd(dev), dirp, count));
 }
 
-struct VFile {
-    void* dev;
-    ssize function(void* dev, Proc* p, ubyte* buf, usize n) read;
-    ssize function(void* dev, Proc* p, ubyte* buf, usize n) write;
-    ssize function(void* dev, Proc* p, ssize off, uint whence) lseek;
-    int function(void* dev, Proc* p) close;
-    int function(void* dev, Proc* p, Stat* stat) stat;
-    ssize function(void* dev, Proc* p, void* dirp, usize count) getdents64;
-    usize refcnt;
-}
-
-struct FdTable {
-    enum {
-        NOFILE = 128,
-    }
-
-    VFile*[NOFILE] files;
-
-    void alloc(int fd, VFile* f) {
-        assert(fd >= 0 && fd < NOFILE && files[fd] == null);
-
-        files[fd] = f;
-        files[fd].refcnt++;
-    }
-
-    int alloc(VFile* vf) return {
-        int i;
-        for (i = 0; i < NOFILE; i++) {
-            if (files[i] == null)
-                break;
-        }
-        if (i >= NOFILE)
-            return -1;
-        files[i] = vf;
-        files[i].refcnt++;
-        return i;
-    }
-
-    void init() {
-        alloc(0, std_new(fileno(stdin)));
-        alloc(1, std_new(fileno(stdout)));
-        alloc(2, std_new(fileno(stderr)));
-    }
-
-    bool get(int fd, ref VFile* file) {
-        if (has(fd)) {
-            file = files[fd];
-            return true;
-        }
-        return false;
-    }
-
-    bool remove(int fd) {
-        if (has(fd)) {
-            files[fd].refcnt--;
-            if (files[fd].refcnt == 0) {
-                kfree(files[fd]);
-            }
-            files[fd] = null;
-            return true;
-        }
-        return false;
-    }
-
-    bool has(int fd) {
-        return fd >= 0 && fd < files.length && files[fd] != null;
-    }
-
-    void copy_into(ref FdTable table) {
-        for (usize i = 0; i < files.length; i++) {
-            if (files[i] != null) {
-                files[i].refcnt++;
-                table.files[i] = files[i];
-            }
-        }
-    }
-
-    void clear() {
-        for (int fd = 0; fd < files.length; fd++) {
-            remove(fd);
-        }
-    }
+int filemapfd(void* dev) {
+    return filefd(dev);
 }

@@ -5,6 +5,7 @@ import core.alloc;
 import queue;
 import file;
 import proc;
+import fd;
 
 enum {
     NPIPE = 64,
@@ -23,29 +24,30 @@ struct Pipe {
 
     Queue readq;
     Queue writeq;
+}
 
-    void close(bool writable) {
-        if (writable) {
-            writeopen = false;
-            readq.wake_all();
-        } else {
-            readopen = false;
-            writeq.wake_all();
-        }
-        if (!readopen && !writeopen) {
-            allocated = false;
-        }
+void pipeclose(Pipe* p, bool writable) {
+    if (writable) {
+        p.writeopen = false;
+        qwakeall(&p.readq);
+    } else {
+        p.readopen = false;
+        qwakeall(&p.writeq);
+    }
+    if (!p.readopen && !p.writeopen) {
+        p.allocated = false;
     }
 }
 
-private Pipe[NPIPE] pipes;
+__gshared {
+    private Pipe[NPIPE] pipes;
+}
 
-bool pipe_new(ref VFile* f0, ref VFile* f1) {
+bool pipenew(ref FDFile* f0, ref FDFile* f1) {
     Pipe* pipe;
     for (usize i = 0; i < NPIPE; i++) {
-        if (!pipes[i].allocated) {
+        if (!pipes[i].allocated)
             pipe = &pipes[i];
-        }
     }
     if (!pipe)
         return false;
@@ -54,55 +56,53 @@ bool pipe_new(ref VFile* f0, ref VFile* f1) {
     pipe.nwrite = 0;
     pipe.nread = 0;
 
-    f0 = knew!(VFile)();
+    f0 = knew!(FDFile)();
     if (!f0)
         return false;
-    f1 = knew!(VFile)();
+    f1 = knew!(FDFile)();
     if (!f1) {
         kfree(f0);
         return false;
     }
     f0.dev = pipe;
-    f0.read = &pipe_read;
+    f0.read = &piperead;
     f0.write = null;
     f1.dev = pipe;
     f1.read = null;
-    f1.write = &pipe_write;
+    f1.write = &pipewrite;
 
     return true;
 }
 
-ssize pipe_write(void* dev, Proc* p, ubyte* buf, usize n) {
+ssize pipewrite(void* dev, Proc* p, ubyte[] buf) {
     Pipe* pipe = cast(Pipe*) dev;
 
     ssize i = 0;
-    while (i < n) {
-        if (!pipe.readopen) {
+    while (i < buf.length) {
+        if (!pipe.readopen)
             return -1;
-        }
         if (pipe.nwrite == pipe.nread + PIPESZ) {
-            pipe.readq.wake_all();
-            p.block(&pipe.writeq, Proc.State.BLOCKED);
+            qwakeall(&pipe.readq);
+            procblock(p, &pipe.writeq, PState.BLOCKED);
         } else {
             pipe.data[pipe.nwrite++ % PIPESZ] = buf[i];
             i++;
         }
     }
-    pipe.readq.wake_all();
+    qwakeall(&pipe.readq);
     return i;
 }
 
-ssize pipe_read(void* dev, Proc* p, ubyte* buf, usize n) {
+ssize piperead(void* dev, Proc* p, ubyte[] buf) {
     Pipe* pipe = cast(Pipe*) dev;
-    while (pipe.nread == pipe.nwrite && pipe.writeopen) {
-        p.block(&pipe.readq, Proc.State.BLOCKED);
-    }
+    while (pipe.nread == pipe.nwrite && pipe.writeopen)
+        procblock(p, &pipe.readq, PState.BLOCKED);
     ssize i;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < buf.length; i++) {
         if (pipe.nread == pipe.nwrite)
             break;
         buf[i] = pipe.data[pipe.nread++ % PIPESZ];
     }
-    pipe.writeq.wake_all();
+    qwakeall(&pipe.writeq);
     return i;
 }

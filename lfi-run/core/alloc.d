@@ -72,7 +72,7 @@ void kfree(T)(T[] arr) {
     free(arr.ptr);
 }
 
-void kfree_all(T)(T[] arr) {
+void kfreearray(T)(T[] arr) {
     if (!arr)
         return;
     static if (HasDtor!(T)) {

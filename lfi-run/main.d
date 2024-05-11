@@ -2,38 +2,22 @@ module main;
 
 import core.lib;
 
-import sys;
 import proc;
-import schedule;
+import sched;
+import lfi;
+import sys;
+
+enum Arg {
+    NOVERIFY = "no-verify",
+}
 
 struct Flags {
-    enum {
-        NOVERIFY = "no-verify",
-        VERBOSE = "verbose",
-        POC = "poc",
-        GAS = "gas",
-    }
-
     bool noverify;
-    bool verbose;
-    bool poc;
-    bool gas;
-    ulong ngas;
 }
 
 __gshared Flags flags;
 
-void show_maps() {
-    void* maps = fopen("/proc/self/maps".ptr, "r".ptr);
-    assert(maps);
-    ubyte[4096] buf;
-    while (fread(buf.ptr, 1, buf.length, maps) > 0) {
-        write(fileno(stdout), buf.ptr, buf.length);
-    }
-    fclose(maps);
-}
-
-void set_nofile_max() {
+void dofilemax() {
     // Raise file descriptor limit to the max.
     RLimit rlim;
     ensure(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
@@ -41,64 +25,66 @@ void set_nofile_max() {
     ensure(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
 }
 
-void usage() {
+void usage(const(char)* name) {
     fprintf(stderr, "usage:\n");
-    fprintf(stderr, "  lfi-run [OPTIONS] FILE [ARGS]\n\n");
+    fprintf(stderr, "  %s [OPTIONS] FILE [ARGS]\n\n", name);
     fprintf(stderr, "options:\n");
     fprintf(stderr, "  --no-verify\tdo not perform verification\n");
-    fprintf(stderr, "  --verbose\tshow verbose information\n");
-    fprintf(stderr, "  --poc\tenable position-oblivious code\n");
-    fprintf(stderr, "  --gas <n>\tuse <n> gas\n");
 }
 
-extern (C) int main(int argc, const(char)** argv, const(char)** envp) {
-    set_nofile_max();
-    PAGESIZE = getpagesize();
+extern (C) int main(int argc, const(char)** argv) {
+    dofilemax();
 
-    // Linux maps the stack at 262140 GiB, so we are ending the proc space at
-    // 262100 to be safe (we could increase this to get a few more sandboxes).
-    // TODO: increase this back to 262100.
-    manager.setup(gb(8), gb(128));
-
-    int i = 1;
+    int i;
     for (i = 1; i < argc; i++) {
         const(char)* arg = argv[i];
-        if (arg[0] != '-') {
+        if (arg[0] != '-')
             break;
-        }
         arg++;
-        if (arg[0] == '-') arg++;
-        if (strncmp(arg, Flags.NOVERIFY.ptr, Flags.NOVERIFY.length) == 0) {
+        if (arg[0] == '-')
+            arg++;
+        if (strncmp(arg, Arg.NOVERIFY.ptr, Arg.NOVERIFY.length) == 0) {
             fprintf(stderr, "WARNING: verification disabled\n");
             flags.noverify = true;
-        } else if (strncmp(arg, Flags.VERBOSE.ptr, Flags.VERBOSE.length) == 0) {
-            flags.verbose = true;
-        } else if (strncmp(arg, Flags.POC.ptr, Flags.POC.length) == 0) {
-            flags.poc = true;
-        } else if (strncmp(arg, Flags.GAS.ptr, Flags.GAS.length) == 0) {
-            i++;
-            flags.ngas = strtoull(argv[i], null, 10);
-            flags.gas = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
-            return 1;
         }
     }
 
     if (i >= argc) {
         fprintf(stderr, "error: no program given\n");
-        usage();
+        usage(argv[0]);
         return 0;
     }
 
+    LFIOptions options;
+    options.noverify = flags.noverify;
+    options.pagesize = PAGESIZE;
+    options.stacksize = 2 * 1024 * 1024;
+    options.syshandler = &syscall;
+
+    lfiengine = lfi_new(options);
+    if (!lfiengine) {
+        fprintf(stderr, "error: failed to initialize LFI\n");
+        return 1;
+    }
+
+    int err;
+    if ((err = lfi_auto_add_vaspaces(lfiengine)) < 0) {
+        fprintf(stderr, "error: failed to add vaspaces: %d\n", err);
+        return 1;
+    }
+
+    // fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
+
     const(char)* file = argv[i];
-    Proc* proc = Proc.make_from_file(file, argc - i, &argv[i], envp);
-    if (!proc) {
+    Proc* p = procnewfile(file, argc - i, &argv[i]);
+    if (!p) {
         fprintf(stderr, "error: could not load %s\n", argv[i]);
         return 1;
     }
 
-    scheduler(proc);
+    schedule(p);
 
     return 0;
 }

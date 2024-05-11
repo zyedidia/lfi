@@ -28,8 +28,6 @@ void* malloc(usize size);
 void* aligned_alloc(usize alignment, usize size);
 void free(void* ptr);
 
-ulong strtoull(const(char)* nptr, char** endptr, int base);
-
 usize strlen(const(char)* s);
 usize strnlen(const(char)* s, usize len);
 int strncmp(const(char)* s1, const(char)* s2, usize size);
@@ -40,6 +38,7 @@ ssize read(int fd, void* buf, usize count);
 ssize write(int fd, void* buf, usize count);
 ssize lseek(int fd, ssize offset, int whence);
 int close(int fd);
+int mkdirat(int dirfd, const(char)* pathname, int mode);
 
 void* fopen(const(char)* path, const(char)* mode);
 void* fdopen(int fd, const(char)* mode);
@@ -68,8 +67,6 @@ void* mremap(void* old, usize old_size, usize new_size, int flags);
 
 noreturn exit(int status);
 
-int getpagesize();
-
 __gshared {
     extern void* stdout;
     extern void* stderr;
@@ -95,13 +92,17 @@ enum {
     PROT_READ  = 1,
     PROT_WRITE = 2,
     PROT_EXEC  = 4,
-    PROT_BTI   = 16,
 }
 
 enum {
     SEEK_SET = 0,
     SEEK_CUR = 1,
     SEEK_END = 2,
+}
+
+enum {
+    AT_FDCWD = -100,
+    AT_EMPTY_PATH = 0x1000,
 }
 
 enum {
