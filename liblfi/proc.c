@@ -84,6 +84,15 @@ static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, i
     return 0;
 }
 
+int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot) {
+    struct lfi_mem mem = (struct lfi_mem) {
+        .base = ptr,
+        .size = size,
+        .prot = prot,
+    };
+    return lfi_mem_protect(&mem, p->base, prot, p->lfi->opts.noverify);
+}
+
 static int lfi_mem_valid(struct lfi_mem* mem) {
     return mem->base != (uintptr_t) -1;
 }
@@ -267,8 +276,8 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         if (base == 0) {
             base = seg.base;
         }
-        if (seg.base + end > last) {
-            last = seg.base + end;
+        if (base + end > last) {
+            last = base + end;
         }
     }
 

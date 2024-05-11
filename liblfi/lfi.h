@@ -131,6 +131,8 @@ int lfi_verify_bytes(void* b, size_t size, void* fn);
 
 int lfi_verify_insn(uint32_t insn);
 
+int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
+
 #ifdef __cplusplus
 }
 #endif
