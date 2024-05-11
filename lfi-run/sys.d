@@ -611,7 +611,7 @@ uintptr sysbrk(Proc* p, uintptr addr) {
     assert(newsize <= BRKMAXSIZE);
 
     if (newsize == p.brksize)
-        return brkp;
+        return procuseraddr(p, brkp);
 
     enum {
         mapflags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
@@ -633,7 +633,7 @@ uintptr sysbrk(Proc* p, uintptr addr) {
     }
 
     p.brksize = newsize;
-    return p.brkbase + p.brksize;
+    return procuseraddr(p, p.brkbase + p.brksize);
 }
 
 uintptr sysmremap_(Proc* p, ulong[6] args) {
@@ -668,7 +668,7 @@ uintptr sysmmap(Proc* p, uintptr addrp, usize length, int prot, int flags, int f
 
         // TODO: if it's in the brk region, there is already a mapping, so just mprotect the requested range
         if (procinbrk(p, addrp, length)) {
-            return addrp;
+            return procuseraddr(p, addrp);
         }
 
         if (!procinmap(p, addrp, length)) {
@@ -679,7 +679,7 @@ uintptr sysmmap(Proc* p, uintptr addrp, usize length, int prot, int flags, int f
             return Err.NOMEM;
         }
     }
-    return addrp;
+    return procuseraddr(p, addrp);
 }
 
 uintptr sysmunmap_(Proc* p, ulong[6] args) {

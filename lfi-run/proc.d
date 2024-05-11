@@ -197,7 +197,7 @@ bool procmapsetup(Proc* p, uintptr mapstart, uintptr mapend) {
     return true;
 }
 
-bool stacksetup(int argc, const(char)** argv, ref LFIProcInfo info, out uintptr newsp) {
+bool stacksetup(Proc* p, int argc, const(char)** argv, ref LFIProcInfo info, out uintptr newsp) {
     // Set up argv.
     char*[ARGC_MAX] argv_ptrs;
 
@@ -227,7 +227,7 @@ bool stacksetup(int argc, const(char)** argv, ref LFIProcInfo info, out uintptr 
         if (cast(uintptr) p_argvp >= cast(uintptr) stack_top - PAGESIZE) {
             return false;
         }
-        p_argvp[i] = argv_ptrs[i];
+        p_argvp[i] = cast(char*) procuseraddr(p, cast(uintptr) argv_ptrs[i]);
     }
     p_argvp[argc] = null;
     // Empty envp.
@@ -237,12 +237,12 @@ bool stacksetup(int argc, const(char)** argv, ref LFIProcInfo info, out uintptr 
     // Set up auxv.
     Auxv* av = cast(Auxv*) p_envp;
     *av++ = Auxv(AT_SECURE, 0);
-    *av++ = Auxv(AT_BASE, info.elfbase);
-    *av++ = Auxv(AT_PHDR, info.elfbase + info.elfphoff);
+    *av++ = Auxv(AT_BASE, procuseraddr(p, info.elfbase));
+    *av++ = Auxv(AT_PHDR, procuseraddr(p, info.elfbase + info.elfphoff));
     *av++ = Auxv(AT_PHNUM, info.elfphnum);
     *av++ = Auxv(AT_PHENT, info.elfphentsize);
-    *av++ = Auxv(AT_ENTRY, info.elfentry);
-    *av++ = Auxv(AT_EXECFN, cast(ulong) p_argvp[0]);
+    *av++ = Auxv(AT_ENTRY, procuseraddr(p, info.elfentry));
+    *av++ = Auxv(AT_EXECFN, procuseraddr(p, cast(ulong) p_argvp[0]));
     *av++ = Auxv(AT_PAGESZ, PAGESIZE);
     *av++ = Auxv(AT_HWCAP, 0x0);
     *av++ = Auxv(AT_HWCAP2, 0x0);
@@ -262,7 +262,7 @@ bool procsetup(Proc* p, ubyte[] buf, int argc, const(char)** argv) {
     lfi_proc_exec(p.lp, buf.ptr, buf.length, &info);
 
     uintptr sp;
-    if (!stacksetup(argc, argv, info, sp))
+    if (!stacksetup(p, argc, argv, info, sp))
         return false;
 
     lfi_proc_init_regs(p.lp, info.elfentry, sp);
@@ -306,6 +306,10 @@ int procpid(Proc* p) {
 
 uintptr procaddr(Proc* p, uintptr addr) {
     return (cast(uint) addr) | p.base;
+}
+
+uintptr procuseraddr(Proc* p, uintptr addr) {
+    return cast(uint) addr;
 }
 
 ubyte[] procbuf(Proc* p, uintptr buf, usize size) {
