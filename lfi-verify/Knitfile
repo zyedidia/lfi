@@ -4,4 +4,6 @@ local rs = knit.rglob("src", "*.rs")
 return b{
     $ target/release/liblfiverify.a target/release/lfi-verify: $rs
         cargo build --release
+    $ install:VB: target/release/liblfiverify.a
+        install $input /usr/local/lib
 }

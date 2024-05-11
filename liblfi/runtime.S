@@ -97,7 +97,7 @@ lfi_asm_proc_exit:
 .align 16
 .globl lfi_syscall_entry
 lfi_syscall_entry:
-	SAVE_REGS
+	SAVE_PARTIAL_REGS
 	ldr x0, [x21, #N_RTCALLS*8+8] // load kernel tpidr_el0
 	msr tpidr_el0, x0
 	ldr x0, [x21, #N_RTCALLS*8]  // load Proc*
@@ -105,7 +105,7 @@ lfi_syscall_entry:
 	mov sp, x1
 	bl lfi_syscall_handler
 	ldr x0, [x21, #N_RTCALLS*8]
-	b  lfi_restore_regs
+	b  lfi_restore_partial_regs
 	brk #0
 
 .align 16

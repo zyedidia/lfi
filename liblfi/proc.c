@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 enum {
     GUARD_SIZE = 48ULL * 1024,
@@ -20,10 +21,6 @@ static void regs_validate(struct lfi_proc* proc) {
     proc->regs.x21 = proc->base;
     proc->regs.x30 = proc_addr(proc->base, proc->regs.x30);
     proc->regs.x18 = proc_addr(proc->base, proc->regs.x18);
-    if (proc->lfi->opts.gas == 0) {
-        proc->regs.x23 = proc_addr(proc->base, proc->regs.x23);
-    }
-    proc->regs.x24 = proc_addr(proc->base, proc->regs.x24);
     proc->regs.sp = proc_addr(proc->base, proc->regs.sp);
 }
 
@@ -358,12 +355,8 @@ void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
     proc->regs.x30 = entry;
     proc->regs.x21 = proc->base;
     proc->regs.x18 = proc->base;
-    if (proc->lfi->opts.gas != 0) {
+    if (proc->lfi->opts.gas != 0)
         proc->regs.x23 = proc->lfi->opts.gas;
-    } else {
-        proc->regs.x23 = proc->base;
-    }
-    proc->regs.x24 = proc->base;
     proc->regs.sp = sp;
 }
 
