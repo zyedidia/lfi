@@ -84,9 +84,17 @@ Proc* procnewempty() {
 
 // TODO: copy mmap regions in fork
 Proc* procnewchild(Proc* parent) {
+    bool success;
     Proc* p = procnewempty();
     if (!p)
         return null;
+    scope(exit) if (!success) procfree(p);
+
+    ubyte* meta = kalloc(buddy_sizeof_alignment(parent.mapsize, PAGESIZE)).ptr;
+    if (!meta)
+        return null;
+    scope(exit) if (!success) kfree(meta);
+
     if (lfi_proc_copy(lfiengine, &p.lp, parent.lp, p) < 0)
         return null;
     p.base = lfi_proc_base(p.lp);
@@ -99,9 +107,14 @@ Proc* procnewchild(Proc* parent) {
         ensure(mmap(cast(void*) p.brkbase, p.brksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0) != cast(void*) -1);
         memcpy(cast(void*) p.brkbase, cast(void*) parent.brkbase, p.brksize);
     }
+    p.mapbase = procaddr(p, parent.mapbase);
+    p.mapsize = parent.mapsize;
+    p.mapalloc = buddy_copy(meta, cast(void*) p.mapbase, parent.mapalloc);
+    assert(p.mapalloc); // buddy_copy should always succeed
     p.parent = parent;
     p.state = PState.RUNNABLE;
 
+    success = true;
     return p;
 }
 
