@@ -610,7 +610,7 @@ uintptr sysbrk(Proc* p, uintptr addr) {
     usize newsize = brkp - p.brkbase;
     assert(newsize <= BRKMAXSIZE);
 
-    if (newsize == 0)
+    if (newsize == p.brksize)
         return brkp;
 
     enum {
@@ -625,8 +625,8 @@ uintptr sysbrk(Proc* p, uintptr addr) {
             // Since liblfi reserves all sandboxes in one big mmap region, we
             // first need to unmap the piece that we want to expand into,
             // otherwise Linux will decide there is no space for mremap.
-            munmap(cast(void*) p.brkbase + p.brksize, newsize - p.brksize);
-            mremap(cast(void*) p.brkbase, p.brksize, newsize, 0);
+            ensure(munmap(cast(void*) p.brkbase + p.brksize, newsize - p.brksize) == 0);
+            ensure(mremap(cast(void*) p.brkbase, p.brksize, newsize, 0) == cast(void*) p.brkbase);
         }
         if (map == cast(void*) -1)
             return -1;

@@ -268,6 +268,7 @@ bool procsetup(Proc* p, ubyte[] buf, int argc, const(char)** argv) {
     lfi_proc_init_regs(p.lp, info.elfentry, sp);
 
     p.brkbase = info.lastva;
+    p.brksize = 0;
 
     if (!procmapsetup(p, p.brkbase + BRKMAXSIZE, cast(uintptr) info.stack - PAGESIZE))
         return false;
