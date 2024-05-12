@@ -3,10 +3,14 @@
 
 #include <stdint.h>
 
-static inline uint64_t rd_tpidr() {
-    uintptr_t val;
+static uint64_t r_tpidr() {
+    uint64_t val;
     asm volatile ("mrs %0, tpidr_el0" : "=r"(val));
     return val;
+}
+
+static void w_tpidr(uint64_t val) {
+    asm volatile ("msr tpidr_el0, %0" :: "r"(val));
 }
 
 #endif

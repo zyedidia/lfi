@@ -1,12 +1,16 @@
-#include "arm64.h"
 #include "lfi_internal.h"
 #include "elf.h"
+#include "dynarmic.h"
 
 #include <assert.h>
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifndef DYNARMIC_ENABLED
+#include "arm64.h"
+#endif
 
 enum {
     GUARD_SIZE = 48ULL * 1024,
@@ -154,10 +158,9 @@ struct lfi_sys {
 };
 
 extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
-extern void lfi_yield_entry() asm ("lfi_yield_entry");
 
 // Stub for dynarmic syscalls
-uint32_t syshandler_stub[2] = {
+static uint32_t syshandler_stub[2] = {
     0xd4000001, // svc #0
     0xd65f03c0, // ret
 };
@@ -165,13 +168,14 @@ uint32_t syshandler_stub[2] = {
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
+#ifdef DYNARMIC_ENABLED
+    table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
+#else
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
-    if (proc->lfi->opts.fastyield) {
-        table->rtcalls[1] = (uintptr_t) &lfi_yield_entry;
-    }
+    table->k_tpidr = r_tpidr();
+#endif
     table->proc = proc;
     // TODO: problem for multi-threading with thread locals
-    table->k_tpidr = rd_tpidr();
     lfi_mem_protect(&sys, proc->base, PROT_READ, 0);
 }
 
@@ -370,34 +374,38 @@ void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
 }
 
 int lfi_proc_start(struct lfi_proc* proc) {
+#ifdef DYNARMIC_ENABLED
+    return lfi_proc_entry_dynarmic(proc);
+#else
     return lfi_proc_entry(proc, &proc->kstackp);
+#endif
 }
 
 extern void lfi_asm_proc_exit(void* kstackp, int code) asm ("lfi_asm_proc_exit");
 
 void lfi_proc_exit(struct lfi_proc* proc, int code) {
+#ifdef DYNARMIC_ENABLED
+    // TODO: halt the JIT
+    fprintf(stderr, "EXITING\n");
+    exit(1);
+#else
     lfi_asm_proc_exit(proc->kstackp, code);
+#endif
 }
 
 uintptr_t lfi_proc_base(struct lfi_proc* proc) {
     return proc->base;
 }
 
-static uint64_t r_tpidr() {
-    uint64_t val;
-    asm volatile ("mrs %0, tpidr_el0" : "=r"(val));
-    return val;
-}
-
-static void w_tpidr(uint64_t val) {
-    asm volatile ("msr tpidr_el0, %0" :: "r"(val));
-}
-
 uint64_t lfi_signal_start(uint64_t syspage) {
     struct lfi_sys* sys = (struct lfi_sys*) syspage;
+#ifndef DYNARMIC_ENABLED
     uint64_t saved = r_tpidr();
     w_tpidr(sys->k_tpidr);
     return saved;
+#else
+    return 0;
+#endif
 }
 
 struct lfi_proc* lfi_sys_proc(uint64_t syspage) {
@@ -406,5 +414,7 @@ struct lfi_proc* lfi_sys_proc(uint64_t syspage) {
 }
 
 void lfi_signal_end(uint64_t saved) {
+#ifndef DYNARMIC_ENABLED
     w_tpidr(saved);
+#endif
 }

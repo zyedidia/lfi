@@ -61,7 +61,7 @@ local dflags = {
 
 local flags = {
     dc = dflags[dc],
-    ld := -Wl,--gc-sections -fno-pic -llfi -llfiverify
+    ld := -Wl,--gc-sections -fno-pic -L../liblfi -L../lfi-verify/target/release -llfi -llfiverify
 }
 
 if pagesize == "16384" then
