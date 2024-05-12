@@ -1,5 +1,5 @@
 local cc = "gcc"
-local lficc = "/opt/lfi/clang/bin/lfi-clang"
+local lficc = "lfi-clang"
 
 local libs = ""
 if cli.dynarmic then

@@ -6,13 +6,14 @@ local cflags = "-O2 -Wall -Wextra"
 local arch = cli.arch or "arm64"
 
 local csrc = knit.rglob(".", "*.c")
-local cppsrc = knit.rglob(".", "*.cpp")
 
 local ssrc = {}
 local define = ""
+local cppsrc = {}
 if arch == "arm64" then
     ssrc = {"runtime.S"}
 elseif arch == "amd64" then
+    local cppsrc = {"dynarmic.cpp"}
     define = "-DDYNARMIC_ENABLED"
 end
 
@@ -27,7 +28,7 @@ return b{
     $ liblfi.a: $obj
         ar rcs $output $input
     $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output -DDYNARMIC_ENABLED
+        $cc $cflags -MD -MF $dep -c $input -o $output $define
     $ .%.o: %.S
         $cc -c $input -o $output
     $ .%.o:D[.%.dep]: %.cpp
