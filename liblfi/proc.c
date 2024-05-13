@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifndef DYNARMIC_ENABLED
+#ifndef DYNARMIC
 #include "arm64.h"
 #endif
 
@@ -159,16 +159,18 @@ struct lfi_sys {
 
 extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 
+#ifdef DYNARMIC
 // Stub for dynarmic syscalls
 static uint32_t syshandler_stub[2] = {
     0xd4000001, // svc #0
     0xd65f03c0, // ret
 };
+#endif
 
 static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
     lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
     struct lfi_sys* table = (struct lfi_sys*) sys.base;
-#ifdef DYNARMIC_ENABLED
+#ifdef DYNARMIC
     table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
 #else
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
@@ -374,7 +376,7 @@ void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
 }
 
 int lfi_proc_start(struct lfi_proc* proc) {
-#ifdef DYNARMIC_ENABLED
+#ifdef DYNARMIC
     return lfi_proc_entry_dynarmic(proc);
 #else
     return lfi_proc_entry(proc, &proc->kstackp);
@@ -384,7 +386,7 @@ int lfi_proc_start(struct lfi_proc* proc) {
 extern void lfi_asm_proc_exit(void* kstackp, int code) asm ("lfi_asm_proc_exit");
 
 void lfi_proc_exit(struct lfi_proc* proc, int code) {
-#ifdef DYNARMIC_ENABLED
+#ifdef DYNARMIC
     // TODO: halt the JIT
     fprintf(stderr, "EXITING\n");
     exit(1);
@@ -398,8 +400,8 @@ uintptr_t lfi_proc_base(struct lfi_proc* proc) {
 }
 
 uint64_t lfi_signal_start(uint64_t syspage) {
+#ifndef DYNARMIC
     struct lfi_sys* sys = (struct lfi_sys*) syspage;
-#ifndef DYNARMIC_ENABLED
     uint64_t saved = r_tpidr();
     w_tpidr(sys->k_tpidr);
     return saved;
@@ -414,7 +416,7 @@ struct lfi_proc* lfi_sys_proc(uint64_t syspage) {
 }
 
 void lfi_signal_end(uint64_t saved) {
-#ifndef DYNARMIC_ENABLED
+#ifndef DYNARMIC
     w_tpidr(saved);
 #endif
 }

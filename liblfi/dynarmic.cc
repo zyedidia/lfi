@@ -14,13 +14,13 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using Vector = Dynarmic::A64::Vector;
 
-class A64FastmemTestEnv final : public Dynarmic::A64::UserCallbacks {
+class A64Fastmem final : public Dynarmic::A64::UserCallbacks {
 public:
     u64 ticks_left = 0;
     char* backing_memory = nullptr;
     Dynarmic::A64::Jit* jit;
 
-    explicit A64FastmemTestEnv(char* addr) : backing_memory(addr) {}
+    explicit A64Fastmem(char* addr) : backing_memory(addr) {}
 
     template<typename T>
     T read(u64 vaddr) {
@@ -129,7 +129,7 @@ public:
 
 int lfi_proc_entry_dynarmic(struct lfi_proc* proc) {
     char* backing_memory = nullptr;
-    A64FastmemTestEnv env{backing_memory};
+    A64Fastmem env{backing_memory};
     Dynarmic::ExclusiveMonitor monitor{1};
 
     Dynarmic::A64::UserConfig config{&env};

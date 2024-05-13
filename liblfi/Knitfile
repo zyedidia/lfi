@@ -9,17 +9,17 @@ local csrc = knit.rglob(".", "*.c")
 
 local ssrc = {}
 local define = ""
-local cppsrc = {}
+local ccsrc = {}
 if arch == "arm64" then
     ssrc = {"runtime.S"}
 elseif arch == "amd64" then
-    local cppsrc = {"dynarmic.cpp"}
-    define = "-DDYNARMIC_ENABLED"
+    local ccsrc = {"dynarmic.cc"}
+    define = "-DDYNARMIC"
 end
 
 local obj = knit.join(
     knit.extrepl(csrc, ".c", ".o"),
-    knit.extrepl(cppsrc, ".cpp", ".o"),
+    knit.extrepl(ccsrc, ".cc", ".o"),
     knit.extrepl(ssrc, ".S", ".o")
 )
 obj = knit.prefix(obj, ".")
@@ -31,7 +31,7 @@ return b{
         $cc $cflags -MD -MF $dep -c $input -o $output $define
     $ .%.o: %.S
         $cc -c $input -o $output
-    $ .%.o:D[.%.dep]: %.cpp
+    $ .%.o:D[.%.dep]: %.cc
         $cxx $cflags -MD -MF $dep -c $input -o $output -std=c++20
 
     $ install:VB: liblfi.a
