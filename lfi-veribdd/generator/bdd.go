@@ -42,8 +42,24 @@ func writeDot(nodes []Node, w io.Writer) {
 	fmt.Fprintln(w, "}")
 }
 
+func writeC(nodes []Node, w io.Writer) {
+	fmt.Fprintln(w, "static bool verify_insn(uint32_t insn) {")
+	fmt.Fprintf(w, "\tgoto node%d;\n", len(nodes)-1)
+	fmt.Fprintln(w, "node0: return false;")
+	fmt.Fprintln(w, "node1: return true;")
+	for i, n := range nodes[2:] {
+		fmt.Fprintf(w, "node%d:\n", i+2)
+		fmt.Fprintf(w, "\tif ((insn >> %d) & 0x1)\n", n.v)
+		fmt.Fprintf(w, "\t\tgoto node%d;\n", n.hi)
+		fmt.Fprintf(w, "\telse\n")
+		fmt.Fprintf(w, "\t\tgoto node%d;\n", n.lo)
+	}
+	fmt.Fprintln(w, "}")
+}
+
 func main() {
 	dot := flag.Bool("graph", false, "produce graphviz dot graph")
+	c := flag.Bool("c", false, "produce C code")
 
 	flag.Parse()
 	args := flag.Args()
@@ -87,6 +103,8 @@ func main() {
 
 	if *dot {
 		writeDot(nodes, os.Stdout)
+	} else if *c {
+		writeC(nodes, os.Stdout)
 	} else {
 		buf := &bytes.Buffer{}
 
