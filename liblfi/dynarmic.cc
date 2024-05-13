@@ -96,7 +96,7 @@ public:
     }
 
     void CallSVC(std::uint32_t swi) override {
-        struct lfi_proc* p = lfi_sys_proc(jit->GetRegister(21));
+        struct lfi_proc* p = lfi_sys_proc(jit->GetRegister(25));
         uint64_t result = p->lfi->opts.syshandler(p->ctxp,
                                                   jit->GetRegister(8),
                                                   jit->GetRegister(0),

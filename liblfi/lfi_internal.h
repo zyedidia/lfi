@@ -26,13 +26,19 @@ struct lfi_mem {
     struct lfi_mem* prev;
 };
 
+struct lfi_sys {
+    uintptr_t rtcalls[256];
+    struct lfi_proc* proc;
+    uintptr_t k_tpidr;
+};
+
 struct lfi_proc {
     void* kstackp;
     struct lfi_regs regs;
 
     uintptr_t base;
 
-    struct lfi_mem sys;
+    struct lfi_sys* sys;
     struct lfi_mem code;
     struct lfi_mem guards[2];
     struct lfi_mem* segments;
