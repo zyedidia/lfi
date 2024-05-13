@@ -1,4 +1,12 @@
+local verifier = "liblfiveribdd.a"
+if cli.nobdd then
+    verifier = "../lfi-verify/target/release/liblfiverify.a"
+end
+
 return b{
+    $ all:VB: lfi-verify liblfiveribdd.a
+    $ lfi-verify: lfi-verify.c $verifier
+        gcc $input -O2 -o $output
     $ liblfiveribdd.a: verifier.o
         ar rcs $output $input
     $ bench: bench.o verifier.o
