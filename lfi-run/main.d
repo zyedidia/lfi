@@ -75,7 +75,7 @@ extern (C) int main(int argc, const(char)** argv) {
         return 1;
     }
 
-    fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
+    // fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
 
     const(char)* file = argv[i];
     Proc* p = procnewfile(file, argc - i, &argv[i]);

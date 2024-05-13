@@ -80,7 +80,7 @@ fn ok_operand(op: &Operand) -> bool {
             mul_vl,
             ..
         } => {
-            !mul_vl && ((*reg == BASE_REG && (zero(*offset) || nimm(*offset, 8))) || data_reg(*reg))
+            !mul_vl && ((*reg == SYS_REG && (zero(*offset) || nimm(*offset, 8))) || data_reg(*reg))
         }
         Operand::MemPreIdx { reg, .. } => data_reg(*reg),
         Operand::MemPostIdxReg { .. } => false,
@@ -130,7 +130,7 @@ fn ok_mod(
                     mul_vl,
                     ..
                 } => {
-                    if (reg == BASE_REG || reg == SYS_REG) && !mul_vl && (zero(offset)) {
+                    if (reg == SYS_REG) && !mul_vl && (zero(offset)) {
                         return true;
                     }
                 }
