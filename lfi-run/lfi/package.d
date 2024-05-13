@@ -123,4 +123,6 @@ extern (C) {
     int lfi_proc_exec(LFIProc* proc, ubyte* prog, usize size, LFIProcInfo* info);
 
     uintptr lfi_proc_base(LFIProc* proc);
+
+    int lfi_mprotect(LFIProc* proc, uintptr ptr, usize size, int prot);
 }

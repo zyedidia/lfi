@@ -3,6 +3,7 @@ module proc;
 import core.lib;
 import core.alloc;
 import core.vector;
+import core.size;
 
 import arch.regs;
 
@@ -22,12 +23,14 @@ enum PState {
 }
 
 enum {
-    KSTACKSIZE = 64 * 1024,
+    KSTACKSIZE = kb!(64),
 
     ARGC_MAX = 1024,
     ARGV_MAX = 1024,
 
-    BRKMAXSIZE = 1024 * 1024 * 512,
+    BRKMAXSIZE = mb!(512),
+
+    PROCSIZE = gb!(4),
 }
 
 struct Cwd {
@@ -84,7 +87,6 @@ Proc* procnewempty() {
     return p;
 }
 
-// TODO: copy mmap regions in fork
 Proc* procnewchild(Proc* parent) {
     bool success;
     Proc* p = procnewempty();
@@ -316,7 +318,8 @@ uintptr procuseraddr(Proc* p, uintptr addr) {
 
 ubyte[] procbuf(Proc* p, uintptr buf, usize size) {
     buf = procaddr(p, buf);
-    // TODO: checks
+    if (size >= PROCSIZE || buf + size >= p.base + PROCSIZE)
+        return null;
     return (cast(ubyte*) buf)[0 .. size];
 }
 
@@ -330,9 +333,11 @@ bool procinmap(Proc* p, uintptr addr, usize size) {
 
 const(char)* procpath(Proc* p, uintptr path) {
     path = procaddr(p, path);
-    // TODO: checks
     const(char)* str = cast(const(char)*) path;
+    static assert(PATH_MAX < PROCSIZE);
     usize len = strnlen(str, PATH_MAX);
+    if (path + len >= p.base + PROCSIZE)
+        return null;
     if (str[len] != 0)
         return null;
     return str;
@@ -340,9 +345,11 @@ const(char)* procpath(Proc* p, uintptr path) {
 
 const(char)* procarg(Proc* p, uintptr arg) {
     arg = procaddr(p, arg);
-    // TODO: checks
     const(char)* str = cast(const(char)*) arg;
+    static assert(ARGV_MAX < PROCSIZE);
     usize len = strnlen(str, ARGV_MAX);
+    if (arg + len >= p.base + PROCSIZE)
+        return null;
     if (str[len] != 0)
         return null;
     return str;
@@ -410,7 +417,6 @@ bool procmapfixed(Proc* p, uintptr start, usize size, int prot, int flags, int f
 // the location has already been allocated by the map allocator.
 bool procmap(Proc* p, uintptr start, usize size, int prot, int flags, int fd, ssize offset, bool fixed) {
     bool success;
-    // TODO: verify if PROT_EXEC is true, maybe via extension to liblfi (lfi_mmap?)
     if (fd >= 0) {
         FDFile* f = fdget(&p.fdtable, fd);
         if (!f)

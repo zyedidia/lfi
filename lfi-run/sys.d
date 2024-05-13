@@ -3,6 +3,7 @@ module sys;
 import core.lib;
 import core.math;
 import core.alloc;
+import core.size;
 
 import proc;
 import lfi;
