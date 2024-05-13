@@ -23,6 +23,7 @@ static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
 
 static void regs_validate(struct lfi_proc* proc) {
     proc->regs.x21 = proc->base;
+    proc->regs.x25 = (uintptr_t) proc->sys;
     proc->regs.x30 = proc_addr(proc->base, proc->regs.x30);
     proc->regs.x18 = proc_addr(proc->base, proc->regs.x18);
     proc->regs.sp = proc_addr(proc->base, proc->regs.sp);
@@ -187,6 +188,7 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_mem_unmap(&proc->guards[0]);
     lfi_mem_unmap(&proc->guards[1]);
     free(proc->sys);
+    proc->sys = NULL;
     lfi_mem_unmap(&proc->stack);
     lfi_proc_clear(&proc->segments);
 }
@@ -209,7 +211,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     }
 
     struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
+    proc->guards[0] = lfi_mem_map(proc->base, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[0]));
     proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[1]));
@@ -366,6 +368,7 @@ extern int lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry
 void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
     proc->regs.x30 = entry;
     proc->regs.x21 = proc->base;
+    proc->regs.x25 = (uintptr_t) proc->sys;
     proc->regs.x18 = proc->base;
     if (proc->lfi->opts.gas != 0)
         proc->regs.x23 = proc->lfi->opts.gas;

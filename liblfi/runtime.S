@@ -28,7 +28,7 @@
 	mrs x1, tpidr_el0
 	str x1,     [x25, #8+8*36]
 	// reset x25 by loading it back
-	ldr x25,    [x25, #8+16*10+8]
+	ldr x25,    [x25, #8+16*12+8]
 .endm
 
 // save caller-saved registers, assuming sandbox syspage is x25
@@ -52,7 +52,7 @@
 	mrs x0, tpidr_el0
 	str x0,     [x25, #8+8*36]
 	// reset x25 by loading it back
-	ldr x25,    [x25, #8+16*10+8]
+	ldr x25,    [x25, #8+16*12+8]
 .endm
 
 // lfi_proc_entry(Proc* p)
