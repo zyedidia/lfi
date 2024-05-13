@@ -1,9 +1,10 @@
 return b{
-    $ lfi.bdd: genbdd
-        ./genbdd lfi.bdd.txt
-        go run bdd.go lfi.bdd.txt > $output
+    $ lfi.bdd.txt: genbdd
+        ./genbdd $output
+    $ lfi.bdd: lfi.bdd.txt
+        go run bdd.go $input > $output
     $ genbdd: genbdd.o ../../lfi-verify/target/release/liblfiverify.a
-        c++ $input -o $output -lbdd -llfiverify
+        c++ $input -o $output -lbdd
     $ %.o: %.cc
         c++ -c -O2 $input -o $output -I../../liblfi
     $ %.o: %.c
