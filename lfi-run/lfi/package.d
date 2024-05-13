@@ -96,7 +96,7 @@ __gshared {
 extern (C) {
     LFI* lfi_new(LFIOptions options);
 
-    int lfi_auto_add_vaspaces(LFI* lfi);
+    int lfi_auto_add_vaspaces(LFI* lfi, usize size);
 
     int lfi_add_vaspace(LFI* lfi, void* base, usize size);
 

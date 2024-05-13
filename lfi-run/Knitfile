@@ -36,7 +36,7 @@ local csrc = knit.join(
 )
 
 local ssrc = knit.join(
-    knit.glob("*.S")
+    knit.glob(f"arch/$arch/*.S")
 )
 
 local obj = knit.join(knit.extrepl(ssrc, ".S", ".o"), knit.extrepl(csrc, ".c", ".o"))
@@ -55,7 +55,7 @@ local platform = {
 }
 
 local dflags = {
-    gdc := -O2 -Wall -nophoboslib -fno-exceptions -fno-moduleinfo -fno-rtti -fversion=$arch -ftransition=tls -ffunction-sections -fdata-sections -fno-pic -g
+    gdc := -O2 -Wall -nophoboslib -fno-exceptions -fno-moduleinfo -fno-rtti -ftransition=tls -ffunction-sections -fdata-sections -fno-pic -g
     ldc2 := -O2 -betterC -function-sections -data-sections -relocation-model=static -g
 }
 
@@ -68,9 +68,16 @@ if pagesize == "16384" then
     flags.dc = flags.dc .. " " .. version(dc, "page16k")
 end
 
+flags.dc = flags.dc .. " " .. version(dc, arch)
+
+local libs = ""
+if arch == "amd64" then
+    libs = "-ldynarmic -lZydis -lfmt -lmcl -lstdc++"
+end
+
 return b{
     $ lfi-run: $obj
-        gcc $input -o $output -static $(flags.ld)
+        gcc $input -o $output -static $(flags.ld) $libs
 
     $ .unified.o: $dsrc
         $(dc) -c $input -$o $output $(flags.dc)

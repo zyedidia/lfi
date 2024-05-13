@@ -2,9 +2,11 @@
 #include <cstdint>
 #include <cstring>
 #include <mcl/assert.hpp>
+#include <iostream>
 #include "dynarmic.h"
 #include "dynarmic/interface/A64/a64.h"
 #include "dynarmic/interface/A64/config.h"
+#include "dynarmic/interface/exclusive_monitor.h"
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -33,7 +35,7 @@ public:
 
     std::optional<std::uint32_t> MemoryReadCode(u64 vaddr) override {
         uint32_t result = read<std::uint32_t>(vaddr);
-            return result;
+        return result;
     }
 
     std::uint8_t MemoryRead8(u64 vaddr) override {
@@ -125,20 +127,23 @@ public:
     }
 };
 
-
 int lfi_proc_entry_dynarmic(struct lfi_proc* proc) {
-    constexpr size_t address_width = 32;
-
-    char* backing_memory = 0;
+    char* backing_memory = nullptr;
     A64FastmemTestEnv env{backing_memory};
+    Dynarmic::ExclusiveMonitor monitor{1};
 
     Dynarmic::A64::UserConfig config{&env};
     config.fastmem_pointer = reinterpret_cast<uintptr_t>(backing_memory);
-    config.fastmem_address_space_bits = address_width;
+    config.fastmem_address_space_bits = 64;
     config.recompile_on_fastmem_failure = false;
     config.silently_mirror_fastmem = true;
+    config.fastmem_exclusive_access = true;
+    config.recompile_on_exclusive_fastmem_failure = false;
     config.processor_id = 0;
     config.enable_cycle_counting = false;
+    uint64_t tpidr_el0 = 0;
+    config.tpidr_el0 = &tpidr_el0;
+    config.global_monitor = &monitor;
 
     Dynarmic::A64::Jit jit{config};
     env.jit = &jit;
@@ -183,9 +188,4 @@ int lfi_proc_entry_dynarmic(struct lfi_proc* proc) {
     jit.Run();
 
     return 0;
-}
-
-void lfi_dynarmic_halt(struct lfi_proc* proc) {
-    // jit.HaltExecution()
-    exit(1);
 }

@@ -73,11 +73,12 @@ int lfi_auto_add_vaspaces(struct lfi* lfi, size_t size) {
     // Start by trying to reserve nearly all of the arm64 virtual address space
     // and then work down from there with exponential backoff.
     uint64_t total = size;
+    uint64_t min = size;
     if (size == 0) {
         total = tb(256);
         size = tb(255);
+        min = gb(32);
     }
-    uint64_t min = gb(32);
     int i;
     for (i = 0; i < LFI_VASPACE_MAX; i++) {
         void* base;

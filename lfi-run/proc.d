@@ -4,6 +4,8 @@ import core.lib;
 import core.alloc;
 import core.vector;
 
+import arch.regs;
+
 import sys;
 import sched;
 import lfi;
@@ -20,7 +22,7 @@ enum PState {
 }
 
 enum {
-    KSTACKSIZE = 16 * 1024,
+    KSTACKSIZE = 64 * 1024,
 
     ARGC_MAX = 1024,
     ARGV_MAX = 1024,
@@ -76,7 +78,7 @@ Proc* procnewempty() {
     Proc* p = knew!(Proc)();
     if (!p)
         return null;
-    p.ctx = taskctx(&p.kstack[$-16], &procentry, &p.kstack[0]);
+    p.ctx = taskctx(&p.kstack[$-16], &procentry);
     p.cwd.fd = AT_FDCWD;
     ensure(getcwd(&p.cwd.name[0], p.cwd.name.length) != null);
     return p;
@@ -296,7 +298,7 @@ void procentry(Proc* p) {
 }
 
 void procexec(Proc* p) {
-    p.ctx = taskctx(&p.kstack[$-16], &procentry, &p.kstack[0]);
+    p.ctx = taskctx(&p.kstack[$-16], &procentry);
     kstart(null, null, &schedctx);
 }
 

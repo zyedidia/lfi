@@ -70,12 +70,12 @@ extern (C) int main(int argc, const(char)** argv) {
     }
 
     int err;
-    if ((err = lfi_auto_add_vaspaces(lfiengine)) < 0) {
+    if ((err = lfi_auto_add_vaspaces(lfiengine, 0)) < 0) {
         fprintf(stderr, "error: failed to add vaspaces: %d\n", err);
         return 1;
     }
 
-    // fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
+    fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
 
     const(char)* file = argv[i];
     Proc* p = procnewfile(file, argc - i, &argv[i]);
