@@ -151,12 +151,6 @@ static int lfi_mem_append(struct lfi_mem** mem, struct lfi_mem add) {
     return 0;
 }
 
-struct lfi_sys {
-    uintptr_t rtcalls[256];
-    struct lfi_proc* proc;
-    uintptr_t k_tpidr;
-};
-
 extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 
 #ifdef DYNARMIC
@@ -167,18 +161,15 @@ static uint32_t syshandler_stub[2] = {
 };
 #endif
 
-static void sys_setup(struct lfi_mem sys, struct lfi_proc* proc) {
-    lfi_mem_protect(&sys, proc->base, PROT_READ | PROT_WRITE, 0);
-    struct lfi_sys* table = (struct lfi_sys*) sys.base;
+static void sys_setup(struct lfi_sys* table, struct lfi_proc* proc) {
 #ifdef DYNARMIC
     table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
 #else
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
+    // TODO: problem for multi-threading with thread locals
     table->k_tpidr = r_tpidr();
 #endif
     table->proc = proc;
-    // TODO: problem for multi-threading with thread locals
-    lfi_mem_protect(&sys, proc->base, PROT_READ, 0);
 }
 
 static void lfi_proc_clear(struct lfi_mem** mems) {
@@ -195,7 +186,7 @@ static void lfi_proc_clear(struct lfi_mem** mems) {
 static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_mem_unmap(&proc->guards[0]);
     lfi_mem_unmap(&proc->guards[1]);
-    lfi_mem_unmap(&proc->sys);
+    free(proc->sys);
     lfi_mem_unmap(&proc->stack);
     lfi_proc_clear(&proc->segments);
 }
@@ -233,8 +224,10 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     uintptr_t base = proc->guards[0].base + proc->guards[0].size;
     uintptr_t last = 0;
 
-    proc->sys = lfi_mem_map(proc->base, proc->lfi->opts.pagesize, PROT_READ | PROT_WRITE);
-    assert(lfi_mem_valid(&proc->sys));
+    proc->sys = calloc(1, sizeof(struct lfi_sys));
+    if (!proc->sys) {
+        goto err1;
+    }
     sys_setup(proc->sys, proc);
 
     if (ehdr->entry >= CODE_MAX) {
@@ -313,8 +306,13 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
     if (lfi_is_full(lfi)) {
         return LFI_ERR_NOSLOT;
     }
+    struct lfi_sys* sys = calloc(1, sizeof(struct lfi_sys));
+    if (!sys) {
+        return LFI_ERR_NOMEM;
+    }
     struct lfi_proc* child = lfi_new_proc();
     if (!child) {
+        free(sys);
         return LFI_ERR_NOMEM;
     }
     *child = (struct lfi_proc) {
@@ -333,7 +331,6 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
         lfi_mem_append(&child->segments, lfi_mem_copy_to(segment, child->base));
         segment = segment->next;
     }
-    child->sys = lfi_mem_copy_to(&proc->sys, child->base);
     sys_setup(child->sys, child);
     regs_validate(child);
 

@@ -338,7 +338,7 @@ BRANCH = < ('br' | 'blr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng
 
 Syscall = < 'svc' - (!EOL .)* > - {
     mkinsn("str x30, [sp, #-16]!\n");
-    mkinsn("ldr x30, [x21]\n");
+    mkinsn("ldr x30, [x25]\n");
     mkinsn("blr x30\n");
     mkinsn("ldr x22, [sp], 16\n");
     mkinsn("add x30, x21, w22, uxtw\n");

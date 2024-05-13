@@ -122,7 +122,7 @@ fn ok_mod(
 
     if reg == RET_REG {
         if inst.op() == Op::LDR {
-            // 'ldr x30, [x21]' is legal
+            // 'ldr x30, [x21]' is legal and so is 'ldr x30, [x25]'
             match inst.operands()[1] {
                 Operand::MemOffset {
                     reg,
@@ -130,7 +130,7 @@ fn ok_mod(
                     mul_vl,
                     ..
                 } => {
-                    if reg == BASE_REG && !mul_vl && (zero(offset)) {
+                    if (reg == BASE_REG || reg == SYS_REG) && !mul_vl && (zero(offset)) {
                         return true;
                     }
                 }
