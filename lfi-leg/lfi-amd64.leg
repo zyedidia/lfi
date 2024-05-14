@@ -123,7 +123,7 @@ MOV = < ('mov' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) }
 # --- branches ---
 
 Branch = j:JUMP '*' r:XREG {
-    mkinsn("and 0xfffffff0, %s\n", j.val, lo(r.val));
+    mkinsn("and $0xfffffff0, %s\n", lo(r.val));
     mkinsn("%s *%%gs:(%s)\n", j.val, lo(r.val));
     tfree(j); tfree(r);
 }
@@ -162,7 +162,7 @@ IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 IMM_RAW = (
     ('$' -)? 
     (
-          [-0-9]+
+          [-0-9abcdefxABCDEF]+
         | BALANCED_RAW
         | RELOC
     )
