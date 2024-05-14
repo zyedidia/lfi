@@ -163,7 +163,7 @@ uintptr sysopenat(Proc* p, int dirfd, uintptr pathp, int flags, int mode) {
         return Err.INVAL;
     int fd = fdalloc(&p.fdtable);
     if (fd < 0) {
-        fdrelease(f);
+        fdrelease(f, p);
         return Err.MFILE;
     }
     fdassign(&p.fdtable, fd, f);
@@ -174,7 +174,7 @@ uintptr sysclose_(Proc* p, ulong[6] args) {
     return sysclose(p, cast(int) args[0]);
 }
 uintptr sysclose(Proc* p, int fd) {
-    bool ok = fdremove(&p.fdtable, fd);
+    bool ok = fdremove(&p.fdtable, fd, p);
     if (!ok)
         return Err.BADF;
     return 0;
@@ -256,6 +256,9 @@ uintptr syswritev(Proc* p, int fd, uintptr iovp, usize iovcnt) {
 }
 
 uintptr sysrenameat_(Proc* p, ulong[6] args) {
+    return sysrenameat(p, cast(int) args[0], args[1], cast(int) args[2], args[3], 0);
+}
+uintptr sysrenameat2_(Proc* p, ulong[6] args) {
     return sysrenameat(p, cast(int) args[0], args[1], cast(int) args[2], args[3], cast(int) args[4]);
 }
 uintptr sysrenameat(Proc* p, int oldfd, uintptr oldpathp, int newfd, uintptr newpathp, int flags) {
@@ -450,14 +453,14 @@ uintptr syspipe(Proc* p, uintptr pipefdp, int flags) {
     if (!pipenew(f0, f1))
         return Err.NPIPE;
     scope(exit) if (!success) {
-        fdrelease(f0);
-        fdrelease(f1);
+        fdrelease(f0, p);
+        fdrelease(f1, p);
     }
 
     fd0 = fdalloc(&p.fdtable);
     if (fd0 < 0)
         return Err.MFILE;
-    scope(exit) if (!success) fdremove(&p.fdtable, fd0);
+    scope(exit) if (!success) fdremove(&p.fdtable, fd0, p);
 
     fd1 = fdalloc(&p.fdtable);
     if (fd1 < 0)

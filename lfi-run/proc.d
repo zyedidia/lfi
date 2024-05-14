@@ -158,7 +158,7 @@ void procfree(Proc* p) {
     procfreemaps(p);
     if (p.lp)
         lfi_remove_proc(lfiengine, p.lp);
-    fdclear(&p.fdtable);
+    fdclear(&p.fdtable, p);
     if (p.cwd.fd >= 0)
         close(p.cwd.fd);
     kfree(p);

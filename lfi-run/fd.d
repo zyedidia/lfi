@@ -49,15 +49,18 @@ FDFile* fdget(FDTable* t, int fd) {
     return null;
 }
 
-void fdrelease(FDFile* f) {
+void fdrelease(FDFile* f, Proc* p) {
     f.refs--;
-    if (f.refs == 0)
+    if (f.refs == 0) {
+        if (f.close != null)
+            f.close(f.dev, p);
         kfree(f);
+    }
 }
 
-bool fdremove(FDTable* t, int fd) {
+bool fdremove(FDTable* t, int fd, Proc* p) {
     if (fdhas(t, fd)) {
-        fdrelease(t.files[fd]);
+        fdrelease(t.files[fd], p);
         t.files[fd] = null;
         return true;
     }
@@ -79,9 +82,9 @@ void fdcopy(FDTable* t, ref FDTable to) {
     }
 }
 
-void fdclear(FDTable* t) {
+void fdclear(FDTable* t, Proc* p) {
     for (int fd = 0; fd < t.files.length; fd++) {
-        fdremove(t, fd);
+        fdremove(t, fd, p);
     }
 }
 
