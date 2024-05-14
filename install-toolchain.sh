@@ -24,12 +24,14 @@ cp README.md $PREFIX
 
 export PATH=$PREFIX/bin:$PATH
 
-(cd lfi-verify && cargo build --release && mv ./target/release/lfi-verify $PREFIX/bin)
+(cd lfi-verify && cargo build --release && mv ./target/release/lfi-verify $PREFIX/bin/lfi-verify-verbose)
+
+(cd lfi-veribdd && knit && mv lfi-verify $PREFIX/bin)
 
 (cd lfi-run && knit && mv lfi-run $PREFIX/bin)
 
 # install clang
-(cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang)
+# (cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang)
 
 # install gcc
-(cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc)
+# (cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc)
