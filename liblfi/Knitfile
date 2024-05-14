@@ -13,7 +13,7 @@ local ccsrc = {}
 if arch == "arm64" then
     ssrc = {"runtime.S"}
 elseif arch == "amd64" then
-    local ccsrc = {"dynarmic.cc"}
+    ccsrc = {"dynarmic.cc"}
     define = "-DDYNARMIC"
 end
 
