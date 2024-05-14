@@ -41,7 +41,7 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 FILE* input;
 FILE* output;
 
-void lfigen();
+bool lfigen();
 
 static FILE*
 argopen(char* arg, const char* mode, FILE* std)
@@ -70,7 +70,10 @@ main(int argc, char** argv)
     input = argopen(args.input, "r", stdin);
     output = argopen(args.output, "w", stdout);
 
-    lfigen();
+    if (!lfigen()) {
+        fprintf(stderr, "%s: parse failed\n", args.input);
+        return 1;
+    }
 
     fclose(input);
     fclose(output);

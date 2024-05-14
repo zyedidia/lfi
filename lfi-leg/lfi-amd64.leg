@@ -32,6 +32,8 @@ tfree(Transform t)
 }                                            \
 %}
 
+Top = Insn+ !.
+
 Insn = INDENT Label? (
       Directive
     | Lea
@@ -43,7 +45,7 @@ Insn = INDENT Label? (
     | Any
 ) COMMENT? EOL
 
-COMMENT = '//' (!EOL .)*
+COMMENT = ('//' | '#' | ';') (!EOL .)*
 
 INDENT = < [ \t]* > {
     // if (yyleng > 0)
@@ -199,6 +201,14 @@ REG = < (
     | '%rdi'
     | '%rsp'
     | '%rbp'
+    | '%r8d'
+    | '%r9d'
+    | '%r10d'
+    | '%r11d'
+    | '%r12d'
+    | '%r13d'
+    | '%r14d'
+    | '%r15d'
     | '%r8'
     | '%r9'
     | '%r10'
@@ -215,14 +225,6 @@ REG = < (
     | '%edi'
     | '%esp'
     | '%ebp'
-    | '%r8d'
-    | '%r9d'
-    | '%r10d'
-    | '%r11d'
-    | '%r12d'
-    | '%r13d'
-    | '%r14d'
-    | '%r15d'
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 XREG = < (
@@ -272,11 +274,11 @@ dist(int a, int b)
     return d;
 }
 
-void
+bool
 lfigen()
 {
-    while (yyparse())
-        ;
+    if (!yyparse())
+        return false;
 
     struct ht labels;
     int icount = 0;
@@ -309,4 +311,6 @@ lfigen()
         icount += op->insn ? 1 : 0;
         op = op->next;
     }
+
+    return true;
 }

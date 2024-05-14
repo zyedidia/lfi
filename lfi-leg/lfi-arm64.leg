@@ -78,6 +78,8 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
 }                                            \
 %}
 
+Top = Insn+ !.
+
 Insn = INDENT Label? (
       LdSt
     | ShortBranch
@@ -507,11 +509,11 @@ dist(int a, int b)
     return d;
 }
 
-void
+bool
 lfigen()
 {
-    while (yyparse())
-        ;
+    if (!yyparse())
+        return false;
 
     struct ht labels;
     int icount = 0;
