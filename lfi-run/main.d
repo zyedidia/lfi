@@ -9,10 +9,12 @@ import sys;
 
 enum Arg {
     NOVERIFY = "no-verify",
+    SHOWMAX  = "show-max-procs",
 }
 
 struct Flags {
     bool noverify;
+    bool showmax;
 }
 
 __gshared Flags flags;
@@ -29,7 +31,8 @@ void usage(const(char)* name) {
     fprintf(stderr, "usage:\n");
     fprintf(stderr, "  %s [OPTIONS] FILE [ARGS]\n\n", name);
     fprintf(stderr, "options:\n");
-    fprintf(stderr, "  --no-verify\tdo not perform verification\n");
+    fprintf(stderr, "  --no-verify         do not perform verification\n");
+    fprintf(stderr, "  --show-max-procs    show the maximum number of lfi processes\n");
 }
 
 extern (C) int main(int argc, const(char)** argv) {
@@ -43,15 +46,17 @@ extern (C) int main(int argc, const(char)** argv) {
         arg++;
         if (arg[0] == '-')
             arg++;
-        if (strncmp(arg, Arg.NOVERIFY.ptr, Arg.NOVERIFY.length) == 0) {
+        if (strcmp(arg, Arg.NOVERIFY.ptr) == 0) {
             fprintf(stderr, "WARNING: verification disabled\n");
             flags.noverify = true;
+        } else if (strcmp(arg, Arg.SHOWMAX.ptr) == 0) {
+            flags.showmax = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
         }
     }
 
-    if (i >= argc) {
+    if (i >= argc && !flags.showmax) {
         fprintf(stderr, "error: no program given\n");
         usage(argv[0]);
         return 0;
@@ -75,7 +80,10 @@ extern (C) int main(int argc, const(char)** argv) {
         return 1;
     }
 
-    // fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
+    if (flags.showmax) {
+        fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
+        return 0;
+    }
 
     const(char)* file = argv[i];
     Proc* p = procnewfile(file, argc - i, &argv[i]);

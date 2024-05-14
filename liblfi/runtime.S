@@ -56,7 +56,7 @@
 .endm
 
 // lfi_proc_entry(Proc* p)
-.align 16
+.p2align 4
 .globl lfi_proc_entry
 lfi_proc_entry:
 	// save callee-saved registers to stack
@@ -77,7 +77,7 @@ lfi_proc_entry:
 	brk #0
 
 // lfi_asm_proc_exit(uintptr kstackp)
-.align 16
+.p2align 4
 .globl lfi_asm_proc_exit
 lfi_asm_proc_exit:
 	mov sp, x0
@@ -94,7 +94,7 @@ lfi_asm_proc_exit:
 	ldp d8, d9,   [sp], 16
 	ret
 
-.align 16
+.p2align 4
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
@@ -108,13 +108,13 @@ lfi_syscall_entry:
 	b  lfi_restore_partial_regs
 	brk #0
 
-.align 16
+.p2align 4
 .globl lfi_yield_entry
 lfi_yield_entry:
 	brk #0
 
 // Restore only caller-saved registers.
-.align 16
+.p2align 4
 .globl lfi_restore_partial_regs
 lfi_restore_partial_regs:
 	ldp x1, x2, [x0, #8+8*34]
@@ -140,7 +140,7 @@ lfi_restore_partial_regs:
 // lfi_restore_regs(Proc* p)
 // Restores registers from the given Proc struct.
 // This function does not return.
-.align 16
+.p2align 4
 .globl lfi_restore_regs
 lfi_restore_regs:
 	ldp x1, x2, [x0, #8+8*34]
