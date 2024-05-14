@@ -1,6 +1,7 @@
 module main;
 
 import core.lib;
+import core.size;
 
 import proc;
 import sched;
@@ -72,7 +73,7 @@ extern (C) int main(int argc, const(char)** argv) {
     LFIOptions options;
     options.noverify = flags.noverify;
     options.pagesize = PAGESIZE;
-    options.stacksize = 2 * 1024 * 1024;
+    options.stacksize = mb!(2);
     options.syshandler = &syscall;
 
     lfiengine = lfi_new(options);

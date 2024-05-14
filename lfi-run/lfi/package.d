@@ -24,8 +24,8 @@ struct LFIProcInfo {
     ulong elfentry;
     ulong elfbase;
     ulong elfphoff;
-    ulong elfphnum;
-    ulong elfphentsize;
+    ushort elfphnum;
+    ushort elfphentsize;
 }
 
 enum {
