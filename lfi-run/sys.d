@@ -184,6 +184,8 @@ uintptr sysread_(Proc* p, ulong[6] args) {
     return sysread(p, cast(int) args[0], args[1], args[2]);
 }
 uintptr sysread(Proc* p, int fd, uintptr bufp, usize size) {
+    if (size == 0)
+        return 0;
     FDFile* f = fdget(&p.fdtable, fd);
     if (!f)
         return Err.BADF;
@@ -199,6 +201,8 @@ uintptr syswrite_(Proc* p, ulong[6] args) {
     return syswrite(p, cast(int) args[0], args[1], args[2]);
 }
 uintptr syswrite(Proc* p, int fd, uintptr bufp, usize size) {
+    if (size == 0)
+        return 0;
     FDFile* f = fdget(&p.fdtable, fd);
     if (!f)
         return Err.BADF;
