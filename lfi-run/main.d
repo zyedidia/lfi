@@ -10,14 +10,18 @@ import sys;
 enum Arg {
     NOVERIFY = "no-verify",
     SHOWMAX  = "show-max-procs",
+    POC      = "poc",
 }
 
 struct Flags {
     bool noverify;
     bool showmax;
+    bool poc;
 }
 
-__gshared Flags flags;
+__gshared {
+    Flags flags;
+}
 
 void dofilemax() {
     // Raise file descriptor limit to the max.
@@ -33,6 +37,7 @@ void usage(const(char)* name) {
     fprintf(stderr, "options:\n");
     fprintf(stderr, "  --no-verify         do not perform verification\n");
     fprintf(stderr, "  --show-max-procs    show the maximum number of lfi processes\n");
+    fprintf(stderr, "  --poc               enable position-oblivious code\n");
 }
 
 extern (C) int main(int argc, const(char)** argv) {
@@ -51,6 +56,8 @@ extern (C) int main(int argc, const(char)** argv) {
             flags.noverify = true;
         } else if (strcmp(arg, Arg.SHOWMAX.ptr) == 0) {
             flags.showmax = true;
+        } else if (strcmp(arg, Arg.POC.ptr) == 0) {
+            flags.poc = true;
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
         }

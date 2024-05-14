@@ -15,6 +15,7 @@ import queue;
 import elf;
 import cwalk;
 import buddy;
+import main;
 
 enum PState {
     RUNNABLE,
@@ -313,7 +314,9 @@ uintptr procaddr(Proc* p, uintptr addr) {
 }
 
 uintptr procuseraddr(Proc* p, uintptr addr) {
-    return cast(uint) addr;
+    if (flags.poc)
+        return cast(uint) addr;
+    return procaddr(p, addr);
 }
 
 ubyte[] procbuf(Proc* p, uintptr buf, usize size) {
