@@ -17,3 +17,9 @@ stp x29, x30, [sp]
 >>>
 mov w22, w30
 stp x29, x22, [sp]
+------
+str x30, [x0, #0xf0]
+>>>
+add x18, x21, w0, uxtw
+mov w22, w30
+str x22, [x18, #0xf0]
