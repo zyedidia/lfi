@@ -23,3 +23,11 @@ str x30, [x0, #0xf0]
 add x18, x21, w0, uxtw
 mov w22, w30
 str x22, [x18, #0xf0]
+------
+mov x29, sp
+>>>
+mov w29, wsp
+------
+add x0, sp, #0x20
+>>>
+add w0, wsp, #0x20

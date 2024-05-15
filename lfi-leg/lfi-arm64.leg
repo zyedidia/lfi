@@ -108,6 +108,7 @@ Insn = INDENT Label? (
     | ModSpecial
     | StLR
     | ModLR
+    | ReadSP
     | Directive
     | Comment
     | Any
@@ -129,6 +130,21 @@ Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
 }
 
 ADR = < ('adrp' | 'adr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+ReadSP = (
+    (i:MODINST rt:XREG COMMA r1:SP COMMA r2:XREG) {
+        mkinsn("%s w%s, w%s, w%s\n", i.val, num(rt.val), num(r1.val), num(r2.val));
+        tfree(i); tfree(rt); tfree(r1); tfree(r2);
+    }
+    | (i:MODINST rt:XREG COMMA r1:SP COMMA rest:REMAINDER) {
+        mkinsn("%s w%s, w%s, %s\n", i.val, num(rt.val), num(r1.val), rest.val);
+        tfree(i); tfree(rt); tfree(r1); tfree(rest);
+    }
+    | (i:MODINST rt:XREG COMMA r1:SP) {
+        mkinsn("%s w%s, w%s\n", i.val, num(rt.val), num(r1.val));
+        tfree(i); tfree(rt); tfree(r1);
+    }
+)
 
 # --- loads and stores ---
 
@@ -238,7 +254,7 @@ AddrNoOpt = (
         $$ = (Transform) {
             .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18, %s]!", i.val),
-            .post = xasprintf("mov %s, x18", r.val),
+            .post = xasprintf("mov w%s, w18", num(r.val)),
         };
         tfree(r); tfree(i);
     }
@@ -264,7 +280,7 @@ AddrNoOpt = (
         $$ = (Transform) {
             .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18], %s", i.val),
-            .post = xasprintf("mov %s, x18", r.val),
+            .post = xasprintf("mov w%s, w18", num(r.val)),
         };
         tfree(r); tfree(i);
     }
@@ -493,6 +509,8 @@ SIMD_REG = < (
       (LC ([^}])* RC (LB (!RB .)* RB)?)
     | ID
 ) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+SP = < 'sp' > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 XREG = < 'x' REGNUM > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
