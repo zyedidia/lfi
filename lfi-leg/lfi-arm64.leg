@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "arm64.h"
+#include "args.h"
 #include "ht.h"
 #include "op.h"
 
@@ -33,14 +34,14 @@ static void
 ldst(Transform l, Transform rt, Transform addr, bool isload)
 {
     if (addr.guard)
-        if (strcmp(rt.val, "x30") == 0 && addr.guardx30)
+        if (args.poc && strcmp(rt.val, "x30") == 0 && addr.guardx30)
             mkinsn("%s\n", addr.guardx30);
         else
             mkinsn("%s\n", addr.guard);
     if (isres(rt.val)) {
         if (!isload)
             mkinsn("mov w22, w%s\n", num(rt.val));
-        if (strcmp(rt.val, "x30") == 0 && addr.valx30)
+        if (args.poc && strcmp(rt.val, "x30") == 0 && addr.valx30)
             mkinsn("%s x22, %s\n", l.val, addr.valx30);
         else
             mkinsn("%s x22, %s\n", l.val, addr.val);
@@ -124,8 +125,12 @@ INDENT = < [ \t]* > {
 # --- Address generation ---
 
 Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
-    mkinsn("%s x18, %s\n", a.val, rest.val);
-    mkinsn("mov w%s, w18\n", num(rt.val));
+    if (args.poc) {
+        mkinsn("%s x18, %s\n", a.val, rest.val);
+        mkinsn("mov w%s, w18\n", num(rt.val));
+    } else {
+        mkinsn("%s, %s, %s\n", a.val, rt.val, rest.val);
+    }
     tfree(a); tfree(rt); tfree(rest);
 }
 
@@ -133,15 +138,24 @@ ADR = < ('adrp' | 'adr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng)
 
 ReadSP = (
     (i:MODINST rt:XREG COMMA r1:SP COMMA r2:XREG) {
-        mkinsn("%s w%s, w%s, w%s\n", i.val, num(rt.val), num(r1.val), num(r2.val));
+        if (args.poc)
+            mkinsn("%s w%s, w%s, w%s\n", i.val, num(rt.val), num(r1.val), num(r2.val));
+        else
+            mkinsn("%s %s, %s, %s\n", i.val, rt.val, r1.val, r2.val);
         tfree(i); tfree(rt); tfree(r1); tfree(r2);
     }
     | (i:MODINST rt:XREG COMMA r1:SP COMMA rest:REMAINDER) {
-        mkinsn("%s w%s, w%s, %s\n", i.val, num(rt.val), num(r1.val), rest.val);
+        if (args.poc)
+            mkinsn("%s w%s, w%s, %s\n", i.val, num(rt.val), num(r1.val), rest.val);
+        else
+            mkinsn("%s %s, %s, %s\n", i.val, rt.val, r1.val, rest.val);
         tfree(i); tfree(rt); tfree(r1); tfree(rest);
     }
     | (i:MODINST rt:XREG COMMA r1:SP) {
-        mkinsn("%s w%s, w%s\n", i.val, num(rt.val), num(r1.val));
+        if (args.poc)
+            mkinsn("%s w%s, w%s\n", i.val, num(rt.val), num(r1.val));
+        else
+            mkinsn("%s %s, %s\n", i.val, rt.val, r1.val);
         tfree(i); tfree(rt); tfree(r1);
     }
 )
@@ -251,10 +265,15 @@ AddrOpt = (
 AddrNoOpt = (
     # [xN, i]!
       (LB r:XREG COMMA i:IMM RB EXCLAM) {
+        char* post;
+        if (args.poc)
+            post = xasprintf("mov w%s, w18", num(r.val));
+        else
+            post = xasprintf("mov %s, x18", r.val);
         $$ = (Transform) {
             .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18, %s]!", i.val),
-            .post = xasprintf("mov w%s, w18", num(r.val)),
+            .post = post,
         };
         tfree(r); tfree(i);
     }
@@ -277,10 +296,15 @@ AddrNoOpt = (
     }
     # [xN], i
     | (LB r:XREG RB COMMA i:IMM) {
+        char* post;
+        if (args.poc)
+            post = xasprintf("mov w%s, w18", num(r.val));
+        else
+            post = xasprintf("mov %s, x18", r.val);
         $$ = (Transform) {
             .guard = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
             .val = xasprintf("[x18], %s", i.val),
-            .post = xasprintf("mov w%s, w18", num(r.val)),
+            .post = post,
         };
         tfree(r); tfree(i);
     }
@@ -426,20 +450,32 @@ ModMultiLR2 = 'ldp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
 StLR = StNormalLR | StMultiLR1 | StMultiLR2
 
 StNormalLR = 'str' - 'x30' - COMMA r:REMAINDER {
-    mkinsn("mov w22, w30\n");
-    mkinsn("str x22, %s\n", r.val);
+    if (args.poc) {
+        mkinsn("mov w22, w30\n");
+        mkinsn("str x22, %s\n", r.val);
+    } else {
+        mkinsn("str x30, %s\n", r.val);
+    }
     tfree(r);
 }
 
 StMultiLR1 = 'stp' - 'x30' - COMMA reg:REG COMMA r:REMAINDER {
-    mkinsn("mov w22, w30\n");
-    mkinsn("stp x22, %s, %s\n", reg.val, r.val);
+    if (args.poc) {
+        mkinsn("mov w22, w30\n");
+        mkinsn("stp x22, %s, %s\n", reg.val, r.val);
+    } else {
+        mkinsn("stp x30, %s, %s\n", reg.val, r.val);
+    }
     tfree(r); tfree(reg);
 }
 
 StMultiLR2 = 'stp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
-    mkinsn("mov w22, w30\n");
-    mkinsn("stp %s, x22, %s\n", reg.val, r.val);
+    if (args.poc) {
+        mkinsn("mov w22, w30\n");
+        mkinsn("stp %s, x22, %s\n", reg.val, r.val);
+    } else {
+        mkinsn("stp %s, x30, %s\n", reg.val, r.val);
+    }
     tfree(r); tfree(reg);
 }
 

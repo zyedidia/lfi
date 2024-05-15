@@ -46,13 +46,13 @@ stp xzr, xzr, [x8], #32
 >>>
 add x18, x21, w8, uxtw
 stp xzr, xzr, [x18], #32
-mov w8, w18
+mov x8, x18
 ------
 stp xzr, xzr, [x8, #32]!
 >>>
 add x18, x21, w8, uxtw
 stp xzr, xzr, [x18, #32]!
-mov w8, w18
+mov x8, x18
 ------
 ldp x29, x30, [sp], 16
 >>>

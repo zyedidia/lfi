@@ -6,17 +6,22 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
+
+var testflags = map[string][]string{
+	"poc.s": []string{"--poc"},
+}
 
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
 	os.Exit(1)
 }
 
-func run(command, stdin string) (string, error) {
+func run(command string, flags []string, stdin string) (string, error) {
 	buf := &bytes.Buffer{}
-	cmd := exec.Command(command)
+	cmd := exec.Command(command, flags...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = buf
 	cmd.Stdin = strings.NewReader(stdin)
@@ -50,10 +55,11 @@ func main() {
 		all := string(data)
 		tests := strings.Split(all, "------")
 
+		flags := testflags[filepath.Base(input)]
 		for _, t := range tests {
 			parts := strings.Split(t, ">>>")
 			parts[1] = strings.TrimSpace(parts[1])
-			out, err := run(lfigen, parts[0])
+			out, err := run(lfigen, flags, parts[0])
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "TEST %d (%s) FAIL:\n", ntest, input)
 				fmt.Println(parts[0])

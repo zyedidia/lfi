@@ -3,18 +3,16 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "args.h"
+
 static char doc[] = "lfi-gen: rewrite assembly files to be compatible with LFI";
 
 static char args_doc[] = "INPUT";
 
 static struct argp_option options[] = {
     { "output", 'o', "FILE", 0, "Output to FILE instead of standard output" },
+    { "poc",    'p', 0,      0, "Produce position-oblivious code" },
     { 0 },
-};
-
-struct arguments {
-    char* input;
-    char* output;
 };
 
 static error_t
@@ -25,6 +23,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
     switch (key) {
     case 'o':
         args->output = arg;
+        break;
+    case 'p':
+        args->poc = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;
@@ -57,11 +58,11 @@ argopen(char* arg, const char* mode, FILE* std)
     return f;
 }
 
+struct arguments args;
+
 int
 main(int argc, char** argv)
 {
-    struct arguments args;
-
     args.output = "-";
     args.input = "-";
 
