@@ -82,6 +82,7 @@ Top = Insn* !.
 
 Insn = INDENT Label? (
       LdSt
+    | Adr
     | ShortBranch
     | Branch
     | BranchTLS
@@ -99,6 +100,16 @@ INDENT = < [ \t]* > {
     // if (yyleng > 0)
         // printf("%s", yytext);
 }
+
+# --- Address generation ---
+
+Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
+    mkinsn("%s x22, %s\n", a.val, rest.val);
+    mkinsn("mov w%s, w22\n", num(rt.val));
+    tfree(a); tfree(rt); tfree(rest);
+}
+
+ADR = < ('adr' | 'adrp') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- loads and stores ---
 
