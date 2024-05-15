@@ -31,9 +31,12 @@ ldst(Transform l, Transform rt, Transform addr, bool isload)
 {
     if (addr.guard)
         mkinsn("%s\n", addr.guard);
-    if (isload && isres(rt.val)) {
+    if (isres(rt.val)) {
+        if (!isload)
+            mkinsn("mov w22, w%s\n", num(rt.val));
         mkinsn("%s x22, %s\n", l.val, addr.val);
-        mkinsn("add %s, x21, w22, uxtw\n", rt.val);
+        if (isload)
+            mkinsn("add %s, x21, w22, uxtw\n", rt.val);
     } else {
         mkinsn("%s %s, %s\n", l.val, rt.val, addr.val);
     }
@@ -46,7 +49,7 @@ static void
 ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload)
 {
     mkinsn("%s\n", addr.guard);
-    if (isload && (isres(rt1.val) || isres(rt2.val) || isfixed(rt1.val) || isfixed(rt2.val))) {
+    if (isres(rt1.val) || isres(rt2.val) || isfixed(rt1.val) || isfixed(rt2.val)) {
         if (isfixed(rt1.val)) {
             free(rt1.val); rt1.val = strdup("xzr");
         }
@@ -54,11 +57,17 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
             free(rt2.val); rt2.val = strdup("xzr");
         }
         if (isres(rt1.val)) {
+            if (!isload)
+                mkinsn("mov w22, w%s\n", num(rt1.val));
             mkinsn("%s x22, %s, %s\n", l.val, rt2.val, addr.val);
-            mkinsn("add %s, x21, w22, uxtw\n", rt1.val);
+            if (isload)
+                mkinsn("add %s, x21, w22, uxtw\n", rt1.val);
         } else if (isres(rt2.val)) {
+            if (!isload)
+                mkinsn("mov w22, w%s\n", num(rt2.val));
             mkinsn("%s %s, x22, %s\n", l.val, rt1.val, addr.val);
-            mkinsn("add %s, x21, w22, uxtw\n", rt2.val);
+            if (isload)
+                mkinsn("add %s, x21, w22, uxtw\n", rt2.val);
         } else {
             mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
         }
@@ -88,6 +97,7 @@ Insn = INDENT Label? (
     | BranchTLS
     | Syscall
     | ModSpecial
+    | StLR
     | ModLR
     | Directive
     | Comment
@@ -104,8 +114,8 @@ INDENT = < [ \t]* > {
 # --- Address generation ---
 
 Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
-    mkinsn("%s x22, %s\n", a.val, rest.val);
-    mkinsn("mov w%s, w22\n", num(rt.val));
+    mkinsn("%s x18, %s\n", a.val, rest.val);
+    mkinsn("mov w%s, w18\n", num(rt.val));
     tfree(a); tfree(rt); tfree(rest);
 }
 
@@ -385,6 +395,25 @@ ModMultiLR2 = 'ldp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
     tfree(r); tfree(reg);
 }
 
+StLR = StNormalLR | StMultiLR1 | StMultiLR2
+
+StNormalLR = 'str' - 'x30' - COMMA r:REMAINDER {
+    mkinsn("mov w22, w30\n");
+    mkinsn("str x22, %s\n", r.val);
+    tfree(r);
+}
+
+StMultiLR1 = 'stp' - 'x30' - COMMA reg:REG COMMA r:REMAINDER {
+    mkinsn("mov w22, w30\n");
+    mkinsn("stp x22, %s, %s\n", reg.val, r.val);
+    tfree(r); tfree(reg);
+}
+
+StMultiLR2 = 'stp' - reg:REG COMMA 'x30' - COMMA r:REMAINDER {
+    mkinsn("mov w22, w30\n");
+    mkinsn("stp %s, x22, %s\n", reg.val, r.val);
+    tfree(r); tfree(reg);
+}
 
 MODINST = < (
       'add'
