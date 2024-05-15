@@ -112,7 +112,8 @@ ret
 global:
 .LFB25:
 .cfi_startproc
-adrp	x0, .LANCHOR0
+adrp x22, .LANCHOR0
+mov w0, w22
 add x22, x0, #:lo12:.LANCHOR0
 ldr w0, [x21, w22, uxtw]
 ret
@@ -135,7 +136,8 @@ stp	x29, x30, [sp, -16]!
 .cfi_def_cfa_offset 16
 .cfi_offset 29, -16
 .cfi_offset 30, -8
-adrp	x0, .LC0
+adrp x22, .LC0
+mov w0, w22
 add	x0, x0, :lo12:.LC0
 mov	x29, sp
 bl	puts
