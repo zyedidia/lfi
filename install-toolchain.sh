@@ -31,7 +31,7 @@ export PATH=$PREFIX/bin:$PATH
 (cd lfi-run && knit && mv lfi-run $PREFIX/bin)
 
 # install clang
-# (cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang)
+(cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang)
 
 # install gcc
-# (cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc)
+(cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc)
