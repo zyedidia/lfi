@@ -32,7 +32,7 @@ tfree(Transform t)
 }                                            \
 %}
 
-Top = Insn+ !.
+Top = Insn* !.
 
 Insn = INDENT Label? (
       Directive
@@ -43,7 +43,7 @@ Insn = INDENT Label? (
     | Syscall
     | COMMENT
     | Any
-) COMMENT? EOL
+) COMMENT? EOL+
 
 COMMENT = ('//' | '#' | ';') (!EOL .)*
 

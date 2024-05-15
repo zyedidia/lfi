@@ -78,7 +78,7 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
 }                                            \
 %}
 
-Top = Insn+ !.
+Top = Insn* !.
 
 Insn = INDENT Label? (
       LdSt
@@ -89,11 +89,11 @@ Insn = INDENT Label? (
     | ModSpecial
     | ModLR
     | Directive
-    | COMMENT
+    | Comment
     | Any
-) COMMENT? EOL
+) Comment? EOL+
 
-COMMENT = '//' (!EOL .)*
+Comment = '//' (!EOL .)*
 
 INDENT = < [ \t]* > {
     // if (yyleng > 0)
@@ -546,4 +546,6 @@ lfigen()
         icount += op->insn ? 1 : 0;
         op = op->next;
     }
+
+    return true;
 }

@@ -14,7 +14,7 @@ func fatal(err ...interface{}) {
 	os.Exit(1)
 }
 
-func run(command, stdin string) string {
+func run(command, stdin string) (string, error) {
 	buf := &bytes.Buffer{}
 	cmd := exec.Command(command)
 	cmd.Stderr = os.Stderr
@@ -22,9 +22,9 @@ func run(command, stdin string) string {
 	cmd.Stdin = strings.NewReader(stdin)
 	err := cmd.Run()
 	if err != nil {
-		fatal(err)
+		return "", err
 	}
-	return buf.String()
+	return buf.String(), nil
 }
 
 func main() {
@@ -53,12 +53,19 @@ func main() {
 		for _, t := range tests {
 			parts := strings.Split(t, ">>>")
 			parts[1] = strings.TrimSpace(parts[1])
-			out := strings.TrimSpace(run(lfigen, parts[0]))
+			out, err := run(lfigen, parts[0])
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "TEST %d (%s) FAIL:\n", ntest, input)
+				fmt.Println(parts[0])
+				failed++
+				continue
+			}
+			out = strings.TrimSpace(out)
 			if out != parts[1] {
-				fmt.Printf("TEST %d (%s) FAIL:\n", ntest, input)
-				fmt.Println(t)
-				fmt.Println("GOT:")
-				fmt.Println(out)
+				fmt.Fprintf(os.Stderr, "TEST %d (%s) FAIL:\n", ntest, input)
+				fmt.Println(parts[0])
+				fmt.Fprintln(os.Stderr, "GOT:")
+				fmt.Fprintln(os.Stderr, out)
 				failed++
 			} else {
 				passed++
@@ -68,8 +75,8 @@ func main() {
 	}
 
 	if failed > 0 {
-		fmt.Printf("FAILED: %d\n", failed)
+		fmt.Fprintf(os.Stderr, "FAILED: %d\n", failed)
 		os.Exit(1)
 	}
-	fmt.Printf("PASSED: %d\n", passed)
+	fmt.Fprintf(os.Stderr, "PASSED: %d\n", passed)
 }
