@@ -1,5 +1,18 @@
 module core.math;
 
+pragma(inline, true)
+ulong kb(ulong n) {
+    return 1024 * n;
+}
+pragma(inline, true)
+ulong mb(ulong n) {
+    return 1024 * 1024 * n;
+}
+pragma(inline, true)
+ulong gb(ulong n) {
+    return 1024 * 1024 * 1024 * n;
+}
+
 T min(T, U)(T a, U b) if (is(T == U) && is(typeof(a < b))) {
     return b < a ? b : a;
 }

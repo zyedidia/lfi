@@ -3,7 +3,7 @@ module proc;
 import core.lib;
 import core.alloc;
 import core.vector;
-import core.size;
+import core.math;
 
 import arch.regs;
 
@@ -24,14 +24,14 @@ enum PState {
 }
 
 enum {
-    KSTACKSIZE = kb!(64),
+    KSTACKSIZE = kb(64),
 
     ARGC_MAX = 1024,
     ARGV_MAX = 1024,
 
-    BRKMAXSIZE = mb!(512),
+    BRKMAXSIZE = mb(512),
 
-    PROCSIZE = gb!(4),
+    PROCSIZE = gb(4),
 }
 
 struct Cwd {
