@@ -109,7 +109,7 @@ Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
     tfree(a); tfree(rt); tfree(rest);
 }
 
-ADR = < ('adr' | 'adrp') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+ADR = < ('adrp' | 'adr') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- loads and stores ---
 
