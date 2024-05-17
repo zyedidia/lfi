@@ -37,15 +37,18 @@ Top = Insn* !.
 Insn = INDENT Label? (
       Directive
     | Lea
+    | Triple1
+    | Triple2
     | Store
     | Load
+    | Access
     | Branch
     | Syscall
     | COMMENT
     | Any
-) COMMENT? EOL+
+) COMMENT? (EOL | ';')+
 
-COMMENT = ('//' | '#' | ';') (!EOL .)*
+COMMENT = (('//' | '#') (!EOL .)* | ('/*' (!'*/' .)* '*/'))
 
 INDENT = < [ \t]* > {
     // if (yyleng > 0)
@@ -60,16 +63,34 @@ Lea = l:LEA a:AddrNoMod COMMA r:REG {
 
 LEA = < ('lea' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-Load = m:NAME a:Addr COMMA r:REG {
+Access = m:NAME a:Addr {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("%s %s\n", m.val, a.val);
+}
+
+Load = m:NAME a:Addr COMMA r:ITEM {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, a.val, r.val);
 }
 
-Store = m:NAME r:REG COMMA a:Addr {
+Store = m:NAME r:ITEM COMMA a:Addr {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
+}
+
+Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("%s %s, %s, %s\n", m.val, r1.val, a.val, r2.val);
+}
+
+Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
 }
 
 Addr = (
@@ -86,20 +107,41 @@ Addr = (
         }
     }
     # imm(...)
-    | (i:IMM b:BALANCED) {
+    | (i:IMM b:AddrRegReg) {
+        $$ = (Transform) {
+            .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
+            .val = xasprintf("%%gs:(%%r15d)"),
+        }
+    }
+    | (i:IMM b:AddrRegRegImm) {
         $$ = (Transform) {
             .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
         }
     }
     # (...)
-    | (b:BALANCED) {
+    | (b:AddrRegReg) {
+        $$ = (Transform) {
+            .guard = xasprintf("lea %s, %%r15", b.val),
+            .val = xasprintf("%%gs:(%%r15d)"),
+        }
+    }
+    | (b:AddrRegRegImm) {
         $$ = (Transform) {
             .guard = xasprintf("lea %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
         }
     }
 )
+
+AddrRegReg = '(' (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) ')' {
+    $$ = (Transform) { .val = xasprintf("(%s, %s)", r1.val, r2.val) }
+}
+AddrRegRegImm = '(' (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) (COMMA i:IMM) ')' {
+    $$ = (Transform) { .val = xasprintf("(%s, %s, %s)", r1.val, r2.val, i.val) }
+}
+
+AddrReg = 'rsp' | 'rip'
 
 AddrNoMod = (
     # imm(...)
@@ -119,8 +161,6 @@ AddrNoMod = (
 BALANCED = < BALANCED_RAW > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
-
-MOV = < ('mov' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- branches ---
 
@@ -142,7 +182,7 @@ Syscall = (( 'syscall' - ) | ( 'int' - '0x80' - )) {
 
 # --- everything else ---
 
-Any = < (!EOL .)* > {
+Any = < (!(EOL | ';') .)* > {
     if (yyleng > 0)
         mkinsn("%s\n", yytext);
 }
@@ -248,6 +288,8 @@ XREG = < (
 
 ID = [a-zA-Z_.][-a-zA-Z0-9_.+]*
 
+ITEM = < [^ ,;\n\r#/]+ > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
 COMMA   = ',' -
 EXCLAM  = '!' -
 LB      = '[' -
@@ -277,6 +319,7 @@ dist(int a, int b)
 bool
 lfigen()
 {
+    // while (yyparse());
     if (!yyparse())
         return false;
 
