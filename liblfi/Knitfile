@@ -3,23 +3,20 @@ local knit = require('knit')
 local cc = "gcc"
 local cxx = "g++"
 local cflags = "-O2 -Wall -Wextra"
-local arch = cli.arch or "arm64"
+local arch = cli.arch or "amd64"
 
 local csrc = knit.rglob(".", "*.c")
 
 local ssrc = {}
-local define = ""
-local ccsrc = {}
 if arch == "arm64" then
-    ssrc = {"runtime.S"}
+    ssrc = {"arch/arm64/runtime.S"}
 elseif arch == "amd64" then
-    ccsrc = {"dynarmic.cc"}
-    define = "-DDYNARMIC"
+    ssrc = {"arch/amd64/runtime.S"}
+    cflags = cflags .. " -mfsgsbase"
 end
 
 local obj = knit.join(
     knit.extrepl(csrc, ".c", ".o"),
-    knit.extrepl(ccsrc, ".cc", ".o"),
     knit.extrepl(ssrc, ".S", ".o")
 )
 obj = knit.prefix(obj, ".")
@@ -28,11 +25,9 @@ return b{
     $ liblfi.a: $obj
         ar rcs $output $input
     $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output $define
+        $cc $cflags -MD -MF $dep -c $input -o $output -I.
     $ .%.o: %.S
         $cc -c $input -o $output
-    $ .%.o:D[.%.dep]: %.cc
-        $cxx $cflags -MD -MF $dep -c $input -o $output -std=c++20
 
     $ install:VB: liblfi.a
         install $input /usr/local/lib

@@ -3,6 +3,8 @@
 
 #include "lfi.h"
 
+#include "arch/amd64/regs.h"
+
 struct lfi_vaspace {
     void* base;
     size_t size;
@@ -30,6 +32,7 @@ struct lfi_sys {
     uintptr_t rtcalls[256];
     struct lfi_proc* proc;
     uintptr_t k_tpidr;
+    uintptr_t base;
 };
 
 struct lfi_proc {

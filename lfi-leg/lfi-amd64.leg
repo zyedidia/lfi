@@ -35,7 +35,8 @@ tfree(Transform t)
 Top = Insn* !.
 
 Insn = INDENT Label? (
-      Directive
+      FnDirective
+    | Directive
     | Lea
     | Triple1
     | Triple2
@@ -165,8 +166,10 @@ BALANCED = < BALANCED_RAW > {
 # --- branches ---
 
 Branch = j:JUMP '*' r:XREG {
+    mkdirective(".p2align 4\n");
     mkinsn("and $0xfffffff0, %s\n", lo(r.val));
-    mkinsn("%s *%%gs:(%s)\n", j.val, lo(r.val));
+    mkinsn("or %%gs:0x810, %s\n", r.val);
+    mkinsn("%s *%s\n", j.val, r.val);
     tfree(j); tfree(r);
 }
 
@@ -193,6 +196,11 @@ Label = < ID > ':' - {
 
 Directive = < '.' (!EOL .)* > - {
     mkdirective(xasprintf("%s\n", yytext));
+}
+
+FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
+    mkdirective(xasprintf("%s\n", yytext));
+    mkdirective(".p2align 4\n");
 }
 
 NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }

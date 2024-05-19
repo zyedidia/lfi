@@ -16,7 +16,7 @@ local pagesize = knit.shell("getconf PAGESIZE")
 
 local _, uconf = pcall(include, "conf.knit")
 
-local arch = cli.arch or uconf.arch or "arm64"
+local arch = cli.arch or uconf.arch or "amd64"
 local darch = string.upper(arch)
 local unified = cli.unified or uconf.unified or false
 

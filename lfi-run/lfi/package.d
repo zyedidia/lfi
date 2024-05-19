@@ -14,6 +14,7 @@ struct LFIOptions {
     SyshandlerFn syshandler;
     ulong gas;
     int poc;
+    int hidesys;
 }
 
 struct LFIProcInfo {
@@ -48,45 +49,6 @@ enum {
     LFI_PROT_READ  = 1,
     LFI_PROT_WRITE = 2,
     LFI_PROT_EXEC  = 4,
-};
-
-struct LFIRegs {
-    ulong x0;
-    ulong x1;
-    ulong x2;
-    ulong x3;
-    ulong x4;
-    ulong x5;
-    ulong x6;
-    ulong x7;
-    ulong x8;
-    ulong x9;
-    ulong x10;
-    ulong x11;
-    ulong x12;
-    ulong x13;
-    ulong x14;
-    ulong x15;
-    ulong x16;
-    ulong x17;
-    ulong x18;
-    ulong x19;
-    ulong x20;
-    ulong x21;
-    ulong x22;
-    ulong x23;
-    ulong x24;
-    ulong x25;
-    ulong x26;
-    ulong x27;
-    ulong x28;
-    ulong x29;
-    ulong x30;
-    ulong sp;
-    ulong nzcv;
-    ulong fpsr;
-    ulong tpidr;
-    ulong[64] vector;
 };
 
 __gshared {
@@ -125,4 +87,74 @@ extern (C) {
     uintptr lfi_proc_base(LFIProc* proc);
 
     int lfi_mprotect(LFIProc* proc, uintptr ptr, usize size, int prot);
+}
+
+version (arm64) {
+    struct LFIRegs {
+        ulong x0;
+        ulong x1;
+        ulong x2;
+        ulong x3;
+        ulong x4;
+        ulong x5;
+        ulong x6;
+        ulong x7;
+        ulong x8;
+        ulong x9;
+        ulong x10;
+        ulong x11;
+        ulong x12;
+        ulong x13;
+        ulong x14;
+        ulong x15;
+        ulong x16;
+        ulong x17;
+        ulong x18;
+        ulong x19;
+        ulong x20;
+        ulong x21;
+        ulong x22;
+        ulong x23;
+        ulong x24;
+        ulong x25;
+        ulong x26;
+        ulong x27;
+        ulong x28;
+        ulong x29;
+        ulong x30;
+        ulong sp;
+        ulong nzcv;
+        ulong fpsr;
+        ulong tpidr;
+        ulong[64] vector;
+
+        void sysret(ulong x) {
+            this.x0 = x;
+        }
+    };
+} else version (amd64) {
+    struct LFIRegs {
+        ulong rsp;
+        ulong rax;
+        ulong rcx;
+        ulong rdx;
+        ulong rbx;
+        ulong rbp;
+        ulong rsi;
+        ulong rdi;
+        ulong r8;
+        ulong r9;
+        ulong r10;
+        ulong r11;
+        ulong r12;
+        ulong r13;
+        ulong r14;
+        ulong r15;
+        ulong fs;
+        ulong gs;
+
+        void sysret(ulong x) {
+            this.rax = x;
+        }
+    };
 }

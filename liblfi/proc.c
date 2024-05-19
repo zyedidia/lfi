@@ -1,16 +1,12 @@
-#include "lfi_internal.h"
-#include "elf.h"
-#include "dynarmic.h"
-
 #include <assert.h>
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#ifndef DYNARMIC
-#include "arm64.h"
-#endif
+#include "lfi_internal.h"
+#include "elf.h"
+#include "arch/amd64/amd64.h"
 
 enum {
     GUARD_SIZE = 48ULL * 1024,
@@ -22,11 +18,19 @@ static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
 }
 
 static void regs_validate(struct lfi_proc* proc) {
-    proc->regs.x21 = proc->base;
-    proc->regs.x25 = (uintptr_t) proc->sys;
-    proc->regs.x30 = proc_addr(proc->base, proc->regs.x30);
-    proc->regs.x18 = proc_addr(proc->base, proc->regs.x18);
-    proc->regs.sp = proc_addr(proc->base, proc->regs.sp);
+    uint64_t* r;
+
+    // base
+    *regs_base(&proc->regs) = proc->base;
+
+    // address registers
+    int n = 0;
+    while ((r = regs_addr(&proc->regs, n++)))
+        *r = proc_addr(proc->base, *r);
+
+    // sys register (if used for this arch)
+    if ((r = regs_sys(&proc->regs)))
+        *r = (uintptr_t) proc->sys;
 }
 
 static int elf_check(struct elf_file_header* ehdr) {
@@ -162,6 +166,22 @@ static uint32_t syshandler_stub[2] = {
 };
 #endif
 
+static struct lfi_sys* sys_alloc(uintptr_t base, int hidesys, size_t pagesize) {
+    struct lfi_sys* sys;
+    if (hidesys) {
+        sys = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    } else {
+        sys = mmap((void*) base, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    }
+    if (sys == (void*) -1)
+        return NULL;
+    return sys;
+}
+
+static void sys_free(struct lfi_sys* sys, size_t pagesize) {
+    munmap(sys, pagesize);
+}
+
 static void sys_setup(struct lfi_sys* table, struct lfi_proc* proc) {
 #ifdef DYNARMIC
     table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
@@ -171,6 +191,8 @@ static void sys_setup(struct lfi_sys* table, struct lfi_proc* proc) {
     table->k_tpidr = r_tpidr();
 #endif
     table->proc = proc;
+    table->base = proc->base;
+    mprotect(table, proc->lfi->opts.pagesize, PROT_READ);
 }
 
 static void lfi_proc_clear(struct lfi_mem** mems) {
@@ -187,8 +209,7 @@ static void lfi_proc_clear(struct lfi_mem** mems) {
 static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_mem_unmap(&proc->guards[0]);
     lfi_mem_unmap(&proc->guards[1]);
-    free(proc->sys);
-    proc->sys = NULL;
+    sys_free(proc->sys, proc->lfi->opts.pagesize);
     lfi_mem_unmap(&proc->stack);
     lfi_proc_clear(&proc->segments);
 }
@@ -211,7 +232,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     }
 
     struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-    proc->guards[0] = lfi_mem_map(proc->base, GUARD_SIZE, PROT_NONE);
+    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[0]));
     proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
     assert(lfi_mem_valid(&proc->guards[1]));
@@ -226,7 +247,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     uintptr_t base = proc->guards[0].base + proc->guards[0].size;
     uintptr_t last = 0;
 
-    proc->sys = calloc(1, sizeof(struct lfi_sys));
+    proc->sys = sys_alloc(proc->base, proc->lfi->opts.hidesys, proc->lfi->opts.pagesize);
     if (!proc->sys) {
         goto err1;
     }
@@ -308,13 +329,8 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
     if (lfi_is_full(lfi)) {
         return LFI_ERR_NOSLOT;
     }
-    struct lfi_sys* sys = calloc(1, sizeof(struct lfi_sys));
-    if (!sys) {
-        return LFI_ERR_NOMEM;
-    }
     struct lfi_proc* child = lfi_new_proc();
     if (!child) {
-        free(sys);
         return LFI_ERR_NOMEM;
     }
     *child = (struct lfi_proc) {
@@ -323,6 +339,11 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
         .ctxp = new_ctxp,
         .regs = proc->regs,
     };
+    struct lfi_sys* sys = sys_alloc(child->base, lfi->opts.hidesys, lfi->opts.pagesize);
+    if (!sys) {
+        lfi_delete_slot(lfi, child->base);
+        return LFI_ERR_NOMEM;
+    }
     *childp = child;
 
     child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base);
@@ -347,32 +368,34 @@ void lfi_proc_free(struct lfi_proc* proc) {
 void lfi_syscall_handler(struct lfi_proc* proc) asm ("lfi_syscall_handler");
 
 void lfi_syscall_handler(struct lfi_proc* proc) {
-    uint64_t sysno = proc->regs.x8;
+    uint64_t sysno = regs_sysno(&proc->regs);
 
-    uint64_t a0 = proc->regs.x0;
-    uint64_t a1 = proc->regs.x1;
-    uint64_t a2 = proc->regs.x2;
-    uint64_t a3 = proc->regs.x3;
-    uint64_t a4 = proc->regs.x4;
-    uint64_t a5 = proc->regs.x5;
+    uint64_t a0 = regs_sysarg(&proc->regs, 0);
+    uint64_t a1 = regs_sysarg(&proc->regs, 1);
+    uint64_t a2 = regs_sysarg(&proc->regs, 2);
+    uint64_t a3 = regs_sysarg(&proc->regs, 3);
+    uint64_t a4 = regs_sysarg(&proc->regs, 4);
+    uint64_t a5 = regs_sysarg(&proc->regs, 5);
 
     assert(proc->lfi->opts.syshandler);
 
     uint64_t ret = proc->lfi->opts.syshandler(proc->ctxp, sysno, a0, a1, a2, a3, a4, a5);
 
-    proc->regs.x0 = ret;
+    *regs_sysret(&proc->regs) = ret;
 }
 
 extern int lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
 
 void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
-    proc->regs.x30 = entry;
-    proc->regs.x21 = proc->base;
-    proc->regs.x25 = (uintptr_t) proc->sys;
-    proc->regs.x18 = proc->base;
-    if (proc->lfi->opts.gas != 0)
-        proc->regs.x23 = proc->lfi->opts.gas;
-    proc->regs.sp = sp;
+    regs_init(&proc->regs, entry, sp);
+    regs_validate(proc);
+    if (proc->lfi->opts.gas != 0) {
+        uint64_t* r;
+        if ((r = regs_gas(&proc->regs)))
+            *r = proc->lfi->opts.gas;
+        else
+            fprintf(stderr, "warning: architecture does not support gas\n");
+    }
 }
 
 int lfi_proc_start(struct lfi_proc* proc) {

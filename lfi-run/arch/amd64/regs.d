@@ -8,6 +8,7 @@ struct Context {
     ulong r12;
     ulong rbx;
     ulong rbp;
+    ulong gs;
 }
 
 void* stackpush(void* sp, void* value) {

@@ -7,6 +7,8 @@ kswitch:
 	movq %r12, 32(%rsi)
 	movq %rbx, 40(%rsi)
 	movq %rbp, 48(%rsi)
+	rdgsbase %rcx
+	movq %rcx, 56(%rsi)
 
 .globl kstart
 kstart:
@@ -17,5 +19,7 @@ kstart:
 	movq 32(%rdx), %r12
 	movq 40(%rdx), %rbx
 	movq 48(%rdx), %rbp
+	mov 56(%rdx), %rcx
+	wrgsbase %rcx
 	movq %rdi, %rax
 	ret
