@@ -16,7 +16,7 @@ local pagesize = knit.shell("getconf PAGESIZE")
 
 local _, uconf = pcall(include, "conf.knit")
 
-local arch = cli.arch or uconf.arch or "amd64"
+local arch = cli.arch or uconf.arch or knit.arch
 local darch = string.upper(arch)
 local unified = cli.unified or uconf.unified or false
 
@@ -70,14 +70,9 @@ end
 
 flags.dc = flags.dc .. " " .. version(dc, arch)
 
-local libs = ""
-if arch == "amd64" then
-    libs = "-ldynarmic -lZydis -lfmt -lmcl -lstdc++"
-end
-
 return b{
     $ lfi-run: $obj
-        gcc $input -o $output -static $(flags.ld) $libs
+        gcc $input -o $output -static $(flags.ld)
 
     $ .unified.o: $dsrc
         $(dc) -c $input -$o $output $(flags.dc)

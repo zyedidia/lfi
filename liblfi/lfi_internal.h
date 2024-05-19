@@ -3,7 +3,11 @@
 
 #include "lfi.h"
 
+#if defined(ARCH_arm64)
+#include "arch/arm64/regs.h"
+#elif defined(ARCH_amd64)
 #include "arch/amd64/regs.h"
+#endif
 
 struct lfi_vaspace {
     void* base;

@@ -1,4 +1,4 @@
-local cc := /opt/lfi/gcc/bin/aarch64_lfi-linux-musl-gcc
+local cc := /opt/lfi-toolchain-arm64/gcc/bin/aarch64_lfi-linux-musl-gcc
 
 return b{
     $ all:VB: hello.elf alloc.elf argv.elf file.elf chdir.elf fork.elf exec.elf sh.elf

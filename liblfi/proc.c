@@ -6,7 +6,12 @@
 
 #include "lfi_internal.h"
 #include "elf.h"
+
+#if defined(ARCH_arm64)
+#include "arch/arm64/arm64.h"
+#elif defined(ARCH_amd64)
 #include "arch/amd64/amd64.h"
+#endif
 
 enum {
     GUARD_SIZE = 48ULL * 1024,

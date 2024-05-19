@@ -3,7 +3,7 @@ local knit = require('knit')
 local cc = "gcc"
 local cxx = "g++"
 local cflags = "-O2 -Wall -Wextra"
-local arch = cli.arch or "amd64"
+local arch = cli.arch or knit.arch
 
 local csrc = knit.rglob(".", "*.c")
 
@@ -25,7 +25,7 @@ return b{
     $ liblfi.a: $obj
         ar rcs $output $input
     $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output -I.
+        $cc $cflags -MD -MF $dep -c $input -o $output -I. -DARCH_$arch
     $ .%.o: %.S
         $cc -c $input -o $output
 
