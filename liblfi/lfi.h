@@ -126,7 +126,7 @@ uint64_t lfi_signal_start(uint64_t syspage);
 
 void lfi_signal_end(uint64_t saved);
 
-struct lfi_proc* lfi_sys_proc(uint64_t syspage);
+void* lfi_sys_ctx(uint64_t syspage);
 
 int lfi_verify_bytes(void* b, size_t size, void* fn);
 

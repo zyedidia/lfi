@@ -87,6 +87,12 @@ extern (C) {
     uintptr lfi_proc_base(LFIProc* proc);
 
     int lfi_mprotect(LFIProc* proc, uintptr ptr, usize size, int prot);
+
+    ulong lfi_signal_start(uintptr syspage);
+
+    void lfi_signal_end(ulong saved);
+
+    void* lfi_sys_ctx(uintptr syspage);
 }
 
 version (arm64) {

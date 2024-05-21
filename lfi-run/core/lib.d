@@ -258,11 +258,28 @@ struct ucontext_t {
     mcontext_t uc_mcontext;
 }
 
-struct mcontext_t {
-    ulong fault_address;
-    ulong[31] regs;
-    ulong sp, pc, pstate;
-    ulong[256 * 2] __reserved;
+version (arm64) {
+    struct mcontext_t {
+        ulong fault_address;
+        ulong[31] regs;
+        ulong sp, _pc, pstate;
+        align(16) ulong[256 * 2] __reserved; // long doubles
+
+        uintptr pc() {
+            return _pc;
+        }
+    }
+} else version(amd64) {
+    struct mcontext_t {
+        ulong[23] gregs;
+        void* fpregs;
+        ulong[8] __reserved1;
+
+        uintptr pc() {
+            enum REG_RIP = 16;
+            return gregs[REG_RIP];
+        }
+    }
 }
 
 struct stack_t {

@@ -438,9 +438,9 @@ uint64_t lfi_signal_start(uint64_t syspage) {
 #endif
 }
 
-struct lfi_proc* lfi_sys_proc(uint64_t syspage) {
+void* lfi_sys_ctx(uint64_t syspage) {
     struct lfi_sys* sys = (struct lfi_sys*) syspage;
-    return sys->proc;
+    return sys->proc->ctxp;
 }
 
 void lfi_signal_end(uint64_t saved) {

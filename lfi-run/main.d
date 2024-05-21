@@ -7,6 +7,7 @@ import proc;
 import sched;
 import lfi;
 import sys;
+import signal;
 
 enum Arg {
     NOVERIFY = "no-verify",
@@ -92,6 +93,8 @@ extern (C) int main(int argc, const(char)** argv) {
         fprintf(stderr, "max procs: %ld\n", lfi_max_procs(lfiengine));
         return 0;
     }
+
+    // sigsetup();
 
     const(char)* file = argv[i];
     Proc* p = procnewfile(file, argc - i, &argv[i]);
