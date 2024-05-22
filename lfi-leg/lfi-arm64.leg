@@ -129,7 +129,7 @@ Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
         mkinsn("%s x18, %s\n", a.val, rest.val);
         mkinsn("mov w%s, w18\n", num(rt.val));
     } else {
-        mkinsn("%s, %s, %s\n", a.val, rt.val, rest.val);
+        mkinsn("%s %s, %s\n", a.val, rt.val, rest.val);
     }
     tfree(a); tfree(rt); tfree(rest);
 }
