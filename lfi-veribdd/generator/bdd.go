@@ -42,6 +42,16 @@ func writeDot(nodes []Node, w io.Writer) {
 	fmt.Fprintln(w, "}")
 }
 
+func writeBinary(nodes []Node, w io.Writer) {
+	buf := &bytes.Buffer{}
+	for _, n := range nodes {
+		binary.Write(buf, binary.LittleEndian, uint16(n.v))
+		binary.Write(buf, binary.LittleEndian, uint16(n.lo))
+		binary.Write(buf, binary.LittleEndian, uint16(n.hi))
+	}
+	buf.WriteTo(w)
+}
+
 func main() {
 	dot := flag.Bool("graph", false, "produce graphviz dot graph")
 
@@ -88,13 +98,6 @@ func main() {
 	if *dot {
 		writeDot(nodes, os.Stdout)
 	} else {
-		buf := &bytes.Buffer{}
-
-		for _, n := range nodes {
-			binary.Write(buf, binary.LittleEndian, uint16(n.v))
-			binary.Write(buf, binary.LittleEndian, uint16(n.lo))
-			binary.Write(buf, binary.LittleEndian, uint16(n.hi))
-		}
-		buf.WriteTo(os.Stdout)
+		writeBinary(nodes, os.Stdout)
 	}
 }
