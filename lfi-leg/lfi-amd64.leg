@@ -48,6 +48,8 @@ Insn = INDENT Label? (
     | Load
     | Access
     | Branch
+    | CallInd
+    | Call
     | Syscall
     | COMMENT
     | Any
@@ -136,7 +138,7 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("lea %s%s, %%rbx", i.val, b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s%s, %%rbx", i.val, b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -145,7 +147,7 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("lea %s%s, %%rbx", i.val, b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s%s, %%rbx", i.val, b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -155,7 +157,7 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("lea %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("lea %s, %%rbx", b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s, %%rbx", b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -164,7 +166,7 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("lea %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("lea %s, %%rbx", b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s, %%rbx", b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -201,15 +203,34 @@ BALANCED = < BALANCED_RAW > {
 
 # --- branches ---
 
-Branch = j:JUMP '*' r:XREG {
+CallInd = 'call' - '*' r:XREG {
     mkdirective(".p2align 4\n");
     mkinsn("and $0xfffffff0, %s\n", lo(r.val));
     mkinsn("or %%gs:0x810, %s\n", r.val);
-    mkinsn("%s *%s\n", j.val, r.val);
-    tfree(j); tfree(r);
+    mkinsn("call *%s\n", r.val);
+    tfree(r);
 }
 
-JUMP = < ('jmp' | 'call') > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+Call = 'call' - rest:ITEM {
+    mkinsn("call %s\n", rest.val);
+    tfree(rest);
+}
+
+Branch = 'jmp' - '*' r:XREG {
+    mkdirective(".p2align 4\n");
+    mkinsn("and $0xfffffff0, %s\n", lo(r.val));
+    mkinsn("or %%gs:0x810, %s\n", r.val);
+    mkinsn("jmp *%s\n", r.val);
+    tfree(r);
+}
+
+Ret = 'ret' - {
+    mkdirective(".p2align 4\n");
+    mkinsn("popq %%rdi\n");
+    mkinsn("and $0xfffffff0, %%edi\n");
+    mkinsn("or %%gs:0x810, %%rdi\n");
+    mkinsn("jmp *%%rdi\n");
+}
 
 # --- syscalls ---
 

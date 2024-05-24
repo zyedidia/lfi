@@ -16,3 +16,5 @@ vmovaps -0x30(%rsi), %xmm15; vmovaps -0x20(%rsi), %xmm14; vmovaps -0x10(%rsi), %
 mov %rbx,(%rdi)         /* rdi is jmp_buf, move registers onto it */
 
 call *%rax
+
+mov (%rax, %rdx), %dh
