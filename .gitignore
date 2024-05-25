@@ -15,3 +15,6 @@ todo.txt
 *.elf
 *.a
 /extra/decl-verify/decl-verify
+lfi.bdd.c
+lfi.bdd.pdf
+lfi.bdd.dot

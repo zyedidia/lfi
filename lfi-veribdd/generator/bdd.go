@@ -42,6 +42,26 @@ func writeDot(nodes []Node, w io.Writer) {
 	fmt.Fprintln(w, "}")
 }
 
+func writeC(nodes []Node, w io.Writer){
+	fmt.Fprintln(w,"#include <stdint.h>")
+	fmt.Fprintln(w,"#include <stdbool.h>")
+	fmt.Fprintln(w,"bool evaluate(uint32_t input){")
+	fmt.Fprintf(w, "\tgoto node%d;\n", len(nodes) - 1)
+	fmt.Fprintf(w, "node0: return false;\n")
+	fmt.Fprintf(w, "node1: return true;\n")
+	for i, n := range nodes {
+		if i < 2  {
+			continue
+		}
+		fmt.Fprintf(w, "node%d:\n", i)
+		fmt.Fprintf(w, "\tif((input>>%d) & 0x1)\n", n.v)
+		fmt.Fprintf(w, "\t\tgoto node%d;\n", n.hi)
+		fmt.Fprintf(w, "\telse \n\t\tgoto node%d;\n", n.lo)
+	}
+	fmt.Fprintln(w, "}")
+}
+
+
 func writeBinary(nodes []Node, w io.Writer) {
 	buf := &bytes.Buffer{}
 	for _, n := range nodes {
@@ -54,6 +74,9 @@ func writeBinary(nodes []Node, w io.Writer) {
 
 func main() {
 	dot := flag.Bool("graph", false, "produce graphviz dot graph")
+	binary := flag.Bool("binary", false, "produce binary repsentation/format")
+
+
 
 	flag.Parse()
 	args := flag.Args()
@@ -97,7 +120,9 @@ func main() {
 
 	if *dot {
 		writeDot(nodes, os.Stdout)
-	} else {
+	} else if *binary {
 		writeBinary(nodes, os.Stdout)
+	} else {
+		writeC(nodes, os.Stdout)
 	}
 }
