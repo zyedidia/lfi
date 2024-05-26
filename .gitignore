@@ -4,6 +4,8 @@ xz_r.s
 far.s
 lfi-verify/test
 lfi-verify/target
+lfi-ras/test
+lfi-ras/target
 /lfi-post/lfi-post
 /lfi-run/lfi-run
 /lfi-run/test/test
