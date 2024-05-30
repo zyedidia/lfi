@@ -349,6 +349,7 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
         lfi_delete_slot(lfi, child->base);
         return LFI_ERR_NOMEM;
     }
+    child->sys = sys;
     *childp = child;
 
     child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base);
