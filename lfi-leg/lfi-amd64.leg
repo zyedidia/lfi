@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <util.h>
 #include <assert.h>
+#include <keystone/keystone.h>
 
 #include "amd64.h"
 #include "ht.h"
@@ -34,7 +35,7 @@ tfree(Transform t)
 }                                            \
 %}
 
-Top = Insn* !.
+# Top = Insn* !.
 
 Insn = INDENT Label? (
       FnDirective
@@ -49,6 +50,7 @@ Insn = INDENT Label? (
     | Access
     | Branch
     | CallInd
+    | CallIndMem
     | Call
     | Syscall
     | COMMENT
@@ -136,18 +138,18 @@ Addr = (
     # imm(...)
     | (i:IMM b:AddrRegReg) {
         $$ = (Transform) {
-            .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
+            .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s%s, %%rbx", i.val, b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s%s, %%rbx", i.val, b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
     }
     | (i:IMM b:AddrRegRegImm) {
         $$ = (Transform) {
-            .guard = xasprintf("lea %s%s, %%r15", i.val, b.val),
+            .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s%s, %%rbx", i.val, b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s%s, %%rbx", i.val, b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -155,18 +157,18 @@ Addr = (
     # (...)
     | (b:AddrRegReg) {
         $$ = (Transform) {
-            .guard = xasprintf("lea %s, %%r15", b.val),
+            .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s, %%rbx", b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s, %%rbx", b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
     }
     | (b:AddrRegRegImm) {
         $$ = (Transform) {
-            .guard = xasprintf("lea %s, %%r15", b.val),
+            .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nlea %s, %%rbx", b.val),
+            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s, %%rbx", b.val),
             .valrbx = xasprintf("%%gs:(%%ebx)"),
             .post = strdup("mov %r15, %rbx"),
         }
@@ -203,33 +205,44 @@ BALANCED = < BALANCED_RAW > {
 
 # --- branches ---
 
-CallInd = 'call' - '*' r:XREG {
+CallInd = 'call' 'q'? - '*' r:XREG {
     mkdirective(".p2align 4\n");
-    mkinsn("and $0xfffffff0, %s\n", lo(r.val));
-    mkinsn("or %%gs:0x810, %s\n", r.val);
-    mkinsn("call *%s\n", r.val);
+    mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
+    mkinsn("orq %%gs:0x810, %s\n", r.val);
+    mkinsn("callq *%s\n", r.val);
     tfree(r);
 }
 
-Call = 'call' - rest:ITEM {
-    mkinsn("call %s\n", rest.val);
+CallIndMem = 'call' 'q'? - '*' a:Addr {
+    if (a.guard)
+        mkinsn("%s\n", a.guard);
+    mkinsn("mov %s, %r15\n", a.val);
+    mkdirective(".p2align 4\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%gs:0x810, %%r15\n");
+    mkinsn("callq *%%r15\n");
+    tfree(a);
+}
+
+Call = 'call' 'q'? - rest:ITEM {
+    mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
 
-Branch = 'jmp' - '*' r:XREG {
+Branch = 'jmp' 'q'? - '*' r:XREG {
     mkdirective(".p2align 4\n");
-    mkinsn("and $0xfffffff0, %s\n", lo(r.val));
-    mkinsn("or %%gs:0x810, %s\n", r.val);
-    mkinsn("jmp *%s\n", r.val);
+    mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
+    mkinsn("orq %%gs:0x810, %s\n", r.val);
+    mkinsn("jmpq *%s\n", r.val);
     tfree(r);
 }
 
-Ret = 'ret' - {
+Ret = 'ret' 'q'? - {
     mkdirective(".p2align 4\n");
     mkinsn("popq %%rdi\n");
-    mkinsn("and $0xfffffff0, %%edi\n");
-    mkinsn("or %%gs:0x810, %%rdi\n");
-    mkinsn("jmp *%%rdi\n");
+    mkinsn("andl $0xfffffff0, %%edi\n");
+    mkinsn("orq %%gs:0x810, %%rdi\n");
+    mkinsn("jmpq *%%rdi\n");
 }
 
 # --- syscalls ---
@@ -247,7 +260,7 @@ Any = < (!(EOL | ';') .)* > {
         mkinsn("%s\n", yytext);
 }
 
-Label = < ID > ':' - {
+Label = < ([0-9]+ | ID) > ':' - {
     mklabel(strndup(yytext, yyleng));
 }
 
@@ -383,44 +396,81 @@ dist(int a, int b)
     return d;
 }
 
+static size_t
+min(size_t a, size_t b)
+{
+    if (a < b)
+        return a;
+    return b;
+}
+
+static size_t
+max(size_t a, size_t b)
+{
+    if (a > b)
+        return a;
+    return b;
+}
+
+size_t x64_insn_size(char*);
+
 bool
 lfigen()
 {
-    // while (yyparse());
-    if (!yyparse())
+    while (yyparse());
+    //if (!yyparse())
+    //    return false;
+
+    ks_engine* ks;
+
+    ks_err err = ks_open(KS_ARCH_X86, KS_MODE_64, &ks);
+    if (err != KS_ERR_OK) {
+        fprintf(stderr, "ERROR: failed on ks_open()\n");
         return false;
+    }
+    ks_option(ks, KS_OPT_SYNTAX, KS_OPT_SYNTAX_ATT);
 
-    struct ht labels;
-    int icount = 0;
-    int r = ht_alloc(&labels, 1024);
-    assert(r == 0);
 
+    int bundle = 16;
+    int log_bundle = 4;
+
+    size_t curbundle = 0;
     struct op* op = ops;
     while (op) {
-        if (op->label != NULL) {
-            ht_put(&labels, op->label, icount);
+        if (op->insn) {
+            size_t count = 0;
+            size_t size_ks = 0;
+            unsigned char* encode = NULL;
+            ks_asm(ks, op->text, 0, &encode, &size_ks, &count);
+            ks_free(encode);
+            size_t size_x64 = x64_insn_size(op->text);
+
+            size_t size = 0;
+            if (size_x64 != 0 && size_ks != 0)
+                size = min(size_x64, size_ks);
+            else
+                size = max(size_x64, size_ks);
+
+            if (size == 0 && strncmp(op->text, "jmp", strlen("jmp")) == 0) {
+                size = 5;
+            }
+            if (size == 0) {
+                fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
+                size = 15; // max instruction size
+            }
+            curbundle += size;
+            if (curbundle > bundle) {
+                fprintf(output, ".p2align %d\n", log_bundle);
+                curbundle = curbundle % bundle;
+            }
+        } else if (strncmp(op->text, ".p2align 4", strlen(".p2align 4")) == 0) {
+            curbundle = 0;
         }
-        icount += op->insn ? 1 : 0;
+        fprintf(output, "%s", op->text);
         op = op->next;
     }
 
-    icount = 0;
-    op = ops;
-    while (op) {
-        if (op->shortbr) {
-            bool found;
-            int tcount = ht_get(&labels, op->target, &found);
-            if (found && op->replace && dist(tcount, icount) > FIXUP_DIST) {
-                fprintf(output, "%s", op->replace);
-            } else {
-                fprintf(output, "%s", op->text);
-            }
-        } else {
-            fprintf(output, "%s", op->text);
-        }
-        icount += op->insn ? 1 : 0;
-        op = op->next;
-    }
+    ks_close(ks);
 
     return true;
 }
