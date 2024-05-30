@@ -35,7 +35,7 @@ tfree(Transform t)
 }                                            \
 %}
 
-# Top = Insn* !.
+Top = Insn* !.
 
 Insn = INDENT Label? (
       FnDirective
@@ -207,7 +207,7 @@ BALANCED = < BALANCED_RAW > {
 
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkdirective(".p2align 4\n");
-    mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
+    //mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
     mkinsn("orq %%gs:0x810, %s\n", r.val);
     mkinsn("callq *%s\n", r.val);
     tfree(r);
@@ -218,13 +218,14 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
         mkinsn("%s\n", a.guard);
     mkinsn("mov %s, %r15\n", a.val);
     mkdirective(".p2align 4\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    //mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%gs:0x810, %%r15\n");
     mkinsn("callq *%%r15\n");
     tfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
+    mkinsn("data16 cs nopw 0x0(%rax,%rax,1)\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
@@ -239,10 +240,10 @@ Branch = 'jmp' 'q'? - '*' r:XREG {
 
 Ret = 'ret' 'q'? - {
     mkdirective(".p2align 4\n");
-    mkinsn("popq %%rdi\n");
-    mkinsn("andl $0xfffffff0, %%edi\n");
-    mkinsn("orq %%gs:0x810, %%rdi\n");
-    mkinsn("jmpq *%%rdi\n");
+    mkinsn("popq %%r15\n");
+    //mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%gs:0x810, %%r15\n");
+    mkinsn("jmpq *%%r15\n");
 }
 
 # --- syscalls ---
@@ -417,9 +418,9 @@ size_t x64_insn_size(char*);
 bool
 lfigen()
 {
-    while (yyparse());
-    //if (!yyparse())
-    //    return false;
+    // while (yyparse());
+    if (!yyparse())
+        return false;
 
     ks_engine* ks;
 
