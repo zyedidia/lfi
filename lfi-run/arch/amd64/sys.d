@@ -50,6 +50,7 @@ enum Sys {
     READLINK        = 89,
     ACCESS          = 21,
     UNLINK          = 87,
+    RENAME          = 82,
 }
 
 enum {
@@ -89,6 +90,10 @@ uintptr sysaccess_(Proc* p, ulong[6] args) {
 
 uintptr sysunlink_(Proc* p, ulong[6] args) {
     return sysunlinkat(p, AT_FDCWD, args[0], 0);
+}
+
+uintptr sysrename_(Proc* p, ulong[6] args) {
+    return sysrenameat(p, AT_FDCWD, args[0], AT_FDCWD, args[1], 0);
 }
 
 alias SyscallFn = uintptr function(Proc* p, ulong[6] args);
@@ -135,4 +140,5 @@ SyscallFn[] systbl = [
     Sys.READLINK:        &sysreadlink_,
     Sys.ACCESS:          &sysaccess_,
     Sys.UNLINK:          &sysunlink_,
+    Sys.RENAME:          &sysrename_,
 ];
