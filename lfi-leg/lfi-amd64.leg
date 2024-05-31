@@ -13,9 +13,9 @@ extern FILE* output;
 
 typedef struct transform {
     char* val;
-    char* valrbx;
+    char* valrdi;
     char* guard;
-    char* guardrbx;
+    char* guardrdi;
     char* post;
 } Transform;
 
@@ -52,6 +52,7 @@ Insn = INDENT Label? (
     | CallInd
     | CallIndMem
     | Call
+    | Ret
     | Syscall
     | COMMENT
     | Any
@@ -79,11 +80,11 @@ Access = m:NAME a:Addr {
 }
 
 LoadH = m:NAME a:Addr COMMA r:HREG {
-    if (!a.guardrbx)
+    if (!a.guardrdi)
         mkinsn("%s %s, %s\n", m.val, a.val, r.val);
     else {
-        mkinsn("%s\n", a.guardrbx);
-        mkinsn("%s %s, %s\n", m.val, a.valrbx, r.val);
+        mkinsn("%s\n", a.guardrdi);
+        mkinsn("%s %s, %s\n", m.val, a.valrdi, r.val);
         mkinsn("%s\n", a.post);
     }
 }
@@ -95,11 +96,11 @@ Load = m:NAME a:Addr COMMA r:ITEM {
 }
 
 StoreH = m:NAME r:HREG COMMA a:Addr {
-    if (!a.guardrbx)
+    if (!a.guardrdi)
         mkinsn("%s %s, %s\n", m.val, r.val, a.val);
     else {
-        mkinsn("%s\n", a.guardrbx);
-        mkinsn("%s %s, %s\n", m.val, r.val, a.valrbx);
+        mkinsn("%s\n", a.guardrdi);
+        mkinsn("%s %s, %s\n", m.val, r.val, a.valrdi);
         mkinsn("%s\n", a.post);
     }
 }
@@ -140,18 +141,18 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s%s, %%rbx", i.val, b.val),
-            .valrbx = xasprintf("%%gs:(%%ebx)"),
-            .post = strdup("mov %r15, %rbx"),
+            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s%s, %%rdi", i.val, b.val),
+            .valrdi = xasprintf("%%gs:(%%edi)"),
+            .post = strdup("mov %r15, %rdi"),
         }
     }
     | (i:IMM b:AddrRegRegImm) {
         $$ = (Transform) {
             .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s%s, %%rbx", i.val, b.val),
-            .valrbx = xasprintf("%%gs:(%%ebx)"),
-            .post = strdup("mov %r15, %rbx"),
+            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s%s, %%rdi", i.val, b.val),
+            .valrdi = xasprintf("%%gs:(%%edi)"),
+            .post = strdup("mov %r15, %rdi"),
         }
     }
     # (...)
@@ -159,18 +160,18 @@ Addr = (
         $$ = (Transform) {
             .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s, %%rbx", b.val),
-            .valrbx = xasprintf("%%gs:(%%ebx)"),
-            .post = strdup("mov %r15, %rbx"),
+            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s, %%rdi", b.val),
+            .valrdi = xasprintf("%%gs:(%%edi)"),
+            .post = strdup("mov %r15, %rdi"),
         }
     }
     | (b:AddrRegRegImm) {
         $$ = (Transform) {
             .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrbx = xasprintf("mov %%rbx, %%r15\nleaq %s, %%rbx", b.val),
-            .valrbx = xasprintf("%%gs:(%%ebx)"),
-            .post = strdup("mov %r15, %rbx"),
+            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s, %%rdi", b.val),
+            .valrdi = xasprintf("%%gs:(%%edi)"),
+            .post = strdup("mov %r15, %rdi"),
         }
     }
 )
@@ -225,7 +226,8 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkinsn("data16 cs nopw 0x0(%rax,%rax,1)\n"); // 11-byte nop
+    mkdirective(".p2align 4\n");
+    mkinsn(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
