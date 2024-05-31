@@ -41,6 +41,7 @@ Insn = INDENT Label? (
       FnDirective
     | Directive
     | Lea
+    | Lock
     | Triple1
     | Triple2
     | StoreH
@@ -65,10 +66,18 @@ INDENT = < [ \t]* > {
         // printf("%s", yytext);
 }
 
+Lock = 'lock' - ';'? - rest:REMAINDER {
+    mkinsn("lock %s\n", rest.val);
+    tfree(rest);
+}
+
+REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
 # --- loads and stores ---
 
 Lea = l:LEA a:AddrNoMod COMMA r:REG {
     mkinsn("%s %s, %s\n", l.val, a.val, r.val);
+    tfree(l); tfree(a); tfree(r);
 }
 
 LEA = < ('lea' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
@@ -87,12 +96,14 @@ LoadH = m:NAME a:Addr COMMA r:HREG {
         mkinsn("%s %s, %s\n", m.val, a.valrdi, r.val);
         mkinsn("%s\n", a.post);
     }
+    tfree(m); tfree(a); tfree(r);
 }
 
 Load = m:NAME a:Addr COMMA r:ITEM {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, a.val, r.val);
+    tfree(m); tfree(a); tfree(r);
 }
 
 StoreH = m:NAME r:HREG COMMA a:Addr {
@@ -103,24 +114,28 @@ StoreH = m:NAME r:HREG COMMA a:Addr {
         mkinsn("%s %s, %s\n", m.val, r.val, a.valrdi);
         mkinsn("%s\n", a.post);
     }
+    tfree(m); tfree(a); tfree(r);
 }
 
 Store = m:NAME r:ITEM COMMA a:Addr {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
+    tfree(m); tfree(a); tfree(r);
 }
 
 Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s, %s\n", m.val, r1.val, a.val, r2.val);
+    tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
     if (a.guard)
         mkinsn("%s\n", a.guard);
     mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
+    tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Addr = (
@@ -206,11 +221,17 @@ BALANCED = < BALANCED_RAW > {
 
 # --- branches ---
 
+# we use r15 here so that we get consistent instruction sizes, so that the nop
+# has the correct size to align the call to the end of the bundle. In theory,
+# we could make two CallInds -- one for registers that require a REX prefix and
+# one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
+    mkinsn("mov %s, %%r15d\n", lo(r.val));
     mkdirective(".p2align 4\n");
-    //mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
-    mkinsn("orq %%gs:0x810, %s\n", r.val);
-    mkinsn("callq *%s\n", r.val);
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
+    mkinsn("callq *%%r15\n");
     tfree(r);
 }
 
@@ -219,8 +240,9 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
         mkinsn("%s\n", a.guard);
     mkinsn("mov %s, %r15\n", a.val);
     mkdirective(".p2align 4\n");
-    //mkinsn("andl $0xfffffff0, %%r15d\n");
-    mkinsn("orq %%gs:0x810, %%r15\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     tfree(a);
 }
@@ -235,7 +257,7 @@ Call = 'call' 'q'? - rest:ITEM {
 Branch = 'jmp' 'q'? - '*' r:XREG {
     mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
-    mkinsn("orq %%gs:0x810, %s\n", r.val);
+    mkinsn("orq %%r14, %s\n", r.val);
     mkinsn("jmpq *%s\n", r.val);
     tfree(r);
 }
@@ -243,8 +265,8 @@ Branch = 'jmp' 'q'? - '*' r:XREG {
 Ret = 'ret' 'q'? - {
     mkdirective(".p2align 4\n");
     mkinsn("popq %%r15\n");
-    //mkinsn("andl $0xfffffff0, %%r15d\n");
-    mkinsn("orq %%gs:0x810, %%r15\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");
 }
 
@@ -456,6 +478,8 @@ lfigen()
 
             if (size == 0 && strncmp(op->text, "jmp", strlen("jmp")) == 0) {
                 size = 5;
+            } else if (size == 0 && strncmp(op->text, "endbr64", strlen("endbr64")) == 0) {
+                size = 4;
             }
             if (size == 0) {
                 fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
@@ -464,7 +488,7 @@ lfigen()
             curbundle += size;
             if (curbundle > bundle) {
                 fprintf(output, ".p2align %d\n", log_bundle);
-                curbundle = curbundle % bundle;
+                curbundle = size;
             }
         } else if (strncmp(op->text, ".p2align 4", strlen(".p2align 4")) == 0) {
             curbundle = 0;
