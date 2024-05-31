@@ -18,3 +18,9 @@ mov %rbx,(%rdi)         /* rdi is jmp_buf, move registers onto it */
 call *%rax
 
 mov (%rax, %rdx), %dh
+
+addq %rdi, %rsp
+
+add $0xc0, %rsp
+
+lock ; cmpxchg

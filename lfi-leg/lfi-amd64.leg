@@ -27,6 +27,16 @@ tfree(Transform t)
     free(t.post);
 }
 
+static char*
+l(char* op)
+{
+    size_t len = strlen(op);
+    char* ret = strdup(op);
+    if (op[len - 1] == 'q')
+        ret[len - 1] = 'l';
+    return ret;
+}
+
 #define YYSTYPE Transform
 
 #define YY_INPUT(buf, result, max_size)      \
@@ -42,6 +52,7 @@ Insn = INDENT Label? (
     | Directive
     | Lea
     | Lock
+    | ModSP
     | Triple1
     | Triple2
     | StoreH
@@ -277,6 +288,29 @@ Syscall = (( 'syscall' - ) | ( 'int' - '0x80' - )) {
 }
 
 # --- reserved register modification ---
+
+ModSP = ModImmSP | ModRegSP
+
+ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
+    char* op = l(m.val);
+    mkinsn("%s %s, %%esp\n", op, i.val);
+    mkinsn("orq %%r14, %%rsp\n");
+    tfree(m); tfree(i); free(op);
+}
+
+ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
+    char* op = l(m.val);
+    mkinsn("%s %s, %%esp\n", op, lo(r.val));
+    mkinsn("orq %%r14, %%rsp\n");
+    tfree(m); tfree(r); free(op);
+}
+
+MODINST = < (
+      ('add' 'q'?)
+    | ('sub' 'q'?)
+    | ('mov' 'q'?)
+    | ('and' 'q'?)
+) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- everything else ---
 
