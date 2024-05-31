@@ -40,8 +40,9 @@ static uint64_t* regs_sysret(struct lfi_regs* regs) {
     return &regs->rax;
 }
 
-static uint64_t* regs_base(struct lfi_regs* regs) {
-    return &regs->gs;
+static void wr_regs_base(struct lfi_regs* regs, uint64_t val) {
+    regs->gs = val;
+    regs->r14 = val;
 }
 
 static uint64_t* regs_addr(struct lfi_regs* regs, int n) {

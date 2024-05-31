@@ -26,7 +26,7 @@ static void regs_validate(struct lfi_proc* proc) {
     uint64_t* r;
 
     // base
-    *regs_base(&proc->regs) = proc->base;
+    wr_regs_base(&proc->regs, proc->base);
 
     // address registers
     int n = 0;

@@ -43,8 +43,8 @@ static uint64_t* regs_sysret(struct lfi_regs* regs) {
     return &regs->x0;
 }
 
-static uint64_t* regs_base(struct lfi_regs* regs) {
-    return &regs->x21;
+static void wr_regs_base(struct lfi_regs* regs, uint64_t val) {
+    regs->x21 = val;
 }
 
 static uint64_t* regs_addr(struct lfi_regs* regs, int n) {
