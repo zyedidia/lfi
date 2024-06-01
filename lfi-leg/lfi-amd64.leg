@@ -349,7 +349,7 @@ NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-IMM_VAR = < ([-+a-zA-Z0-9_]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+IMM_VAR = < ([-+a-zA-Z0-9_.]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_RAW = (
     ('$' -)? 
