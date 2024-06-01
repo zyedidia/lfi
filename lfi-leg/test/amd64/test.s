@@ -24,3 +24,5 @@ addq %rdi, %rsp
 add $0xc0, %rsp
 
 lock ; cmpxchg
+
+call *32+output(%rip)

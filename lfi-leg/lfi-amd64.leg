@@ -63,6 +63,7 @@ Insn = INDENT Label? (
     | Branch
     | CallInd
     | CallIndMem
+    | CallIndMemSafe
     | Call
     | Ret
     | Syscall
@@ -213,7 +214,7 @@ AddrReg = 'rsp' | 'rip'
 
 AddrNoMod = (
     # imm(...)
-      (i:IMM b:BALANCED) {
+      (i:IMM_VAR b:BALANCED) {
         $$ = (Transform) {
             .val = xasprintf("%s%s", i.val, b.val),
         }
@@ -258,9 +259,19 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     tfree(a);
 }
 
+CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
+    mkinsn("mov %s, %r15\n", a.val);
+    mkdirective(".p2align 4\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
+    mkinsn("callq *%%r15\n");
+    tfree(a);
+}
+
 Call = 'call' 'q'? - rest:ITEM {
     mkdirective(".p2align 4\n");
-    mkinsn(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
+    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
@@ -337,6 +348,8 @@ NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 # --- common definitions ---
 
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+IMM_VAR = < ([-+a-zA-Z0-9_]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_RAW = (
     ('$' -)? 
