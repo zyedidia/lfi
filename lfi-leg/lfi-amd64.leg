@@ -14,8 +14,10 @@ extern FILE* output;
 typedef struct transform {
     char* val;
     char* valrdi;
-    char* guard;
-    char* guardrdi;
+    char** guard;
+    size_t n_guard;
+    char** guardrdi;
+    size_t n_guardrdi;
     char* post;
 } Transform;
 
@@ -23,7 +25,12 @@ static void
 tfree(Transform t)
 {
     free(t.val);
+    for (size_t i = 0; i < t.n_guard; i++)
+        free(t.guard[i]);
+    for (size_t i = 0; i < t.n_guardrdi; i++)
+        free(t.guardrdi[i]);
     free(t.guard);
+    free(t.guardrdi);
     free(t.post);
 }
 
@@ -35,6 +42,53 @@ l(char* op)
     if (op[len - 1] == 'q')
         ret[len - 1] = 'l';
     return ret;
+}
+
+// returns true if guardrdi used
+static bool
+mkguards_(Transform t, bool h)
+{
+    char** guard = t.guard;
+    size_t n_guard = t.n_guard;
+    if (t.n_guardrdi > 0 && h) {
+        guard = t.guardrdi;
+        n_guard = t.n_guardrdi;
+    }
+    for (size_t i = 0; i < n_guard; i++) {
+        if (guard[i][0] == '.')
+            mkdirective(guard[i]);
+        else
+            mkinsn("%s\n", guard[i]);
+    }
+    return t.n_guardrdi > 0;
+}
+
+static bool
+mkguardsh(Transform t)
+{
+    return mkguards_(t, true);
+}
+
+static void
+mkguards(Transform t)
+{
+    mkguards_(t, false);
+}
+
+static void
+setguard(Transform* t, size_t n, char** x)
+{
+    t->guard = malloc(n * sizeof(char*));
+    memcpy(t->guard, x, n * sizeof(char*));
+    t->n_guard = n;
+}
+
+static void
+setguardrdi(Transform* t, size_t n, char** x)
+{
+    t->guardrdi = malloc(n * sizeof(char*));
+    memcpy(t->guardrdi, x, n * sizeof(char*));
+    t->n_guardrdi = n;
 }
 
 #define YYSTYPE Transform
@@ -95,16 +149,14 @@ Lea = l:LEA a:AddrNoMod COMMA r:REG {
 LEA = < ('lea' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 Access = m:NAME a:Addr {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("%s %s\n", m.val, a.val);
 }
 
 LoadH = m:NAME a:Addr COMMA r:HREG {
-    if (!a.guardrdi)
+    if (!mkguardsh(a))
         mkinsn("%s %s, %s\n", m.val, a.val, r.val);
     else {
-        mkinsn("%s\n", a.guardrdi);
         mkinsn("%s %s, %s\n", m.val, a.valrdi, r.val);
         mkinsn("%s\n", a.post);
     }
@@ -112,17 +164,15 @@ LoadH = m:NAME a:Addr COMMA r:HREG {
 }
 
 Load = m:NAME a:Addr COMMA r:ITEM {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("%s %s, %s\n", m.val, a.val, r.val);
     tfree(m); tfree(a); tfree(r);
 }
 
 StoreH = m:NAME r:HREG COMMA a:Addr {
-    if (!a.guardrdi)
+    if (!mkguardsh(a))
         mkinsn("%s %s, %s\n", m.val, r.val, a.val);
     else {
-        mkinsn("%s\n", a.guardrdi);
         mkinsn("%s %s, %s\n", m.val, r.val, a.valrdi);
         mkinsn("%s\n", a.post);
     }
@@ -130,22 +180,19 @@ StoreH = m:NAME r:HREG COMMA a:Addr {
 }
 
 Store = m:NAME r:ITEM COMMA a:Addr {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
     tfree(m); tfree(a); tfree(r);
 }
 
 Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("%s %s, %s, %s\n", m.val, r1.val, a.val, r2.val);
     tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
     tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
@@ -166,40 +213,52 @@ Addr = (
     # imm(...)
     | (i:IMM b:AddrRegReg) {
         $$ = (Transform) {
-            .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s%s, %%rdi", i.val, b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("mov %r15, %rdi"),
-        }
+        };
+        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s%s, %%r15", i.val, b.val) });
+        setguardrdi(&$$, 2, (char*[]){
+            xasprintf("mov %%rdi, %%r15"),
+            xasprintf("leaq %s%s, %%rdi", i.val, b.val),
+        });
     }
     | (i:IMM b:AddrRegRegImm) {
         $$ = (Transform) {
-            .guard = xasprintf("leaq %s%s, %%r15", i.val, b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s%s, %%rdi", i.val, b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("mov %r15, %rdi"),
-        }
+        };
+        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s%s, %%r15", i.val, b.val) });
+        setguardrdi(&$$, 2, (char*[]){
+            xasprintf("mov %%rdi, %%r15"),
+            xasprintf("leaq %s%s, %%rdi", i.val, b.val),
+        });
     }
     # (...)
     | (b:AddrRegReg) {
         $$ = (Transform) {
-            .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s, %%rdi", b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("mov %r15, %rdi"),
-        }
+        };
+        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s, %%r15", b.val) });
+        setguardrdi(&$$, 2, (char*[]){
+            xasprintf("mov %%rdi, %%r15"),
+            xasprintf("leaq %s, %%rdi", b.val),
+        });
     }
     | (b:AddrRegRegImm) {
         $$ = (Transform) {
-            .guard = xasprintf("leaq %s, %%r15", b.val),
             .val = xasprintf("%%gs:(%%r15d)"),
-            .guardrdi = xasprintf("mov %%rdi, %%r15\nleaq %s, %%rdi", b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("mov %r15, %rdi"),
-        }
+        };
+        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s, %%r15", b.val) });
+        setguardrdi(&$$, 2, (char*[]){
+            xasprintf("mov %%rdi, %%r15"),
+            xasprintf("leaq %s, %%rdi", b.val),
+        });
     }
 )
 
@@ -248,8 +307,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 }
 
 CallIndMem = 'call' 'q'? - '*' a:Addr {
-    if (a.guard)
-        mkinsn("%s\n", a.guard);
+    mkguards(a);
     mkinsn("mov %s, %r15\n", a.val);
     mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
