@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -89,10 +90,16 @@ func main() {
 		as = filepath.Base(os.Args[0])
 	}
 
+	rewriter := "lfi-leg-" + runtime.GOARCH // default
+	if os.Getenv("LFI_REWRITER") != "" {
+		rewriter = os.Getenv("LFI_REWRITER")
+	}
+
 	// asmmc := in
+	// run("cp", in, temp(os.TempDir()))
 	lfi := temp(os.TempDir())
 	lfiflags = append(lfiflags, "-o", lfi, in)
-	run("lfi-leg-arm64", lfiflags...)
+	run(rewriter, lfiflags...)
 
 	asflags := []string{
 		"-o", out,
