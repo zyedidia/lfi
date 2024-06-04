@@ -31,7 +31,7 @@ struct op*
 mkdirective(char* text)
 {
     struct op* op = mkop();
-    op->text = text;
+    op->text = strdup(text);
     return op;
 }
 

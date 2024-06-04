@@ -3,3 +3,4 @@ lfi-leg-*
 test/test.s
 lfi-arm64.c
 lfi-amd64.c
+lfi-amd64-baseline.c
