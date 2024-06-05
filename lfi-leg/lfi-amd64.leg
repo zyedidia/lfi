@@ -143,25 +143,25 @@ REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yy
 
 # --- loads and stores ---
 
-Stos = s:STOS r:REG COMMA '%es:(%rdi)' - {
+Stos = s:STOS !(!(EOL | ';')) {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("orq %%r14, %%rdi\n");
-    mkinsn("%s %s, %%es:(%%rdi)\n", s.val, r.val);
-    tfree(r);
+    mkinsn("%s\n", s.val);
+    tfree(s);
 }
 
-STOS = < ('rep' -)? 'stos' - > {
+STOS = < ('rep' -)? 'stos' [qlb] - > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
-Movs = m:MOVS '%ds:(%rsi)' - COMMA '%es:(%rdi)' - {
+Movs = m:MOVS !(!(EOL | ';')) {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%esi, %%esi\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("orq %%r14, %%rsi\n");
     mkinsn("orq %%r14, %%rdi\n");
-    mkinsn("%s %%ds:(%%rsi), %%es:(%%rdi)\n", m.val);
+    mkinsn("%s\n", m.val);
     tfree(m);
 }
 
