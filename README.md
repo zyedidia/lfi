@@ -1,14 +1,16 @@
 
-<h1>Lightweight Fault Isolation <img src="assets/lfi-logo.svg" alt="logo" width="30px"/></h1>
+<h1>LFI<img src="assets/lfi-logo.svg" alt="logo" width="30px"/></h1>
 
 ![Test Workflow](https://github.com/zyedidia/lfi/actions/workflows/test.yaml/badge.svg)
 [![MPL License](https://img.shields.io/badge/license-MPL%202.0-blue)](https://github.com/zyedidia/lfi/blob/master/LICENSE)
 
 LFI is a performant and secure software sandboxing system targeting the ARM64
 architecture. LFI allows you to run up to 64K sandboxes in a single address
-space while guaranteeing that the sandboxes are completely isolated from each
-other. Each sandbox may be given up to 4GiB of memory. These sandboxes are
+space while guaranteeing that the sandboxes cannot read or write each other's
+memory. Each sandbox may be given up to 4GiB of memory. These sandboxes are
 extremely efficient, and run with roughly 7% overhead compared to native code.
+
+# Technical Summary
 
 The LFI sandboxer only accepts ELF binaries that pass a verification step to
 ensure they are safe to run. This verifier works by analyzing binary machine
@@ -33,12 +35,15 @@ compiled to C using Leg, and consists of roughly 750 lines of code. It is
 located in `lfi-leg/` (see `lfi-arm64.leg` for the ARM64 rewriter).
 
 LFI-compatible programs are performant: on the SPEC 2017 benchmark suite, we
-observe a runtime overhead of 7% and a code size overhead of 14%. This compares
-well with LLVM-based ahead-of-time WebAssembly compilers, which incur upwards
-of 20% runtime overhead (measured on an M1 Mac and a GCP T2A instance). LFI is
-also secure: the compiler toolchain used to produce LFI-compatible programs is
-not a part of the trusted code base, and LFI is significantly more
-Spectre-resistant compared to WebAssembly.
+measured a runtime overhead of 7% and a code size overhead of 14% for full
+isolation. This compares well with LLVM-based ahead-of-time WebAssembly
+compilers, which incur upwards of 20% runtime overhead. Additionally, LFI can
+be used purely for fault isolation, where sandboxes may read, but not write,
+each other's memory. In this case, we measured a runtime overhead of around 1%.
+
+LFI is also secure: the compiler toolchain used to
+produce LFI-compatible programs is not a part of the trusted code base, and LFI
+is significantly more Spectre-resistant compared to WebAssembly.
 
 LFI supports all source-level language features and targets the ARMv8.0-A ISA
 (including SIMD) plus the ARMv8.1 LSE extension.
@@ -54,9 +59,7 @@ Linux, and can be used to run many programs compiled for Linux with an LFI
 toolchain. This runtime is useful for running benchmarks such as SPEC 2017.
 
 LFI is currently in development. For now, please only use it for
-experimentation. In particular, so far the runtime has been primarily used for
-collecting measurements, and may not provide a fully sandboxed environment.
-Work to improve this is ongoing.
+experimentation.
 
 Please see the following paper for more details:
 https://zyedidia.github.io/papers/lfi_asplos24.pdf.
