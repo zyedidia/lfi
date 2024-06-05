@@ -105,6 +105,8 @@ Insn = INDENT Label? (
       FnDirective
     | Directive
     | Lea
+    | Stos
+    | Movs
     | Lock
     | ModSP
     | Triple1
@@ -140,6 +142,32 @@ Lock = 'lock' - ';'? - rest:REMAINDER {
 REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- loads and stores ---
+
+Stos = s:STOS r:REG COMMA '%es:(%rdi)' - {
+    mkdirective(".p2align 4\n");
+    mkinsn("movl %%edi, %%edi\n");
+    mkinsn("orq %%r14, %%rdi\n");
+    mkinsn("%s %s, %%es:(%%rdi)\n", s.val, r.val);
+    tfree(r);
+}
+
+STOS = < ('rep' -)? 'stos' - > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
+
+Movs = m:MOVS '%ds:(%rsi)' - COMMA '%es:(%rdi)' - {
+    mkdirective(".p2align 4\n");
+    mkinsn("movl %%esi, %%esi\n");
+    mkinsn("movl %%edi, %%edi\n");
+    mkinsn("orq %%r14, %%rsi\n");
+    mkinsn("orq %%r14, %%rdi\n");
+    mkinsn("%s %%ds:(%%rsi), %%es:(%%rdi)\n", m.val);
+    tfree(m);
+}
+
+MOVS = < ('rep' -)? 'movs' [qlb] - > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
 
 Lea = l:LEA a:AddrNoMod COMMA r:REG {
     mkinsn("%s %s, %s\n", l.val, a.val, r.val);

@@ -26,3 +26,7 @@ add $0xc0, %rsp
 lock ; cmpxchg
 
 call *32+output(%rip)
+
+rep stos %eax, %es:(%rdi)
+
+rep movsq %ds:(%rsi), %es:(%rdi)
