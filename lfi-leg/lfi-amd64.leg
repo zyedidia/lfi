@@ -146,7 +146,7 @@ REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yy
 Stos = s:STOS !(!(EOL | ';')) {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%edi, %%edi\n");
-    mkinsn("orq %%r14, %%rdi\n");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
     mkinsn("%s\n", s.val);
     tfree(s);
 }
@@ -159,8 +159,8 @@ Movs = m:MOVS !(!(EOL | ';')) {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%esi, %%esi\n");
     mkinsn("movl %%edi, %%edi\n");
-    mkinsn("orq %%r14, %%rsi\n");
-    mkinsn("orq %%r14, %%rdi\n");
+    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
     mkinsn("%s\n", m.val);
     tfree(m);
 }
