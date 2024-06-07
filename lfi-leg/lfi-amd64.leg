@@ -151,7 +151,7 @@ Stos = s:STOS !(!(EOL | ';')) {
     tfree(s);
 }
 
-STOS = < ('rep' -)? 'stos' [qlb] - > {
+STOS = < ('rep' [ \t\r\n]+)? 'stos' [qlb] - > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
@@ -165,7 +165,7 @@ Movs = m:MOVS !(!(EOL | ';')) {
     tfree(m);
 }
 
-MOVS = < ('rep' -)? 'movs' [qlb] - > {
+MOVS = < ('rep' [ \t\r\n]+)? 'movs' [qlb] - > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
