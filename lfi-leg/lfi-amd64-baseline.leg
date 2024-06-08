@@ -105,6 +105,8 @@ Insn = INDENT Label? (
       FnDirective
     | Directive
     | Lea
+    | Stos
+    | Movs
     | Lock
     | ModSP
     | Triple1
@@ -115,6 +117,7 @@ Insn = INDENT Label? (
     | Load
     | Access
     | Branch
+    | BranchMemSafe
     | CallInd
     | CallIndMem
     | CallIndMemSafe
@@ -140,6 +143,32 @@ Lock = 'lock' - ';'? - rest:REMAINDER {
 REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- loads and stores ---
+
+Stos = s:STOS !(!(EOL | ';')) {
+    mkdirective(".p2align 4\n");
+    mkinsn("movl %%edi, %%edi\n");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
+    mkinsn("%s\n", s.val);
+    tfree(s);
+}
+
+STOS = < ('rep' [ \t\r\n]+)? 'stos' [qlb] - > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
+
+Movs = m:MOVS !(!(EOL | ';')) {
+    mkdirective(".p2align 4\n");
+    mkinsn("movl %%esi, %%esi\n");
+    mkinsn("movl %%edi, %%edi\n");
+    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
+    mkinsn("%s\n", m.val);
+    tfree(m);
+}
+
+MOVS = < ('rep' [ \t\r\n]+)? 'movs' [qlb] - > {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
 
 Lea = l:LEA a:AddrNoMod COMMA r:REG {
     mkinsn("%s %s, %s\n", l.val, a.val, r.val);
@@ -386,6 +415,14 @@ Call = 'call' 'q'? - rest:ITEM {
     mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
+}
+
+BranchMemSafe = 'jmp' 'q'? - '*' a:AddrNoMod {
+    mkinsn("mov %s, %%r15\n", a.val);
+    mkdirective(".p2align 4\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkinsn("jmpq *%%r15\n");
 }
 
 Branch = 'jmp' 'q'? - '*' r:XREG {

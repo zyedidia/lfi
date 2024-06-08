@@ -117,6 +117,7 @@ Insn = INDENT Label? (
     | Load
     | Access
     | Branch
+    | BranchMemSafe
     | CallInd
     | CallIndMem
     | CallIndMemSafe
@@ -346,7 +347,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
 }
 
 CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
-    mkinsn("mov %s, %r15\n", a.val);
+    mkinsn("mov %s, %%r15\n", a.val);
     mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
@@ -360,6 +361,14 @@ Call = 'call' 'q'? - rest:ITEM {
     mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
+}
+
+BranchMemSafe = 'jmp' 'q'? - '*' a:AddrNoMod {
+    mkinsn("mov %s, %%r15\n", a.val);
+    mkdirective(".p2align 4\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkinsn("jmpq *%%r15\n");
 }
 
 Branch = 'jmp' 'q'? - '*' r:XREG {
