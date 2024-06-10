@@ -107,7 +107,6 @@ Insn = INDENT Label? (
     | Lea
     | Stos
     | Movs
-    | Lock
     | ModSP
     | Triple1
     | Triple2
@@ -133,11 +132,6 @@ COMMENT = (('//' | '#') (!EOL .)* | ('/*' (!'*/' .)* '*/'))
 INDENT = < [ \t]* > {
     // if (yyleng > 0)
         // printf("%s", yytext);
-}
-
-Lock = 'lock' - ';'? - rest:REMAINDER {
-    mkinsn("lock %s\n", rest.val);
-    tfree(rest);
 }
 
 REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
@@ -380,7 +374,7 @@ BALANCED = < BALANCED_RAW > {
 # we could make two CallInds -- one for registers that require a REX prefix and
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
-    mkinsn("movl %s, %%r15d\n", lo(r.val));
+    mkinsn("movq %s, %%r15\n", r.val);
     mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
@@ -418,7 +412,7 @@ Call = 'call' 'q'? - rest:ITEM {
 }
 
 BranchMemSafe = 'jmp' 'q'? - '*' a:AddrNoMod {
-    mkinsn("mov %s, %%r15\n", a.val);
+    mkinsn("movq %s, %%r15\n", a.val);
     mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
@@ -492,7 +486,7 @@ FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
     mkdirective(".p2align 4\n");
 }
 
-NAME = < ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+NAME = < ('lock' - ';'? -)? ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- common definitions ---
 
@@ -503,7 +497,7 @@ IMM_VAR = < ([-+a-zA-Z0-9_.]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = st
 IMM_RAW = (
     ('$' -)? 
     (
-          [-0-9abcdefxABCDEF]+
+          [-+0-9abcdefxABCDEF]+
         | BALANCED_RAW
         | RELOC
     )
@@ -676,10 +670,14 @@ lfigen()
                 size = 5;
             } else if (size == 0 && strncmp(op->text, "endbr64", strlen("endbr64")) == 0) {
                 size = 4;
+            } else if (size == 0 && strncmp(op->text, "movabs", strlen("movabs")) == 0) {
+                size = 10;
+            } else if (size == 0 && strncmp(op->text, "notrack jmp *%rax", strlen("notrack jmp *%rax")) == 0) {
+                size = 3;
             }
             if (size == 0) {
                 fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
-                size = 15; // max instruction size
+                size = 11; // max instruction size
             }
             curbundle += size;
             if (curbundle > bundle) {

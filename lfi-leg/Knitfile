@@ -5,7 +5,7 @@ return b{
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g
     $ lfi-leg-amd64: lfi-amd64.c util.c ht.c op.c main.c x64.o
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -lx64asm -lkeystone -lstdc++ -lm -L../../x64asm/lib
-    $ lfi-leg-amd64-baseline: lfi-amd64.c util.c ht.c op.c main.c x64.o
+    $ lfi-leg-amd64-baseline: lfi-amd64-baseline.c util.c ht.c op.c main.c x64.o
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -lx64asm -lkeystone -lstdc++ -lm -L../../x64asm/lib
     $ x64.o: x64.cc
         cc $input -o $output -I../../x64asm -O2 -g -c
@@ -13,7 +13,7 @@ return b{
         leg -o $output $input
     $ install-%:VB: %
         sudo install $input /usr/local/bin
-    $ install:VB: install-lfi-leg-arm64 install-lfi-leg-amd64
+    $ install:VB: install-lfi-leg-arm64 install-lfi-leg-amd64 install-lfi-leg-amd64-baseline
     $ test:VB: lfi-leg-arm64
         go run test/runtest.go ./$input test/arm64/*.s
 }
