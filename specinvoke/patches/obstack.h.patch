@@ -1,0 +1,21 @@
+--- benchspec/CPU/502.gcc_r/src/include/obstack.h	2024-06-09 22:01:41.624488505 -0700
++++ benchspec/CPU/502.gcc_r/src/include/obstack.h	2024-06-09 22:01:39.892453965 -0700
+@@ -533,12 +533,12 @@
+ /* This should be okay because obstack_free is never used in a context
+  * where a return value is expected.
+  */
+-# define obstack_free(h,obj)						\
+-( (h)->temp = (char *) (obj) - (char *) (h)->chunk,			\
+-  (((h)->temp > 0 && (h)->temp < (h)->chunk_limit - (char *) (h)->chunk)\
+-   ? (ptrdiff_t) ((h)->next_free = (h)->object_base				\
+-	    = (h)->temp + (char *) (h)->chunk)				\
+-   : ((obstack_free) ((h), (h)->temp + (char *) (h)->chunk), 0)))
++# define obstack_free(h, obj) \
++    ((h)->temp = (void *) (obj), \
++     (((h)->temp > (void *) (h)->chunk \
++       && (h)->temp < (void *) (h)->chunk_limit) \
++       ? (void) ((h)->next_free = (h)->object_base = (char *) (h)->temp) \
++       : _obstack_free ((h), (h)->temp)))
+ #else
+ # define obstack_free(h,obj)						\
+ ( (h)->temp = (char *) (obj) - (char *) (h)->chunk,			\

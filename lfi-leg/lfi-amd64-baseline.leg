@@ -676,7 +676,7 @@ lfigen()
                 size = 3;
             }
             if (size == 0) {
-                fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
+                // fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
                 size = 11; // max instruction size
             }
             curbundle += size;
