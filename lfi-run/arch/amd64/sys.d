@@ -51,6 +51,7 @@ enum Sys {
     ACCESS          = 21,
     UNLINK          = 87,
     RENAME          = 82,
+    GETRANDOM       = 318,
 }
 
 enum {
@@ -141,4 +142,5 @@ SyscallFn[] systbl = [
     Sys.ACCESS:          &sysaccess_,
     Sys.UNLINK:          &sysunlink_,
     Sys.RENAME:          &sysrename_,
+    Sys.GETRANDOM:       &sysgetrandom_,
 ];

@@ -40,6 +40,7 @@ enum Sys {
     MMAP            = 222,
     WAIT4           = 260,
     PRLIMIT64       = 261,
+    GETRANDOM       = 278,
 }
 
 alias SyscallFn = uintptr function(Proc* p, ulong[6] args);
@@ -80,4 +81,5 @@ SyscallFn[] systbl = [
     Sys.MMAP:            &sysmmap_,
     Sys.WAIT4:           &syswait_,
     Sys.PRLIMIT64:       &ignore,
+    Sys.GETRANDOM:       &sysgetrandom_,
 ];

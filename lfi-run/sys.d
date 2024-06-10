@@ -619,6 +619,16 @@ uintptr sysmunmap(Proc* p, uintptr addrp, usize length) {
     return procunmap(p, procaddr(p, truncpg(addrp)), ceilpg(length));
 }
 
+uintptr sysgetrandom_(Proc* p, ulong[6] args) {
+    return sysgetrandom(p, args[0], args[1], cast(uint) args[2]);
+}
+uintptr sysgetrandom(Proc* p, uintptr bufp, usize buflen, uint flags) {
+    ubyte[] buf = procbuf(p, bufp, buflen);
+    if (!buf)
+        return Err.FAULT;
+    return syserr(getrandom(buf.ptr, buf.length, flags));
+}
+
 int syserr(int val) {
     if (val == -1) {
         return -errno;
