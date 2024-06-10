@@ -108,6 +108,7 @@ Insn = INDENT Label? (
     | Stos
     | Movs
     | ModSP
+    | Triple0
     | Triple1
     | Triple2
     | StoreH
@@ -206,6 +207,12 @@ Store = m:NAME r:ITEM COMMA a:Addr {
     mkguards(a);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
     tfree(m); tfree(a); tfree(r);
+}
+
+Triple0 = m:NAME a:Addr COMMA r1:ITEM COMMA r2:ITEM {
+    mkguards(a);
+    mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
+    tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
