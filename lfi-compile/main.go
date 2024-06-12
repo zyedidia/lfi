@@ -158,7 +158,22 @@ func compile(cmdargs []string) {
 			return
 		}
 
-		flags = append(flags, "-Wl,--lto-emit-asm", "-Wl,-plugin-opt=--aarch64-enable-compress-jump-tables=false")
+		mllvmAArch64 := []string{
+			"-Wl,-plugin-opt=--aarch64-enable-compress-jump-tables=false",
+		}
+		mllvmAmd64 := []string{
+			"-Wl,-plugin-opt=--reserve-r14",
+			"-Wl,-plugin-opt=--reserve-r15",
+			"-Wl,-plugin-opt=--align-labels=16",
+		}
+
+		mllvm := mllvmAArch64
+		if runtime.GOARCH == "amd64" {
+			mllvm = mllvmAmd64
+		}
+
+		flags = append(flags, "-Wl,--lto-emit-asm")
+		flags = append(flags, mllvm...)
 		run(compiler, flags...)
 		inputs = []string{out}
 		out = oldout

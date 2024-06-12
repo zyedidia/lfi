@@ -637,7 +637,7 @@ lfigen()
                 fprintf(output, ".p2align %d\n", log_bundle);
                 curbundle = size;
             }
-        } else if (strncmp(op->text, ".p2align 4", strlen(".p2align 4")) == 0) {
+        } else if (strncmp(op->text, ".p2align", strlen(".p2align")) == 0) {
             curbundle = 0;
         }
         // if (op->label) {
