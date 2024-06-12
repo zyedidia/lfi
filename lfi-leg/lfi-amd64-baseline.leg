@@ -126,9 +126,9 @@ Insn = INDENT Label? (
     | Syscall
     | COMMENT
     | Any
-) COMMENT? (EOL | ';')+
+) - COMMENT? (EOL | ';')+
 
-COMMENT = (('//' | '#') (!EOL .)* | ('/*' (!'*/' .)* '*/'))
+COMMENT = ((('//' | '#') (!EOL .)*) | ('/*' (!'*/' .)* '*/'))
 
 INDENT = < [ \t]* > {
     // if (yyleng > 0)
@@ -139,19 +139,19 @@ REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yy
 
 # --- loads and stores ---
 
-Stos = s:STOS !(!(EOL | ';')) {
+Stos = s:STOS rest:REMAINDER {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
-    mkinsn("%s\n", s.val);
+    mkinsn("%s %s\n", s.val, rest.val);
     tfree(s);
 }
 
-STOS = < ('rep' [ \t\r\n]+)? 'stos' [qlb] - > {
+STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
-Movs = m:MOVS !(!(EOL | ';')) {
+Movs = m:MOVS LP (!(EOL | ';') .)* {
     mkdirective(".p2align 4\n");
     mkinsn("movl %%esi, %%esi\n");
     mkinsn("movl %%edi, %%edi\n");
@@ -161,7 +161,7 @@ Movs = m:MOVS !(!(EOL | ';')) {
     tfree(m);
 }
 
-MOVS = < ('rep' [ \t\r\n]+)? 'movs' [qlb] - > {
+MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] - > {
     $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
@@ -493,7 +493,7 @@ FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
     mkdirective(".p2align 4\n");
 }
 
-NAME = < ('lock' - ';'? -)? ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+NAME = < ('lock' - [\r\n;]? -)? ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 # --- common definitions ---
 

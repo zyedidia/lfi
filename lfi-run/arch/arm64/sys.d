@@ -41,6 +41,7 @@ enum Sys {
     WAIT4           = 260,
     PRLIMIT64       = 261,
     GETRANDOM       = 278,
+    RT_SIGACTION    = 134,
 }
 
 alias SyscallFn = uintptr function(Proc* p, ulong[6] args);
@@ -82,4 +83,5 @@ SyscallFn[] systbl = [
     Sys.WAIT4:           &syswait_,
     Sys.PRLIMIT64:       &ignore,
     Sys.GETRANDOM:       &sysgetrandom_,
+    Sys.RT_SIGACTION:    &ignore,
 ];

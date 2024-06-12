@@ -52,6 +52,7 @@ enum Sys {
     UNLINK          = 87,
     RENAME          = 82,
     GETRANDOM       = 318,
+    RT_SIGACTION    = 13,
 }
 
 enum {
@@ -143,4 +144,5 @@ SyscallFn[] systbl = [
     Sys.UNLINK:          &sysunlink_,
     Sys.RENAME:          &sysrename_,
     Sys.GETRANDOM:       &sysgetrandom_,
+    Sys.RT_SIGACTION:    &ignore,
 ];

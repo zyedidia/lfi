@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -214,10 +215,17 @@ func compile(cmdargs []string) {
 		run(compiler, stage1...)
 	}
 
+	rewriter := "lfi-leg-" + runtime.GOARCH // default
+	if os.Getenv("LFI_REWRITER") != "" {
+		rewriter = os.Getenv("LFI_REWRITER")
+	}
+
 	lfiasm := temp(inputdir)
 	lfiflags := []string{asm, "-o", lfiasm}
 	lfiflags = append(lfiflags, lfiargs...)
-	run("lfi-leg-arm64", lfiflags...)
+	run(rewriter, lfiflags...)
+	// run("cp", asm, lfiasm)
+	// _ = rewriter
 
 	if !assemble {
 		if compile && out == "" {
