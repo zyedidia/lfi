@@ -21,6 +21,17 @@ typedef struct transform {
     char* post;
 } Transform;
 
+static char*
+strclean(char* s, size_t n)
+{
+    char* sdup = strndup(s, n);
+    for (size_t i = 0; i < n; i++) {
+        if (sdup[i] == ';' || sdup[i] == '\n' || sdup[i] == '\r')
+            sdup[i] = ' ';
+    }
+    return sdup;
+}
+
 static void
 tfree(Transform t)
 {
@@ -125,6 +136,8 @@ Insn = INDENT Label? (
     | Ret
     | Syscall
     | COMMENT
+    | AnyInsnPrefix
+    | AnyInsn
     | Any
 ) - COMMENT? (EOL | ';')+
 
@@ -137,6 +150,18 @@ INDENT = < [ \t]* > {
 
 REMAINDER = < (!(EOL | ';') .)* > { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
+PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+}
+
+AnyInsnPrefix = p:PREFIX rest:REMAINDER {
+    mkinsn("%s %s\n", p.val, rest.val);
+}
+
+AnyInsn = rest:REMAINDER {
+    mkinsn("%s\n", rest.val);
+}
+
 # --- loads and stores ---
 
 Stos = s:STOS rest:REMAINDER {
@@ -148,7 +173,7 @@ Stos = s:STOS rest:REMAINDER {
 }
 
 STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
-    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+    $$ = (Transform) { .val = strclean(yytext, yyleng) }
 }
 
 Movs = m:MOVS LP (!(EOL | ';') .)* {
@@ -162,7 +187,7 @@ Movs = m:MOVS LP (!(EOL | ';') .)* {
 }
 
 MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] - > {
-    $$ = (Transform) { .val = strndup(yytext, yyleng) }
+    $$ = (Transform) { .val = strclean(yytext, yyleng) }
 }
 
 Lea = l:LEA a:AddrNoMod COMMA r:REG {
@@ -493,7 +518,7 @@ FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
     mkdirective(".p2align 4\n");
 }
 
-NAME = < ('lock' - [\r\n;]? -)? ID > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+NAME = < ('lock' - [\r\n;]? -)? ID > - { $$ = (Transform) { .val = strclean(yytext, yyleng) } }
 
 # --- common definitions ---
 
@@ -643,62 +668,12 @@ lfigen()
     if (!yyparse())
         return false;
 
-    ks_engine* ks;
-
-    ks_err err = ks_open(KS_ARCH_X86, KS_MODE_64, &ks);
-    if (err != KS_ERR_OK) {
-        fprintf(stderr, "ERROR: failed on ks_open()\n");
-        return false;
-    }
-    ks_option(ks, KS_OPT_SYNTAX, KS_OPT_SYNTAX_ATT);
-
-
-    int bundle = 16;
-    int log_bundle = 4;
-
-    size_t curbundle = 0;
+    fprintf(output, ".bundle_align_mode 4\n");
     struct op* op = ops;
     while (op) {
-        if (op->insn) {
-            size_t count = 0;
-            size_t size_ks = 0;
-            unsigned char* encode = NULL;
-            ks_asm(ks, op->text, 0, &encode, &size_ks, &count);
-            ks_free(encode);
-            size_t size_x64 = x64_insn_size(op->text);
-
-            size_t size = 0;
-            if (size_x64 != 0 && size_ks != 0)
-                size = min(size_x64, size_ks);
-            else
-                size = max(size_x64, size_ks);
-
-            if (size == 0 && strncmp(op->text, "jmp", strlen("jmp")) == 0) {
-                size = 5;
-            } else if (size == 0 && strncmp(op->text, "endbr64", strlen("endbr64")) == 0) {
-                size = 4;
-            } else if (size == 0 && strncmp(op->text, "movabs", strlen("movabs")) == 0) {
-                size = 10;
-            } else if (size == 0 && strncmp(op->text, "notrack jmp *%rax", strlen("notrack jmp *%rax")) == 0) {
-                size = 3;
-            }
-            if (size == 0) {
-                // fprintf(stderr, "ERROR: cannot assemble %s\n", op->text);
-                size = 11; // max instruction size
-            }
-            curbundle += size;
-            if (curbundle > bundle) {
-                fprintf(output, ".p2align %d\n", log_bundle);
-                curbundle = size;
-            }
-        } else if (strncmp(op->text, ".p2align", strlen(".p2align")) == 0) {
-            curbundle = 0;
-        }
         fprintf(output, "%s", op->text);
         op = op->next;
     }
-
-    ks_close(ks);
 
     return true;
 }
