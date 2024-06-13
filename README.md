@@ -8,7 +8,13 @@ LFI is a performant and secure software sandboxing system targeting the ARM64
 architecture. LFI allows you to run up to 64K sandboxes in a single address
 space while guaranteeing that the sandboxes cannot read or write each other's
 memory. Each sandbox may be given up to 4GiB of memory. These sandboxes are
-extremely efficient, and run with roughly 7% overhead compared to native code.
+extremely efficient, and run with roughly 7% overhead compared to native code
+when sandboxing reads and writes, and 1% overhead when only sandboxing writes.
+
+LFI also has in-progress support for the x86-64 architecture. Currently we have
+a functional runtime and rewriter that works with a GCC toolchain and a patched
+Clang toolchain. However, the x86-64 static verifier is not yet complete. We
+have measured around 13% overhead on x86-64 for sandboxing reads and writes.
 
 # Technical Summary
 
@@ -30,7 +36,7 @@ toolchain. LFI-compatible Clang and GCC toolchains are provided.
 
 The core of the LFI toolchain is an assembly rewriter that reads arbitrary GNU
 assembly files (`.s`) and produces assembly files that will pass verification
-when compiled and linked. This rewriter is implemented as a Peg parser that is
+when compiled and linked. This rewriter is implemented as a PEG parser that is
 compiled to C using Leg, and consists of roughly 750 lines of code. It is
 located in `lfi-leg/` (see `lfi-arm64.leg` for the ARM64 rewriter).
 
