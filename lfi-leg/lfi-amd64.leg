@@ -67,7 +67,7 @@ mkguards_(Transform t, bool h)
     }
     for (size_t i = 0; i < n_guard; i++) {
         if (guard[i][0] == '.')
-            mkdirective(guard[i]);
+            mkcodedirective(guard[i]);
         else
             mkinsn("%s\n", guard[i]);
     }
@@ -159,13 +159,14 @@ AnyInsnPrefix = p:PREFIX rest:REMAINDER {
 }
 
 AnyInsn = rest:REMAINDER {
-    mkinsn("%s\n", rest.val);
+    if (strlen(rest.val) > 0)
+        mkinsn("%s\n", rest.val);
 }
 
 # --- loads and stores ---
 
 Stos = s:STOS rest:REMAINDER {
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
     mkinsn("%s %s\n", s.val, rest.val);
@@ -176,12 +177,12 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
     $$ = (Transform) { .val = strclean(yytext, yyleng) }
 }
 
-Movs = m:MOVS LP (!(EOL | ';') .)* {
-    mkdirective(".p2align 4\n");
-    mkinsn("movl %%esi, %%esi\n");
+Movs = m:MOVS (LP | &(EOL | ';')) (!(EOL | ';') .)* {
+    mkcodedirective(".p2align 4\n");
     mkinsn("movl %%edi, %%edi\n");
-    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
+    mkinsn("movl %%esi, %%esi\n");
+    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
     mkinsn("%s\n", m.val);
     tfree(m);
 }
@@ -353,10 +354,10 @@ BALANCED = < BALANCED_RAW > {
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15\n", r.val);
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
+    mkcodedirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     tfree(r);
 }
@@ -364,41 +365,41 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkguards(a);
     mkinsn("movq %s, %r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
+    mkcodedirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     tfree(a);
 }
 
 CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
+    mkcodedirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     tfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkdirective(".p2align 4\n");
-    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
+    mkcodedirective(".p2align 4\n");
+    mkcodedirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
 
 BranchMemSafe = 'jmp' 'q'? - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");
 }
 
 Branch = 'jmp' 'q'? - '*' r:XREG {
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
     mkinsn("orq %%r14, %s\n", r.val);
     mkinsn("jmpq *%s\n", r.val);
@@ -406,8 +407,8 @@ Branch = 'jmp' 'q'? - '*' r:XREG {
 }
 
 Ret = 'ret' 'q'? - {
-    mkdirective(".p2align 4\n");
     mkinsn("popq %%r15\n");
+    mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");
@@ -576,37 +577,6 @@ EOL     = '\n' | '\r\n' | '\r'
 
 %%
 
-enum {
-    FIXUP_DIST = 8000,
-};
-
-static int
-dist(int a, int b)
-{
-    int d = a - b;
-    if (d < 0)
-        d = -d;
-    return d;
-}
-
-static size_t
-min(size_t a, size_t b)
-{
-    if (a < b)
-        return a;
-    return b;
-}
-
-static size_t
-max(size_t a, size_t b)
-{
-    if (a > b)
-        return a;
-    return b;
-}
-
-size_t x64_insn_size(char*);
-
 bool
 lfigen()
 {
@@ -617,6 +587,8 @@ lfigen()
     fprintf(output, ".bundle_align_mode 4\n");
     struct op* op = ops;
     while (op) {
+        if (op->label && op->next && (op->next->insn || op->next->code))
+            fprintf(output, ".p2align 4\n");
         fprintf(output, "%s", op->text);
         op = op->next;
     }

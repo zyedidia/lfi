@@ -4,6 +4,7 @@ struct op {
     char* text;
 
     bool insn;
+    bool code;
     char* label;
 
     bool shortbr;
@@ -22,5 +23,7 @@ struct op* mklabel(char* name);
 struct op* mkinsn(char* fmt, ...);
 
 struct op* mkdirective(char* text);
+
+struct op* mkcodedirective(char* text);
 
 extern struct op* ops;

@@ -28,6 +28,15 @@ mkop()
 }
 
 struct op*
+mkcodedirective(char* text)
+{
+    struct op* op = mkop();
+    op->text = strdup(text);
+    op->code = true;
+    return op;
+}
+
+struct op*
 mkdirective(char* text)
 {
     struct op* op = mkop();

@@ -176,12 +176,12 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
     $$ = (Transform) { .val = strclean(yytext, yyleng) }
 }
 
-Movs = m:MOVS LP (!(EOL | ';') .)* {
+Movs = m:MOVS (LP | &(EOL | ';')) (!(EOL | ';') .)* {
     mkdirective(".p2align 4\n");
-    mkinsn("movl %%esi, %%esi\n");
     mkinsn("movl %%edi, %%edi\n");
-    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
+    mkinsn("movl %%esi, %%esi\n");
+    mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
     mkinsn("%s\n", m.val);
     tfree(m);
 }
@@ -460,8 +460,8 @@ Branch = 'jmp' 'q'? - '*' r:XREG {
 }
 
 Ret = 'ret' 'q'? - {
-    mkdirective(".p2align 4\n");
     mkinsn("popq %%r15\n");
+    mkdirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");

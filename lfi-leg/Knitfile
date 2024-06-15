@@ -5,7 +5,7 @@ return b{
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
     $ lfi-leg-amd64: lfi-amd64.c util.c ht.c op.c main.c
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
-    $ lfi-leg-amd64-baseline: lfi-amd64-baseline.c util.c ht.c op.c main.c x64.o
+    $ lfi-leg-amd64-baseline: lfi-amd64-baseline.c util.c ht.c op.c main.c
         cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
     $ %.c: %.leg
         leg -o $output $input
