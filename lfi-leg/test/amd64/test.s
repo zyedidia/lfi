@@ -32,3 +32,7 @@ rep stos %eax, %es:(%rdi)
 rep movsq %ds:(%rsi), %es:(%rdi)
 
 cmpl $44, 352(%rsp,%rax,4) # imm = 0x100
+
+notrack jmp *%rax
+
+callq *__cxa_finalize@GOTPCREL(%rip)

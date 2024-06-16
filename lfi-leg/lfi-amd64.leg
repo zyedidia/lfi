@@ -115,6 +115,7 @@ Top = Insn* !.
 Insn = INDENT Label? (
       FnDirective
     | Directive
+    | Leave
     | Lea
     | Stos
     | Movs
@@ -390,20 +391,31 @@ Call = 'call' 'q'? - rest:ITEM {
     tfree(rest);
 }
 
-BranchMemSafe = 'jmp' 'q'? - '*' a:AddrNoMod {
+BranchMemSafe = j:JMP - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
     mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkinsn("jmpq *%%r15\n");
+    mkinsn("%s *%%r15\n", j.val);
+    tfree(j); tfree(a);
 }
 
-Branch = 'jmp' 'q'? - '*' r:XREG {
+Branch = j:JMP '*' r:XREG {
     mkcodedirective(".p2align 4\n");
     mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
     mkinsn("orq %%r14, %s\n", r.val);
-    mkinsn("jmpq *%s\n", r.val);
-    tfree(r);
+    mkinsn("%s *%s\n", j.val, r.val);
+    tfree(j); tfree(r);
+}
+
+Leave = 'leave' 'q'? - {
+    mkinsn("movl %%ebp, %%esp\n");
+    mkinsn("orq %%r14, %%rsp\n");
+    mkinsn("popq %%rbp\n");
+}
+
+JMP = < 'notrack'? - 'jmp' 'q'? > - {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) }
 }
 
 Ret = 'ret' 'q'? - {
@@ -471,7 +483,7 @@ NAME = < ('lock' - [\t\r\n;]? -)? ID > - { $$ = (Transform) { .val = strclean(yy
 
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
-IMM_VAR = < ([-+a-zA-Z0-9_.]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+IMM_VAR = < ([-+a-zA-Z0-9_.@]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_RAW = (
     ('$' -)? 
