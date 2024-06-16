@@ -5,6 +5,7 @@
 
 enum {
     BUNDLE_SIZE = 16,
+    GUARD_SIZE  = 16 * 1024 * 1024,
 };
 
 typedef struct context {
@@ -192,8 +193,43 @@ static bool check_jump(Context* ctx) {
     return true;
 }
 
+static bool check_memop(ZydisDecodedOperandMem* mem) {
+    if (mem->index != ZYDIS_REGISTER_NONE)
+        return false;
+    if (mem->scale != 1 && mem->scale != 0)
+        return false;
+    if (mem->disp.value >= GUARD_SIZE)
+        return false;
+    return true;
+}
+
+static bool check_memop_gs(ZydisDecodedOperandMem* mem) {
+    if (!check_memop(mem))
+        return false;
+    if (!loreg(mem->base))
+        return false;
+    return true;
+}
+
+static bool check_memop_fs(ZydisDecodedOperandMem* mem) {
+    if (!check_memop(mem))
+        return false;
+    if (mem->base != ZYDIS_REGISTER_NONE)
+        return false;
+    if (mem->disp.value != 0)
+        return false;
+    return true;
+}
+
 static bool check_mem(Context* ctx) {
     if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_NOP)
+        return true;
+    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_LEA)
+        return true;
+    // handled by check_jump
+    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_CALL)
+        return true;
+    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_JMP)
         return true;
 
     ctxoperands(ctx);
@@ -205,28 +241,78 @@ static bool check_mem(Context* ctx) {
             continue;
 
         if (ctx->operands[i].mem.base == ZYDIS_REGISTER_RSP) {
-            // TODO
+            if (!check_memop(&ctx->operands[i].mem))
+                return false;
+            continue;
+        } else if (ctx->operands[i].mem.base == ZYDIS_REGISTER_RIP) {
+            if (!check_memop(&ctx->operands[i].mem))
+                return false;
+            continue;
+        } else if (ctx->operands[i].mem.segment == ZYDIS_REGISTER_FS) {
+            if (!check_memop_fs(&ctx->operands[i].mem))
+                return false;
+            continue;
+        } else if (ctx->operands[i].mem.segment == ZYDIS_REGISTER_GS) {
+            if (!check_memop_gs(&ctx->operands[i].mem))
+                return false;
             continue;
         }
-        if (ctx->operands[i].mem.base == ZYDIS_REGISTER_RIP) {
-            // TODO
-            continue;
-        }
-        if (ctx->operands[i].mem.segment == ZYDIS_REGISTER_FS) {
-            // TODO
-            continue;
-        }
-        if (ctx->operands[i].mem.segment != ZYDIS_REGISTER_GS) {
-            // TODO
-            return false;
-        }
+        return false;
     }
 
     return true;
 }
 
-static bool check_mod() {
+// modification of rsp
+// modification of r14
+static bool check_mod(Context* ctx) {
+    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_NOP)
+        return true;
+    ctxoperands(ctx);
+    if (ctx->operands[0].type != ZYDIS_OPERAND_TYPE_REGISTER)
+        return true;
+    ZydisRegister reg = ctx->operands[0].reg.value;
+    if (reg == ZYDIS_REGISTER_R14 || reg == ZYDIS_REGISTER_R14D || reg == ZYDIS_REGISTER_R14W || reg == ZYDIS_REGISTER_R14B)
+        return false;
+    if (reg == ZYDIS_REGISTER_RSP || reg == ZYDIS_REGISTER_ESP || reg == ZYDIS_REGISTER_SP || reg == ZYDIS_REGISTER_SPL)
+        return false;
+
     return true;
+}
+
+static bool spmod_sequence(Context* ctx) {
+    switch (ctx->instr.mnemonic) {
+    case ZYDIS_MNEMONIC_ADD:
+    case ZYDIS_MNEMONIC_SUB:
+    case ZYDIS_MNEMONIC_MOV:
+    case ZYDIS_MNEMONIC_AND:
+        break;
+    default:
+        return false;
+    }
+    ctxsave(ctx);
+
+    ctxoperands(ctx);
+    if (ctx->operands[0].type != ZYDIS_OPERAND_TYPE_REGISTER || ctx->operands[0].reg.value != ZYDIS_REGISTER_ESP)
+        return false;
+    if (!ctxnext(ctx))
+        return false;
+    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_NOP)
+        if (!ctxnext(ctx))
+            goto fail;
+
+    if (ctx->instr.mnemonic != ZYDIS_MNEMONIC_OR)
+        goto fail;
+    ctxoperands(ctx);
+    if (ctx->operands[0].type != ZYDIS_OPERAND_TYPE_REGISTER || ctx->operands[0].reg.value != ZYDIS_REGISTER_RSP)
+        goto fail;
+    if (ctx->operands[1].type != ZYDIS_OPERAND_TYPE_REGISTER || ctx->operands[1].reg.value != ZYDIS_REGISTER_R14)
+        goto fail;
+
+    return true;
+fail:
+    ctxrestore(ctx);
+    return false;
 }
 
 static bool jump_sequence(Context* ctx) {
@@ -374,6 +460,9 @@ bool verify(uint8_t* insns, size_t n, size_t baddr) {
         if (movs_sequence(&ctx)) {
             continue;
         }
+        if (spmod_sequence(&ctx)) {
+            continue;
+        }
 
         if (!check_jump(&ctx)) {
             failed = true;
@@ -382,11 +471,14 @@ bool verify(uint8_t* insns, size_t n, size_t baddr) {
         }
         if (!check_mem(&ctx)) {
             fprintf(stderr, "check_mem: error at %lx\n", ctx.addr);
-            return false;
+            failed = true;
+            continue;
         }
-        /* if (check_mod(&instr)) { */
-        /*     return false; */
-        /* } */
+        if (!check_mod(&ctx)) {
+            fprintf(stderr, "check_mod: error at %lx\n", ctx.addr);
+            failed = true;
+            continue;
+        }
     }
 
     if (failed) {
