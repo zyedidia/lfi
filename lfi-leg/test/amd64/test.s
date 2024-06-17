@@ -36,3 +36,21 @@ cmpl $44, 352(%rsp,%rax,4) # imm = 0x100
 notrack jmp *%rax
 
 callq *__cxa_finalize@GOTPCREL(%rip)
+
+movq %rdi, 0x0
+
+fldt	8(%rsp)
+
+movl	(%rdx,%rsi,4), %edx
+
+orl	$1, 12+__cpu_model(%rip)
+
+jmp *(%rax)
+
+callq *(%rax, %rdi, 4)
+
+leaq -0x18(%rbp), %rsp
+
+leaq -0x10(%rsp), %rsp
+
+mov (,%rax,8),%rdx
