@@ -314,6 +314,7 @@ static bool spmod_sequence(Context* ctx) {
     case ZYDIS_MNEMONIC_SUB:
     case ZYDIS_MNEMONIC_MOV:
     case ZYDIS_MNEMONIC_AND:
+    case ZYDIS_MNEMONIC_LEA:
         break;
     default:
         return false;
@@ -325,9 +326,6 @@ static bool spmod_sequence(Context* ctx) {
         return false;
     if (!ctxnext(ctx))
         return false;
-    if (ctx->instr.mnemonic == ZYDIS_MNEMONIC_NOP)
-        if (!ctxnext(ctx))
-            goto fail;
 
     if (ctx->instr.mnemonic != ZYDIS_MNEMONIC_OR)
         goto fail;
