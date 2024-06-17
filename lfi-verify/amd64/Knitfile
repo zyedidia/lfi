@@ -1,6 +1,6 @@
 return b{
     $ lfi-verify-amd64: main.o verify.o
         gcc $input -o $output -lZydis -static
-    $ %.o: %.c
+    $ %.o: %.c insn.h[I]
         gcc -c $input -o $output -DZYDIS_STATIC_BUILD -O2
 }

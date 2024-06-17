@@ -2,11 +2,17 @@
 #include <stdbool.h>
 #include <string.h>
 #include <Zydis/Zydis.h>
+#include <Zycore/Format.h>
+
+#include "insn.h"
 
 enum {
-    BUNDLE_SIZE = 16,
-    GUARD_SIZE  = 16 * 1024 * 1024,
+    BUNDLE_SIZE    = 16,
+    RIP_GUARD_SIZE = 2ULL * 1024 * 1024 * 1024,
+    GUARD_SIZE     = 16 * 1024 * 1024,
 };
+
+unsigned mnemonics[ZYDIS_MNEMONIC_MAX_VALUE];
 
 typedef struct context {
     ZydisDecoder decoder;
@@ -34,6 +40,7 @@ static bool ctxnext(Context* ctx) {
     if (ZYAN_FAILED(status)) {
         return false;
     }
+    mnemonics[ctx->instr.mnemonic]++;
     if (ctx->addr / BUNDLE_SIZE != (ctx->addr + ctx->instr.length - 1) / BUNDLE_SIZE) {
         fprintf(stderr, "instruction crosses bundle boundary at %lx\n", ctx->addr);
         return false;
@@ -69,6 +76,20 @@ static bool ctxoperands(Context* ctx) {
         return false;
     }
     return true;
+}
+
+static void ctxdisplay(FILE* stream, Context* ctx) {
+    ctxoperands(ctx);
+
+    ZydisFormatter formatter;
+    ZydisFormatterInit(&formatter, ZYDIS_FORMATTER_STYLE_ATT);
+
+    char buffer[256];
+
+    ZydisFormatterFormatInstruction(&formatter, &ctx->instr, ctx->operands,
+            ctx->instr.operand_count_visible, &buffer[0], sizeof(buffer), ctx->addr,
+            ZYAN_NULL);
+    fprintf(stream, "%s\n", &buffer[0]);
 }
 
 static bool loreg(ZydisRegister reg) {
@@ -133,13 +154,7 @@ static ZydisRegister hi(ZydisRegister reg) {
 }
 
 static bool check_instr(Context* ctx) {
-    // TODO: switch this to a whitelist
-    switch (ctx->instr.mnemonic) {
-    case ZYDIS_MNEMONIC_RET:
-    case ZYDIS_MNEMONIC_SYSCALL:
-        return false;
-    }
-    return true;
+    return mnemonic_valid(ctx->instr.mnemonic);
 }
 
 static bool check_jump(Context* ctx) {
@@ -194,11 +209,24 @@ static bool check_jump(Context* ctx) {
 }
 
 static bool check_memop(ZydisDecodedOperandMem* mem) {
+    // index must be none
+    if (mem->index != ZYDIS_REGISTER_NONE)
+        return false;
+    // scale must be 1 or 0
+    if (mem->scale != 1 && mem->scale != 0)
+        return false;
+    // disp must be less than guard size
+    if (mem->disp.value >= GUARD_SIZE || mem->disp.value < -GUARD_SIZE)
+        return false;
+    return true;
+}
+
+static bool check_memop_rip(ZydisDecodedOperandMem* mem) {
     if (mem->index != ZYDIS_REGISTER_NONE)
         return false;
     if (mem->scale != 1 && mem->scale != 0)
         return false;
-    if (mem->disp.value >= GUARD_SIZE)
+    if (mem->disp.value >= RIP_GUARD_SIZE || mem->disp.value < 0)
         return false;
     return true;
 }
@@ -206,7 +234,7 @@ static bool check_memop(ZydisDecodedOperandMem* mem) {
 static bool check_memop_gs(ZydisDecodedOperandMem* mem) {
     if (!check_memop(mem))
         return false;
-    if (!loreg(mem->base))
+    if (!loreg(mem->base) && mem->base != ZYDIS_REGISTER_NONE)
         return false;
     return true;
 }
@@ -245,7 +273,7 @@ static bool check_mem(Context* ctx) {
                 return false;
             continue;
         } else if (ctx->operands[i].mem.base == ZYDIS_REGISTER_RIP) {
-            if (!check_memop(&ctx->operands[i].mem))
+            if (!check_memop_rip(&ctx->operands[i].mem))
                 return false;
             continue;
         } else if (ctx->operands[i].mem.segment == ZYDIS_REGISTER_FS) {
@@ -447,6 +475,7 @@ bool verify(uint8_t* insns, size_t n, size_t baddr) {
     while (ctxnext(&ctx)) {
         if (!check_instr(&ctx)) {
             fprintf(stderr, "check_instr: error at %lx\n", ctx.addr);
+            ctxdisplay(stderr, &ctx);
             failed = true;
             continue;
         }
@@ -476,10 +505,21 @@ bool verify(uint8_t* insns, size_t n, size_t baddr) {
         }
         if (!check_mod(&ctx)) {
             fprintf(stderr, "check_mod: error at %lx\n", ctx.addr);
+            ctxdisplay(stderr, &ctx);
             failed = true;
             continue;
         }
     }
+
+    /* size_t total = 0; */
+    /* for (size_t i = 0; i < ZYDIS_MNEMONIC_MAX_VALUE; i++) { */
+    /*     if (mnemonics[i] != 0 && !mnemonic_valid(i)) { */
+    /*         total++; */
+    /*         const char* s = ZydisMnemonicGetString(i); */
+    /*         printf("%s: %u\n", s, mnemonics[i]); */
+    /*     } */
+    /* } */
+    /* printf("total: %ld\n", total); */
 
     if (failed) {
         return false;
