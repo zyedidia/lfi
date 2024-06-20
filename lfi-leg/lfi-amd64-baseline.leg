@@ -353,6 +353,9 @@ Addr = (
         $$ = (Transform) {
             .val = xasprintf("%s(%%r14)", n.val)
         };
+        setguard(&$$, 1, (char*[]) {
+            strdup(".bundle_lock\n"),
+        });
         tfree(n);
     }
 )
