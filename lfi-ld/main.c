@@ -15,7 +15,26 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    FILE* f = fopen(argv[1], "r+");
+    char* filename = NULL;
+    // search for the -o flag that the linker was invoked with so we can write
+    // process that file
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-o") == 0) {
+            if (i == argc - 1) {
+                fprintf(stderr, "no value provided for -o");
+                exit(1);
+            }
+            filename = argv[i + 1];
+            i++;
+        }
+    }
+
+    if (!filename) {
+        fprintf(stderr, "no file found");
+        exit(1);
+    }
+
+    FILE* f = fopen(filename, "r+");
     if (!f) {
         fprintf(stderr, "error opening %s: %s\n", argv[1], strerror(errno));
         exit(1);
@@ -40,6 +59,11 @@ int main(int argc, char** argv) {
 
     struct elf_file_header* ehdr = (struct elf_file_header*) buf;
     struct elf_prog_header* phdr = (struct elf_prog_header*) &buf[ehdr->phoff];
+
+    if (ehdr->magic != ELF_MAGIC)
+        return 0;
+    if (ehdr->type != ET_DYN && ehdr->type != ET_EXEC)
+        return 0;
     
     size_t total = 0;
     for (int i = 0; i < ehdr->phnum; i++) {
