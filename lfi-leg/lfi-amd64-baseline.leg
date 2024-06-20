@@ -116,6 +116,7 @@ Insn = INDENT Label? (
       FnDirective
     | Directive
     | Leave
+    | ModLeaSP
     | Lea
     | Stos
     | Movs
@@ -129,6 +130,7 @@ Insn = INDENT Label? (
     | Load
     | Access
     | Branch
+    | BranchMem
     | BranchMemSafe
     | CallInd
     | CallIndMem
@@ -293,26 +295,7 @@ Addr = (
         });
     }
     # imm(...)
-    | (i:IMM b:AddrRegReg) {
-        $$ = (Transform) {
-            .val = strdup("(%r14, %r15)"),
-            .valrdi = strdup("(%rdi)"),
-            .post = strdup("movq %r15, %rdi"),
-        };
-        setguard(&$$, 3, (char*[]) {
-            xasprintf("leaq %s%s, %%r15", i.val, b.val),
-            strdup(".p2align 4\n"),
-            xasprintf("movl %%r15d, %%r15d"),
-        });
-        setguardrdi(&$$, 5, (char*[]){
-            strdup("movq %rdi, %r15"),
-            xasprintf("leaq %s%s, %%rdi", i.val, b.val),
-            strdup(".p2align 4\n"),
-            strdup("movl %edi, %edi"),
-            strdup("orq %r14, %rdi"),
-        });
-    }
-    | (i:IMM b:AddrRegRegImm) {
+    | (i:IMM b:AddrRegDisp) {
         $$ = (Transform) {
             .val = xasprintf("(%%r14, %%r15)"),
             .valrdi = xasprintf("(%%rdi)"),
@@ -332,7 +315,7 @@ Addr = (
         });
     }
     # (...)
-    | (b:AddrRegReg) {
+    | (b:AddrRegDisp) {
         $$ = (Transform) {
             .val = xasprintf("(%%r14, %%r15)"),
             .valrdi = xasprintf("(%%rdi)"),
@@ -351,32 +334,25 @@ Addr = (
             strdup("orq %r14, %rdi"),
         });
     }
-    | (b:AddrRegRegImm) {
+    # imm
+    | (n:NUM &(- (EOL | ';' | ','))) {
         $$ = (Transform) {
-            .val = xasprintf("(%%r14, %%r15)"),
-            .valrdi = xasprintf("(%%rdi)"),
-            .post = strdup("movq %r15, %rdi"),
+            .val = xasprintf("%s(%%r14)", n.val)
         };
-        setguard(&$$, 3, (char*[]) {
-            xasprintf("leaq %s, %%r15", b.val),
-            strdup(".p2align 4\n"),
-            xasprintf("movl %%r15d, %%r15d"),
-        });
-        setguardrdi(&$$, 5, (char*[]){
-            strdup("movq %rdi, %r15"),
-            xasprintf("leaq %s, %%rdi", b.val),
-            strdup(".p2align 4\n"),
-            strdup("movl %edi, %edi"),
-            strdup("orq %r14, %rdi"),
-        });
+        tfree(n);
     }
 )
 
-AddrRegReg = '(' (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) ')' {
+AddrRegDisp = AddrRegReg | AddrRegRegImm | AddrRegImm
+
+AddrRegReg = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) RP {
     $$ = (Transform) { .val = xasprintf("(%s, %s)", r1.val, r2.val) }
 }
-AddrRegRegImm = '(' (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) (COMMA i:IMM) ')' {
+AddrRegRegImm = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
     $$ = (Transform) { .val = xasprintf("(%s, %s, %s)", r1.val, r2.val, i.val) }
+}
+AddrRegImm = LP COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
+    $$ = (Transform) { .val = xasprintf("(, %s, %s)", r2.val, i.val) }
 }
 
 AddrReg = 'rsp' | 'rip'
@@ -444,6 +420,16 @@ Call = 'call' 'q'? - rest:ITEM {
     tfree(rest);
 }
 
+BranchMem = j:JMP - '*' a:Addr {
+    mkguards(a);
+    mkinsn("movq %s, %%r15\n", a.val);
+    mkcodedirective(".p2align 4\n");
+    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("orq %%r14, %%r15\n");
+    mkinsn("%s *%%r15\n", j.val);
+    tfree(j); tfree(a);
+}
+
 BranchMemSafe = j:JMP - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
     mkdirective(".p2align 4\n");
@@ -462,8 +448,10 @@ Branch = j:JMP - '*' r:XREG {
 }
 
 Leave = 'leave' 'q'? - {
+    mkcodedirective(".bundle_lock\n");
     mkinsn("movl %%ebp, %%esp\n");
     mkinsn("orq %%r14, %%rsp\n");
+    mkcodedirective(".bundle_unlock\n");
     mkinsn("popq %%rbp\n");
 }
 
@@ -488,6 +476,28 @@ Syscall = (( 'syscall' - ) | ( 'int' - '0x80' - )) {
 # --- reserved register modification ---
 
 ModSP = ModImmSP | ModRegSP
+
+AddrBP = (
+    # imm(...)
+    (i:IMM_VAR LP r:XREG RP) {
+        $$ = (Transform) {
+            .val = xasprintf("%s(%s)", i.val, lo(r.val)),
+        }
+    }
+    # (...)
+    | (LP r:XREG RP) {
+        $$ = (Transform) {
+            .val = xasprintf("(%s)", lo(r.val)),
+        }
+    }
+)
+
+ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
+    mkcodedirective(".bundle_lock\n");
+    mkinsn("leal %s, %%esp\n", a.val);
+    mkinsn("orq %%r14, %%rsp\n");
+    mkcodedirective(".bundle_unlock\n");
+}
 
 ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
     char* op = l(m.val);
@@ -537,6 +547,10 @@ NAME = < ('lock' - [\r\n;]? -)? ID > - { $$ = (Transform) { .val = strclean(yyte
 IMM = < IMM_RAW > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
 
 IMM_VAR = < ([-+a-zA-Z0-9_.@]+ | BALANCED_RAW) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) } }
+
+NUM = < (('0x' [0-9a-fA-F]+) | [0-9]+) > - {
+    $$ = (Transform) { .val = strndup(yytext, yyleng) };
+}
 
 IMM_RAW = (
     ('$' -)? 
