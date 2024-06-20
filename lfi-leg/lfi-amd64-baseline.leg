@@ -8,6 +8,8 @@
 #include "ht.h"
 #include "op.h"
 
+#define BUNDLE_P2 "4"
+
 extern FILE* input;
 extern FILE* output;
 
@@ -168,10 +170,11 @@ AnyInsn = rest:REMAINDER {
 # --- loads and stores ---
 
 Stos = s:STOS rest:REMAINDER {
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".bundle_lock\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
     mkinsn("%s %s\n", s.val, rest.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(s);
 }
 
@@ -180,12 +183,13 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
 }
 
 Movs = m:MOVS (LP | &(EOL | ';')) (!(EOL | ';') .)* {
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".bundle_lock\n");
     mkinsn("movl %%edi, %%edi\n");
     mkinsn("leaq (%%r14, %%rdi), %%rdi\n");
     mkinsn("movl %%esi, %%esi\n");
     mkinsn("leaq (%%r14, %%rsi), %%rsi\n");
     mkinsn("%s\n", m.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m);
 }
 
@@ -203,14 +207,17 @@ LEA = < ('lea' [wlq]?) > - { $$ = (Transform) { .val = strndup(yytext, yyleng) }
 Access = m:NAME a:Addr {
     mkguards(a);
     mkinsn("%s %s\n", m.val, a.val);
+    mkcodedirective(".bundle_unlock\n");
 }
 
 LoadH = m:NAME a:Addr COMMA r:HREG {
-    if (!mkguardsh(a))
+    if (!mkguardsh(a)) {
         mkinsn("%s %s, %s\n", m.val, a.val, r.val);
-    else {
+        mkcodedirective(".bundle_unlock\n");
+    } else {
         mkinsn("%s %s, %s\n", m.val, a.valrdi, r.val);
         mkinsn("%s\n", a.post);
+        mkcodedirective(".bundle_unlock\n");
     }
     tfree(m); tfree(a); tfree(r);
 }
@@ -218,15 +225,18 @@ LoadH = m:NAME a:Addr COMMA r:HREG {
 Load = m:NAME a:Addr COMMA r:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s\n", m.val, a.val, r.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(a); tfree(r);
 }
 
 StoreH = m:NAME r:HREG COMMA a:Addr {
-    if (!mkguardsh(a))
+    if (!mkguardsh(a)) {
         mkinsn("%s %s, %s\n", m.val, r.val, a.val);
-    else {
+        mkcodedirective(".bundle_unlock\n");
+    } else {
         mkinsn("%s %s, %s\n", m.val, r.val, a.valrdi);
         mkinsn("%s\n", a.post);
+        mkcodedirective(".bundle_unlock\n");
     }
     tfree(m); tfree(a); tfree(r);
 }
@@ -234,24 +244,28 @@ StoreH = m:NAME r:HREG COMMA a:Addr {
 Store = m:NAME r:ITEM COMMA a:Addr {
     mkguards(a);
     mkinsn("%s %s, %s\n", m.val, r.val, a.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(a); tfree(r);
 }
 
 Triple0 = m:NAME a:Addr COMMA r1:ITEM COMMA r2:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s, %s\n", m.val, r1.val, a.val, r2.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
     mkguards(a);
     mkinsn("%s %s, %s, %s\n", m.val, a.val, r1.val, r2.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(a); tfree(r1); tfree(r2);
 }
 
@@ -264,13 +278,13 @@ Addr = (
             .post = strdup("movq %r15, %rdi"),
         };
         setguard(&$$, 2, (char*[]) {
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             xasprintf("movl %s, %%r15d", lo(r.val))
         });
         setguardrdi(&$$, 5, (char*[]){
             strdup("movq %rdi, %r15"),
             xasprintf("leaq (%s), %%rdi", r.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             strdup("movl %edi, %edi"),
             strdup("orq %r14, %rdi"),
         });
@@ -283,13 +297,13 @@ Addr = (
             .post = strdup("movq %r15, %rdi"),
         };
         setguard(&$$, 2, (char*[]) {
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             xasprintf("movl %s, %%r15d", lo(r.val))
         });
         setguardrdi(&$$, 5, (char*[]){
             strdup("movq %rdi, %r15"),
             xasprintf("leaq %s(%s), %%rdi", i.val, r.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             strdup("movl %edi, %edi"),
             strdup("orq %r14, %rdi"),
         });
@@ -303,13 +317,13 @@ Addr = (
         };
         setguard(&$$, 3, (char*[]) {
             xasprintf("leaq %s%s, %%r15", i.val, b.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             xasprintf("movl %%r15d, %%r15d"),
         });
         setguardrdi(&$$, 5, (char*[]){
             strdup("movq %rdi, %r15"),
             xasprintf("leaq %s%s, %%rdi", i.val, b.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             strdup("movl %edi, %edi"),
             strdup("orq %r14, %rdi"),
         });
@@ -323,13 +337,13 @@ Addr = (
         };
         setguard(&$$, 3, (char*[]) {
             xasprintf("leaq %s, %%r15", b.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             xasprintf("movl %%r15d, %%r15d"),
         });
         setguardrdi(&$$, 5, (char*[]){
             strdup("movq %rdi, %r15"),
             xasprintf("leaq %s, %%rdi", b.val),
-            strdup(".p2align 4\n"),
+            strdup(".bundle_lock\n"),
             strdup("movl %edi, %edi"),
             strdup("orq %r14, %rdi"),
         });
@@ -384,7 +398,7 @@ BALANCED = < BALANCED_RAW > {
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15\n", r.val);
-    mkdirective(".p2align 4\n");
+    mkdirective(".p2align " BUNDLE_P2 "\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
@@ -395,7 +409,8 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkguards(a);
     mkinsn("movq %s, %r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkcodedirective(".bundle_unlock\n");
+    mkdirective(".p2align " BUNDLE_P2 "\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
@@ -405,7 +420,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
 
 CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
     mkinsn("movq %s, %r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkdirective(".p2align " BUNDLE_P2 "\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
@@ -414,7 +429,7 @@ CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkdirective(".p2align 4\n");
+    mkdirective(".p2align " BUNDLE_P2 "\n");
     mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
     tfree(rest);
@@ -423,27 +438,31 @@ Call = 'call' 'q'? - rest:ITEM {
 BranchMem = j:JMP - '*' a:Addr {
     mkguards(a);
     mkinsn("movq %s, %%r15\n", a.val);
-    mkcodedirective(".p2align 4\n");
+    mkcodedirective(".bundle_unlock\n");
+    mkcodedirective(".bundle_lock\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("%s *%%r15\n", j.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(j); tfree(a);
 }
 
 BranchMemSafe = j:JMP - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
-    mkdirective(".p2align 4\n");
+    mkdirective(".bundle_lock\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("%s *%%r15\n", j.val);
+    mkcodedirective(".bundle_unlock\n");
     tfree(j); tfree(a);
 }
 
 Branch = j:JMP - '*' r:XREG {
-    mkdirective(".p2align 4\n");
+    mkdirective(".bundle_lock\n");
     mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
     mkinsn("orq %%r14, %s\n", r.val);
     mkinsn("%s *%s\n", j.val, r.val);
+    mkdirective(".bundle_unlock\n");
     tfree(j); tfree(r);
 }
 
@@ -461,10 +480,11 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 
 Ret = 'ret' 'q'? - {
     mkinsn("popq %%r15\n");
-    mkdirective(".p2align 4\n");
+    mkdirective(".bundle_lock\n");
     mkinsn("andl $0xfffffff0, %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");
+    mkdirective(".bundle_unlock\n");
 }
 
 # --- syscalls ---
@@ -501,15 +521,19 @@ ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
 
 ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
     char* op = l(m.val);
+    mkcodedirective(".bundle_lock\n");
     mkinsn("%s %s, %%esp\n", op, i.val);
     mkinsn("orq %%r14, %%rsp\n");
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(i); free(op);
 }
 
 ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
     char* op = l(m.val);
+    mkcodedirective(".bundle_lock\n");
     mkinsn("%s %s, %%esp\n", op, lo(r.val));
     mkinsn("orq %%r14, %%rsp\n");
+    mkcodedirective(".bundle_unlock\n");
     tfree(m); tfree(r); free(op);
 }
 
@@ -537,7 +561,7 @@ Directive = < '.' (!EOL .)* > - {
 
 FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
     mkdirective(xasprintf("%s\n", yytext));
-    mkdirective(".p2align 4\n");
+    mkdirective(".p2align " BUNDLE_P2 "\n");
 }
 
 NAME = < ('lock' - [\r\n;]? -)? ID > - { $$ = (Transform) { .val = strclean(yytext, yyleng) } }
@@ -694,9 +718,11 @@ lfigen()
     if (!yyparse())
         return false;
 
-    fprintf(output, ".bundle_align_mode 4\n");
+    fprintf(output, ".bundle_align_mode " BUNDLE_P2 "\n");
     struct op* op = ops;
     while (op) {
+        if (op->label && op->next && (op->next->insn || op->next->code))
+            fprintf(output, ".p2align " BUNDLE_P2 "\n");
         fprintf(output, "%s", op->text);
         op = op->next;
     }
