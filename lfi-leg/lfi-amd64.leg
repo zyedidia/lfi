@@ -276,11 +276,10 @@ Addr = (
     # imm(...)
     | (i:IMM b:AddrRegDisp) {
         $$ = (Transform) {
-            .val = xasprintf("%%gs:(%%r15d)"),
+            .val = xasprintf("%%gs:%s%s", i.val, b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("movq %r15, %rdi"),
         };
-        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s%s, %%r15", i.val, b.val) });
         setguardrdi(&$$, 2, (char*[]){
             xasprintf("movq %%rdi, %%r15"),
             xasprintf("leaq %s%s, %%rdi", i.val, b.val),
@@ -289,11 +288,10 @@ Addr = (
     # (...)
     | (b:AddrRegDisp) {
         $$ = (Transform) {
-            .val = xasprintf("%%gs:(%%r15d)"),
+            .val = xasprintf("%%gs:%s", b.val),
             .valrdi = xasprintf("%%gs:(%%edi)"),
             .post = strdup("movq %r15, %rdi"),
         };
-        setguard(&$$, 1, (char*[]){ xasprintf("leaq %s, %%r15", b.val) });
         setguardrdi(&$$, 2, (char*[]){
             xasprintf("movq %%rdi, %%r15"),
             xasprintf("leaq %s, %%rdi", b.val),
@@ -311,13 +309,13 @@ Addr = (
 AddrRegDisp = AddrRegReg | AddrRegRegImm | AddrRegImm
 
 AddrRegReg = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) RP {
-    $$ = (Transform) { .val = xasprintf("(%s, %s)", r1.val, r2.val) }
+    $$ = (Transform) { .val = xasprintf("(%s, %s)", lo(r1.val), lo(r2.val)) }
 }
 AddrRegRegImm = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
-    $$ = (Transform) { .val = xasprintf("(%s, %s, %s)", r1.val, r2.val, i.val) }
+    $$ = (Transform) { .val = xasprintf("(%s, %s, %s)", lo(r1.val), lo(r2.val), i.val) }
 }
 AddrRegImm = LP COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
-    $$ = (Transform) { .val = xasprintf("(, %s, %s)", r2.val, i.val) }
+    $$ = (Transform) { .val = xasprintf("(, %s, %s)", lo(r2.val), i.val) }
 }
 
 AddrReg = 'rsp' | 'rip'
