@@ -8,7 +8,11 @@
 #include "ht.h"
 #include "op.h"
 
-#define BUNDLE_P2 "4"
+#define BUNDLE_MASK_16 "0xfffffff0"
+#define BUNDLE_MASK_32 "0xffffffe0"
+
+#define BUNDLE_P2 "5"
+#define BUNDLE_MASK BUNDLE_MASK_16
 
 extern FILE* input;
 extern FILE* output;
@@ -401,11 +405,12 @@ BALANCED = < BALANCED_RAW > {
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15\n", r.val);
-    mkdirective(".p2align " BUNDLE_P2 "\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkcodedirective(".bundle_lock\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
+    mkcodedirective(".bundle_unlock\n");
+    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(r);
 }
 
@@ -413,28 +418,29 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkguards(a);
     mkinsn("movq %s, %r15\n", a.val);
     mkcodedirective(".bundle_unlock\n");
-    mkdirective(".p2align " BUNDLE_P2 "\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkcodedirective(".bundle_lock\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
+    mkcodedirective(".bundle_unlock\n");
+    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(a);
 }
 
 CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
     mkinsn("movq %s, %r15\n", a.val);
-    mkdirective(".p2align " BUNDLE_P2 "\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkcodedirective(".bundle_lock\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
+    mkcodedirective(".bundle_unlock\n");
+    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkdirective(".p2align " BUNDLE_P2 "\n");
-    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
     mkinsn("callq %s\n", rest.val);
+    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(rest);
 }
 
@@ -443,7 +449,7 @@ BranchMem = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r15\n", a.val);
     mkcodedirective(".bundle_unlock\n");
     mkcodedirective(".bundle_lock\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("%s *%%r15\n", j.val);
     mkcodedirective(".bundle_unlock\n");
@@ -453,7 +459,7 @@ BranchMem = j:JMP - '*' a:Addr {
 BranchMemSafe = j:JMP - '*' a:AddrNoMod {
     mkinsn("movq %s, %%r15\n", a.val);
     mkdirective(".bundle_lock\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("%s *%%r15\n", j.val);
     mkcodedirective(".bundle_unlock\n");
@@ -462,7 +468,7 @@ BranchMemSafe = j:JMP - '*' a:AddrNoMod {
 
 Branch = j:JMP - '*' r:XREG {
     mkdirective(".bundle_lock\n");
-    mkinsn("andl $0xfffffff0, %s\n", lo(r.val));
+    mkinsn("andl $" BUNDLE_MASK ", %s\n", lo(r.val));
     mkinsn("orq %%r14, %s\n", r.val);
     mkinsn("%s *%s\n", j.val, r.val);
     mkdirective(".bundle_unlock\n");
@@ -484,7 +490,7 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 Ret = 'ret' 'q'? - {
     mkinsn("popq %%r15\n");
     mkdirective(".bundle_lock\n");
-    mkinsn("andl $0xfffffff0, %%r15d\n");
+    mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
     mkinsn("jmpq *%%r15\n");
     mkdirective(".bundle_unlock\n");
