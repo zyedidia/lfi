@@ -219,6 +219,8 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_proc_clear(&proc->segments);
 }
 
+void lfi_rewrite_code(uint8_t* insns, size_t n, size_t addr);
+
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
     if (proc->guards[0].base != 0) {
         lfi_proc_clear_regions(proc);
@@ -291,6 +293,10 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 
         memcpy((void*) (seg.base + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg.base + offset + p->filesz), 0, p->memsz - p->filesz);
+
+        if ((p->flags & PF_X) != 0) {
+            lfi_rewrite_code((uint8_t*) (seg.base + offset), p->memsz, start + offset);
+        }
 
         if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) {
             goto err1;

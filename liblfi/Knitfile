@@ -25,7 +25,7 @@ return b{
     $ liblfi.a: $obj
         ar rcs $output $input
     $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output -I. -DARCH_$arch
+        $cc $cflags -MD -MF $dep -c $input -o $output -I. -DARCH_$arch -DZYDIS_STATIC_BUILD
     $ .%.o: %.S
         $cc -c $input -o $output
 

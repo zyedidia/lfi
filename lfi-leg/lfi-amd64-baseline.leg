@@ -11,7 +11,7 @@
 #define BUNDLE_MASK_16 "0xfffffff0"
 #define BUNDLE_MASK_32 "0xffffffe0"
 
-#define BUNDLE_P2 "5"
+#define BUNDLE_P2 "4"
 #define BUNDLE_MASK BUNDLE_MASK_16
 
 extern FILE* input;
@@ -168,7 +168,8 @@ AnyInsnPrefix = p:PREFIX rest:REMAINDER {
 }
 
 AnyInsn = rest:REMAINDER {
-    mkinsn("%s\n", rest.val);
+    if (strlen(rest.val) > 0)
+        mkinsn("%s\n", rest.val);
 }
 
 # --- loads and stores ---

@@ -4,10 +4,10 @@
 #include <Zydis/Zydis.h>
 
 enum {
-    BUNDLE_SIZE = 32,
+    BUNDLE_SIZE = 16,
 };
 
-void rewrite(uint8_t* insns, size_t n, size_t addr) {
+void lfi_rewrite_code(uint8_t* insns, size_t n, size_t addr) {
     ZydisDecoder decoder;
     ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
 

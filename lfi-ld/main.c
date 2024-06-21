@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
         return 0;
     if (ehdr->type != ET_DYN && ehdr->type != ET_EXEC)
         return 0;
+    printf("rewriting\n");
     
     size_t total = 0;
     for (int i = 0; i < ehdr->phnum; i++) {
