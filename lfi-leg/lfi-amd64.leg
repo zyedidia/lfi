@@ -643,8 +643,6 @@ lfigen()
     fprintf(output, ".bundle_align_mode " BUNDLE_P2 "\n");
     struct op* op = ops;
     while (op) {
-        if (op->label && op->next && (op->next->insn || op->next->code))
-            fprintf(output, ".p2align " BUNDLE_P2 "\n");
         fprintf(output, "%s", op->text);
         op = op->next;
     }
