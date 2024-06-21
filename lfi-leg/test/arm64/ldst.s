@@ -122,3 +122,12 @@ ldp x29, x30, [x18, #0xAf]
 add x18, x21, w18, uxtw
 ldp x29, x22, [x18, #0xAf]
 add x30, x21, w22, uxtw
+------
+str x30, [x0]
+>>>
+str x30, [x21, w0, uxtw]
+------
+stp x29, x30, [x0]
+>>>
+add x18, x21, w0, uxtw
+stp x29, x30, [x18]

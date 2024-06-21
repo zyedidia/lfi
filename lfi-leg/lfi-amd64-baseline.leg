@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <util.h>
 #include <assert.h>
-#include <keystone/keystone.h>
 
 #include "amd64.h"
 #include "ht.h"

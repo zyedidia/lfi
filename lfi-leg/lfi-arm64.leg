@@ -39,14 +39,18 @@ ldst(Transform l, Transform rt, Transform addr, bool isload)
         else
             mkinsn("%s\n", addr.guard);
     if (isres(rt.val)) {
-        if (!isload)
-            mkinsn("mov w22, w%s\n", num(rt.val));
-        if (args.poc && strcmp(rt.val, "x30") == 0 && addr.valx30)
-            mkinsn("%s x22, %s\n", l.val, addr.valx30);
-        else
-            mkinsn("%s x22, %s\n", l.val, addr.val);
-        if (isload)
-            mkinsn("add %s, x21, w22, uxtw\n", rt.val);
+        if (!isload && !args.poc) {
+            mkinsn("%s %s, %s\n", l.val, rt.val, addr.val);
+        } else {
+            if (!isload)
+                mkinsn("mov w22, w%s\n", num(rt.val));
+            if (args.poc && strcmp(rt.val, "x30") == 0 && addr.valx30)
+                mkinsn("%s x22, %s\n", l.val, addr.valx30);
+            else
+                mkinsn("%s x22, %s\n", l.val, addr.val);
+            if (isload)
+                mkinsn("add %s, x21, w22, uxtw\n", rt.val);
+        }
     } else {
         mkinsn("%s %s, %s\n", l.val, rt.val, addr.val);
     }
@@ -67,15 +71,27 @@ ldstmulti(Transform l, Transform rt1, Transform rt2, Transform addr, bool isload
             free(rt2.val); rt2.val = strdup("xzr");
         }
         if (isres(rt1.val)) {
-            if (!isload)
+            if (!isload && args.poc) {
                 mkinsn("mov w22, w%s\n", num(rt1.val));
-            mkinsn("%s x22, %s, %s\n", l.val, rt2.val, addr.val);
+                mkinsn("%s x22, %s, %s\n", l.val, rt2.val, addr.val);
+            } else {
+                if (isload)
+                    mkinsn("%s x22, %s, %s\n", l.val, rt2.val, addr.val);
+                else
+                    mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+            }
             if (isload)
                 mkinsn("add %s, x21, w22, uxtw\n", rt1.val);
         } else if (isres(rt2.val)) {
-            if (!isload)
+            if (!isload && args.poc) {
                 mkinsn("mov w22, w%s\n", num(rt2.val));
-            mkinsn("%s %s, x22, %s\n", l.val, rt1.val, addr.val);
+                mkinsn("%s %s, x22, %s\n", l.val, rt1.val, addr.val);
+            } else {
+                if (isload)
+                    mkinsn("%s %s, x22, %s\n", l.val, rt1.val, addr.val);
+                else
+                    mkinsn("%s %s, %s, %s\n", l.val, rt1.val, rt2.val, addr.val);
+            }
             if (isload)
                 mkinsn("add %s, x21, w22, uxtw\n", rt2.val);
         } else {
