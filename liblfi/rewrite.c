@@ -4,7 +4,7 @@
 #include <Zydis/Zydis.h>
 
 enum {
-    BUNDLE_SIZE = 16,
+    BUNDLE_SIZE = 32,
 };
 
 void lfi_rewrite_code(uint8_t* insns, size_t n, size_t addr) {

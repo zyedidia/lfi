@@ -11,8 +11,8 @@
 #define BUNDLE_MASK_16 "0xfffffff0"
 #define BUNDLE_MASK_32 "0xffffffe0"
 
-#define BUNDLE_P2 "4"
-#define BUNDLE_MASK BUNDLE_MASK_16
+#define BUNDLE_P2 "5"
+#define BUNDLE_MASK BUNDLE_MASK_32
 
 extern FILE* input;
 extern FILE* output;
