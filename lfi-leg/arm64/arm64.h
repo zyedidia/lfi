@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "args.h"
+
 static const char*
 num(const char* reg)
 {
@@ -19,7 +21,7 @@ isfixed(const char* reg)
         return true;
     if (strncmp(reg, "x21", 3) == 0)
         return true;
-    if (strncmp(reg, "x25", 3) == 0)
+    if (args.sysexternal && strncmp(reg, "x25", 3) == 0)
         return true;
     return false;
 }

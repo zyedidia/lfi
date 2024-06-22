@@ -1,6 +1,7 @@
 %{
 #include "arm64.h"
 #include "op.h"
+#include "args.h"
 
 #define YY_INPUT(ctx, buf, result, max_size)   \
 {                                              \
@@ -11,7 +12,7 @@
 
 Syscall = < 'svc' - (!EOL .)* > - {
     mkinsn("str x30, [sp, #-16]!");
-    mkinsn("ldr x30, [x25]");
+    mkinsn("ldr x30, [%s]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
     mkinsn("ldr x22, [sp], 16");
     mkinsn("add x30, x21, w22, uxtw");

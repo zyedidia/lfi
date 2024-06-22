@@ -31,3 +31,22 @@ mov w29, wsp
 add x0, sp, #0x20
 >>>
 add w0, wsp, #0x20
+------
+ldr x25, [x0]
+>>>
+------
+str x25, [x0]
+>>>
+------
+str x21, [x0]
+>>>
+------
+ldp x25, x26, [x0]
+>>>
+add x18, x21, w0, uxtw
+ldp xzr, x26, [x18]
+------
+stp x25, x26, [x0]
+>>>
+add x18, x21, w0, uxtw
+stp xzr, x26, [x18]

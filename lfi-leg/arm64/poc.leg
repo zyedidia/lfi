@@ -39,40 +39,60 @@ StRes = StNormalResAddr | StMultiRes1Addr | StMultiRes2Addr | StNormalRes | StMu
 
 StNormalResAddr = 'str' - res:RESREG COMMA r:AddrPoc {
     mkinsn("%s", r.pre);
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("str x22, %s", r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("str x22, %s", r.val);
+    }
     rfree(r); rfree(res);
 }
 
 StMultiRes1Addr = 'stp' - res:RESREG COMMA reg:RESREG COMMA r:AddrPoc {
     mkinsn("%s", r.pre);
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("stp x22, %s, %s", reg.val, r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("stp x22, %s, %s", reg.val, r.val);
+    } else {
+        mkinsn("stp xzr, %s, %s", reg.val, r.val);
+    }
     rfree(r); rfree(reg); rfree(res);
 }
 
 StMultiRes2Addr = 'stp' - reg:REG COMMA res:RESREG COMMA r:AddrPoc {
     mkinsn("%s", r.pre);
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("stp %s, x22, %s", reg.val, r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("stp %s, x22, %s", reg.val, r.val);
+    } else {
+        mkinsn("stp %s, xzr, %s", reg.val, r.val);
+    }
     rfree(r); rfree(reg); rfree(res);
 }
 
 StNormalRes = 'str' - res:RESREG COMMA r:REMAINDER {
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("str x22, %s", r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("str x22, %s", r.val);
+    }
     rfree(r); rfree(res);
 }
 
 StMultiRes1 = 'stp' - res:RESREG COMMA reg:REG COMMA r:REMAINDER {
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("stp x22, %s, %s", reg.val, r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("stp x22, %s, %s", reg.val, r.val);
+    } else {
+        mkinsn("stp xzr, %s, %s", reg.val, r.val);
+    }
     rfree(r); rfree(reg); rfree(res);
 }
 
 StMultiRes2 = 'stp' - reg:REG COMMA res:RESREG COMMA r:REMAINDER {
-    mkinsn("mov w22, w%s", num(res.val));
-    mkinsn("stp %s, x22, %s", reg.val, r.val);
+    if (!isfixed(res.val)) {
+        mkinsn("mov w22, w%s", num(res.val));
+        mkinsn("stp %s, x22, %s", reg.val, r.val);
+    } else {
+        mkinsn("stp %s, xzr, %s", reg.val, r.val);
+    }
     rfree(r); rfree(reg); rfree(res);
 }
 

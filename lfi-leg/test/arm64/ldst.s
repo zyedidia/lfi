@@ -105,11 +105,11 @@ add x22, x0, #8
 ldr x0, [x21, w22, uxtw]
 ------
 ldp x20, x18, [x0]
-ldp x20, x21, [x0]
+ldp x20, x21, [x1]
 >>>
 add x18, x21, w0, uxtw
 ldp x20, xzr, [x18]
-add x18, x21, w0, uxtw
+add x18, x21, w1, uxtw
 ldp x20, xzr, [x18]
 ------
 ld1r {v3.2d}, [x9]
@@ -131,3 +131,7 @@ stp x29, x30, [x0]
 >>>
 add x18, x21, w0, uxtw
 stp x29, x30, [x18]
+------
+str x25, [x0]
+>>>
+str x25, [x21, w0, uxtw]

@@ -5,6 +5,8 @@ struct arguments {
     char* output;
     bool poc;
     bool storesonly;
+    bool sysexternal;
+    bool noguardelim;
 };
 
 extern struct arguments args;

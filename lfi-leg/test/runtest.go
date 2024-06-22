@@ -11,7 +11,8 @@ import (
 )
 
 var testflags = map[string][]string{
-	"poc.s": []string{"--poc"},
+	"poc.s":         []string{"--poc"},
+	"sysexternal.s": []string{"--sys-external"},
 }
 
 func fatal(err ...interface{}) {

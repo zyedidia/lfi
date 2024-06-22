@@ -22,17 +22,20 @@ ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
 LdRes = LdNormalRes | LdMultiRes1 | LdMultiRes2
 
 LdNormalRes = 'ldr' - r:RESREG COMMA rest:REMAINDER {
-    if (!isfixed(r.val)) {
+    if (!isfixed(r.val) && !isres(r.val)) {
+        // false positive on RESREG due to flags
+        mkinsn("ldr %s, %s", r.val, rest.val);
+    } else if (!isfixed(r.val)) {
         mkinsn("ldr x22, %s", rest.val);
         mkinsn("add %s, x21, w22, uxtw", r.val);
-    } else {
-        mkinsn("ldr xzr, %s", rest.val);
     }
     rfree(r); rfree(rest);
 }
 
 LdMultiRes1 = 'ldp' - res:RESREG COMMA reg:REG COMMA rest:REMAINDER {
-    if (!isfixed(res.val)) {
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("ldp %s, %s, %s", res.val, reg.val, rest.val);
+    } else if (!isfixed(res.val)) {
         mkinsn("ldp x22, %s, %s", reg.val, rest.val);
         mkinsn("add %s, x21, w22, uxtw", res.val);
     } else {
@@ -42,7 +45,9 @@ LdMultiRes1 = 'ldp' - res:RESREG COMMA reg:REG COMMA rest:REMAINDER {
 }
 
 LdMultiRes2 = 'ldp' - reg:REG COMMA res:RESREG COMMA rest:REMAINDER {
-    if (!isfixed(res.val)) {
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("ldp %s, %s, %s", reg.val, res.val, rest.val);
+    } else if (!isfixed(res.val)) {
         mkinsn("ldp %s, x22, %s", reg.val, rest.val);
         mkinsn("add %s, x21, w22, uxtw", res.val);
     } else {

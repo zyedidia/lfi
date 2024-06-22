@@ -12,7 +12,9 @@ static char args_doc[] = "INPUT";
 
 static struct argp_option options[] = {
     { "output",         'o', "FILE", 0, "Output to FILE instead of standard output" },
-    { "poc",            'p', 0,      0, "Produce position-oblivious code" },
+    { "poc",            'p', 0,      0, "Produce position-oblivious code (implies -e)" },
+    { "sys-external",   'e', 0,      0, "Store runtime call table outside sandbox"},
+    { "no-guard-elim",  'g', 0, 0, "Do not run redundant guard elimination"},
     // { "meter",          'm', 0,      0, "Enable gas metering for preemption (TODO)" },
     // bundle sizes
     // deterministic
@@ -32,9 +34,16 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case 'p':
         args->poc = true;
+        args->sysexternal = true;
         break;
     case 's':
         args->storesonly = true;
+        break;
+    case 'g':
+        args->noguardelim = true;
+        break;
+    case 'e':
+        args->sysexternal = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;
@@ -85,6 +94,8 @@ void loadspass(struct op*);
 void storespass(struct op*);
 void syscallpass(struct op*);
 
+void guardelim(struct op* ops);
+
 Pass passes[] = {
     (Pass) { .fn = &specialpass },
     (Pass) { .fn = &pocpass, .disabled = true },
@@ -131,6 +142,9 @@ main(int argc, char** argv)
             op = next;
         }
     }
+
+    if (!args.noguardelim)
+        guardelim(ops);
 
     display(output, ops);
 
