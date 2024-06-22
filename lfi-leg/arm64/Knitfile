@@ -9,4 +9,7 @@ return b{
         leg -P -o $output $input
     $ .%.o:D[.%.dep]: %.c
         cc -O2 -MMD -MF $dep -c $input -o $output
+    $ install-%:VB: %
+        sudo install $input /usr/local/bin
+    $ install:VB: install-lfi-leg-arm64
 }
