@@ -14,8 +14,12 @@
 Top = ModSpecial | LdRes
 
 ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
-    mkinsn("%s x22, %s", i.val, r.val);
-    mkinsn("add %s, x21, w22, uxtw", res.val);
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("%s %s, %s", i.val, res.val, r.val);
+    } else {
+        mkinsn("%s x22, %s", i.val, r.val);
+        mkinsn("add %s, x21, w22, uxtw", res.val);
+    }
     rfree(r); rfree(res); rfree(i);
 }
 

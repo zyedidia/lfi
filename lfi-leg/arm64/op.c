@@ -91,7 +91,7 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
     struct op* op = mkop();
     op->shortbr = true;
     op->insn = true;
-    op->text = xasprintf("%s %s, %s, %s\n", tbz, reg, imm, label);
+    op->text = xasprintf("%s %s, %s, %s", tbz, reg, imm, label);
     op->target = strdup(label);
 
     op->replace = xasprintf(
