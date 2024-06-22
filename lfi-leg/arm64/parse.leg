@@ -43,7 +43,7 @@ parseinit()
 {
     yycontext ctx;
     memset(&ctx, 0, sizeof(yycontext));
-    if (!yyparse(&ctx))
-        return false;
-    return true;
+    bool success = yyparse(&ctx);
+    yyrelease(&ctx);
+    return success;
 }

@@ -4,7 +4,8 @@
 
 #define YY_INPUT(ctx, buf, result, max_size)   \
 {                                              \
-    char yyc = ctx->op->text[ctx->idx++];      \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
 
@@ -73,5 +74,6 @@ guardelim(struct op* ops)
         if (redundant)
             opremove(op);
         op = op->next;
+        yyrelease(&ctx);
     }
 }

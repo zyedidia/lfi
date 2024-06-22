@@ -131,6 +131,7 @@ main(int argc, char** argv)
         if (args.poc && passes[i].fn == &pocpass)
             passes[i].disabled = false;
     }
+    printf("init\n");
 
     for (size_t i = 0; i < npass; i++) {
         if (passes[i].disabled)

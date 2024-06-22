@@ -75,4 +75,5 @@ specialpass(struct op* op)
         opremove(op);
         opfree(op);
     }
+    yyrelease(&ctx);
 }
