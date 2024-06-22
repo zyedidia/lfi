@@ -1,58 +1,64 @@
 #define N_RTCALLS 256
 
+#ifdef SYSEXTERNAL
+#define SYSREG x25
+#else
+#define SYSREG x21
+#endif
+
 .text
 
-// save registers, assuming sandbox syspage is x25
+// save registers, assuming sandbox syspage is x21
 .macro SAVE_REGS
-	ldr x25,      [x25, #N_RTCALLS*8] // x25 now points to struct proc
-	stp x0, x1,   [x25, #8+16*0]
-	stp x2, x3,   [x25, #8+16*1]
-	stp x4, x5,   [x25, #8+16*2]
-	stp x6, x7,   [x25, #8+16*3]
-	stp x8, x9,   [x25, #8+16*4]
-	stp x18, x19, [x25, #8+16*9]
-	str x20,      [x25, #8+16*10]
-	stp x22, x23, [x25, #8+16*11]
-	str x24,      [x25, #8+16*12]
-	stp x26, x27, [x25, #8+16*13]
-	stp x28, x29, [x25, #8+16*14]
-	stp q8, q9,   [x25, #16*19+32*4]
-	stp q10, q11, [x25, #16*19+32*5]
-	stp q12, q13, [x25, #16*19+32*6]
-	stp q14, q15, [x25, #16*19+32*7]
+	ldr x21,      [SYSREG, #N_RTCALLS*8] // x21 now points to struct proc
+	stp x0, x1,   [x21, #8+16*0]
+	stp x2, x3,   [x21, #8+16*1]
+	stp x4, x5,   [x21, #8+16*2]
+	stp x6, x7,   [x21, #8+16*3]
+	stp x8, x9,   [x21, #8+16*4]
+	stp x18, x19, [x21, #8+16*9]
+	str x20,      [x21, #8+16*10]
+	stp x22, x23, [x21, #8+16*11]
+	str x24,      [x21, #8+16*12]
+	stp x26, x27, [x21, #8+16*13]
+	stp x28, x29, [x21, #8+16*14]
+	stp q8, q9,   [x21, #16*19+32*4]
+	stp q10, q11, [x21, #16*19+32*5]
+	stp q12, q13, [x21, #16*19+32*6]
+	stp q14, q15, [x21, #16*19+32*7]
 	mov x1, sp
-	stp x30, x1,  [x25, #8+16*15]
+	stp x30, x1,  [x21, #8+16*15]
 	mrs x1, nzcv
 	mrs x2, fpsr
-	stp x1, x2, [x25, #8+8*34]
+	stp x1, x2, [x21, #8+8*34]
 	mrs x1, tpidr_el0
-	str x1,     [x25, #8+8*36]
-	// reset x25 by loading it back
-	ldr x25,    [x25, #8+16*12+8]
+	str x1,     [x21, #8+8*36]
+	// reset x21 by loading it back
+	ldr x21,    [x21, #8+16*10+8]
 .endm
 
-// save caller-saved registers, assuming sandbox syspage is x25
+// save caller-saved registers, assuming sandbox syspage is x21
 .macro SAVE_PARTIAL_REGS
-	ldr x25,      [x25, #N_RTCALLS*8] // x25 now points to struct proc
-	stp x0, x1,   [x25, #8+16*0]
-	stp x2, x3,   [x25, #8+16*1]
-	stp x4, x5,   [x25, #8+16*2]
-	stp x6, x7,   [x25, #8+16*3]
-	stp x8, x9,   [x25, #8+16*4]
-	stp x10, x11, [x25, #8+16*5]
-	stp x12, x13, [x25, #8+16*6]
-	stp x14, x15, [x25, #8+16*7]
-	stp x16, x17, [x25, #8+16*8]
-	str x18,      [x25, #8+16*9]
+	ldr x21,      [SYSREG, #N_RTCALLS*8] // x21 now points to struct proc
+	stp x0, x1,   [x21, #8+16*0]
+	stp x2, x3,   [x21, #8+16*1]
+	stp x4, x5,   [x21, #8+16*2]
+	stp x6, x7,   [x21, #8+16*3]
+	stp x8, x9,   [x21, #8+16*4]
+	stp x10, x11, [x21, #8+16*5]
+	stp x12, x13, [x21, #8+16*6]
+	stp x14, x15, [x21, #8+16*7]
+	stp x16, x17, [x21, #8+16*8]
+	str x18,      [x21, #8+16*9]
 	mov x1, sp
-	stp x30, x1,  [x25, #8+16*15]
+	stp x30, x1,  [x21, #8+16*15]
 	mrs x0, nzcv
 	mrs x1, fpsr
-	stp x0, x1, [x25, #8+8*34]
+	stp x0, x1, [x21, #8+8*34]
 	mrs x0, tpidr_el0
-	str x0,     [x25, #8+8*36]
-	// reset x25 by loading it back
-	ldr x25,    [x25, #8+16*12+8]
+	str x0,     [x21, #8+8*36]
+	// reset x21 by loading it back
+	ldr x21,    [x21, #8+16*10+8]
 .endm
 
 // lfi_proc_entry(Proc* p)
@@ -98,13 +104,13 @@ lfi_asm_proc_exit:
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [x25, #N_RTCALLS*8+8] // load kernel tpidr_el0
+	ldr x0, [SYSREG, #N_RTCALLS*8+8] // load kernel tpidr_el0
 	msr tpidr_el0, x0
-	ldr x0, [x25, #N_RTCALLS*8]  // load Proc*
+	ldr x0, [SYSREG, #N_RTCALLS*8]  // load Proc*
 	ldr x1, [x0]         // load stack
 	mov sp, x1
 	bl lfi_syscall_handler
-	ldr x0, [x25, #N_RTCALLS*8]
+	ldr x0, [SYSREG, #N_RTCALLS*8]
 	b  lfi_restore_partial_regs
 	brk #0
 

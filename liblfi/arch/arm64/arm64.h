@@ -60,7 +60,12 @@ static uint64_t* regs_addr(struct lfi_regs* regs, int n) {
 }
 
 static uint64_t* regs_sys(struct lfi_regs* regs) {
+#ifdef SYSEXTERNAL
     return &regs->x25;
+#else
+    (void) regs;
+    return NULL;
+#endif
 }
 
 static uint64_t* regs_gas(struct lfi_regs* regs) {
