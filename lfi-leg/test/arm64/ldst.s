@@ -117,9 +117,9 @@ ld1r {v3.2d}, [x9]
 add x18, x21, w9, uxtw
 ld1r {v3.2d}, [x18]
 ------
-ldp x29, x30, [x18, #0xAf]
+ldp x29, x30, [x19, #0xAf]
 >>>
-add x18, x21, w18, uxtw
+add x18, x21, w19, uxtw
 ldp x29, x22, [x18, #0xAf]
 add x30, x21, w22, uxtw
 ------

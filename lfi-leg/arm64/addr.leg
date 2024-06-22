@@ -1,0 +1,153 @@
+%{
+#include "arm64.h"
+#include "args.h"
+#include "op.h"
+#include "util.h"
+
+static void
+ldst(Result l, Result rt, Result addr)
+{
+    if (addr.pre)
+        mkinsn("%s", addr.pre);
+    mkinsn("%s %s, %s", l.val, rt.val, addr.val);
+    if (addr.post)
+        mkinsn("%s", addr.post);
+    rfree(l); rfree(rt); rfree(addr);
+}
+
+static void
+ldstmulti(Result l, Result rt1, Result rt2, Result addr)
+{
+    if (addr.pre)
+        mkinsn("%s", addr.pre);
+    mkinsn("%s %s, %s, %s", l.val, rt1.val, rt2.val, addr.val);
+    if (addr.post)
+        mkinsn("%s", addr.post);
+    rfree(l); rfree(rt1); rfree(rt2); rfree(addr);
+}
+%}
+
+# Address mode transformations that use [x21, wN, uxtw].
+AddrOpt = (
+    # [xN, i]!
+      (LB (!'x18' r:XREG) COMMA i:IMM RB EXCLAM) {
+        $$ = (Result) {
+            .pre = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
+        };
+        rfree(r); rfree(i);
+    }
+    # [xN, i]
+    | (LB (!'x18' r:XREG) COMMA i:IMM RB) {
+        char* ival = i.val;
+        if (i.val[0] == '#')
+            ival++;
+        int ii = atoi(ival);
+        if (ii > 4096 || (ival[0] == ':' && strncmp(ival, ":lo12:", strlen(":lo12:")) != 0)) {
+            $$ = (Result) {
+                .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+                .val = xasprintf("[x18, %s]", i.val),
+            };
+        } else {
+            $$ = (Result) {
+                .pre = xasprintf("add x22, %s, %s", r.val, i.val),
+                .val = strdup("[x21, w22, uxtw]"),
+                // TODO
+                // use unoptimized sequence for x30 because POC sequence will be using x22
+                // .guardx30 = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+                // .valx30 = xasprintf("[x18, %s]", i.val),
+            };
+        }
+        rfree(r); rfree(i);
+    }
+    # [xN], i
+    | (LB (!'x18' r:XREG) RB COMMA i:IMM) {
+        $$ = (Result) {
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
+            .post = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
+        };
+        rfree(r); rfree(i);
+    }
+    # [xN]
+    | (LB (!'x18' r:XREG) RB) {
+        $$ = (Result) {
+            .val = xasprintf("[x21, w%s, uxtw]", num(r.val)),
+        };
+        rfree(r);
+    }
+    # [xN, xM, ...]
+    | (LB r1:XREG COMMA r2:REG COMMA m:ADDR_MOD RB) {
+        $$ = (Result) {
+            .pre = xasprintf("add x22, %s, %s, %s", r1.val, r2.val, m.val),
+            .val = strdup("[x21, w22, uxtw]"),
+        };
+        rfree(r1); rfree(r2); rfree(m);
+    }
+    # [xN, xM]
+    | (LB r1:XREG COMMA r2:REG RB) {
+        $$ = (Result) {
+            .pre = xasprintf("add x22, %s, %s", r1.val, r2.val),
+            .val = strdup("[x21, w22, uxtw]"),
+        };
+        rfree(r1); rfree(r2);
+    }
+)
+
+# Address mode transformations that use x18.
+AddrNoOpt = (
+    # [xN, i]!
+      (LB (!'x18' r:XREG) COMMA i:IMM RB EXCLAM) {
+        $$ = (Result) {
+            .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+            .val = xasprintf("[x18, %s]!", i.val),
+            .post = args.poc ?
+                xasprintf("mov w%s, w18", num(r.val)) :
+                xasprintf("mov %s, x18", r.val),
+        };
+        rfree(r); rfree(i);
+    }
+    # [xN, i]
+    | (LB (!'x18' r:XREG) COMMA i:IMM RB) {
+        $$ = (Result) {
+            .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+            .val = xasprintf("[x18, %s]", i.val),
+        };
+        rfree(r); rfree(i);
+    }
+    # [xN], xM
+    | (LB r1:XREG RB COMMA r2:XREG) {
+        $$ = (Result) {
+            .pre = xasprintf("add x18, x21, w%s, uxtw", num(r1.val)),
+            .val = xasprintf("[x18]", i.val),
+            .post = xasprintf("add %s, %s, %s", r1.val, r1.val, r2.val),
+        };
+        rfree(r1); rfree(r2);
+    }
+    # [xN], i
+    | (LB (!'x18' r:XREG) RB COMMA i:IMM) {
+        $$ = (Result) {
+            .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+            .val = xasprintf("[x18], %s", i.val),
+            .post = args.poc ?
+                xasprintf("mov w%s, w18", num(r.val)) :
+                xasprintf("mov %s, x18", r.val),
+        };
+        rfree(r); rfree(i);
+    }
+    # [xN]
+    | (LB (!'x18' r:XREG) RB) {
+        $$ = (Result) {
+            .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+            .val = strdup("[x18]"),
+        };
+        rfree(r);
+    }
+)
+
+ADDR_MOD = < (
+      ('lsl' - IMM_RAW)
+    | ([su] 'xtw' - IMM_RAW?)
+    | ('sxtx' - IMM_RAW?)
+) > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) }
+}

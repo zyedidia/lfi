@@ -1,0 +1,81 @@
+%{
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx++];      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = StOpt | StNoOpt | StMulti | Atomic1 | Atomic2
+
+StOpt = l:ST rt:REG COMMA addr:AddrOpt {
+    ldst(l, rt, addr);
+}
+
+StNoOpt = l:ST_BASIC rt:REG COMMA addr:AddrNoOpt {
+    ldst(l, rt, addr);
+}
+
+StMulti = l:ST_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
+    ldstmulti(l, rt1, rt2, addr);
+}
+
+Atomic1 = a:ATOMIC_1 rt:REG COMMA addr:AddrNoOpt {
+    ldst(a, rt, addr);
+}
+
+Atomic2 = a:ATOMIC_2 rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
+    ldstmulti(a, rt1, rt2, addr);
+}
+
+# Stores that have all addressing modes available.
+ST = < (
+    'str' [bh]?
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+# Stores that only have basic addressing modes available.
+ST_BASIC = < (
+      'stur' [bh]?
+    | 'stlr' [bh]?
+    | 'sttr' [bh]?
+    | 'st' [1234]
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+ST_MULTI = < (
+      'stp'
+    | 'stnp'
+    | 'st' 'l'? 'xr' # note: first arg is a result
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+# TODO: special case for stores with exclusive monitor
+ST_MULTI_3 = < (
+      'st' 'l'? 'xp'
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+ATOMIC_1 = < (
+      'st' AO 'a'? 'l'? [bh]?
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+ATOMIC_2 = < (
+      'cas' 'a'? 'l'? [bh]?
+    | 'swp' 'a'? 'l'? [bh]?
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+AO = 'add' | 'clr' | 'eor' | 'set'
+
+%%
+
+void
+storespass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+}

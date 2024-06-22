@@ -23,3 +23,5 @@ lfi.bdd.dot
 
 lfi-verify-amd64
 /lfi-ld/lfi-ld
+
+*.leg.c

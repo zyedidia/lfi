@@ -1,0 +1,35 @@
+%{
+#include "arm64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx++];      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Syscall = < 'svc' - (!EOL .)* > - {
+    mkinsn("str x30, [sp, #-16]!");
+    mkinsn("ldr x30, [x25]");
+    mkinsn("blr x30");
+    mkinsn("ldr x22, [sp], 16");
+    mkinsn("add x30, x21, w22, uxtw");
+}
+
+%%
+
+void
+syscallpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+}

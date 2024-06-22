@@ -1,0 +1,49 @@
+%{
+#include <stdio.h>
+
+#include "arm64.h"
+#include "op.h"
+
+// Read a byte from input.
+#define YY_INPUT(ctx, buf, result, max_size) \
+{                                            \
+    result = fread(buf, 1, max_size, input); \
+}                                            \
+
+extern FILE* input;
+%}
+
+Top = Insn* !.
+
+Insn = - Label? (
+      Directive Comment?
+    | Comment
+    | Any
+) EOL+
+
+Comment = '//' (!EOL .)*
+
+Label = < ([0-9]+ | ID) > ':' - {
+    mklabel(strndup(yytext, yyleng));
+}
+
+Directive = < '.' (!EOL .)* > - {
+    mkdirective(strndup(yytext, yyleng));
+}
+
+Any = < (!EOL .)* > {
+    if (yyleng > 0)
+        mkinsn("%s", yytext);
+}
+
+%%
+
+bool
+parseinit()
+{
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    if (!yyparse(&ctx))
+        return false;
+    return true;
+}

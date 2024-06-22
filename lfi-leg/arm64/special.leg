@@ -1,0 +1,69 @@
+%{
+#include "arm64.h"
+#include "args.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = ModSpecial | LdRes
+
+ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
+    mkinsn("%s x22, %s", i.val, r.val);
+    mkinsn("add %s, x21, w22, uxtw", res.val);
+    rfree(r); rfree(res); rfree(i);
+}
+
+LdRes = LdNormalRes | LdMultiRes1 | LdMultiRes2
+
+LdNormalRes = 'ldr' - r:RESREG COMMA rest:REMAINDER {
+    if (!isfixed(r.val)) {
+        mkinsn("ldr x22, %s", rest.val);
+        mkinsn("add %s, x21, w22, uxtw", r.val);
+    } else {
+        mkinsn("ldr xzr, %s", rest.val);
+    }
+    rfree(r); rfree(rest);
+}
+
+LdMultiRes1 = 'ldp' - res:RESREG COMMA reg:REG COMMA rest:REMAINDER {
+    if (!isfixed(res.val)) {
+        mkinsn("ldp x22, %s, %s", reg.val, rest.val);
+        mkinsn("add %s, x21, w22, uxtw", res.val);
+    } else {
+        mkinsn("ldp xzr, %s, %s", reg.val, rest.val);
+    }
+    rfree(rest); rfree(reg); rfree(res);
+}
+
+LdMultiRes2 = 'ldp' - reg:REG COMMA res:RESREG COMMA rest:REMAINDER {
+    if (!isfixed(res.val)) {
+        mkinsn("ldp %s, x22, %s", reg.val, rest.val);
+        mkinsn("add %s, x21, w22, uxtw", res.val);
+    } else {
+        mkinsn("ldp %s, xzr, %s", reg.val, rest.val);
+    }
+    rfree(res); rfree(rest); rfree(reg);
+}
+
+%%
+
+void
+specialpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+}

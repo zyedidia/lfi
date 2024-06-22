@@ -1,0 +1,48 @@
+%{
+#include "arm64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx++];      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = IndBranch | ShortBranch
+
+IndBranch = b:BRANCH r:XREG {
+    mkinsn("add x18, x21, w%s, uxtw", num(r.val));
+    mkinsn("%s x18", b.val);
+    rfree(b); rfree(r);
+}
+
+BRANCH = < ('br' | 'blr') > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
+    mktbz(b.val, r.val, imm.val, name.val);
+    rfree(b); rfree(r); rfree(imm); rfree(name);
+}
+
+TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+%%
+
+void
+branchpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+}
