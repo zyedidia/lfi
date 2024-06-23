@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -10,6 +12,7 @@
 
 struct op* ops;
 static struct op* ops_last;
+static struct op* location;
 
 static struct op*
 mkop()
@@ -17,22 +20,31 @@ mkop()
     struct op* op = calloc(1, sizeof(struct op));
     assert(op != NULL);
 
-    if (!ops) {
-        ops = op;
-    } else {
-        ops_last->next = op;
-    }
-    ops_last = op;
-
-    return op;
+    return opinsert(op);
 }
 
 struct op*
-mkcodedirective(char* text)
+opinsert(struct op* op)
 {
-    struct op* op = mkop();
-    op->text = strdup(text);
-    op->code = true;
+    if (!ops) {
+        ops = op;
+        ops_last = op;
+        location = ops_last;
+        return op;
+    }
+
+    struct op* n = location ? location : ops_last;
+
+    op->next = n->next;
+    op->prev = n;
+
+    if (n->next) {
+        n->next->prev = op;
+    } else {
+        ops_last = op;
+    }
+    n->next = op;
+    location = op;
     return op;
 }
 
@@ -68,7 +80,7 @@ struct op*
 mklabel(char* name)
 {
     struct op* op = mkop();
-    op->text = xasprintf("%s:\n", name);
+    op->text = xasprintf("%s:", name);
     op->label = name;
     return op;
 }
@@ -81,7 +93,7 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
     struct op* op = mkop();
     op->shortbr = true;
     op->insn = true;
-    op->text = xasprintf("%s %s, %s, %s\n", tbz, reg, imm, label);
+    op->text = xasprintf("%s %s, %s, %s", tbz, reg, imm, label);
     op->target = strdup(label);
 
     op->replace = xasprintf(
@@ -96,4 +108,33 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
     fixup_count++;
 
     return op;
+}
+
+void
+opremove(struct op* n)
+{
+    if (n->next) {
+        n->next->prev = n->prev;
+    } else {
+        ops_last = n->prev;
+    }
+    if (n->prev) {
+        n->prev->next = n->next;
+    } else {
+        ops = n->next;
+    }
+}
+
+void
+oplocate(struct op* op)
+{
+    location = op;
+}
+
+void
+opfree(struct op* op)
+{
+    free(op->text);
+    free(op->label);
+    free(op);
 }

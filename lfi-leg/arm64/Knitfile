@@ -1,15 +1,8 @@
 return b{
-    $ lfi-leg-arm64: .main.o .op.o .util.o .parse.leg.o .branch.leg.o .syscall.leg.o .stores.leg.o .loads.leg.o .special.leg.o .poc.leg.o .guardelim.leg.o .fixup.o .ht.o
-        cc $input -o $output -static
     $ %.leg.c: %.leg common.leg
         leg -P -o $output $input
     $ stores.leg.c: stores.leg addr.leg common.leg
         leg -P -o $output $input
     $ loads.leg.c: loads.leg addr.leg common.leg
         leg -P -o $output $input
-    $ .%.o:D[.%.dep]: %.c
-        cc -O2 -MMD -MF $dep -c $input -o $output
-    $ install-%:VB: %
-        sudo install $input /usr/local/bin
-    $ install:VB: install-lfi-leg-arm64
 }

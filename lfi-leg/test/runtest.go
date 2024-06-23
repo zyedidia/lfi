@@ -85,5 +85,5 @@ func main() {
 		fmt.Fprintf(os.Stderr, "FAILED: %d\n", failed)
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "PASSED: %d\n", passed)
+	fmt.Fprintf(os.Stderr, "PASSED %d test cases\n", passed)
 }

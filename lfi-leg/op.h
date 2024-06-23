@@ -1,10 +1,12 @@
 #pragma once
 
+#include <stdbool.h>
+
 struct op {
     char* text;
 
     bool insn;
-    bool code;
+    bool relocated;
     char* label;
 
     bool shortbr;
@@ -12,6 +14,7 @@ struct op {
     char* target;
 
     struct op* next;
+    struct op* prev;
 };
 
 struct op;
@@ -24,6 +27,10 @@ struct op* mkinsn(char* fmt, ...);
 
 struct op* mkdirective(char* text);
 
-struct op* mkcodedirective(char* text);
+void opremove(struct op* op);
 
-extern struct op* ops;
+void opfree(struct op* op);
+
+void oplocate(struct op* op);
+
+struct op* opinsert(struct op* op);

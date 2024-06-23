@@ -1,17 +1,35 @@
-return b{
-    $ all:VB: lfi-leg-arm64 lfi-leg-amd64
+local knit = require("knit")
 
-    $ lfi-leg-%: lfi-%.c util.c ht.c op.c main.c
-        cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
-    $ lfi-leg-amd64: lfi-amd64.c util.c ht.c op.c main.c
-        cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
-    $ lfi-leg-amd64-baseline: lfi-amd64-baseline.c util.c ht.c op.c main.c
-        cc $input -o $output -I. -D_GNU_SOURCE -O2 -g -static
-    $ %.c: %.leg
-        leg -o $output $input
+local src = knit.glob("*.c")
+local obj = knit.prefix(knit.extrepl(src, ".c", ".o"), ".")
+
+local arm64 = {
+    leg = knit.prefix(knit.extrepl({
+        "arm64/branch.leg",
+        "arm64/guardelim.leg",
+        "arm64/loads.leg",
+        "arm64/stores.leg",
+        "arm64/parse.leg",
+        "arm64/poc.leg",
+        "arm64/special.leg",
+        "arm64/syscall.leg",
+    }, ".leg", ".leg.o"), "."),
+    c = knit.prefix(knit.extrepl({
+        "arm64/fixup.c",
+    }, ".c", ".o"), "."),
+}
+
+return b{
+    $ lfi-leg-arm64: $obj $(arm64.leg) $(arm64.c)
+        cc $input -o $output -static
+
+    $ .%.o:D[.%.dep]: %.c
+        cc -O2 -MMD -MF $dep -c $input -o $output -I.
     $ install-%:VB: %
         sudo install $input /usr/local/bin
-    $ install:VB: install-lfi-leg-arm64 install-lfi-leg-amd64 install-lfi-leg-amd64-baseline
+
     $ test:VB: lfi-leg-arm64
-        go run test/runtest.go ./$input test/arm64/*.s
+        go run test/runtest.go ./lfi-leg-arm64 test/arm64/*.s
+
+    include("arm64/Knitfile")
 }
