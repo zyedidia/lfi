@@ -1,0 +1,81 @@
+#include <stdbool.h>
+#include <stdio.h>
+
+#include "args.h"
+#include "op.h"
+
+bool arm64_parseinit();
+
+extern struct op* ops;
+
+typedef void (*PassFn)(struct op* op);
+
+typedef struct pass {
+    PassFn fn;
+    bool disabled;
+} Pass;
+
+void arm64_specialpass(struct op*);
+void arm64_pocpass(struct op*);
+void arm64_branchpass(struct op*);
+void arm64_loadspass(struct op*);
+void arm64_storespass(struct op*);
+void arm64_syscallpass(struct op*);
+
+void arm64_guardelim(struct op* ops);
+
+static Pass passes[] = {
+    (Pass) { .fn = &arm64_specialpass },
+    (Pass) { .fn = &arm64_pocpass, .disabled = true },
+    (Pass) { .fn = &arm64_branchpass },
+    (Pass) { .fn = &arm64_loadspass },
+    (Pass) { .fn = &arm64_storespass },
+    (Pass) { .fn = &arm64_syscallpass },
+};
+
+void arm64_display(FILE* output, struct op* ops);
+
+static void
+warnargs()
+{
+    if (args.nosegue)
+        fprintf(stderr, "warning: --no-segue has no effect on arm64\n");
+}
+
+bool
+arm64_rewrite(FILE* input, FILE* output)
+{
+    if (!arm64_parseinit()) {
+        fprintf(stderr, "%s: parser failed to initialize\n", args.input);
+        return false;
+    }
+
+    warnargs();
+
+    const size_t npass = sizeof(passes) / sizeof(passes[0]);
+
+    for (size_t i = 0; i < npass; i++) {
+        if (args.storesonly && passes[i].fn == &arm64_loadspass)
+            passes[i].disabled = true;
+        if (args.poc && passes[i].fn == &arm64_pocpass)
+            passes[i].disabled = false;
+    }
+
+    for (size_t i = 0; i < npass; i++) {
+        if (passes[i].disabled)
+            continue;
+        struct op* op = ops;
+        while (op) {
+            struct op* next = op->next;
+            passes[i].fn(op);
+            op = next;
+        }
+    }
+
+    if (!args.noguardelim)
+        arm64_guardelim(ops);
+
+    arm64_display(output, ops);
+
+    return true;
+}

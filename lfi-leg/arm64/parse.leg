@@ -39,7 +39,7 @@ Any = < (!EOL .)* > {
 %%
 
 bool
-parseinit()
+arm64_parseinit()
 {
     yycontext ctx;
     memset(&ctx, 0, sizeof(yycontext));

@@ -34,7 +34,7 @@ NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 %%
 
 void
-branchpass(struct op* op)
+arm64_branchpass(struct op* op)
 {
     if (!op->insn)
         return;

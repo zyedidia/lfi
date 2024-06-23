@@ -22,7 +22,7 @@ Syscall = < 'svc' - (!EOL .)* > - {
 %%
 
 void
-syscallpass(struct op* op)
+arm64_syscallpass(struct op* op)
 {
     if (!op->insn)
         return;

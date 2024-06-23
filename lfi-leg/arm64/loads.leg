@@ -61,7 +61,7 @@ AO = 'add' | 'clr' | 'eor' | 'set'
 %%
 
 void
-loadspass(struct op* op)
+arm64_loadspass(struct op* op)
 {
     if (!op->insn)
         return;

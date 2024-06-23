@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "arm64/arm64.h"
 #include "args.h"
 #include "op.h"
 
@@ -37,6 +38,7 @@ static struct argp_option options[] = {
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
     { "stores-only",    ARG_stores_only,   0,      0, "Only sandbox stores/jumps (allow unsandboxed loads)" },
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
+    { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
     { 0 },
 };
 
@@ -48,6 +50,13 @@ parse_opt(int key, char* arg, struct argp_state* state)
     switch (key) {
     case 'o':
         args->output = arg;
+        break;
+    case 'a':
+        if (strcmp(arg, "amd64") != 0 && strcmp(arg, "arm64") != 0) {
+            fprintf(stderr, "unknown architecture: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
+        args->arch = arg;
         break;
     case ARG_poc:
         args->poc = true;
@@ -94,38 +103,20 @@ argopen(char* arg, const char* mode, FILE* std)
     return f;
 }
 
+static char*
+getarch()
+{
+#if defined(__x86_64__) || defined(_M_X64)
+    return "amd64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#else
+    fprintf(stderr, "running on unsupported architecture, use --arch to specify target\n");
+    exit(1);
+#endif
+}
+
 struct arguments args;
-
-bool parseinit();
-
-extern struct op* ops;
-
-typedef void (*PassFn)(struct op* op);
-
-typedef struct pass {
-    PassFn fn;
-    bool disabled;
-} Pass;
-
-void specialpass(struct op*);
-void pocpass(struct op*);
-void branchpass(struct op*);
-void loadspass(struct op*);
-void storespass(struct op*);
-void syscallpass(struct op*);
-
-void guardelim(struct op* ops);
-
-Pass passes[] = {
-    (Pass) { .fn = &specialpass },
-    (Pass) { .fn = &pocpass, .disabled = true },
-    (Pass) { .fn = &branchpass },
-    (Pass) { .fn = &loadspass },
-    (Pass) { .fn = &storespass },
-    (Pass) { .fn = &syscallpass },
-};
-
-void display(FILE* output, struct op* ops);
 
 int
 main(int argc, char** argv)
@@ -138,35 +129,12 @@ main(int argc, char** argv)
     input = argopen(args.input, "r", stdin);
     output = argopen(args.output, "w", stdout);
 
-    if (!parseinit()) {
-        fprintf(stderr, "%s: parser failed to initialize\n", args.input);
+    if (args.arch == NULL) {
+        args.arch = getarch();
+    }
+
+    if (!arm64_rewrite(input, output))
         return 1;
-    }
-
-    const size_t npass = sizeof(passes) / sizeof(passes[0]);
-
-    for (size_t i = 0; i < npass; i++) {
-        if (args.storesonly && passes[i].fn == &loadspass)
-            passes[i].disabled = true;
-        if (args.poc && passes[i].fn == &pocpass)
-            passes[i].disabled = false;
-    }
-
-    for (size_t i = 0; i < npass; i++) {
-        if (passes[i].disabled)
-            continue;
-        struct op* op = ops;
-        while (op) {
-            struct op* next = op->next;
-            passes[i].fn(op);
-            op = next;
-        }
-    }
-
-    if (!args.noguardelim)
-        guardelim(ops);
-
-    display(output, ops);
 
     fclose(input);
     fclose(output);

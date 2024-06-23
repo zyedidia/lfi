@@ -110,7 +110,7 @@ AddrPoc = (LB r:XREG COMMA i:IMM RB) {
 %%
 
 void
-pocpass(struct op* op)
+arm64_pocpass(struct op* op)
 {
     if (!op->insn)
         return;

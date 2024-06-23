@@ -16,6 +16,7 @@ local arm64 = {
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         "arm64/fixup.c",
+        "arm64/arm64.c",
     }, ".c", ".o"), "."),
 }
 

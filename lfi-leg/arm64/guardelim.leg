@@ -55,7 +55,7 @@ cc = 'eq' | 'ne' | 'cs' | 'hs' | 'cc' | 'lo' | 'mi' | 'pl'
 %%
 
 void
-guardelim(struct op* ops)
+arm64_guardelim(struct op* ops)
 {
     // look for guard
     // iterate while we don't see branches or labels (single BB)

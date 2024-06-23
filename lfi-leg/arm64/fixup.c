@@ -19,7 +19,7 @@ dist(int a, int b)
 
 // Display the ops, and do any final fixups (short branches, and .tlsdesccall)
 void
-display(FILE* output, struct op* ops)
+arm64_display(FILE* output, struct op* ops)
 {
     struct ht labels;
     int icount = 0;

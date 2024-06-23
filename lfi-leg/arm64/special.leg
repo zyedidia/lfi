@@ -63,7 +63,7 @@ LdMultiRes2 = 'ldp' - reg:REG COMMA res:RESREG COMMA rest:REMAINDER {
 %%
 
 void
-specialpass(struct op* op)
+arm64_specialpass(struct op* op)
 {
     if (!op->insn)
         return;

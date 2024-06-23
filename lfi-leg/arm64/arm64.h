@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "args.h"
 
@@ -42,3 +43,5 @@ opp(const char* tbz) {
         return "tbnz";
     return "tbz";
 }
+
+bool arm64_rewrite(FILE* input, FILE* output);

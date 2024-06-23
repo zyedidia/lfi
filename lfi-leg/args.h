@@ -10,6 +10,7 @@ struct arguments {
     bool sysexternal;
     bool noguardelim;
     bool nosegue;
+    char* arch;
 };
 
 extern struct arguments args;

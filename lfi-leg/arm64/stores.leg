@@ -67,7 +67,7 @@ AO = 'add' | 'clr' | 'eor' | 'set'
 %%
 
 void
-storespass(struct op* op)
+arm64_storespass(struct op* op)
 {
     if (!op->insn)
         return;
