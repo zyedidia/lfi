@@ -19,7 +19,15 @@ enum {
 };
 
 // options (TODO):
-// poc, sys-external, guard-elim, metering (precision?), cfi (bundle16, bundle32, hwcfi), deterministic, variable-size, stores-only, jumps-only, segue
+// poc
+// sys-external
+// no-guard-elim
+// metering=precise,imprecise
+// cfi=bundle16,bundle32,hwcfi
+// deterministic
+// variable-size
+// sandbox=full,stores,jumps,weak-jumps,none
+// no-segue
 
 static struct argp_option options[] = {
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },
