@@ -1,6 +1,9 @@
 #pragma once
 
+#include <assert.h>
 #include <string.h>
+
+#include "args.h"
 
 static const char*
 lo(const char* reg)
@@ -38,4 +41,45 @@ lo(const char* reg)
     if (strcmp(reg, "%r15") == 0)
         return "%r15d";
     return reg;
+}
+
+static char*
+bundle_align_mode()
+{
+    switch (args.cfi) {
+    case CFI_BUNDLE16:
+        return ".bundle_align_mode 4\n";
+    case CFI_BUNDLE32:
+        return ".bundle_align_mode 5\n";
+    case CFI_HW:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
+bundle_align()
+{
+    switch (args.cfi) {
+    case CFI_BUNDLE16:
+        return ".p2align 4\n";
+    case CFI_BUNDLE32:
+        return ".p2align 5\n";
+    case CFI_HW:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
+bundle_mask()
+{
+    switch (args.cfi) {
+    case CFI_BUNDLE16:
+        return "0xfffffff0";
+    case CFI_BUNDLE32:
+        return "0xffffffe0";
+    // cannot be called with CFI_HW
+    }
+    assert(0);
 }

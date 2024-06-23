@@ -1,0 +1,64 @@
+%{
+#include <stdio.h>
+
+#include "amd64/amd64.h"
+#include "op.h"
+#include "util.h"
+
+// Read a byte from input.
+#define YY_INPUT(ctx, buf, result, max_size) \
+{                                            \
+    result = fread(buf, 1, max_size, input); \
+}                                            \
+
+extern FILE* input;
+%}
+
+Top = Insn* !.
+
+Insn = - Label? (
+      Directive Comment?
+    | Comment
+    | AnyPrefix
+    | Any
+) (EOL | ';')+
+
+Comment = ((('//' | '#') (!EOL .)*) | ('/*' (!'*/' .)* '*/'))
+
+Label = < ([0-9]+ | ID) > ':' - {
+    mklabel(strndup(yytext, yyleng));
+}
+
+Directive = < '.' (!EOL .)* > - {
+    mkdirective(strndup(yytext, yyleng));
+}
+
+FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
+    mkdirective(xasprintf("%s\n", yytext));
+    mkdirective(bundle_align());
+}
+
+PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {
+    $$ = (Result) { .val = strndup(yytext, yyleng) }
+}
+
+AnyPrefix = p:PREFIX rest:REMAINDER {
+    mkinsn("%s %s", p.val, rest.val);
+}
+
+Any = rest:REMAINDER {
+    if (strlen(rest.val) > 0)
+        mkinsn("%s", rest.val);
+}
+
+%%
+
+bool
+amd64_parseinit()
+{
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    bool success = yyparse(&ctx);
+    yyrelease(&ctx);
+    return success;
+}

@@ -2,6 +2,12 @@
 
 #include <stdbool.h>
 
+enum cfi {
+    CFI_BUNDLE16,
+    CFI_BUNDLE32,
+    CFI_HW,
+};
+
 struct arguments {
     char* input;
     char* output;
@@ -11,6 +17,7 @@ struct arguments {
     bool noguardelim;
     bool nosegue;
     char* arch;
+    enum cfi cfi;
 };
 
 extern struct arguments args;

@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "arm64/arm64.h"
 #include "args.h"
 #include "op.h"
 
@@ -33,7 +32,7 @@ enum {
 
 static struct argp_option options[] = {
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },
-    { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies -e)" },
+    { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies --sys-external)" },
     { "sys-external",   ARG_sys_external,  0,      0, "Store runtime call table outside sandbox"},
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
     { "stores-only",    ARG_stores_only,   0,      0, "Only sandbox stores/jumps (allow unsandboxed loads)" },
@@ -118,6 +117,9 @@ getarch()
 
 struct arguments args;
 
+bool amd64_rewrite(FILE* input, FILE* output);
+bool arm64_rewrite(FILE* input, FILE* output);
+
 int
 main(int argc, char** argv)
 {
@@ -133,8 +135,13 @@ main(int argc, char** argv)
         args.arch = getarch();
     }
 
-    if (!arm64_rewrite(input, output))
-        return 1;
+    if (strcmp(args.arch, "arm64") == 0) {
+        if (!arm64_rewrite(input, output))
+            return 1;
+    } else if (strcmp(args.arch, "amd64") == 0) {
+        if (!amd64_rewrite(input, output))
+            return 1;
+    }
 
     fclose(input);
     fclose(output);

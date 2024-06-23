@@ -43,5 +43,3 @@ opp(const char* tbz) {
         return "tbnz";
     return "tbz";
 }
-
-bool arm64_rewrite(FILE* input, FILE* output);

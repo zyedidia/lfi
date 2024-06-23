@@ -1,0 +1,25 @@
+%{
+#include "result.h"
+
+#define YYSTYPE Result
+#define YY_CTX_LOCAL 1
+#define YY_PARSE(T) static T
+#define YY_CTX_MEMBERS \
+    struct op* op; \
+    size_t idx;
+%}
+
+REMAINDER = < (!(EOL | ';') .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+COMMA   = ',' -
+EXCLAM  = '!' -
+LB      = '[' -
+RB      = ']' -
+LP      = '(' -
+RP      = ')' -
+LC      = '{' -
+RC      = '}' -
+ID      = [a-zA-Z_.][-a-zA-Z0-9_.+]*
+EOL     = '\n' | '\r\n' | '\r'
+-       = [ \t]*
+SEP     = [ \t]+

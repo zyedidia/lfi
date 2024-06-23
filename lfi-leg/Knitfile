@@ -3,8 +3,9 @@ local knit = require("knit")
 local src = knit.glob("*.c")
 local obj = knit.prefix(knit.extrepl(src, ".c", ".o"), ".")
 
-local arm64 = {
+local obj = {
     leg = knit.prefix(knit.extrepl({
+        -- arm64
         "arm64/branch.leg",
         "arm64/guardelim.leg",
         "arm64/loads.leg",
@@ -13,15 +14,22 @@ local arm64 = {
         "arm64/poc.leg",
         "arm64/special.leg",
         "arm64/syscall.leg",
+        -- amd64
+        "amd64/parse.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
+        -- arm64
         "arm64/fixup.c",
         "arm64/arm64.c",
+        -- amd64
+        "amd64/display.c",
+        "amd64/amd64.c",
     }, ".c", ".o"), "."),
+    common = knit.prefix(knit.extrepl(knit.glob("*.c"), ".c", ".o"), "."),
 }
 
 return b{
-    $ lfi-leg-arm64: $obj $(arm64.leg) $(arm64.c)
+    $ lfi-leg: $(obj.common) $(obj.c) $(obj.leg)
         cc $input -o $output -static
 
     $ .%.o:D[.%.dep]: %.c
@@ -32,5 +40,6 @@ return b{
     $ test:VB: lfi-leg-arm64
         go run test/runtest.go ./lfi-leg-arm64 test/arm64/*.s
 
-    include("arm64/Knitfile")
+    include("arm64/Knitfile"),
+    include("amd64/Knitfile")
 }
