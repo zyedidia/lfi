@@ -10,8 +10,8 @@
 #define BUNDLE_MASK_16 "0xfffffff0"
 #define BUNDLE_MASK_32 "0xffffffe0"
 
-#define BUNDLE_P2 "5"
-#define BUNDLE_MASK BUNDLE_MASK_32
+#define BUNDLE_P2 "4"
+#define BUNDLE_MASK BUNDLE_MASK_16
 
 extern FILE* input;
 extern FILE* output;
@@ -353,9 +353,9 @@ CallInd = 'call' 'q'? - '*' r:XREG {
     mkcodedirective(".bundle_lock\n");
     mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     mkcodedirective(".bundle_unlock\n");
-    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(r);
 }
 
@@ -365,9 +365,9 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkcodedirective(".bundle_lock\n");
     mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     mkcodedirective(".bundle_unlock\n");
-    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(a);
 }
 
@@ -376,15 +376,16 @@ CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
     mkcodedirective(".bundle_lock\n");
     mkinsn("andl $" BUNDLE_MASK ", %%r15d\n");
     mkinsn("orq %%r14, %%r15\n");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00\n"); // nop
     mkinsn("callq *%%r15\n");
     mkcodedirective(".bundle_unlock\n");
-    mkcodedirective(".p2align " BUNDLE_P2 "\n");
     tfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkinsn("callq %s\n", rest.val);
     mkcodedirective(".p2align " BUNDLE_P2 "\n");
+    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00\n"); // 11-byte nop
+    mkinsn("callq %s\n", rest.val);
     tfree(rest);
 }
 
