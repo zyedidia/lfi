@@ -28,6 +28,7 @@ enum {
 // variable-size
 // sandbox=full,stores,jumps,weak-jumps,none
 // no-segue
+// arch=arm64,amd64
 
 static struct argp_option options[] = {
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },

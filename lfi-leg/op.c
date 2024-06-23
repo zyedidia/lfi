@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "arm64.h"
+#include "arm64/arm64.h"
 #include "op.h"
 #include "util.h"
 
