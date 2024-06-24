@@ -3,6 +3,8 @@ local knit = require("knit")
 local src = knit.glob("*.c")
 local obj = knit.prefix(knit.extrepl(src, ".c", ".o"), ".")
 
+local cflags = "-O2 -Wall -Wno-unused-function"
+
 local obj = {
     leg = knit.prefix(knit.extrepl({
         -- arm64
@@ -38,12 +40,13 @@ return b{
         cc $input -o $output -static
 
     $ .%.o:D[.%.dep]: %.c
-        cc -O2 -MMD -MF $dep -c $input -o $output -I.
+        cc $cflags -MMD -MF $dep -c $input -o $output -I.
     $ install-%:VB: %
         sudo install $input /usr/local/bin
 
     $ test:VB: lfi-leg
-        go run test/runtest.go ./lfi-leg test/amd64/*.s
+        go run test/runtest.go -arch arm64 ./lfi-leg test/arm64/*.s
+        go run test/runtest.go -arch amd64 ./lfi-leg test/amd64/*.s
 
     include("arm64/Knitfile"),
     include("amd64/Knitfile")

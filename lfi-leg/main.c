@@ -29,6 +29,7 @@ enum {
 // sandbox=full,stores,jumps,bundle-jumps,none
 // no-segue
 // single threaded
+// stateless (stack optimizations)
 // arch=arm64,amd64
 
 static struct argp_option options[] = {

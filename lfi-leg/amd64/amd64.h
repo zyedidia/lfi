@@ -101,8 +101,23 @@ bundle_mask()
 static void
 mkguards(Result r)
 {
+    for (size_t i = 0; i < sizeof(r.premulti) / sizeof(*r.premulti); i++) {
+        if (r.premulti[i]) {
+            if (r.premulti[i][0] == '.')
+                mkdirective(r.premulti[i]);
+            else
+                mkinsn("%s", r.premulti[i]);
+        }
+    }
     if (r.pre)
         mkinsn("%s", r.pre);
+}
+
+static void
+mkpost(Result r)
+{
+    if (r.post)
+        mkinsn("%s", r.post);
 }
 
 static char*

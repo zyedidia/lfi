@@ -10,7 +10,7 @@
 }                                              \
 %}
 
-Top = (Stos | Movs | Lea | Triple2 | Store | Access) !.
+Top = (Stos | Movs | Lea | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
     mkdirective(".bundle_lock");
@@ -40,8 +40,8 @@ MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] - > {
     $$ = (Result) { .val = strclean(yytext, yyleng) }
 }
 
-Lea = l:LEA a:AddrNoMod COMMA r:REG {
-    mkinsn("%s %s, %s", l.val, a.val, r.val);
+Lea = l:LEA a:Addr COMMA r:REG {
+    mkinsn("%s %s, %s", l.val, a.unmod, r.val);
     rfree(l); rfree(a); rfree(r);
 }
 
@@ -50,20 +50,28 @@ LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 Access = m:NAME a:Addr {
     mkguards(a);
     mkinsn("%s %s", m.val, a.val);
+    mkpost(a);
     rfree(m); rfree(a);
 }
 
-# TODO: StoreH
+StoreH = m:NAME r:HREG COMMA a:AddrH {
+    mkguards(a);
+    mkinsn("%s %s, %s", m.val, r.val, a.val);
+    mkpost(a);
+    rfree(m); rfree(a); rfree(r);
+}
 
 Store = m:NAME r:ITEM COMMA a:Addr {
     mkguards(a);
     mkinsn("%s %s, %s", m.val, r.val, a.val);
+    mkpost(a);
     rfree(m); rfree(a); rfree(r);
 }
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
     mkguards(a);
     mkinsn("%s %s, %s, %s", m.val, a.val, r1.val, r2.val);
+    mkpost(a);
     rfree(m); rfree(a); rfree(r1); rfree(r2);
 }
 

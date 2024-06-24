@@ -10,25 +10,33 @@
 }                                              \
 %}
 
-Top = (Load | Triple0 | Triple1) !.
+Top = (LoadH | Load | Triple0 | Triple1) !.
 
-# TODO: LoadH
+LoadH = m:NAME a:AddrH COMMA r:HREG {
+    mkguards(a);
+    mkinsn("%s %s, %s", m.val, a.val, r.val);
+    mkpost(a);
+    rfree(m); rfree(a); rfree(r);
+}
 
 Load = m:NAME a:Addr COMMA r:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s", m.val, a.val, r.val);
+    mkpost(a);
     rfree(m); rfree(a); rfree(r);
 }
 
 Triple0 = m:NAME a:Addr COMMA r1:ITEM COMMA r2:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s, %s", m.val, a.val, r1.val, r2.val);
+    mkpost(a);
     rfree(m); rfree(a); rfree(r1); rfree(r2);
 }
 
 Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
     mkguards(a);
     mkinsn("%s %s, %s, %s", m.val, r1.val, a.val, r2.val);
+    mkpost(a);
     rfree(m); rfree(a); rfree(r1); rfree(r2);
 }
 

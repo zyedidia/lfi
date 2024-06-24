@@ -28,8 +28,13 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 }
 
 CallIndMem = 'call' 'q'? - '*' a:Addr {
-    mkguards(a);
-    mkinsn("movq %s, %%r15", a.val);
+    if (args.storesonly) {
+        mkinsn("movq %s, %%r15", a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("movq %s, %%r15", a.val);
+        mkpost(a);
+    }
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
@@ -39,8 +44,8 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     rfree(a);
 }
 
-CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
-    mkinsn("movq %s, %%r15", a.val);
+CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
+    mkinsn("movq %s, %%r15", a.unmod);
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
@@ -60,6 +65,7 @@ Call = 'call' 'q'? - rest:ITEM {
 BranchMem = j:JMP - '*' a:Addr {
     mkguards(a);
     mkinsn("movq %s, %%r15", a.val);
+    mkpost(a);
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
@@ -68,8 +74,8 @@ BranchMem = j:JMP - '*' a:Addr {
     rfree(j); rfree(a);
 }
 
-BranchMemSafe = j:JMP - '*' a:AddrNoMod {
-    mkinsn("movq %s, %%r15", a.val);
+BranchMemSafe = j:JMP - '*' a:Addr {
+    mkinsn("movq %s, %%r15", a.unmod);
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");

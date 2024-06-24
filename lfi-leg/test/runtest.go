@@ -7,12 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
 var testflags = map[string][]string{
 	"poc.s":         []string{"--poc"},
 	"sysexternal.s": []string{"--sys-external"},
+	"storesonly.s":  []string{"--stores-only"},
+	"nosegue.s":     []string{"--no-segue"},
 }
 
 func fatal(err ...interface{}) {
@@ -34,6 +37,8 @@ func run(command string, flags []string, stdin string) (string, error) {
 }
 
 func main() {
+	arch := flag.String("arch", runtime.GOOS, "target architecture")
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -57,6 +62,7 @@ func main() {
 		tests := strings.Split(all, "------")
 
 		flags := testflags[filepath.Base(input)]
+		flags = append(flags, "-a", *arch)
 		for _, t := range tests {
 			parts := strings.Split(t, ">>>")
 			parts[1] = strings.TrimSpace(parts[1])
@@ -82,8 +88,8 @@ func main() {
 	}
 
 	if failed > 0 {
-		fmt.Fprintf(os.Stderr, "FAILED: %d\n", failed)
+		fmt.Fprintf(os.Stderr, "%s: FAILED: %d\n", *arch, failed)
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "PASSED %d test cases\n", passed)
+	fmt.Fprintf(os.Stderr, "%s: PASSED %d test cases\n", *arch, passed)
 }

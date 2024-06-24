@@ -49,6 +49,8 @@ REG = < (
     | '%eax' | '%ecx' | '%edx' | '%ebx' | '%esi' | '%edi' | '%esp' | '%ebp'
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
+HREG = < '%' [abcd] 'h' > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
 ITEM = < [^ ,;\n\r#/()]+ > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 NAME = < ('lock' - [\t\r\n;]? -)? ID > - { $$ = (Result) { .val = strclean(yytext, yyleng) } }

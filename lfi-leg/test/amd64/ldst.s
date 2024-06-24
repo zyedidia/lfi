@@ -46,7 +46,7 @@ cmpl $44, %gs:352(%esp, %eax, 4)
 movq %rdi, 0x0
 >>>
 .bundle_align_mode 4
-movq %rdi, %gs:0x0
+movq %rdi, 0x0(%r14)
 ------
 fldt	8(%rsp)
 >>>
