@@ -1,0 +1,119 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe | Call
+
+# we use r15 here so that we get consistent instruction sizes, so that the nop
+# has the correct size to align the call to the end of the bundle. In theory,
+# we could make two CallInds -- one for registers that require a REX prefix and
+# one for ones that don't.
+CallInd = 'call' 'q'? - '*' r:XREG {
+    mkinsn("movq %s, %%r15", r.val);
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    mkinsn("callq *%%r15");
+    mkdirective(".bundle_unlock");
+    rfree(r);
+}
+
+CallIndMem = 'call' 'q'? - '*' a:Addr {
+    mkguards(a);
+    mkinsn("movq %s, %r15", a.val);
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    mkinsn("callq *%%r15");
+    mkdirective(".bundle_unlock");
+    rfree(a);
+}
+
+CallIndMemSafe = 'call' 'q'? - '*' a:AddrNoMod {
+    mkinsn("movq %s, %%r15", a.val);
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    mkinsn("callq *%%r15");
+    mkdirective(".bundle_unlock");
+    rfree(a);
+}
+
+Call = 'call' 'q'? - rest:ITEM {
+    mkdirective(bundle_align());
+    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
+    mkinsn("callq %s", rest.val);
+    rfree(rest);
+}
+
+BranchMem = j:JMP - '*' a:Addr {
+    mkguards(a);
+    mkinsn("movq %s, %%r15", a.val);
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkinsn("%s *%%r15", j.val);
+    mkdirective(".bundle_unlock");
+    rfree(j); rfree(a);
+}
+
+BranchMemSafe = j:JMP - '*' a:AddrNoMod {
+    mkinsn("movq %s, %%r15", a.val);
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkinsn("%s *%%r15", j.val);
+    mkdirective(".bundle_unlock");
+    rfree(j); rfree(a);
+}
+
+Branch = j:JMP '*' r:XREG {
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %s", bundle_mask(), lo(r.val));
+    mkinsn("orq %%r14, %s", r.val);
+    mkinsn("%s *%s", j.val, r.val);
+    mkdirective(".bundle_unlock");
+    rfree(j); rfree(r);
+}
+
+JMP = < 'notrack'? - 'jmp' 'q'? > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) }
+}
+
+Ret = 'ret' 'q'? - {
+    mkinsn("popq %%r15");
+    mkdirective(".bundle_lock");
+    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("orq %%r14, %%r15");
+    mkinsn("jmpq *%%r15");
+    mkdirective(".bundle_unlock");
+}
+
+%%
+
+void
+amd64_branchpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

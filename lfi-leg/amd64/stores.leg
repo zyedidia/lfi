@@ -1,0 +1,86 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = (Stos | Movs | Lea | Triple2 | Store | Access) !.
+
+Stos = s:STOS rest:REMAINDER {
+    mkdirective(".bundle_lock");
+    mkinsn("movl %%edi, %%edi");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi");
+    mkinsn("%s%s", s.val, rest.val);
+    mkdirective(".bundle_unlock");
+    rfree(s); rfree(rest);
+}
+
+STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
+    $$ = (Result) { .val = strclean(yytext, yyleng) }
+}
+
+Movs = m:MOVS rest:REMAINDER {
+    mkdirective(".bundle_lock");
+    mkinsn("movl %%edi, %%edi");
+    mkinsn("leaq (%%r14, %%rdi), %%rdi");
+    mkinsn("movl %%esi, %%esi");
+    mkinsn("leaq (%%r14, %%rsi), %%rsi");
+    mkinsn("%s%s", m.val, rest.val);
+    mkdirective(".bundle_unlock");
+    rfree(m); rfree(rest);
+}
+
+MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] - > {
+    $$ = (Result) { .val = strclean(yytext, yyleng) }
+}
+
+Lea = l:LEA a:AddrNoMod COMMA r:REG {
+    mkinsn("%s %s, %s", l.val, a.val, r.val);
+    rfree(l); rfree(a); rfree(r);
+}
+
+LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Access = m:NAME a:Addr {
+    mkguards(a);
+    mkinsn("%s %s", m.val, a.val);
+    rfree(m); rfree(a);
+}
+
+# TODO: StoreH
+
+Store = m:NAME r:ITEM COMMA a:Addr {
+    mkguards(a);
+    mkinsn("%s %s, %s", m.val, r.val, a.val);
+    rfree(m); rfree(a); rfree(r);
+}
+
+Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
+    mkguards(a);
+    mkinsn("%s %s, %s, %s", m.val, a.val, r1.val, r2.val);
+    rfree(m); rfree(a); rfree(r1); rfree(r2);
+}
+
+%%
+
+void
+amd64_storespass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

@@ -16,6 +16,11 @@ local obj = {
         "arm64/syscall.leg",
         -- amd64
         "amd64/parse.leg",
+        "amd64/syscall.leg",
+        "amd64/special.leg",
+        "amd64/branch.leg",
+        "amd64/stores.leg",
+        "amd64/loads.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         -- arm64
@@ -37,8 +42,8 @@ return b{
     $ install-%:VB: %
         sudo install $input /usr/local/bin
 
-    $ test:VB: lfi-leg-arm64
-        go run test/runtest.go ./lfi-leg-arm64 test/arm64/*.s
+    $ test:VB: lfi-leg
+        go run test/runtest.go ./lfi-leg test/amd64/*.s
 
     include("arm64/Knitfile"),
     include("amd64/Knitfile")

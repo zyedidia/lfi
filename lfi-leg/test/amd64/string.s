@@ -4,7 +4,7 @@ rep stosq
 .bundle_lock
 movl %edi, %edi
 leaq (%r14, %rdi), %rdi
-rep stosq 
+rep stosq
 .bundle_unlock
 ------
 rep movsq

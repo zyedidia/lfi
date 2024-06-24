@@ -22,11 +22,11 @@ void amd64_storespass(struct op*);
 void amd64_syscallpass(struct op*);
 
 static Pass passes[] = {
-    /* (Pass) { .fn = &amd64_specialpass }, */
-    /* (Pass) { .fn = &amd64_branchpass }, */
-    /* (Pass) { .fn = &amd64_loadspass }, */
-    /* (Pass) { .fn = &amd64_storespass }, */
-    /* (Pass) { .fn = &amd64_syscallpass }, */
+    (Pass) { .fn = &amd64_specialpass },
+    (Pass) { .fn = &amd64_branchpass },
+    (Pass) { .fn = &amd64_loadspass },
+    (Pass) { .fn = &amd64_storespass },
+    (Pass) { .fn = &amd64_syscallpass },
 };
 
 void amd64_display(FILE* output, struct op* ops);

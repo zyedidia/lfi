@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "args.h"
+#include "result.h"
+#include "op.h"
 
 static const char*
 lo(const char* reg)
@@ -44,6 +46,16 @@ lo(const char* reg)
 }
 
 static char*
+lop(char* op)
+{
+    size_t len = strlen(op);
+    char* ret = strdup(op);
+    if (op[len - 1] == 'q')
+        ret[len - 1] = 'l';
+    return ret;
+}
+
+static char*
 bundle_align_mode()
 {
     switch (args.cfi) {
@@ -62,11 +74,11 @@ bundle_align()
 {
     switch (args.cfi) {
     case CFI_BUNDLE16:
-        return ".p2align 4\n";
+        return ".p2align 4";
     case CFI_BUNDLE32:
-        return ".p2align 5\n";
+        return ".p2align 5";
     case CFI_HW:
-        return "";
+        return ".p2align 0";
     }
     assert(0);
 }
@@ -79,7 +91,27 @@ bundle_mask()
         return "0xfffffff0";
     case CFI_BUNDLE32:
         return "0xffffffe0";
-    // cannot be called with CFI_HW
+    case CFI_HW:
+        // no mask (just clear top 32 bits)
+        return "0xffffffff";
     }
     assert(0);
+}
+
+static void
+mkguards(Result r)
+{
+    if (r.pre)
+        mkinsn("%s", r.pre);
+}
+
+static char*
+strclean(char* s, size_t n)
+{
+    char* sdup = strndup(s, n);
+    for (size_t i = 0; i < n; i++) {
+        if (sdup[i] == ';' || sdup[i] == '\n' || sdup[i] == '\r')
+            sdup[i] = ' ';
+    }
+    return sdup;
 }

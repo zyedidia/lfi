@@ -1,0 +1,91 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+#include "util.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+ModSP = ModLeaSP | ModImmSP | ModRegSP | Leave
+
+AddrBP = (
+    # imm(...)
+    (i:IMM_VAR LP r:XREG RP) {
+        $$ = (Result) {
+            .val = xasprintf("%s(%s)", i.val, lo(r.val)),
+        };
+        rfree(i); rfree(r);
+    }
+    # (...)
+    | (LP r:XREG RP) {
+        $$ = (Result) {
+            .val = xasprintf("(%s)", lo(r.val)),
+        };
+        rfree(r);
+    }
+)
+
+ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
+    mkdirective(".bundle_lock");
+    mkinsn("leal %s, %%esp", a.val);
+    mkinsn("orq %%r14, %%rsp");
+    mkdirective(".bundle_unlock");
+    rfree(a);
+}
+
+ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
+    char* op = lop(m.val);
+    mkdirective(".bundle_lock");
+    mkinsn("%s %s, %%esp", op, i.val);
+    mkinsn("orq %%r14, %%rsp");
+    mkdirective(".bundle_unlock");
+    rfree(m); rfree(i); free(op);
+}
+
+ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
+    char* op = lop(m.val);
+    mkdirective(".bundle_lock");
+    mkinsn("%s %s, %%esp", op, lo(r.val));
+    mkinsn("orq %%r14, %%rsp");
+    mkdirective(".bundle_unlock");
+    rfree(m); rfree(r); free(op);
+}
+
+MODINST = < (
+      ('add' 'q'?)
+    | ('sub' 'q'?)
+    | ('mov' 'q'?)
+    | ('and' 'q'?)
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Leave = 'leave' 'q'? - {
+    mkdirective(".bundle_lock");
+    mkinsn("movl %%ebp, %%esp");
+    mkinsn("orq %%r14, %%rsp");
+    mkdirective(".bundle_unlock");
+    mkinsn("popq %%rbp");
+}
+
+%%
+
+void
+amd64_specialpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

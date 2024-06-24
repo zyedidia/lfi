@@ -1,0 +1,51 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = (Load | Triple0 | Triple1) !.
+
+# TODO: LoadH
+
+Load = m:NAME a:Addr COMMA r:ITEM {
+    mkguards(a);
+    mkinsn("%s %s, %s", m.val, a.val, r.val);
+    rfree(m); rfree(a); rfree(r);
+}
+
+Triple0 = m:NAME a:Addr COMMA r1:ITEM COMMA r2:ITEM {
+    mkguards(a);
+    mkinsn("%s %s, %s, %s", m.val, a.val, r1.val, r2.val);
+    rfree(m); rfree(a); rfree(r1); rfree(r2);
+}
+
+Triple1 = m:NAME r1:ITEM COMMA a:Addr COMMA r2:ITEM {
+    mkguards(a);
+    mkinsn("%s %s, %s, %s", m.val, r1.val, a.val, r2.val);
+    rfree(m); rfree(a); rfree(r1); rfree(r2);
+}
+
+%%
+
+void
+amd64_loadspass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

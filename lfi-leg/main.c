@@ -26,8 +26,9 @@ enum {
 // cfi=bundle16,bundle32,hwcfi
 // deterministic
 // variable-size
-// sandbox=full,stores,jumps,weak-jumps,none
+// sandbox=full,stores,jumps,bundle-jumps,none
 // no-segue
+// single threaded
 // arch=arm64,amd64
 
 static struct argp_option options[] = {

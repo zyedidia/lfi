@@ -1,0 +1,82 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+#include "util.h"
+%}
+
+Addr = (
+    # (%rxx)
+      (LP r:XREG_NOSP RP) {
+        $$ = (Result) {
+            .val = xasprintf("%%gs:(%s)", lo(r.val)),
+        };
+        rfree(r);
+    }
+    # imm(%rxx)
+    | (i:IMM LP r:XREG_NOSP RP) {
+        $$ = (Result) {
+            .val = xasprintf("%%gs:%s(%s)", i.val, lo(r.val)),
+        };
+        rfree(i); rfree(r);
+    }
+    # imm(...)
+    | (i:IMM b:AddrRegDisp) {
+        $$ = (Result) {
+            .val = xasprintf("%%gs:%s%s", i.val, b.val),
+        };
+        rfree(i);
+    }
+    # (...)
+    | (b:AddrRegDisp) {
+        $$ = (Result) {
+            .val = xasprintf("%%gs:%s", b.val),
+        };
+        rfree(b);
+    }
+    # imm
+    | (n:NUM) {
+        $$ = (Result) {
+            .val = xasprintf("%%gs:%s", n.val)
+        };
+        rfree(n);
+    }
+)
+
+AddrRegDisp = AddrRegReg | AddrRegRegImm | AddrRegImm
+
+AddrRegReg = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) RP {
+    $$ = (Result) { .val = xasprintf("(%s, %s)", lo(r1.val), lo(r2.val)) };
+    rfree(r1); rfree(r2);
+}
+AddrRegRegImm = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
+    $$ = (Result) { .val = xasprintf("(%s, %s, %s)", lo(r1.val), lo(r2.val), i.val) };
+    rfree(r1); rfree(r2); rfree(i);
+}
+AddrRegImm = LP COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
+    $$ = (Result) { .val = xasprintf("(, %s, %s)", lo(r2.val), i.val) };
+    rfree(r2); rfree(i);
+}
+
+AddrReg = 'rsp' | 'rip'
+
+AddrNoMod = (
+    # imm(...)
+      (i:IMM_VAR b:BALANCED) {
+        $$ = (Result) {
+            .val = xasprintf("%s%s", i.val, b.val),
+        };
+        rfree(i); rfree(b);
+    }
+    # (...)
+    | (b:BALANCED) {
+        $$ = (Result) {
+            .val = xasprintf("%s", b.val),
+        };
+        rfree(b);
+    }
+)
+
+BALANCED = < BALANCED_RAW > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) }
+}
