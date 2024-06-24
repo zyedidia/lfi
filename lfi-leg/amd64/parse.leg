@@ -21,7 +21,7 @@ Insn = - Label? (
     | Comment
     | AnyPrefix
     | Any
-) (EOL | ';')+
+) Comment? (EOL | ';')+
 
 Comment = ((('//' | '#') (!EOL .)*) | ('/*' (!'*/' .)* '*/'))
 
@@ -42,14 +42,16 @@ PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {
     $$ = (Result) { .val = strndup(yytext, yyleng) }
 }
 
-AnyPrefix = p:PREFIX rest:REMAINDER {
+AnyPrefix = p:PREFIX rest:RemainderOrComment {
     mkinsn("%s %s", p.val, rest.val);
 }
 
-Any = rest:REMAINDER {
+Any = rest:RemainderOrComment {
     if (strlen(rest.val) > 0)
         mkinsn("%s", rest.val);
 }
+
+RemainderOrComment = < (!(EOL | ';' | '/*' | '//' | '#') .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 %%
 

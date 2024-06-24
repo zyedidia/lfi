@@ -36,10 +36,7 @@ mov %rbx, %gs:(%edi)
 mov (%rax, %rdx), %dh
 >>>
 .bundle_align_mode 4
-movq %rdi, %r15
-leaq (%eax, %edx), %rdi
-mov %gs:(%edi), %dh
-movq %r15, %rdi
+mov %gs:(%eax, %edx), %dh
 ------
 cmpl $44, 352(%rsp,%rax,4) # imm = 0x100
 >>>
@@ -54,7 +51,7 @@ movq %rdi, %gs:0x0
 fldt	8(%rsp)
 >>>
 .bundle_align_mode 4
-fldt	8(%rsp)
+fldt 8(%rsp)
 ------
 movl	(%rdx,%rsi,4), %edx
 >>>
@@ -64,7 +61,7 @@ movl %gs:(%edx, %esi, 4), %edx
 orl     $1, 12+__cpu_model(%rip)
 >>>
 .bundle_align_mode 4
-orl     $1, 12+__cpu_model(%rip)
+orl $1, 12+__cpu_model(%rip)
 ------
 mov (,%rax,8),%rdx
 >>>
@@ -84,3 +81,8 @@ vmovaps %gs:0x30(%esi), %xmm9
 vmovaps %gs:0x40(%esi), %xmm8
 vmovaps %gs:0x50(%esi), %xmm7
 vmovaps %gs:0x60(%esi), %xmm6
+------
+movq 32+output(%rip), %rdi
+>>>
+.bundle_align_mode 4
+movq 32+output(%rip), %rdi

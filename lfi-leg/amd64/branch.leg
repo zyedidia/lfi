@@ -29,7 +29,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 
 CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkguards(a);
-    mkinsn("movq %s, %r15", a.val);
+    mkinsn("movq %s, %%r15", a.val);
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
