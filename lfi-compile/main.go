@@ -230,13 +230,18 @@ func compile(cmdargs []string) {
 		run(compiler, stage1...)
 	}
 
-	rewriter := "lfi-leg-" + runtime.GOARCH // default
+	rewriter := "lfi-leg"
 	if os.Getenv("LFI_REWRITER") != "" {
 		rewriter = os.Getenv("LFI_REWRITER")
+	}
+	arch := runtime.GOARCH
+	if os.Getenv("LFIARCH") != "" {
+		arch = os.Getenv("LFIARCH")
 	}
 
 	lfiasm := temp(inputdir)
 	lfiflags := []string{asm, "-o", lfiasm}
+	lfiflags = append(lfiflags, "-a", arch)
 	lfiflags = append(lfiflags, lfiargs...)
 	run(rewriter, lfiflags...)
 	// run("cp", asm, lfiasm)

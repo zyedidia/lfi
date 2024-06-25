@@ -14,7 +14,7 @@ import (
 var testflags = map[string][]string{
 	"poc.s":         []string{"--poc"},
 	"sysexternal.s": []string{"--sys-external"},
-	"storesonly.s":  []string{"--stores-only"},
+	"storesonly.s":  []string{"--sandbox=stores"},
 	"nosegue.s":     []string{"--no-segue"},
 }
 

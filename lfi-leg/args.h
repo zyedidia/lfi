@@ -8,16 +8,24 @@ enum cfi {
     CFI_HW,
 };
 
+enum boxtype {
+    BOX_NONE        = 0,
+    BOX_BUNDLEJUMPS = 1,
+    BOX_JUMPS       = 2,
+    BOX_STORES      = 3,
+    BOX_FULL        = 4,
+};
+
 struct arguments {
     char* input;
     char* output;
     bool poc;
-    bool storesonly;
     bool sysexternal;
     bool noguardelim;
     bool nosegue;
     char* arch;
     enum cfi cfi;
+    enum boxtype boxtype;
 };
 
 extern struct arguments args;

@@ -43,6 +43,7 @@ return b{
         cc $cflags -MMD -MF $dep -c $input -o $output -I.
     $ install-%:VB: %
         sudo install $input /usr/local/bin
+    $ install:VB: install-lfi-leg
 
     $ test:VB: lfi-leg
         go run test/runtest.go -arch arm64 ./lfi-leg test/arm64/*.s

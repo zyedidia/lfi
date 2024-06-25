@@ -86,3 +86,13 @@ movq 32+output(%rip), %rdi
 >>>
 .bundle_align_mode 4
 movq 32+output(%rip), %rdi
+------
+leaq (%rbx, %r13), %r13
+>>>
+.bundle_align_mode 4
+leaq (%rbx, %r13), %r13
+------
+movslq -36(%rsp), %rax
+>>>
+.bundle_align_mode 4
+movslq -36(%rsp), %rax

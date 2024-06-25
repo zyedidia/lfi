@@ -10,7 +10,7 @@
 }                                              \
 %}
 
-Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe | Call
+Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe | Call | Ret
 
 # we use r15 here so that we get consistent instruction sizes, so that the nop
 # has the correct size to align the call to the end of the bundle. In theory,
@@ -18,6 +18,7 @@ Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15", r.val);
+    mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
@@ -28,13 +29,14 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 }
 
 CallIndMem = 'call' 'q'? - '*' a:Addr {
-    if (args.storesonly) {
+    if (args.boxtype < BOX_FULL) {
         mkinsn("movq %s, %%r15", a.unmod);
     } else {
         mkguards(a);
         mkinsn("movq %s, %%r15", a.val);
         mkpost(a);
     }
+    mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
@@ -46,6 +48,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
 
 CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.unmod);
+    mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");

@@ -10,7 +10,14 @@
 }                                              \
 %}
 
-Top = (LoadH | Load | Triple0 | Triple1) !.
+Top = (Lea | LoadH | Load | Triple0 | Triple1) !.
+
+Lea = l:LEA a:Addr COMMA r:REG {
+    mkinsn("%s %s, %s", l.val, a.unmod, r.val);
+    rfree(l); rfree(a); rfree(r);
+}
+
+LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 LoadH = m:NAME a:AddrH COMMA r:HREG {
     mkguards(a);

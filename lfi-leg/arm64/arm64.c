@@ -55,8 +55,16 @@ arm64_rewrite(FILE* input, FILE* output)
     const size_t npass = sizeof(passes) / sizeof(passes[0]);
 
     for (size_t i = 0; i < npass; i++) {
-        if (args.storesonly && passes[i].fn == &arm64_loadspass)
+        if (args.boxtype < BOX_FULL && passes[i].fn == &arm64_loadspass)
             passes[i].disabled = true;
+        if (args.boxtype < BOX_STORES && passes[i].fn == &arm64_storespass)
+            passes[i].disabled = true;
+        if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &arm64_branchpass)
+            passes[i].disabled = true;
+        if (args.boxtype == BOX_NONE && passes[i].fn == &arm64_specialpass) {
+            passes[i].disabled = true;
+            args.noguardelim = true;
+        }
         if (args.poc && passes[i].fn == &arm64_pocpass)
             passes[i].disabled = false;
     }

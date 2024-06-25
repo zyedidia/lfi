@@ -21,7 +21,7 @@ Stos = s:STOS rest:REMAINDER {
     rfree(s); rfree(rest);
 }
 
-STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] - > {
+STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
     $$ = (Result) { .val = strclean(yytext, yyleng) }
 }
 
@@ -36,7 +36,7 @@ Movs = m:MOVS rest:REMAINDER {
     rfree(m); rfree(rest);
 }
 
-MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] - > {
+MOVS = < ('rep' [ \t\r\n;]+)? 'movs' [qlb] > &(SEP | !.) {
     $$ = (Result) { .val = strclean(yytext, yyleng) }
 }
 

@@ -38,9 +38,10 @@ Addr = (
     | (i:IMM b:AddrRegDisp) {
         $$ = (Result) {};
         if (args.nosegue) {
-            $$.premulti[0] = strdup(".bundle_lock");
-            $$.premulti[1] = xasprintf("leal %s%s, %%r15d", i.val, b.val);
-            $$.val         = strdup("(%%r14, %%r15)");
+            $$.premulti[0] = xasprintf("leaq %s%s, %%r15", i.val, b.unmod);
+            $$.premulti[1] = strdup(".bundle_lock");
+            $$.premulti[2] = strdup("movl %r15d, %r15d");
+            $$.val         = strdup("(%r14, %r15)");
             $$.post        = strdup(".bundle_unlock");
         } else {
             $$.val = xasprintf("%%gs:%s%s", i.val, b.val);
@@ -54,7 +55,7 @@ Addr = (
         if (args.nosegue) {
             $$.premulti[0] = strdup(".bundle_lock");
             $$.premulti[1] = xasprintf("leal %s, %%r15d", b.val);
-            $$.val         = strdup("(%%r14, %%r15)");
+            $$.val         = strdup("(%r14, %r15)");
             $$.post        = strdup(".bundle_unlock");
         } else {
             $$.val = xasprintf("%%gs:%s", b.val);
@@ -119,7 +120,7 @@ AddrH = (
         if (args.nosegue) {
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("movl %s, %%edi", b.val);
+            $$.premulti[2] = xasprintf("leal %s, %%edi", b.val);
             $$.premulti[3] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("%s(%%rdi)", i.val);
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
@@ -135,7 +136,7 @@ AddrH = (
         if (args.nosegue) {
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("movl %s, %%edi", b.val);
+            $$.premulti[2] = xasprintf("leal %s, %%edi", b.val);
             $$.premulti[3] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("(%%rdi)");
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");

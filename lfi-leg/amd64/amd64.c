@@ -55,7 +55,13 @@ amd64_rewrite(FILE* input, FILE* output)
     const size_t npass = sizeof(passes) / sizeof(passes[0]);
 
     for (size_t i = 0; i < npass; i++) {
-        if (args.storesonly && passes[i].fn == &amd64_loadspass)
+        if (args.boxtype < BOX_FULL && passes[i].fn == &amd64_loadspass)
+            passes[i].disabled = true;
+        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_storespass)
+            passes[i].disabled = true;
+        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_specialpass)
+            passes[i].disabled = true;
+        if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &amd64_branchpass)
             passes[i].disabled = true;
     }
 

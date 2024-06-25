@@ -14,7 +14,6 @@ enum {
     ARG_poc           = 0x80,
     ARG_sys_external  = 0x81,
     ARG_no_guard_elim = 0x82,
-    ARG_stores_only   = 0x83,
     ARG_no_segue      = 0x84,
 };
 
@@ -37,7 +36,7 @@ static struct argp_option options[] = {
     { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies --sys-external)" },
     { "sys-external",   ARG_sys_external,  0,      0, "Store runtime call table outside sandbox"},
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
-    { "stores-only",    ARG_stores_only,   0,      0, "Only sandbox stores/jumps (allow unsandboxed loads)" },
+    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,none)" },
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
     { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
     { 0 },
@@ -63,8 +62,22 @@ parse_opt(int key, char* arg, struct argp_state* state)
         args->poc = true;
         args->sysexternal = true;
         break;
-    case ARG_stores_only:
-        args->storesonly = true;
+    case 's':
+
+        if (strcmp(arg, "full") == 0)
+            args->boxtype = BOX_FULL;
+        else if (strcmp(arg, "stores") == 0)
+            args->boxtype = BOX_STORES;
+        else if (strcmp(arg, "jumps") == 0)
+            args->boxtype = BOX_JUMPS;
+        else if (strcmp(arg, "bundle-jumps") == 0)
+            args->boxtype = BOX_BUNDLEJUMPS;
+        else if (strcmp(arg, "none") == 0)
+            args->boxtype = BOX_NONE;
+        else {
+            fprintf(stderr, "unsupported sandbox type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
         break;
     case ARG_no_guard_elim:
         args->noguardelim = true;
@@ -127,6 +140,7 @@ main(int argc, char** argv)
 {
     args.output = "-";
     args.input = "-";
+    args.boxtype = BOX_FULL;
 
     argp_parse(&argp, argc, argv, 0, 0, &args);
 

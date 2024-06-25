@@ -47,6 +47,11 @@ func main() {
 	// verbose = true
 	// keep = true
 
+	lfienv := os.Getenv("LFIFLAGS")
+	if lfienv != "" {
+		lfiflags = append(lfiflags, strings.Fields(lfienv)...)
+	}
+
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
 		switch arg {
@@ -90,15 +95,20 @@ func main() {
 		as = filepath.Base(os.Args[0])
 	}
 
-	rewriter := "lfi-leg-" + runtime.GOARCH // default
+	rewriter := "lfi-leg"
 	if os.Getenv("LFI_REWRITER") != "" {
 		rewriter = os.Getenv("LFI_REWRITER")
+	}
+	arch := runtime.GOARCH
+	if os.Getenv("LFIARCH") != "" {
+		arch = os.Getenv("LFIARCH")
 	}
 
 	// asmmc := in
 	// run("cp", in, temp(os.TempDir()))
 	lfi := temp(os.TempDir())
 	lfiflags = append(lfiflags, "-o", lfi, in)
+	lfiflags = append(lfiflags, "-a", arch)
 	run(rewriter, lfiflags...)
 
 	asflags := []string{
