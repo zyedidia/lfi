@@ -19,6 +19,7 @@ var testflags = map[string][]string{
 	"bundle32.s":     []string{"--cfi=bundle32"},
 	"singlethread.s": []string{"--single-thread", "--sandbox=bundle-jumps"},
 	"bundlejumps.s":  []string{"--sandbox=bundle-jumps"},
+	"decl.s":         []string{"--decl"},
 }
 
 func fatal(err ...interface{}) {
@@ -40,7 +41,7 @@ func run(command string, flags []string, stdin string) (string, error) {
 }
 
 func main() {
-	arch := flag.String("arch", runtime.GOOS, "target architecture")
+	arch := flag.String("arch", runtime.GOARCH, "target architecture")
 
 	flag.Parse()
 	args := flag.Args()

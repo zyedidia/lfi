@@ -1,0 +1,68 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+ShiftInsn = (
+    (s:ShiftQ SEP r:REG COMMA x:REG) {
+        mkdirective(".bundle_lock");
+        mkinsn("andq $0x3f, %s", r.val);
+        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkdirective(".bundle_unlock");
+        rfree(r); rfree(x);
+    }
+    | (s:ShiftL SEP r:REG COMMA x:REG) {
+        mkdirective(".bundle_lock");
+        mkinsn("andl $0x1f, %s", r.val);
+        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkdirective(".bundle_unlock");
+        rfree(r); rfree(x);
+    }
+    | (s:ShiftW SEP r:REG COMMA x:REG) {
+        mkdirective(".bundle_lock");
+        mkinsn("andw $0xf, %s", r.val);
+        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkdirective(".bundle_unlock");
+        rfree(r); rfree(x);
+    }
+    | (s:ShiftB SEP r:REG COMMA x:REG) {
+        mkdirective(".bundle_lock");
+        mkinsn("andl $0x7, %s", r.val);
+        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkdirective(".bundle_unlock");
+        rfree(r); rfree(x);
+    }
+)
+
+ShiftQ = < Shift 'q' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+ShiftL = < Shift 'l' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+ShiftW = < Shift 'w' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+ShiftB = < Shift 'b' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Shift = ('shr' | 'shl')
+
+%%
+
+void
+amd64_declpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

@@ -17,7 +17,7 @@ enum {
     ARG_no_segue      = 0x84,
     ARG_cfi           = 0x85,
     ARG_single_thread = 0x86,
-    ARG_deterministic = 0x87,
+    ARG_decl = 0x87,
     ARG_meter         = 0x88,
 };
 
@@ -27,7 +27,7 @@ enum {
 // no-guard-elim
 // metering=precise,imprecise
 // cfi=bundle16,bundle32,hwcfi
-// deterministic
+// decl
 // variable-size
 // sandbox=full,stores,jumps,bundle-jumps,none
 // no-segue
@@ -45,7 +45,7 @@ static struct argp_option options[] = {
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
-    { "deterministic",  ARG_deterministic, 0,      0, "Rewrite non-deterministic instructions (todo)" },
+    { "decl",           ARG_decl,          0,      0, "Rewrite non-deterministic instructions" },
     { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (todo)" },
     { 0 },
 };
@@ -108,8 +108,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_single_thread:
         args->singlethread = true;
         break;
-    case ARG_deterministic:
-        args->deterministic = true;
+    case ARG_decl:
+        args->decl = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;

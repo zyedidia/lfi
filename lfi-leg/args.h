@@ -27,7 +27,7 @@ struct arguments {
     enum cfi cfi;
     enum boxtype boxtype;
     bool singlethread;
-    bool deterministic;
+    bool decl;
 };
 
 extern struct arguments args;

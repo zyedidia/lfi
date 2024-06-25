@@ -23,6 +23,7 @@ local obj = {
         "amd64/branch.leg",
         "amd64/stores.leg",
         "amd64/loads.leg",
+        "amd64/decl.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         -- arm64
