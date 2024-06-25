@@ -88,12 +88,12 @@ bundle_mask()
 {
     switch (args.cfi) {
     case CFI_BUNDLE16:
-        return "0xfffffff0";
+        return "fffffff0";
     case CFI_BUNDLE32:
-        return "0xffffffe0";
+        return "ffffffe0";
     case CFI_HW:
         // no mask (just clear top 32 bits)
-        return "0xffffffff";
+        return "ffffffff";
     }
     assert(0);
 }

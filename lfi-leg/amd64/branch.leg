@@ -20,7 +20,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15", r.val);
     mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("andl $0x%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
@@ -38,7 +38,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     }
     mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("andl $0x%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
@@ -50,7 +50,7 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.unmod);
     mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("andl $0x%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
@@ -70,7 +70,7 @@ BranchMem = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.val);
     mkpost(a);
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("andl $0x%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
     mkinsn("%s *%%r15", j.val);
     mkdirective(".bundle_unlock");
@@ -80,7 +80,7 @@ BranchMem = j:JMP - '*' a:Addr {
 BranchMemSafe = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.unmod);
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
+    mkinsn("andl $0x%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
     mkinsn("%s *%%r15", j.val);
     mkdirective(".bundle_unlock");
@@ -89,7 +89,7 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 
 Branch = j:JMP '*' r:XREG {
     mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %s", bundle_mask(), lo(r.val));
+    mkinsn("andl $0x%s, %s", bundle_mask(), lo(r.val));
     mkinsn("orq %%r14, %s", r.val);
     mkinsn("%s *%s", j.val, r.val);
     mkdirective(".bundle_unlock");
@@ -101,12 +101,19 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 }
 
 Ret = 'ret' 'q'? - {
-    mkinsn("popq %%r15");
-    mkdirective(".bundle_lock");
-    mkinsn("andl $%s, %%r15d", bundle_mask());
-    mkinsn("orq %%r14, %%r15");
-    mkinsn("jmpq *%%r15");
-    mkdirective(".bundle_unlock");
+    if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
+        mkdirective(".bundle_lock");
+        mkinsn("andq $0xffffffff%s, (%rsp)", bundle_mask());
+        mkinsn("ret");
+        mkdirective(".bundle_unlock");
+    } else {
+        mkinsn("popq %%r15");
+        mkdirective(".bundle_lock");
+        mkinsn("andl $0x%s, %%r15d", bundle_mask());
+        mkinsn("orq %%r14, %%r15");
+        mkinsn("jmpq *%%r15");
+        mkdirective(".bundle_unlock");
+    }
 }
 
 %%

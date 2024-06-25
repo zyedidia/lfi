@@ -40,6 +40,8 @@ warnargs()
         fprintf(stderr, "warning: --no-guard-elim has no effect on amd64\n");
     if (args.sysexternal)
         fprintf(stderr, "warning: --sys-external has no effect on amd64\n");
+    if (args.singlethread && args.boxtype != BOX_BUNDLEJUMPS)
+        fprintf(stderr, "warning: --single-thread has no effect if --sandbox != bundle-jumps\n");
 }
 
 bool

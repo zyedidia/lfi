@@ -18,6 +18,7 @@ enum {
     ARG_cfi           = 0x85,
     ARG_single_thread = 0x86,
     ARG_deterministic = 0x87,
+    ARG_meter         = 0x88,
 };
 
 // options (TODO):
@@ -44,7 +45,8 @@ static struct argp_option options[] = {
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
-    { "deterministic",  ARG_deterministic, 0,      0, "Rewrite non-deterministic instructions" },
+    { "deterministic",  ARG_deterministic, 0,      0, "Rewrite non-deterministic instructions (todo)" },
+    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (todo)" },
     { 0 },
 };
 

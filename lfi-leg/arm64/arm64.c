@@ -40,6 +40,10 @@ warnargs()
 {
     if (args.nosegue)
         fprintf(stderr, "warning: --no-segue has no effect on arm64\n");
+    if (args.cfi != CFI_BUNDLE16) // default value
+        fprintf(stderr, "warning: --cfi has no effect on arm64\n");
+    if (args.singlethread)
+        fprintf(stderr, "warning: --single-thread has no effect on arm64\n");
 }
 
 bool

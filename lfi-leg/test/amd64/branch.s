@@ -71,3 +71,13 @@ callq foo
 .p2align 4
 .byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00
 callq foo
+------
+ret
+>>>
+.bundle_align_mode 4
+popq %r15
+.bundle_lock
+andl $0xfffffff0, %r15d
+orq %r14, %r15
+jmpq *%r15
+.bundle_unlock

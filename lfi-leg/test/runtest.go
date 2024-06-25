@@ -12,11 +12,12 @@ import (
 )
 
 var testflags = map[string][]string{
-	"poc.s":         []string{"--poc"},
-	"sysexternal.s": []string{"--sys-external"},
-	"storesonly.s":  []string{"--sandbox=stores"},
-	"nosegue.s":     []string{"--no-segue"},
-	"bundle32.s":    []string{"--cfi=bundle32"},
+	"poc.s":          []string{"--poc"},
+	"sysexternal.s":  []string{"--sys-external"},
+	"storesonly.s":   []string{"--sandbox=stores"},
+	"nosegue.s":      []string{"--no-segue"},
+	"bundle32.s":     []string{"--cfi=bundle32"},
+	"singlethread.s": []string{"--single-thread", "--sandbox=bundle-jumps"},
 }
 
 func fatal(err ...interface{}) {
