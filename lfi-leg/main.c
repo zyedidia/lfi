@@ -6,7 +6,7 @@
 #include "args.h"
 #include "op.h"
 
-static char doc[] = "lfi-gen: rewrite assembly files to be compatible with LFI";
+static char doc[] = "lfi-leg: rewrite assembly files to be compatible with LFI";
 
 static char args_doc[] = "INPUT";
 
@@ -36,6 +36,7 @@ enum {
 // arch=arm64,amd64
 
 static struct argp_option options[] = {
+    { "help",           'h',               0,      0, "show this message", -1 },
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },
     { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
     { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,none)" },
@@ -56,6 +57,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
     struct arguments* args = state->input;
 
     switch (key) {
+    case 'h':
+        argp_state_help(state, state->out_stream, ARGP_HELP_STD_HELP);
+        break;
     case 'o':
         args->output = arg;
         break;
@@ -165,7 +169,7 @@ main(int argc, char** argv)
     args.input = "-";
     args.boxtype = BOX_FULL;
 
-    argp_parse(&argp, argc, argv, 0, 0, &args);
+    argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 
     input = argopen(args.input, "r", stdin);
     output = argopen(args.output, "w", stdout);
