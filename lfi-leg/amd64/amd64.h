@@ -84,7 +84,7 @@ bundle_align()
 }
 
 static char*
-bundle_mask()
+bundle_mask_constant()
 {
     switch (args.cfi) {
     case CFI_BUNDLE16:
@@ -96,6 +96,17 @@ bundle_mask()
         return "ffffffff";
     }
     assert(0);
+}
+
+static void
+bundle_mask(const char* reg)
+{
+    if (args.boxtype > BOX_BUNDLEJUMPS) {
+        mkinsn("andl $0x%s, %s", bundle_mask_constant(), lo(reg));
+        mkinsn("orq %%r14, %s", reg);
+    } else {
+        mkinsn("andq $0xffffffff%s, %s", bundle_mask_constant(), reg);
+    }
 }
 
 static void
