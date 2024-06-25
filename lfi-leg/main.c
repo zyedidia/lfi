@@ -15,6 +15,9 @@ enum {
     ARG_sys_external  = 0x81,
     ARG_no_guard_elim = 0x82,
     ARG_no_segue      = 0x84,
+    ARG_cfi           = 0x85,
+    ARG_single_thread = 0x86,
+    ARG_deterministic = 0x87,
 };
 
 // options (TODO):
@@ -33,12 +36,15 @@ enum {
 
 static struct argp_option options[] = {
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },
+    { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
+    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,none)" },
     { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies --sys-external)" },
     { "sys-external",   ARG_sys_external,  0,      0, "Store runtime call table outside sandbox"},
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
-    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,none)" },
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
-    { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
+    { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
+    { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
+    { "deterministic",  ARG_deterministic, 0,      0, "Rewrite non-deterministic instructions" },
     { 0 },
 };
 
@@ -63,7 +69,6 @@ parse_opt(int key, char* arg, struct argp_state* state)
         args->sysexternal = true;
         break;
     case 's':
-
         if (strcmp(arg, "full") == 0)
             args->boxtype = BOX_FULL;
         else if (strcmp(arg, "stores") == 0)
@@ -87,6 +92,22 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_no_segue:
         args->nosegue = true;
+        break;
+    case ARG_cfi:
+        if (strcmp(arg, "bundle16") == 0)
+            args->cfi = CFI_BUNDLE16;
+        else if (strcmp(arg, "bundle32") == 0)
+            args->cfi = CFI_BUNDLE32;
+        else {
+            fprintf(stderr, "unsupported cfi type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
+        break;
+    case ARG_single_thread:
+        args->singlethread = true;
+        break;
+    case ARG_deterministic:
+        args->deterministic = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;

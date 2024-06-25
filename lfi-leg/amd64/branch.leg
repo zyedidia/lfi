@@ -22,7 +22,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
     rfree(r);
@@ -40,7 +40,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
     rfree(a);
@@ -52,7 +52,7 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     mkdirective(".bundle_lock");
     mkinsn("andl $%s, %%r15d", bundle_mask());
     mkinsn("orq %%r14, %%r15");
-    mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // nop
+    bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
     rfree(a);
@@ -60,7 +60,7 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
 
 Call = 'call' 'q'? - rest:ITEM {
     mkdirective(bundle_align());
-    mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
+    bundle_nop_call();
     mkinsn("callq %s", rest.val);
     rfree(rest);
 }

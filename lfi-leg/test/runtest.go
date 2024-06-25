@@ -16,6 +16,7 @@ var testflags = map[string][]string{
 	"sysexternal.s": []string{"--sys-external"},
 	"storesonly.s":  []string{"--sandbox=stores"},
 	"nosegue.s":     []string{"--no-segue"},
+	"bundle32.s":    []string{"--cfi=bundle32"},
 }
 
 func fatal(err ...interface{}) {

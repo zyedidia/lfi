@@ -26,6 +26,8 @@ struct arguments {
     char* arch;
     enum cfi cfi;
     enum boxtype boxtype;
+    bool singlethread;
+    bool deterministic;
 };
 
 extern struct arguments args;
