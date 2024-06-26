@@ -8,9 +8,9 @@ LFI is a performant and secure software sandboxing system targeting the ARM64
 and x86-64 architectures. LFI allows you to run ~64K (ARM64) or ~3K (x86-64)
 sandboxes in a single address space while guaranteeing that the sandboxes
 cannot read or write each other's memory. Each sandbox may be given up to 4GiB
-of memory. These sandboxes are extremely efficient: on ARM64 they run with
+of memory. These sandboxes are very efficient: on ARM64 they run with
 roughly 7% overhead compared to native code when sandboxing reads and writes,
-and 1% overhead when only sandboxing writes (x86-64 has slightly higher
+and 1.5% overhead when only sandboxing writes (x86-64 has slightly higher
 overheads). Since all sandboxes exist in the same address space, context
 switches do not require changing the CPU's privilege level (i.e., transitioning
 to kernel mode).
@@ -20,12 +20,6 @@ static verifier. The scalability limit of 3K sandboxes on x86-64 will also be
 configurable, allowing up to 32K sandboxes at the cost of some additional
 overhead. At the moment, we have measured overheads of ~9-10% on x86-64 for
 full sandboxing.
-
-These performance numbers compare favorably to similar systems like Native
-Client, which has overheads of ~16%, and WebAssembly, which has overheads of
-~15-20% when AOT-compiled with LLVM, or closer to ~50% with Wasmtime (secure
-JIT). At the same time, LFI's approach is significantly more secure than Wasm
-because it does not require trusting an optimizing JIT or AOT compiler.
 
 # Technical Summary
 
