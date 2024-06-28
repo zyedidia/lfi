@@ -46,7 +46,7 @@ static struct argp_option options[] = {
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
-    { "decl",           ARG_decl,          0,      0, "Rewrite non-deterministic instructions" },
+    { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
     { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (todo)" },
     { 0 },
 };
