@@ -15,7 +15,7 @@ return b{
         gcc -O3 -c $input -o $output
     $ lfi.bdd.c: generator/lfi.bdd.txt
         go run generator/bdd.go $input > $output
-    $ test: test.c verifier.c ../lfi-verify/target/release/liblfiverify.a
+    $ test: test.c verifier.c ../lfi-verify/target/release/liblfiverify.a lfi.bdd.o
         gcc $input -O2 -o $output -DPREFIX_VERIBDD
     include("../lfi-verify/Knitfile")
 }
