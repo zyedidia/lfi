@@ -4,6 +4,7 @@
 #include <Zydis/Zydis.h>
 #include <Zycore/Format.h>
 
+#include "flags.h"
 #include "insn.h"
 
 enum {
@@ -42,8 +43,13 @@ static bool ctxnext(Context* ctx) {
     }
     mnemonics[ctx->instr.mnemonic]++;
     if (ctx->addr / BUNDLE_SIZE != (ctx->addr + ctx->instr.length - 1) / BUNDLE_SIZE) {
-        fprintf(stderr, "instruction crosses bundle boundary at %lx\n", ctx->addr);
-        return false;
+        size_t num = ((ctx->count + ctx->instr.length - 1) / BUNDLE_SIZE) * BUNDLE_SIZE - ctx->count;
+        printf("setting %lx %ld %ld 0xcc\n", ctx->count, ctx->instr.length, num);
+        memset(&ctx->insns[ctx->count], 0x90, num);
+        /* return false; */
+        /* ctx->insns[ctx->count] = 0xcc; */
+        ctx->instr.length = 1;
+        return ctxnext(ctx);
     }
 
     if (ctx->instr.length == 2 && ctx->insns[ctx->count] == 0 && ctx->insns[ctx->count + 1] == 0) {
@@ -188,12 +194,12 @@ static bool check_jump(Context* ctx) {
             }
             return true;
         case ZYDIS_OPERAND_TYPE_MEMORY:
-            if (ctx->operands[0].mem.segment == ZYDIS_REGISTER_GS) {
+            if (ctx->operands[0].mem.base == ZYDIS_REGISTER_R14) {
                 ZydisDecodedOperandMem* addr = &ctx->operands[0].mem;
                 if (addr->type == ZYDIS_MEMOP_TYPE_MEM &&
                         addr->disp.value == 0 &&
                         addr->scale == 0 &&
-                        addr->base == ZYDIS_REGISTER_NONE &&
+                        addr->segment == ZYDIS_REGISTER_DS &&
                         addr->index == ZYDIS_REGISTER_NONE) {
                     // runtime call
                     return true;
@@ -343,8 +349,6 @@ fail:
 
 static bool jump_sequence(Context* ctx) {
     size_t start = ctx->addr;
-    if (ctx->addr % BUNDLE_SIZE != 0)
-        return false;
     ctxsave(ctx);
     if (ctx->instr.mnemonic != ZYDIS_MNEMONIC_AND)
         goto fail;
@@ -378,6 +382,9 @@ static bool jump_sequence(Context* ctx) {
         goto fail;
     ctxoperands(ctx);
     if (ctx->operands[0].type != ZYDIS_OPERAND_TYPE_REGISTER || ctx->operands[0].reg.value != hi(reg))
+        goto fail;
+
+    if (start / BUNDLE_SIZE != ctx->addr / BUNDLE_SIZE)
         goto fail;
 
     return true;
@@ -490,6 +497,10 @@ bool verify(uint8_t* insns, size_t n, size_t baddr) {
         if (spmod_sequence(&ctx)) {
             continue;
         }
+
+        /* if (flagread[ctx.instr.mnemonic] != 0) { */
+        /*     printf("%lx: flag read\n", ctx.addr); */
+        /* } */
 
         if (!check_jump(&ctx)) {
             failed = true;
