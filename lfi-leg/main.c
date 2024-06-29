@@ -47,7 +47,7 @@ static struct argp_option options[] = {
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
     { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
-    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (todo)" },
+    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp)" },
     { 0 },
 };
 
@@ -92,6 +92,16 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_no_guard_elim:
         args->noguardelim = true;
+        break;
+    case ARG_meter:
+        if (strcmp(arg, "branch") == 0)
+            args->meter = METER_BRANCH;
+        else if (strcmp(arg, "fp") == 0)
+            args->meter = METER_FP;
+        else {
+            fprintf(stderr, "unsupported metering type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
         break;
     case ARG_sys_external:
         args->sysexternal = true;

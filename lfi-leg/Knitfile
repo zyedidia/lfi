@@ -15,6 +15,7 @@ local obj = {
         "arm64/parse.leg",
         "arm64/poc.leg",
         "arm64/special.leg",
+        "arm64/meter.leg",
         "arm64/syscall.leg",
         -- amd64
         "amd64/parse.leg",

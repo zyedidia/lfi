@@ -16,6 +16,12 @@ enum boxtype {
     BOX_FULL        = 4,
 };
 
+enum meter {
+    METER_NONE,
+    METER_BRANCH,
+    METER_FP,
+};
+
 struct arguments {
     char* input;
     char* output;
@@ -28,6 +34,7 @@ struct arguments {
     enum boxtype boxtype;
     bool singlethread;
     bool decl;
+    bool meter;
 };
 
 extern struct arguments args;

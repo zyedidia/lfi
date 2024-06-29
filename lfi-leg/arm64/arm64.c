@@ -20,6 +20,7 @@ void arm64_pocpass(struct op*);
 void arm64_branchpass(struct op*);
 void arm64_loadspass(struct op*);
 void arm64_storespass(struct op*);
+void arm64_meterpass(struct op*);
 void arm64_syscallpass(struct op*);
 
 void arm64_guardelim(struct op* ops);
@@ -30,6 +31,7 @@ static Pass passes[] = {
     (Pass) { .fn = &arm64_branchpass },
     (Pass) { .fn = &arm64_loadspass },
     (Pass) { .fn = &arm64_storespass },
+    (Pass) { .fn = &arm64_meterpass, .disabled = true },
     (Pass) { .fn = &arm64_syscallpass },
 };
 
@@ -70,6 +72,8 @@ arm64_rewrite(FILE* input, FILE* output)
             args.noguardelim = true;
         }
         if (args.poc && passes[i].fn == &arm64_pocpass)
+            passes[i].disabled = false;
+        if (args.meter != METER_NONE && passes[i].fn == &arm64_meterpass)
             passes[i].disabled = false;
     }
 

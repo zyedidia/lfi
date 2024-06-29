@@ -20,6 +20,7 @@ var testflags = map[string][]string{
 	"singlethread.s": []string{"--single-thread", "--sandbox=bundle-jumps"},
 	"bundlejumps.s":  []string{"--sandbox=bundle-jumps"},
 	"decl.s":         []string{"--decl"},
+	"meter.s":        []string{"--meter=branch"},
 }
 
 func fatal(err ...interface{}) {
