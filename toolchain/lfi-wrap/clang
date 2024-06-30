@@ -1,0 +1,16 @@
+#!/bin/sh
+TOOLCHAIN=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/..
+export LFIFLAGS="$LFIFLAGS {{ .LfiFlags }}"
+lfi-compile {{ .Compiler }} \
+    $(lfi-leg --flags={{ .Toolchain }}) \
+    "$@" \
+    --sysroot $TOOLCHAIN/sysroot \
+    --rtlib=compiler-rt \
+    -resource-dir $TOOLCHAIN/compiler-rt \
+    -nostdlibinc \
+    -isystem $TOOLCHAIN/sysroot/include \
+    -isystem /usr/include \
+    -isystem /usr/include/x86_64-linux-gnu \
+    -fuse-ld=lld \
+    -Wno-unused-command-line-argument \
+    {{ .ExtraFlags }}

@@ -1,0 +1,4 @@
+#!/bin/sh
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LFIFLAGS="$LFIFLAGS {{ .LfiFlags }}"
+$DIR/internal-{{ .Compiler }} $(lfi-leg --flags={{ .Toolchain }}) {{ .ExtraFlags }} "$@"
