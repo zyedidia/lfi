@@ -251,6 +251,7 @@ bool stacksetup(Proc* p, int argc, const(char)** argv, ref LFIProcInfo info, out
     *av++ = Auxv(AT_PAGESZ, PAGESIZE);
     *av++ = Auxv(AT_HWCAP, 0x0);
     *av++ = Auxv(AT_HWCAP2, 0x0);
+    *av++ = Auxv(AT_RANDOM, procuseraddr(p, info.elfentry)); // TODO: set up AT_RANDOM
     *av++ = Auxv(AT_FLAGS, 0x0);
     *av++ = Auxv(AT_UID, 1000);
     *av++ = Auxv(AT_EUID, 1000);

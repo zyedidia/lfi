@@ -87,6 +87,7 @@ enum {
     MAP_FILE      = 0x000,
     MAP_ANONYMOUS = 0x020,
     MAP_DENYWRITE = 0x800,
+    MAP_NORESERVE = 0x4000,
     MAP_HUGETLB   = 0x40000,
 }
 

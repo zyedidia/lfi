@@ -368,6 +368,8 @@ uintptr syspipe(Proc* p, uintptr pipefdp, int flags) {
     struct Pipefd {
         int[2] fd;
     }
+    if (!pipefdp)
+        return Err.FAULT;
 
     bool success;
     Pipefd* pipefd = procobj!(Pipefd)(p, pipefdp);
@@ -585,6 +587,7 @@ uintptr sysmmap(Proc* p, uintptr addrp, usize length, int prot, int flags, int f
         ~MAP_PRIVATE &
         ~MAP_HUGETLB &
         ~MAP_FIXED &
+        ~MAP_NORESERVE &
         ~MAP_DENYWRITE;
     if ((flags & illegal_mask) != 0)
         return Err.PERM;
@@ -594,7 +597,12 @@ uintptr sysmmap(Proc* p, uintptr addrp, usize length, int prot, int flags, int f
             return Err.NOMEM;
         }
     } else {
-        addrp = procaddr(p, truncpg(addrp));
+        addrp = truncpg(addrp);
+        // TODO: this should only return INVAL if MAP_FIXED is provided, but
+        // if we don't do that mimalloc sometimes fails... debug later
+        if (addrp != procaddr(p, addrp))
+            return Err.INVAL;
+        addrp = procaddr(p, addrp);
 
         // TODO: if it's in the brk region, there is already a mapping, so just mprotect the requested range
         if (procinbrk(p, addrp, length)) {

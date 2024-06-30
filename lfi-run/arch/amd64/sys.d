@@ -53,6 +53,9 @@ enum Sys {
     RENAME          = 82,
     GETRANDOM       = 318,
     RT_SIGACTION    = 13,
+    DUP             = 32,
+    PIPE            = 22,
+    MADVISE         = 28,
 }
 
 enum {
@@ -96,6 +99,10 @@ uintptr sysunlink_(Proc* p, ulong[6] args) {
 
 uintptr sysrename_(Proc* p, ulong[6] args) {
     return sysrenameat(p, AT_FDCWD, args[0], AT_FDCWD, args[1], 0);
+}
+
+uintptr syspipe1_(Proc* p, ulong[6] args) {
+    return syspipe(p, args[0], cast(int) args[1]);
 }
 
 alias SyscallFn = uintptr function(Proc* p, ulong[6] args);
@@ -145,4 +152,7 @@ SyscallFn[] systbl = [
     Sys.RENAME:          &sysrename_,
     Sys.GETRANDOM:       &sysgetrandom_,
     Sys.RT_SIGACTION:    &ignore,
+    // Sys.DUP:             &sysdup_,
+    // Sys.PIPE:            &syspipe1_,
+    Sys.MADVISE:         &ignore, // TODO
 ];
