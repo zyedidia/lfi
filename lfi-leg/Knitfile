@@ -30,9 +30,11 @@ local obj = {
         -- arm64
         "arm64/fixup.c",
         "arm64/arm64.c",
+        "arm64/flags.c",
         -- amd64
         "amd64/display.c",
         "amd64/amd64.c",
+        "amd64/flags.c",
     }, ".c", ".o"), "."),
     common = knit.prefix(knit.extrepl(knit.glob("*.c"), ".c", ".o"), "."),
 }

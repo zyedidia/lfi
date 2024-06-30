@@ -69,7 +69,15 @@ Addr = (
             .val = xasprintf("%s%s", i.val, b.val),
         };
         $$.unmod = xasprintf("%s%s", i.val, b.val);
-        rfree(i);
+        rfree(i); rfree(b);
+    }
+    # (...), unmodified
+    | (b:BALANCED) {
+        $$ = (Result) {
+            .val = xasprintf("%s", b.val),
+        };
+        $$.unmod = xasprintf("%s", b.val);
+        rfree(b);
     }
     # imm
     | (n:NUM) {

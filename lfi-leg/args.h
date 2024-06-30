@@ -22,6 +22,12 @@ enum meter {
     METER_FP,
 };
 
+enum flags {
+    FLAGS_NONE,
+    FLAGS_CLANG,
+    FLAGS_GCC,
+};
+
 struct arguments {
     char* input;
     char* output;
@@ -34,7 +40,8 @@ struct arguments {
     enum boxtype boxtype;
     bool singlethread;
     bool decl;
-    bool meter;
+    enum meter meter;
+    enum flags flags;
 };
 
 extern struct arguments args;

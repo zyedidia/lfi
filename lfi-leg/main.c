@@ -17,8 +17,9 @@ enum {
     ARG_no_segue      = 0x84,
     ARG_cfi           = 0x85,
     ARG_single_thread = 0x86,
-    ARG_decl = 0x87,
+    ARG_decl          = 0x87,
     ARG_meter         = 0x88,
+    ARG_flags         = 0x89,
 };
 
 // options (TODO):
@@ -48,6 +49,7 @@ static struct argp_option options[] = {
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
     { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
     { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp)" },
+    { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
     { 0 },
 };
 
@@ -119,6 +121,16 @@ parse_opt(int key, char* arg, struct argp_state* state)
             return ARGP_ERR_UNKNOWN;
         }
         break;
+    case ARG_flags:
+        if (strcmp(arg, "clang") == 0)
+            args->flags = FLAGS_CLANG;
+        else if (strcmp(arg, "gcc") == 0)
+            args->flags = FLAGS_GCC;
+        else {
+            fprintf(stderr, "unsupported compiler type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
+        break;
     case ARG_single_thread:
         args->singlethread = true;
         break;
@@ -172,6 +184,9 @@ struct arguments args;
 bool amd64_rewrite(FILE* input, FILE* output);
 bool arm64_rewrite(FILE* input, FILE* output);
 
+char* arm64_getflags(enum flags);
+char* amd64_getflags(enum flags);
+
 int
 main(int argc, char** argv)
 {
@@ -189,9 +204,21 @@ main(int argc, char** argv)
     }
 
     if (strcmp(args.arch, "arm64") == 0) {
+        if (args.flags != FLAGS_NONE) {
+            char* flags = arm64_getflags(args.flags);
+            puts(flags);
+            return 0;
+        }
+
         if (!arm64_rewrite(input, output))
             return 1;
     } else if (strcmp(args.arch, "amd64") == 0) {
+        if (args.flags != FLAGS_NONE) {
+            char* flags = amd64_getflags(args.flags);
+            puts(flags);
+            return 0;
+        }
+
         if (!amd64_rewrite(input, output))
             return 1;
     }
