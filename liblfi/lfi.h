@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 enum {
     LFI_VASPACE_MAX = 16,
@@ -128,9 +129,9 @@ void lfi_signal_end(uint64_t saved);
 
 void* lfi_sys_ctx(uint64_t syspage);
 
-int lfi_verify_bytes(void* b, size_t size, void* fn);
+bool lfi_verify_bytes(void* b, size_t size, void* fn);
 
-int lfi_verify_insn(uint32_t insn);
+bool lfi_verify_insn(uint32_t insn);
 
 int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
 
