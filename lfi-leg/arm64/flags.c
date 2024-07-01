@@ -9,7 +9,7 @@ arm64_getflags(enum flags compiler)
     char* flags = "";
     switch (compiler) {
     case FLAGS_CLANG:
-        flags = xasprintf("--mllvm --aarch64-enable-compress-jump-tables=false");
+        flags = xasprintf("-mllvm --aarch64-enable-compress-jump-tables=false");
         break;
     case FLAGS_GCC:
         break;

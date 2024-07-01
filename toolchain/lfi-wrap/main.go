@@ -24,16 +24,18 @@ var clangTemplate string
 var nolibClangTemplate string
 
 type Args struct {
+	Arch       string
 	LfiFlags   string
+	LegFlags   string
 	Flags      string
 	ExtraFlags string
 	Compiler   string
 	Toolchain  string
 }
 
-func legFlags(compiler, lfiflags string) string {
+func legFlags(compiler, lfiflags, arch string) string {
 	buf := &bytes.Buffer{}
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("lfi-leg --flags=%s %s", compiler, lfiflags))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("lfi-leg -a %s --flags=%s %s", arch, compiler, lfiflags))
 	cmd.Env = os.Environ()
 	cmd.Stdout = buf
 	cmd.Stderr = os.Stderr
@@ -41,20 +43,32 @@ func legFlags(compiler, lfiflags string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return buf.String()
+	return strings.TrimSpace(buf.String())
+}
+
+var toLegArch = map[string]string{
+	"x86_64":      "amd64",
+	"aarch64_lfi": "arm64",
+	"aarch64":     "arm64",
 }
 
 func main() {
 	toolchain := flag.String("toolchain", "gcc", "compiler toolchain to generate wrapper for (gcc,clang,nolib-clang)")
 	compiler := flag.String("compiler", "gcc", "compiler to generate wrapper for (clang,clang++,gcc,g++,gfortran,...)")
-	arch := flag.String("arch", runtime.GOARCH, "architecture to generate wrapper for (clang-only)")
 	flags := flag.Bool("flags", false, "show flags")
 	flag.Parse()
 
+	lfiarch := os.Getenv("ARCH")
+	var arch string
+	if _, ok := toLegArch[lfiarch]; ok {
+		arch = toLegArch[lfiarch]
+	} else {
+		arch = runtime.GOARCH
+	}
 	lfiflags := os.Getenv("LFIFLAGS")
 
 	var extraflags map[string]string
-	switch *arch {
+	switch arch {
 	case "amd64":
 		extraflags = map[string]string{
 			"gcc":         "-ftls-model=local-exec -fPIC -fno-plt -static-pie -z separate-code",
@@ -68,7 +82,7 @@ func main() {
 			"nolib-clang": "-fPIC -target aarch64-linux-musl",
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "invalid arch", *arch)
+		fmt.Fprintln(os.Stderr, "invalid arch", arch)
 		os.Exit(1)
 	}
 
@@ -89,7 +103,7 @@ func main() {
 	}
 
 	if *flags {
-		fmt.Printf("%s %s\n", strings.TrimSpace(legFlags(legToolchain, lfiflags)), extraflags[*toolchain])
+		fmt.Printf("%s %s\n", legFlags(legToolchain, lfiflags, arch), extraflags[*toolchain])
 		return
 	}
 
@@ -99,7 +113,9 @@ func main() {
 	}
 
 	err = t.Execute(os.Stdout, Args{
+		Arch:       arch,
 		LfiFlags:   lfiflags,
+		LegFlags:   legFlags(legToolchain, lfiflags, arch),
 		ExtraFlags: extraflags[*toolchain],
 		Compiler:   *compiler,
 		Toolchain:  legToolchain,

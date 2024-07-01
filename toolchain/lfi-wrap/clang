@@ -1,8 +1,9 @@
 #!/bin/sh
 TOOLCHAIN=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/..
-export LFIFLAGS="$LFIFLAGS {{ .LfiFlags }}"
+export LFIFLAGS="{{ .LfiFlags }}"
+export LFIARCH="{{ .Arch }}"
 lfi-compile {{ .Compiler }} \
-    $(lfi-leg --flags={{ .Toolchain }}) \
+    {{ .LegFlags }} \
     "$@" \
     --sysroot $TOOLCHAIN/sysroot \
     --rtlib=compiler-rt \
