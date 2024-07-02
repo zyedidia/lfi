@@ -41,3 +41,12 @@ leaq (%r14, %rdi), %rdi
 movq %dh, (%rdi)
 .bundle_unlock
 movq %r15, %rdi
+------
+rep stosq
+>>>
+.bundle_align_mode 4
+.bundle_lock
+andq %r13, %rdi
+leaq (%r14, %rdi), %rdi
+rep stosq
+.bundle_unlock

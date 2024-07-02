@@ -8,14 +8,25 @@
     ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
+
+static void
+mask(const char* reg)
+{
+    if (args.p2size == 0) {
+        mkinsn("andq %%r13, %s", reg);
+        mkinsn("leaq (%%r14, %s), %s", reg, reg);
+    } else {
+        mkinsn("movl %s, %s", lo(reg), lo(reg));
+        mkinsn("leaq (%%r14, %s), %s", reg, reg);
+    }
+}
 %}
 
 Top = (Stos | Movs | Lea | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
     mkdirective(".bundle_lock");
-    mkinsn("movl %%edi, %%edi");
-    mkinsn("leaq (%%r14, %%rdi), %%rdi");
+    mask("%rdi");
     mkinsn("%s%s", s.val, rest.val);
     mkdirective(".bundle_unlock");
     rfree(s); rfree(rest);
@@ -27,10 +38,8 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 
 Movs = m:MOVS rest:REMAINDER {
     mkdirective(".bundle_lock");
-    mkinsn("movl %%edi, %%edi");
-    mkinsn("leaq (%%r14, %%rdi), %%rdi");
-    mkinsn("movl %%esi, %%esi");
-    mkinsn("leaq (%%r14, %%rsi), %%rsi");
+    mask("%rdi");
+    mask("%rsi");
     mkinsn("%s%s", m.val, rest.val);
     mkdirective(".bundle_unlock");
     rfree(m); rfree(rest);
