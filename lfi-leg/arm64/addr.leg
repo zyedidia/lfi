@@ -52,10 +52,6 @@ AddrOpt = (
             $$ = (Result) {
                 .pre = xasprintf("add x22, %s, %s", r.val, i.val),
                 .val = strdup("[x21, w22, uxtw]"),
-                // TODO
-                // use unoptimized sequence for x30 because POC sequence will be using x22
-                // .guardx30 = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
-                // .valx30 = xasprintf("[x18, %s]", i.val),
             };
         }
         rfree(r); rfree(i);

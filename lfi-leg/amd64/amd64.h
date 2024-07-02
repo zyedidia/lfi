@@ -101,7 +101,10 @@ bundle_mask_constant()
 static void
 bundle_mask(const char* reg)
 {
-    if (args.boxtype > BOX_BUNDLEJUMPS) {
+    if (args.boxtype > BOX_BUNDLEJUMPS && args.p2size == 0) {
+        mkinsn("andq %%r13, %s", reg);
+        mkinsn("orq %%r14, %s", reg);
+    } else if (args.boxtype > BOX_BUNDLEJUMPS) {
         mkinsn("andl $0x%s, %s", bundle_mask_constant(), lo(reg));
         mkinsn("orq %%r14, %s", reg);
     } else {

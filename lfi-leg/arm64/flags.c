@@ -6,6 +6,8 @@
 char*
 arm64_getflags(enum flags compiler)
 {
+    if (args.boxtype == BOX_NONE)
+        return "";
     char* flags = "";
     switch (compiler) {
     case FLAGS_CLANG:

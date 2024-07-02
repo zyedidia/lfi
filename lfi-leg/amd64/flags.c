@@ -6,6 +6,8 @@
 char*
 amd64_getflags(enum flags compiler)
 {
+    if (args.boxtype == BOX_NONE)
+        return "";
     char* flags = "";
     switch (compiler) {
     case FLAGS_CLANG:
@@ -23,6 +25,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("%s -falign-labels=16 -falign-functions=16", flags);
         else if (args.cfi == CFI_BUNDLE32)
             flags = xasprintf("%s -falign-labels=32 -falign-functions=32", flags);
+        if (args.p2size == 0)
+            flags = xasprintf("%s -ffixed-r13", flags);
         break;
     default:
         assert(0);

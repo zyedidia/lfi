@@ -21,6 +21,7 @@ var testflags = map[string][]string{
 	"bundlejumps.s":  []string{"--sandbox=bundle-jumps"},
 	"decl.s":         []string{"--decl"},
 	"meter.s":        []string{"--meter=branch"},
+	"variable.s":     []string{"--p2size=variable"},
 }
 
 func fatal(err ...interface{}) {

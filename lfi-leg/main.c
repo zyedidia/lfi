@@ -20,6 +20,7 @@ enum {
     ARG_decl          = 0x87,
     ARG_meter         = 0x88,
     ARG_flags         = 0x89,
+    ARG_p2size        = 0x90,
 };
 
 // options (TODO):
@@ -50,6 +51,7 @@ static struct argp_option options[] = {
     { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
     { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp)" },
     { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
+    { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,n,variable)" },
     { 0 },
 };
 
@@ -137,6 +139,12 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_decl:
         args->decl = true;
         break;
+    case ARG_p2size:
+        if (strcmp(arg, "variable") == 0)
+            args->p2size = 0;
+        else
+            args->p2size = atoi(arg);
+        break;
     case ARGP_KEY_ARG:
         args->input = arg;
         break;
@@ -193,6 +201,7 @@ main(int argc, char** argv)
     args.output = "-";
     args.input = "-";
     args.boxtype = BOX_FULL;
+    args.p2size = 32;
 
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 

@@ -46,6 +46,8 @@ warnargs()
         fprintf(stderr, "warning: --cfi has no effect on arm64\n");
     if (args.singlethread)
         fprintf(stderr, "warning: --single-thread has no effect on arm64\n");
+    if (args.p2size != 32)
+        fprintf(stderr, "warning: --p2size must be 32 on arm64\n");
 }
 
 bool
