@@ -19,5 +19,10 @@ int main() {
         }
     }
 
+	/* uint32_t insn = (uint32_t) 0x2f9ae; // 0x30000; // 0x2f9ae;
+        if (lfiveribdd_verify_insn(insn) != lfi_verify_insn(insn)) {
+            printf("mismatch: %x\n", insn);
+        } */
+
     return 0;
 }
