@@ -21,12 +21,8 @@ type Node struct {
 type Node2 struct {
 	shift uint8 // low 5 bits represent the ammount of location shifted (equivalent to v value in original Node struct), 
 	// high 3 bits represent the size of the mask to be considered (0 -> size 1, 1 -> size 2, ... 7 -> size 8)
-<<<<<<< HEAD
 	size uint8
 	v uint32 // value to be checked
-=======
-	v uint8 // value to be checked
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 	lo uint16 // goes to if mask check rejects
 	hi uint16 // goes to if mask check accepts
 	parents []int // list of parent nodes via index value
@@ -88,18 +84,11 @@ func writeC2(nodes []Node2, w io.Writer){
 			continue
 		}
 		
-<<<<<<< HEAD
 		var mask uint32 = (1 << (n.shift + n.size + 1)) - (1 << n.shift) // (1 << ((n.shift >> 5) + (n.shift & 0x1F) + 1)) - (1 << (n.shift & 0x1F))
 		var val uint32 = n.v << n.shift // uint32(n.v) << (n.shift & 0x1F)
 		fmt.Fprintf(w, "node%d:\n", i)
 		// fmt.Fprintf(w, "\tif((input & %d) == %d)\n", mask, val)
 		fmt.Fprintf(w, "\tif((input & 0b%032b) == 0b%032b)\n", mask, val)
-=======
-		var mask uint32 = (1 << ((n.shift >> 5) + (n.shift & 0x1F) + 1)) - (1 << (n.shift & 0x1F))
-		var val uint32 = uint32(n.v) << (n.shift & 0x1F)
-		fmt.Fprintf(w, "node%d:\n", i)
-		fmt.Fprintf(w, "\tif((input & %d) == %d)\n", mask, val)
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 		fmt.Fprintf(w, "\t\tgoto node%d;\n", n.hi)
 		fmt.Fprintf(w, "\telse \n\t\tgoto node%d;\n", n.lo)
 	}
@@ -170,10 +159,7 @@ func main() {
 		// fmt.Fprintf(os.Stdout, "\tgoto node%d;\n", N.hi)
 		nodes2 = append(nodes2, Node2{
 			shift: N.v,
-<<<<<<< HEAD
 			size: 0,  // This results in a default size of 1
-=======
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 			v: 1,
 			lo: N.lo,
 			hi: N.hi,
@@ -191,11 +177,8 @@ func main() {
 	
 	} */
 	
-<<<<<<< HEAD
 	// fmt.Println(len(nodes2))
 	
-=======
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 	for i := len(nodes2) - 1; i >= 2; i-- {
 		origN := &nodes2[i]
 		curN := nodes2[i]
@@ -207,11 +190,7 @@ func main() {
 		
 		// if origN.shift - nodes2
 		
-<<<<<<< HEAD
 		var checkStr uint32 = 0
-=======
-		var checkStr uint8 = 0
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 		var bitI uint8 = 0
 		var increasing bool = false // = origN.shift <  // Is the bit shift value increasing as one descends upon the tree
 		var commonNode uint16
@@ -300,7 +279,6 @@ func main() {
 		if fixed {
 		
 			// fmt.Println("fixed")
-<<<<<<< HEAD
 			// fmt.Println(commonNode)
 			// fmt.Println(increasing)
 			
@@ -329,21 +307,10 @@ func main() {
 				} else if curN.hi == commonNode {
 					alternateNode = curN.lo
 					// fmt.Println("Lo")
-=======
-			for bitI < 8 {
-				// if len(nodes2[curN.].parents) == 1 && nodes2[]
-				
-				var alternateNode uint16 // Set this variable to the node other than the common node if it exists
-				if curN.lo == commonNode {
-					alternateNode = curN.hi
-				} else if curN.hi == commonNode {
-					alternateNode = curN.lo
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 				} else {
 					break
 				}
 				
-<<<<<<< HEAD
 				// fmt.Println(alternateNode)
 				
 				// If the alternate node is well formed for continuing the chain (no parents, continuing to increase/decrease), continue the chain
@@ -365,24 +332,6 @@ func main() {
 					// fmt.Println(newBit << bitI)
 					checkStr |= newBit << bitI
 					// fmt.Printf("%032b\n", checkStr)
-=======
-				
-				// If the alternate node is well formed for continuing the chain (no parents, continuing to increase/decrease), continue the chain
-				abs := int(curN.shift) - int(nodes2[alternateNode].shift)
-			
-				if(increasing){ abs = -abs}
-			
-			
-				if len(nodes2[alternateNode].parents) > 1 || abs != 1 {break}
-				
-				
-				// Conditions passed, update the check string and progress down the chain
-				var newBit uint8 = 0 
-				if alternateNode == curN.hi {newBit = 1}
-				
-				if increasing {
-					checkStr |= newBit << bitI
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 				} else {
 					checkStr <<= 1
 					checkStr |= newBit
@@ -402,7 +351,6 @@ func main() {
 			
 			// Update the shift to be the lower of the two shifts, as that is where the bits will be checked
 			// var uShift uint8 = nodes2[nodes2[curN.lo].parents[0]].shift
-<<<<<<< HEAD
 			// var uShift uint8 = nodes2[curN.parents[0]].shift
 			// if uShift < origN.shift {origN.shift = uShift} 
 			
@@ -413,27 +361,13 @@ func main() {
 			
 			
 			/* var alternateNode uint16 // Set this variable to the node other than the common node if it exists
-=======
-			var uShift uint8 = nodes2[curN.parents[0]].shift
-			if uShift < origN.shift {origN.shift = uShift} 
-			
-			origN.shift |= (bitI - 1) << 5 // Add the length of the bit string to the top unused 3 bits of the shift for saving
-			
-			var alternateNode uint16 // Set this variable to the node other than the common node if it exists
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 			if nodes2[curNNumerical].lo == commonNode {
 				alternateNode = curN.hi
 			} else if curN.hi == commonNode {
 				alternateNode = curN.lo
-<<<<<<< HEAD
 			} */
 			
 			origN.hi = curNNumerical // curNNumerical // uint16(nodes2[curN.lo].parents[0])
-=======
-			}
-			
-			origN.hi = alternateNode // curNNumerical // uint16(nodes2[curN.lo].parents[0])
->>>>>>> 7587a1af9e82f6f63a4f2e3ffd0f002b76f3f10b
 			origN.lo = commonNode
 			
 			// fmt.Printf("node%d: %d\n", i, origN.v)
