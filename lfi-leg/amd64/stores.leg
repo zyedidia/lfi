@@ -79,7 +79,7 @@ Store = m:NAME r:ITEM COMMA a:Addr {
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
     mkguards(a);
-    mkinsn("%s %s, %s, %s", m.val, a.val, r1.val, r2.val);
+    mkinsn("%s %s, %s, %s", m.val, r1.val, r2.val, a.val);
     mkpost(a);
     rfree(m); rfree(a); rfree(r1); rfree(r2);
 }

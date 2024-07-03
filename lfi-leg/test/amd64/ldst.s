@@ -96,3 +96,13 @@ movslq -36(%rsp), %rax
 >>>
 .bundle_align_mode 4
 movslq -36(%rsp), %rax
+------
+rep bsfq (%rsi), %rdi
+>>>
+.bundle_align_mode 4
+rep bsfq %gs:(%esi), %rdi
+------
+vextracti128 $0x1, %ymm12, -736(%rbp)
+>>>
+.bundle_align_mode 4
+vextracti128 $0x1, %ymm12, %gs:-736(%ebp)
