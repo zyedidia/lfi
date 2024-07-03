@@ -9,7 +9,7 @@ const RES_REG: Reg = Reg::X18;
 const RET_REG: Reg = Reg::X30;
 const SP_REG: Reg = Reg::SP;
 const BASE_REG: Reg = Reg::X21;
-const SYS_REG: Reg = Reg::X25;
+const SYS_REG: Reg = Reg::X21;
 
 pub struct Verifier {
     pub failed: bool,
