@@ -38,7 +38,11 @@ LdNormalRes = 'ldr' - r:RESREG COMMA rest:REMAINDER {
 
 LdMultiRes1 = 'ldp' - res:RESREG COMMA reg:REG COMMA rest:REMAINDER {
     if (!isfixed(res.val) && !isres(res.val)) {
-        mkinsn("ldp %s, %s, %s", res.val, reg.val, rest.val);
+        if (isres(reg.val)) {
+            mkinsn("ldp %s, x22, %s", res.val, rest.val);
+            mkinsn("add %s, x21, w22, uxtw", reg.val);
+        } else
+            mkinsn("ldp %s, %s, %s", res.val, reg.val, rest.val);
     } else if (!isfixed(res.val)) {
         mkinsn("ldp x22, %s, %s", reg.val, rest.val);
         mkinsn("add %s, x21, w22, uxtw", res.val);

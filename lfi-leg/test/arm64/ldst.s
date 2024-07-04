@@ -135,3 +135,8 @@ stp x29, x30, [x18]
 str x25, [x0]
 >>>
 str x25, [x21, w0, uxtw]
+------
+ldp x25, x30, [sp, #30]
+>>>
+ldp x25, x22, [sp, #30]
+add x30, x21, w22, uxtw
