@@ -45,6 +45,7 @@ struct lfi_options {
     uint64_t gas;
     int poc;
     int hidesys;
+    int p2size;
 };
 
 struct lfi_proc_info {

@@ -5,6 +5,12 @@
 #include "buddy.h"
 #include "lfi_internal.h"
 
+static size_t lfi_proc_size(struct lfi* lfi) {
+    if (lfi->opts.p2size == 0)
+        lfi->opts.p2size = 32;
+    return (1ULL << lfi->opts.p2size);
+}
+
 struct lfi* lfi_new(struct lfi_options options) {
     struct lfi* lfi = malloc(sizeof(struct lfi));
     if (!lfi) {
@@ -21,7 +27,7 @@ uint64_t lfi_max_procs(struct lfi* lfi) {
     for (uint8_t i = 0; i < lfi->n_vaspaces; i++) {
         // Subtract 2 because of the guard slots that are reserved on either
         // end of a vaspace.
-        total += lfi->vaspaces[i].size / LFI_PROC_SIZE - 2;
+        total += lfi->vaspaces[i].size / lfi_proc_size(lfi) - 2;
     }
     return total;
 }
@@ -104,10 +110,10 @@ int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size) {
         return LFI_ERR_MAX_VASPACE;
     }
 
-    uintptr_t align_base = ceil_p((uintptr_t) base, LFI_PROC_SIZE);
-    size_t align_size = trunc_p(align_base + (size - (align_base - (uintptr_t) base)), LFI_PROC_SIZE) - align_base;
+    uintptr_t align_base = ceil_p((uintptr_t) base, lfi_proc_size(lfi));
+    size_t align_size = trunc_p(align_base + (size - (align_base - (uintptr_t) base)), lfi_proc_size(lfi)) - align_base;
 
-    struct buddy* alloc = buddy_new((void*) align_base, align_size, LFI_PROC_SIZE);
+    struct buddy* alloc = buddy_new((void*) align_base, align_size, lfi_proc_size(lfi));
     if (!alloc) {
         return LFI_ERR_NOMEM;
     }
@@ -120,8 +126,8 @@ int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size) {
 
     // To be safe we will reserve the start and end sandboxes of the region, in
     // case the region is directly adjacent to some sensitive data.
-    buddy_reserve_range(alloc, (void*) align_base, LFI_PROC_SIZE);
-    buddy_reserve_range(alloc, (void*) (align_base + align_size - LFI_PROC_SIZE), LFI_PROC_SIZE);
+    buddy_reserve_range(alloc, (void*) align_base, lfi_proc_size(lfi));
+    buddy_reserve_range(alloc, (void*) (align_base + align_size - lfi_proc_size(lfi)), lfi_proc_size(lfi));
 
     lfi->vaspaces[lfi->n_vaspaces++] = (struct lfi_vaspace) {
         .base = (void*) align_base,
@@ -145,7 +151,7 @@ uintptr_t lfi_alloc_slot(struct lfi* lfi) {
     for (uint8_t i = 0; i < lfi->n_vaspaces; i++) {
         if (!buddy_is_full(lfi->vaspaces[i].alloc)) {
             lfi->vaspaces[i].active++;
-            return (uintptr_t) buddy_malloc(lfi->vaspaces[i].alloc, LFI_PROC_SIZE);
+            return (uintptr_t) buddy_malloc(lfi->vaspaces[i].alloc, lfi_proc_size(lfi));
         }
     }
     assert(0);
@@ -156,7 +162,7 @@ void lfi_delete_slot(struct lfi* lfi, uintptr_t base) {
     for (uint8_t i = 0; i < lfi->n_vaspaces; i++) {
         uintptr_t va_base = (uintptr_t) lfi->vaspaces[i].base;
         if (base >= va_base && base < va_base + lfi->vaspaces[i].size) {
-            int b = buddy_safe_free(lfi->vaspaces[i].alloc, (void*) base, LFI_PROC_SIZE);
+            int b = buddy_safe_free(lfi->vaspaces[i].alloc, (void*) base, lfi_proc_size(lfi));
             assert(b);
             lfi->vaspaces[i].active--;
         }

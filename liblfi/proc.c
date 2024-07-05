@@ -22,6 +22,10 @@ static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
     return base | ((uint32_t) addr);
 }
 
+static uint64_t mask(int size) {
+    return (~0ULL) >> (64 - size);
+}
+
 static void regs_validate(struct lfi_proc* proc) {
     uint64_t* r;
 
@@ -36,6 +40,9 @@ static void regs_validate(struct lfi_proc* proc) {
     // sys register (if used for this arch)
     if ((r = regs_sys(&proc->regs)))
         *r = (uintptr_t) proc->sys;
+
+    if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
+        *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size;
 }
 
 static int elf_check(struct elf_file_header* ehdr) {
