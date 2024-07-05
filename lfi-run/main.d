@@ -13,12 +13,14 @@ enum Arg {
     NOVERIFY = "no-verify",
     SHOWMAX  = "show-max-procs",
     POC      = "poc",
+    P2SIZE   = "p2size",
 }
 
 struct Flags {
     bool noverify;
     bool showmax;
     bool poc;
+    int p2size;
 }
 
 __gshared {
@@ -60,6 +62,13 @@ extern (C) int main(int argc, const(char)** argv) {
             flags.showmax = true;
         } else if (strcmp(arg, Arg.POC.ptr) == 0) {
             flags.poc = true;
+        } else if (strcmp(arg, Arg.P2SIZE.ptr) == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "--p2size needs argument");
+                continue;
+            }
+            i++;
+            flags.p2size = atoi(argv[i]);
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
         }
@@ -76,6 +85,7 @@ extern (C) int main(int argc, const(char)** argv) {
     options.pagesize = PAGESIZE;
     options.stacksize = mb(2);
     options.syshandler = &syscall;
+    options.p2size = flags.p2size;
 
     lfiengine = lfi_new(options);
     if (!lfiengine) {

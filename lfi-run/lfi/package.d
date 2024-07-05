@@ -15,6 +15,7 @@ struct LFIOptions {
     ulong gas;
     int poc;
     int hidesys;
+    int p2size;
 }
 
 struct LFIProcInfo {
