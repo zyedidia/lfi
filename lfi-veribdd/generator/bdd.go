@@ -88,7 +88,7 @@ func writeC2(nodes []Node2, w io.Writer){
 		var val uint32 = n.v << n.shift // uint32(n.v) << (n.shift & 0x1F)
 		fmt.Fprintf(w, "node%d:\n", i)
 		// fmt.Fprintf(w, "\tif((input & %d) == %d)\n", mask, val)
-		fmt.Fprintf(w, "\tif((input & 0b%032b) == 0b%032b)\n", mask, val)
+		fmt.Fprintf(w, "\tif((input & 0x%08x) == 0x%08x)\n", mask, val)
 		fmt.Fprintf(w, "\t\tgoto node%d;\n", n.hi)
 		fmt.Fprintf(w, "\telse \n\t\tgoto node%d;\n", n.lo)
 	}
