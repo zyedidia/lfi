@@ -42,7 +42,8 @@ static void regs_validate(struct lfi_proc* proc) {
         *r = (uintptr_t) proc->sys;
 
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
-        *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size;
+        /* *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size; */
+        *regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
 }
 
 static int elf_check(struct elf_file_header* ehdr) {

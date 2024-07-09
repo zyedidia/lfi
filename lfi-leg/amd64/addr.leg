@@ -11,8 +11,7 @@ Addr = (
         $$ = (Result) {};
         if (args.p2size == 0) {
             $$.premulti[0] = strdup(".bundle_lock");
-            $$.premulti[1] = xasprintf("shlx %%r13, %s, %%r15", r.val);
-            $$.premulti[2] = xasprintf("shrx %%r13, %%r15, %%r15");
+            $$.premulti[1] = xasprintf("pext %%r13, %s, %%r15", r.val);
             $$.val         = strdup("(%r14, %r15)");
             $$.post        = strdup(".bundle_unlock");
         } else if (args.nosegue) {
@@ -31,8 +30,7 @@ Addr = (
         $$ = (Result) {};
         if (args.p2size == 0) {
             $$.premulti[0] = strdup(".bundle_lock");
-            $$.premulti[1] = xasprintf("shlx %%r13, %s, %%r15", r.val);
-            $$.premulti[2] = xasprintf("shrx %%r13, %%r15, %%r15");
+            $$.premulti[1] = xasprintf("pext %%r13, %s, %%r15", r.val);
             $$.val         = xasprintf("%s(%r14, %r15)", i.val);
             $$.post        = strdup(".bundle_unlock");
         } else if (args.nosegue) {
@@ -52,8 +50,7 @@ Addr = (
         if (args.p2size == 0) {
             $$.premulti[0] = xasprintf("leaq %s%s, %%r15", i.val, b.unmod);
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("shlx %%r13, %%r15, %%r15");
-            $$.premulti[3] = xasprintf("shrx %%r13, %%r15, %%r15");
+            $$.premulti[2] = xasprintf("pext %%r13, %%r15, %%r15");
             $$.val         = strdup("(%r14, %r15)");
             $$.post        = strdup(".bundle_unlock");
         } else if (args.nosegue) {
@@ -74,8 +71,7 @@ Addr = (
         if (args.p2size == 0) {
             $$.premulti[0] = xasprintf("leaq %s, %%r15", b.unmod);
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("shlx %%r13, %%r15, %%r15");
-            $$.premulti[3] = xasprintf("shrx %%r13, %%r15, %%r15");
+            $$.premulti[2] = xasprintf("pext %%r13, %%r15, %%r15");
             $$.val         = strdup("(%r14, %r15)");
             $$.post        = strdup(".bundle_unlock");
         } else if (args.nosegue) {
@@ -122,8 +118,7 @@ AddrH = (
         if (args.p2size == 0) {
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("shlx %%r13, %s, %%rdi", r.val);
-            $$.premulti[3] = xasprintf("shrx %%r13, %%rdi, %%rdi");
+            $$.premulti[2] = xasprintf("pext %%r13, %s, %%rdi", r.val);
             $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = strdup("(%rdi)");
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
@@ -146,8 +141,7 @@ AddrH = (
         if (args.p2size == 0) {
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
-            $$.premulti[2] = xasprintf("shlx %%r13, %s, %%rdi", r.val);
-            $$.premulti[3] = xasprintf("shrx %%r13, %%rdi, %%rdi");
+            $$.premulti[2] = xasprintf("pext %%r13, %s, %%rdi", r.val);
             $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("%s(%%rdi)", i.val);
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
@@ -171,8 +165,7 @@ AddrH = (
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = xasprintf("leaq %s, %%rdi", b.unmod);
             $$.premulti[2] = strdup(".bundle_lock");
-            $$.premulti[3] = xasprintf("shlx %%r13, %%rdi, %%rdi");
-            $$.premulti[4] = xasprintf("shrx %%r13, %%rdi, %%rdi");
+            $$.premulti[3] = xasprintf("pext %%r13, %%rdi, %%rdi");
             $$.premulti[5] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("%s(%%rdi)", i.val);
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
@@ -196,8 +189,7 @@ AddrH = (
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = xasprintf("leaq %s, %%rdi", b.unmod);
             $$.premulti[2] = strdup(".bundle_lock");
-            $$.premulti[3] = xasprintf("shlx %%r13, %%rdi, %%rdi");
-            $$.premulti[4] = xasprintf("shrx %%r13, %%rdi, %%rdi");
+            $$.premulti[3] = xasprintf("pext %%r13, %%rdi, %%rdi");
             $$.premulti[5] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("(%%rdi)");
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");

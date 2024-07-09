@@ -102,8 +102,8 @@ static void
 bundle_mask(const char* reg)
 {
     if (args.boxtype > BOX_BUNDLEJUMPS && args.p2size == 0) {
-        mkinsn("shlx %%r13, %s, %s", reg, reg);
-        mkinsn("shrx %%r13, %s, %s", reg, reg);
+        mkinsn("andq %%r13, %s", reg);
+        mkinsn("andq $0xffffffff%s, %s", bundle_mask_constant(), reg);
         mkinsn("orq %%r14, %s", reg);
     } else if (args.boxtype > BOX_BUNDLEJUMPS) {
         mkinsn("andl $0x%s, %s", bundle_mask_constant(), lo(reg));
@@ -118,16 +118,19 @@ bundle_nop_indcall()
 {
     switch (args.cfi) {
     case CFI_BUNDLE16:
-        if (args.boxtype > BOX_BUNDLEJUMPS)
-            mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 6-byte nop
-        else
+        if (args.boxtype > BOX_BUNDLEJUMPS) {
+            if (args.p2size == 0)
+                mkdirective(".byte 0x0f, 0x1f, 0x00"); // 3-byte nop
+            else
+                mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 6-byte nop
+        } else
             mkdirective(".byte 0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 9-byte nop
         return;
     case CFI_BUNDLE32:
         if (args.boxtype > BOX_BUNDLEJUMPS) {
             if (args.p2size == 0) {
                 mkdirective(".byte 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 5-byte nop
-                mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
+                mkdirective(".byte 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 8-byte nop
             } else {
                 mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
                 mkdirective(".byte 0x65, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
