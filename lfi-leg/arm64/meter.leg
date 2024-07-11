@@ -41,21 +41,33 @@ fpmeter(bool aligned, bool indirect)
     mkinsn("fneg d31, d31");
     if (indirect && aligned)
         mkinsn("nop");
-    mklabel("1000");
 }
+
+static void
+timermeter(bool aligned, bool indirect)
+{
+    if (aligned)
+        mkdirective(".p2align 4");
+    mkinsn("sub x23, x23, #0");
+    if (indirect && aligned) {
+        mkinsn("nop");
+    }
+}
+
+static void (*meter)(bool, bool);
 %}
 
 Top = IndBranch | Branch
 
 IndBranch = b:INDBRANCH SEP r:XREG {
-    tbzmeter(true, true);
+    meter(true, true);
     mkinsn("bic %s, %s, 0xf", r.val, r.val);
     mkinsn("%s %s", b.val, r.val);
     rfree(b); rfree(r);
 }
 
 Branch = b:DIRBRANCH SEP rest:REMAINDER {
-    tbzmeter(true, false);
+    meter(true, false);
     mkinsn("%s %s", b.val, rest.val);
 }
 
@@ -102,6 +114,22 @@ arm64_meterpass(struct op* op)
     memset(&ctx, 0, sizeof(yycontext));
     ctx.op = op;
     oplocate(op);
+
+    switch (args.meter) {
+    case METER_BRANCH:
+        meter = tbzmeter;
+        break;
+    case METER_FP:
+        meter = fpmeter;
+        break;
+    case METER_TIMER:
+        meter = timermeter;
+        break;
+    default:
+        fprintf(stderr, "meter pass run without a valid meter setting\n");
+        return;
+    }
+
     if (yyparse(&ctx)) {
         opremove(op);
         opfree(op);

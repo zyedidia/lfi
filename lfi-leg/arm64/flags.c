@@ -19,7 +19,7 @@ arm64_getflags(enum flags compiler)
         assert(0);
     }
     flags = xasprintf("%s -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x30", flags);
-    if (args.meter == METER_BRANCH)
+    if (args.meter == METER_BRANCH || args.meter == METER_TIMER)
         flags = xasprintf("%s -ffixed-x23", flags);
     else if (args.meter == METER_FP)
         flags = xasprintf("%s -ffixed-x23 -ffixed-d31", flags);

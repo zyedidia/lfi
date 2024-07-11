@@ -49,7 +49,7 @@ static struct argp_option options[] = {
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
     { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
-    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp)" },
+    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp,timer)" },
     { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
     { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,n,variable)" },
     { 0 },
@@ -102,6 +102,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->meter = METER_BRANCH;
         else if (strcmp(arg, "fp") == 0)
             args->meter = METER_FP;
+        else if (strcmp(arg, "timer") == 0)
+            args->meter = METER_TIMER;
         else {
             fprintf(stderr, "unsupported metering type: %s\n", arg);
             return ARGP_ERR_UNKNOWN;
