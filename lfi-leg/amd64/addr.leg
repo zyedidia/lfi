@@ -119,7 +119,7 @@ AddrH = (
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
             $$.premulti[2] = xasprintf("pext %%r13, %s, %%rdi", r.val);
-            $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
+            $$.premulti[3] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = strdup("(%rdi)");
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
         } else if (args.nosegue) {
@@ -142,7 +142,7 @@ AddrH = (
             $$.premulti[0] = strdup("movq %rdi, %r15");
             $$.premulti[1] = strdup(".bundle_lock");
             $$.premulti[2] = xasprintf("pext %%r13, %s, %%rdi", r.val);
-            $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
+            $$.premulti[3] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("%s(%%rdi)", i.val);
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
         } else if (args.nosegue) {
@@ -166,7 +166,7 @@ AddrH = (
             $$.premulti[1] = xasprintf("leaq %s, %%rdi", b.unmod);
             $$.premulti[2] = strdup(".bundle_lock");
             $$.premulti[3] = xasprintf("pext %%r13, %%rdi, %%rdi");
-            $$.premulti[5] = strdup("leaq (%r14, %rdi), %rdi");
+            $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("%s(%%rdi)", i.val);
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
         } else if (args.nosegue) {
@@ -190,7 +190,7 @@ AddrH = (
             $$.premulti[1] = xasprintf("leaq %s, %%rdi", b.unmod);
             $$.premulti[2] = strdup(".bundle_lock");
             $$.premulti[3] = xasprintf("pext %%r13, %%rdi, %%rdi");
-            $$.premulti[5] = strdup("leaq (%r14, %rdi), %rdi");
+            $$.premulti[4] = strdup("leaq (%r14, %rdi), %rdi");
             $$.val         = xasprintf("(%%rdi)");
             $$.post        = strdup(".bundle_unlock\nmovq %r15, %rdi");
         } else if (args.nosegue) {
