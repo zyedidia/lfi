@@ -11,7 +11,7 @@ brk #0
 1000:
 bl foo
 ------
-blr foo
+blr x0
 >>>
 add x18, x21, w0, uxtw
 .p2align 4
