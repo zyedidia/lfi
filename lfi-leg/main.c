@@ -214,7 +214,13 @@ main(int argc, char** argv)
         args.arch = getarch();
     }
 
-    if (strcmp(args.arch, "arm64") == 0) {
+    if (args.boxtype == BOX_NONE) {
+        // nothing to do
+        char buf[4096];
+        size_t n;
+        while ((n = fread(buf, 1, 4096, input)) != 0)
+            fwrite(buf, 1, n, output);
+    } else if (strcmp(args.arch, "arm64") == 0) {
         if (args.flags != FLAGS_NONE) {
             char* flags = arm64_getflags(args.flags);
             puts(flags);
