@@ -1,3 +1,4 @@
+mkdir -p .amd64 .arm64
 cc -O2 -Wall -Wno-unused-function -MMD -MF .ht.dep -c ht.c -o .ht.o -I.
 cc -O2 -Wall -Wno-unused-function -MMD -MF .main.dep -c main.c -o .main.o -I.
 cc -O2 -Wall -Wno-unused-function -MMD -MF .op.dep -c op.c -o .op.o -I.
