@@ -51,7 +51,7 @@ measured a runtime overhead of 7% and a code size overhead of 14% for full
 isolation. This compares well with LLVM-based ahead-of-time WebAssembly
 compilers, which incur upwards of 20% runtime overhead. Additionally, LFI can
 be used for pure fault isolation, where sandboxes may read, but not write,
-each other's memory. In this case, we measured a runtime overhead of around 1%.
+each other's memory. In this case, we measured a runtime overhead of around 1.5%.
 
 LFI is also secure: the compiler toolchain used to
 produce LFI-compatible programs is not a part of the trusted code base, and LFI
@@ -62,7 +62,7 @@ LFI supports all source-level language features and targets the ARMv8.0-A ISA
 
 The last component of an LFI system is the runtime, which loads programs and
 handles runtime calls (e.g., syscalls) on their behalf. To create your own
-runtime, you can use `liblfi`, which provides utility functions to creating and
+runtime, you can use `liblfi`, which provides utility functions for creating and
 running sandboxes, and handling runtime calls (it is up to you what runtime
 calls are available and what they do).
 
@@ -70,11 +70,11 @@ The `lfi-run` program is an example LFI runtime that behaves like a subset of
 Linux, and can be used to run many programs compiled for Linux with an LFI
 toolchain. This runtime is useful for running benchmarks such as SPEC 2017.
 
-LFI is currently in development. For now, please only use it for
-experimentation.
+LFI is currently in development and is a research project.
 
-Please see the following paper for more details:
-https://zyedidia.github.io/papers/lfi_asplos24.pdf.
+# Publication
+
+Zachary Yedidia. "Lightweight Fault Isolation: Practical, Efficient, and Secure Software Sandboxing." ASPLOS 2024. [Link](https://zyedidia.github.io/papers/lfi_asplos24.pdf).
 
 # Tools
 
@@ -84,9 +84,8 @@ The LFI project provides the following tools:
 * `lfi-verify`: verifies ELF binaries for LFI-compatibility.
 * `lfi-run`: runs an LFI-compatible binary.
 * `lfi-compile`: acts like a compiler, but creates an intermediate `.s`
-  file during compilation and runs `lfi-leg-arm64` on it. Meant to be used with
+  file during compilation and runs `lfi-leg` on it. Meant to be used with
   `clang`/`clang++`.
-* `lfi-as`: acts like an assembler, but invokes `lfi-leg-arm64` first.
 
 # Installation
 
@@ -135,8 +134,8 @@ sandboxes. The prebuilt releases provide the following libraries:
 To install the tools, you must have the following dependencies installed:
 
 * Go: for `lfi-compile` and `lfi-as`.
-* Leg: for `lfi-leg-arm64` (`sudo apt install peg`).
-* C: for `lfi-leg-arm64` and `liblfi`.
+* Leg: for `lfi-leg` (`sudo apt install peg`).
+* C: for `lfi-leg` and `liblfi`.
 * Rust: for `lfi-verify`.
 * LDC: for `lfi-run`.
 * Knit: to build `lfi-run`.
@@ -148,8 +147,8 @@ go install ./lfi-compile
 go install ./lfi-as
 
 cd lfi-leg
-make
-mv lfi-leg-arm64 /path/to/bin
+knit
+mv lfi-leg /path/to/bin
 cd ..
 
 cd lfi-verify
