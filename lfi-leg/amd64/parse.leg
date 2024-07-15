@@ -17,7 +17,8 @@ extern FILE* input;
 Top = Insn* !.
 
 Insn = - Label? (
-      Directive Comment?
+      FnDirective
+    | Directive Comment?
     | Comment
     | AnyPrefix
     | Any
@@ -34,7 +35,7 @@ Directive = < '.' (!EOL .)* > - {
 }
 
 FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
-    mkdirective(xasprintf("%s\n", yytext));
+    mkdirective(xasprintf("%s", yytext));
     mkdirective(bundle_align());
 }
 

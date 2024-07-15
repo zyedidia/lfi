@@ -18,6 +18,7 @@ orq %r14, %r15
 .byte 0x0f, 0x1f, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
 ------
 imulq $24, -88(%rsp), %rax
 imulq $24, -88(%rdi), %rax

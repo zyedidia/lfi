@@ -9,6 +9,7 @@ orq %r14, %r15
 .byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
 ------
 call *32+output(%rip)
 >>>
@@ -21,6 +22,7 @@ orq %r14, %r15
 .byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
 ------
 jmp *(%rax)
 >>>
@@ -43,6 +45,7 @@ orq %r14, %r15
 .byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
 ------
 notrack jmp *%rax
 >>>
@@ -64,6 +67,7 @@ orq %r14, %r15
 .byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
 ------
 callq foo
 >>>
@@ -71,6 +75,7 @@ callq foo
 .p2align 4
 .byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00
 callq foo
+.p2align 4
 ------
 ret
 >>>
@@ -93,3 +98,10 @@ orq %r14, %r15
 .byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
+.p2align 4
+------
+.type   _ZNSt8auto_ptrI9GameStateED2Ev, @function
+>>>
+.bundle_align_mode 4
+.type   _ZNSt8auto_ptrI9GameStateED2Ev, @function
+.p2align 4

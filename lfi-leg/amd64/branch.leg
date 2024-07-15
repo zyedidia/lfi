@@ -24,6 +24,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
+    mkdirective(bundle_align());
     rfree(r);
 }
 
@@ -41,6 +42,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
+    mkdirective(bundle_align());
     rfree(a);
 }
 
@@ -52,13 +54,16 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     bundle_nop_indcall();
     mkinsn("callq *%%r15");
     mkdirective(".bundle_unlock");
+    mkdirective(bundle_align());
     rfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    mkdirective(bundle_align());
+    if (!args.padcall)
+        mkdirective(bundle_align());
     bundle_nop_call();
     mkinsn("callq %s", rest.val);
+    mkdirective(bundle_align());
     rfree(rest);
 }
 

@@ -116,6 +116,11 @@ bundle_mask(const char* reg)
 static void
 bundle_nop_indcall()
 {
+    // If padcall was used, we don't insert call padding before the call.
+    // Instead it will be inserted afterwards by the assembler, and
+    // lfi-postlink will fix it up.
+    if (args.padcall)
+        return;
     switch (args.cfi) {
     case CFI_BUNDLE16:
         if (args.boxtype > BOX_BUNDLEJUMPS) {
@@ -150,6 +155,8 @@ bundle_nop_indcall()
 static void
 bundle_nop_call()
 {
+    if (args.padcall)
+        return;
     switch (args.cfi) {
     case CFI_BUNDLE16:
         mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
