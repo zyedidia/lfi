@@ -1,0 +1,8 @@
+return b{
+    $ %.leg.c: %.leg common.leg
+        leg -P -o $output $input
+    $ stores.leg.c: stores.leg addr.leg common.leg
+        leg -P -o $output $input
+    $ loads.leg.c: loads.leg addr.leg common.leg
+        leg -P -o $output $input
+}
