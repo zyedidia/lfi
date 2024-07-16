@@ -4,6 +4,7 @@
 #include "op.h"
 #include "util.h"
 
+
 static void
 ldst(Result l, Result rt, Result addr)
 {
@@ -13,17 +14,6 @@ ldst(Result l, Result rt, Result addr)
     if (addr.post)
         mkinsn("%s", addr.post);
     rfree(l); rfree(rt); rfree(addr);
-}
-
-static void
-ldstmulti(Result l, Result rt1, Result rt2, Result addr)
-{
-    if (addr.pre)
-        mkinsn("%s", addr.pre);
-    mkinsn("%s %s, %s, %s", l.val, rt1.val, rt2.val, addr.val);
-    if (addr.post)
-        mkinsn("%s", addr.post);
-    rfree(l); rfree(rt1); rfree(rt2); rfree(addr);
 }
 %}
 
@@ -48,11 +38,3 @@ AddrP = (
     }
 )
 
-
-ADDR_MOD = < (
-      ('lsl' - IMM_RAW)
-    | ([su] 'xtw' - IMM_RAW?)
-    | ('sxtx' - IMM_RAW?)
-) > - {
-    $$ = (Result) { .val = strndup(yytext, yyleng) }
-}

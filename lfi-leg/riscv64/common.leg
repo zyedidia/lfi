@@ -21,8 +21,8 @@ SIMD_REG = < (
     | ID
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-REGS = < XREG | 'zero' | 'ra' | 'sp' | 'gp' | 'tp' | 't' [0123456] | 's' [0123456789] | 'fp' 
-	| 'a' [01234567] | 's10' | 's11' >  { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+REGS = < XREG | 'zero' | 'ra' | 'sp' | 'gp' | 'tp' | 't' [0-6] | 's' [0-9] | 'fp' 
+	| 'a' [0-7] | 's10' | 's11' >  { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 XREG = < 'x' REGNUM > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };

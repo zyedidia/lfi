@@ -15,19 +15,17 @@ typedef struct pass {
     bool disabled;
 } Pass;
 
-// void riscv64_specialpass(struct op*);
+void riscv64_specialpass(struct op*);
 void riscv64_branchpass(struct op*);
 void riscv64_loadspass(struct op*);
 void riscv64_storespass(struct op*);
-// void riscv64_declpass(struct op*);
 void riscv64_syscallpass(struct op*);
 
 static Pass passes[] = {
-    // (Pass) { .fn = &riscv64_specialpass },
+    (Pass) { .fn = &riscv64_specialpass },
     (Pass) { .fn = &riscv64_loadspass },
     (Pass) { .fn = &riscv64_storespass },
     (Pass) { .fn = &riscv64_branchpass },
-    // (Pass) { .fn = &riscv64_declpass, .disabled = true },
     (Pass) { .fn = &riscv64_syscallpass },
 };
 
@@ -63,12 +61,11 @@ riscv64_rewrite(FILE* input, FILE* output)
             passes[i].disabled = true;
         if (args.boxtype < BOX_STORES && passes[i].fn == &riscv64_storespass)
             passes[i].disabled = true;
-        /* if (args.boxtype < BOX_STORES && passes[i].fn == &riscv64_specialpass)
-            passes[i].disabled = true; */
+        if (args.boxtype < BOX_STORES && passes[i].fn == &riscv64_specialpass)
+            passes[i].disabled = true;
         if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &riscv64_branchpass)
             passes[i].disabled = true;
-        /* if (args.decl && passes[i].fn == &riscv64_declpass)
-            passes[i].disabled = false; */
+        
     }
 
     for (size_t i = 0; i < npass; i++) {

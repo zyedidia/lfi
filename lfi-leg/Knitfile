@@ -31,6 +31,7 @@ local obj = {
         "riscv64/branch.leg",
         "riscv64/syscall.leg",
         "riscv64/parse.leg",
+	"riscv64/special.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         -- arm64
