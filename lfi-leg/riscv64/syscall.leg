@@ -1,0 +1,38 @@
+%{
+#include "arm64/arm64.h"
+#include "op.h"
+#include "args.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Syscall = < 'ecall' - (!EOL .)* > - {
+    mkinsn("sd ra, (sp)");
+    mkinsn("ld ra, (%s)", args.sysexternal ? "x25" : "x21");
+    mkinsn("jalr ra");
+    mkinsn("ld x22, (sp)");
+    mkinsn("add.uw ra, x22, x21");
+}
+
+%%
+
+void
+riscv64_syscallpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

@@ -1,0 +1,46 @@
+%{
+#include "arm64/arm64.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = RvBr
+
+
+RvBr = b:BRANCH r:REG {
+    mkinsn("add.uw x18, %s, x21", r.val);
+    mkinsn("%s x18", b.val);
+    rfree(b); rfree(r);
+}
+
+
+BRANCH = < ('jr' | 'jalr') > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+
+NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+%%
+
+void
+riscv64_branchpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

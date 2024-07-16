@@ -1,0 +1,41 @@
+%{
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = StRv    # StOpt | StNoOpt | StMulti | Atomic1 | Atomic2
+
+StRv = l:STRV rt:REG COMMA addr:AddrP {
+    ldst(l, rt, addr);
+}
+
+
+# RISCV Store prefixes
+
+STRV = < (
+      's' [bhwd]
+    | 'fs' [wd]
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+
+%%
+
+void
+riscv64_storespass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

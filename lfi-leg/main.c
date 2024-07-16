@@ -70,7 +70,7 @@ parse_opt(int key, char* arg, struct argp_state* state)
         args->output = arg;
         break;
     case 'a':
-        if (strcmp(arg, "amd64") != 0 && strcmp(arg, "arm64") != 0) {
+        if (strcmp(arg, "amd64") != 0 && strcmp(arg, "arm64") != 0 && strcmp(arg, "riscv64") != 0) {
             fprintf(stderr, "unknown architecture: %s\n", arg);
             return ARGP_ERR_UNKNOWN;
         }
@@ -188,6 +188,8 @@ getarch()
     return "amd64";
 #elif defined(__aarch64__) || defined(_M_ARM64)
     return "arm64";
+#elif defined(__riscv__)
+    return "riscv64";
 #else
     fprintf(stderr, "running on unsupported architecture, use --arch to specify target\n");
     exit(1);
@@ -198,9 +200,11 @@ struct arguments args;
 
 bool amd64_rewrite(FILE* input, FILE* output);
 bool arm64_rewrite(FILE* input, FILE* output);
+bool riscv64_rewrite(FILE* input, FILE* output);
 
 char* arm64_getflags(enum flags);
 char* amd64_getflags(enum flags);
+char* riscv64_getflags(enum flags);
 
 int
 main(int argc, char** argv)
@@ -242,6 +246,15 @@ main(int argc, char** argv)
         }
 
         if (!amd64_rewrite(input, output))
+            return 1;
+    } else if (strcmp(args.arch, "riscv64") == 0) {
+        if (args.flags != FLAGS_NONE) {
+            char* flags = riscv64_getflags(args.flags);
+            puts(flags);
+            return 0;
+        }
+
+        if (!riscv64_rewrite(input, output))
             return 1;
     }
 

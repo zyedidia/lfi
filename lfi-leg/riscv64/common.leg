@@ -1,0 +1,88 @@
+%{
+#include "result.h"
+
+#define YYSTYPE Result
+#define YY_CTX_LOCAL 1
+#define YY_PARSE(T) static T
+#define YY_CTX_MEMBERS \
+    struct op* op; \
+    size_t idx;
+%}
+
+
+SP = < 'sp' > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+REG = XREG | WREG | SIMD_REG | REGS
+
+SIMD_REG = < (
+      (LC ([^}])* RC (LB (!RB .)* RB)?)
+    | ID
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+REGS = < XREG | 'zero' | 'ra' | 'sp' | 'gp' | 'tp' | 't' [0-6] | 's' [0-9] | 'fp' 
+	| 'a' [0-7] | 's10' | 's11' >  { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+XREG = < 'x' REGNUM > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+WREG = < 'w' REGNUM > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+REGNUM = (
+      '10' | '11' | '12' | '13' | '14' | '15' | '16' | '17' | '18' | '19'
+    | '20' | '21' | '22' | '23' | '24' | '25' | '26' | '27' | '28' | '29'
+    | '30' | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'zr'
+)
+
+REMAINDER = < (!EOL .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+MODINST = < (
+      'add'
+    | 'sub'
+    | 'mov'
+    | 'and'
+    | 'orr'
+    | 'eor'
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+RESREG = < (
+      'x21'
+    | 'x18'
+    | 'x25'
+    | 'ra'
+    | 'x1'
+    | 'sp'
+    | 'x2'
+) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+IMM = < IMM_RAW > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+IMM_RAW = (
+    ('#' -)? 
+    (
+          [-0-9abcdefxABCDEF]+
+        | BALANCED
+        | RELOC
+    )
+)
+
+BALANCED = LP ([^()] | BALANCED)* RP
+
+RELOC = ':' ID ':' ID
+
+COMMA   = ',' -
+EXCLAM  = '!' -
+LB      = '[' -
+RB      = ']' -
+LP      = '(' -
+RP      = ')' -
+LC      = '{' -
+RC      = '}' -
+ID      = [a-zA-Z_.][-a-zA-Z0-9_.+]*
+EOL     = '\n' | '\r\n' | '\r'
+-       = [ \t]*
+SEP     = [ \t]+

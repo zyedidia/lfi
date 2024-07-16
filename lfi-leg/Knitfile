@@ -25,6 +25,13 @@ local obj = {
         "amd64/stores.leg",
         "amd64/loads.leg",
         "amd64/decl.leg",
+        -- riscv
+        "riscv64/loads.leg",
+        "riscv64/stores.leg",
+        "riscv64/branch.leg",
+        "riscv64/syscall.leg",
+        "riscv64/parse.leg",
+	"riscv64/special.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         -- arm64
@@ -35,6 +42,11 @@ local obj = {
         "amd64/display.c",
         "amd64/amd64.c",
         "amd64/flags.c",
+	-- riscv64
+	"riscv64/flags.c",
+	"riscv64/display.c",
+	"riscv64/riscv64.c",
+
     }, ".c", ".o"), "."),
     common = knit.prefix(knit.extrepl(knit.glob("*.c"), ".c", ".o"), "."),
 }
@@ -52,7 +64,9 @@ return b{
     $ test:VB: lfi-leg
         go run test/runtest.go -arch arm64 ./lfi-leg test/arm64/*.s
         go run test/runtest.go -arch amd64 ./lfi-leg test/amd64/*.s
+        go run test/runtest.go -arch riscv64 ./lfi-leg test/riscv64/*.s
 
     include("arm64/Knitfile"),
-    include("amd64/Knitfile")
+    include("amd64/Knitfile"),
+    include("riscv64/Knitfile")
 }

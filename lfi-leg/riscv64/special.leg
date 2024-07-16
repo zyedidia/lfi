@@ -1,0 +1,57 @@
+%{
+#include "riscv64/riscv64.h"
+#include "args.h"
+#include "op.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = ModSpecial | LdRes
+
+ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("%s %s, %s", i.val, res.val, r.val);
+    } else {
+        mkinsn("%s x22, %s", i.val, r.val);
+        mkinsn("add.uw %s, x21, x22", res.val);
+    }
+    rfree(r); rfree(res); rfree(i);
+}
+
+LdRes = LdNormalRes
+
+LdNormalRes = 'ld' - r:RESREG COMMA LP rest:REMAINDER RP {
+    if (!isfixed(r.val) && !isres(r.val)) {
+        // false positive on RESREG due to flags
+        mkinsn("ld %s, (%s)", r.val, rest.val);
+    } else if (!isfixed(r.val)) {
+        mkinsn("ldr x22, (%s)", rest.val);
+        mkinsn("add.uw %s, x21, x22", r.val);
+    }
+    rfree(r); rfree(rest);
+}
+
+
+
+%%
+
+void
+riscv64_specialpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}
