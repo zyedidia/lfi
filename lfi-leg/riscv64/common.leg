@@ -41,12 +41,12 @@ REGNUM = (
 REMAINDER = < (!EOL .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 MODINST = < (
-      'add'
-    | 'sub'
-    | 'mov'
-    | 'and'
-    | 'orr'
-    | 'eor'
+      'add' 'i'? 'w'?
+    | 'sub' 'i'? 'w'?
+    | 'mov' 'i'? 'w'?
+    | 'and' 'i'? 'w'?
+    | 'or' 'i'? 'w'?
+    | 'xor' 'i'? 'w'?
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 RESREG = < (
