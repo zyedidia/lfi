@@ -14,7 +14,12 @@ Top = IndBranch | ShortBranch
 
 IndBranch = b:BRANCH r:XREG {
     mkinsn("add x18, x21, w%s, uxtw", num(r.val));
-    mkinsn("%s x18", b.val);
+    if (bundle_bicmask() != NULL && args.meter != METER_BRANCH) {
+        mkinsn("bic x19, x18, %s", bundle_bicmask());
+        mkinsn("%s x19", b.val);
+    } else {
+        mkinsn("%s x18", b.val);
+    }
     rfree(b); rfree(r);
 }
 

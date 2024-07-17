@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "args.h"
 
@@ -42,4 +43,35 @@ opp(const char* tbz) {
     if (strcmp(tbz, "tbz") == 0)
         return "tbnz";
     return "tbz";
+}
+
+static char*
+bundle_align()
+{
+    switch (args.meter) {
+    case METER_BRANCH:
+        return ".p2align 5";
+    case METER_FP:
+        return ".p2align 4";
+    case METER_TIMER:
+        return ".p2align 3";
+    default:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
+bundle_bicmask()
+{
+    switch (args.meter) {
+    case METER_BRANCH:
+        return "0x1f";
+    case METER_FP:
+        return "0xf";
+    case METER_TIMER:
+        return "0x7";
+    default:
+        return NULL;
+    }
 }

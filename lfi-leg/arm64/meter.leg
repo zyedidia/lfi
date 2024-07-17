@@ -11,67 +11,78 @@
 }                                              \
 
 static void
-tbzmeter(bool aligned, bool indirect)
+tbzmeter(bool indirect, bool fncall)
 {
-    if (aligned)
-        mkdirective(".p2align 4");
+    mkdirective(bundle_align());
     mkinsn("sub x23, x23, #0");
     mkinsn("tbz x23, #63, 1000f");
-    if (indirect && aligned) {
+    mkinsn("mov x18, x30");
+    mkinsn("blr x25");
+    mkinsn("mov x30, x18");
+    if (fncall && !indirect) {
         mkinsn("nop");
+        mkinsn("nop");
+    } else if (fncall && indirect) {
         mkinsn("nop");
     }
-    mkinsn("brk #0");
-    if (indirect && aligned)
-        mkinsn("nop");
     mklabel("1000");
+    if (fncall && indirect) {
+        mkinsn("bic x18, x18, 0xf");
+    }
 }
 
 static void
-fpmeter(bool aligned, bool indirect)
+fpmeter(bool indirect, bool fncall)
 {
-    if (aligned)
-        mkdirective(".p2align 4");
+    mkinsn(bundle_align());
     mkinsn("sub x23, x23, #0");
     mkinsn("fmov d31, x23");
-    if (indirect && aligned) {
-        mkinsn("nop");
-        mkinsn("nop");
-    }
     mkinsn("fneg d31, d31");
-    if (indirect && aligned)
-        mkinsn("nop");
 }
 
 static void
-timermeter(bool aligned, bool indirect)
+timermeter(bool indirect, bool fncall)
 {
-    if (aligned)
-        mkdirective(".p2align 4");
+    mkinsn(bundle_align());
     mkinsn("sub x23, x23, #0");
-    if (indirect && aligned) {
-        mkinsn("nop");
-    }
 }
 
 static void (*meter)(bool, bool);
 %}
 
-Top = IndBranch | Branch
+Top = IndBranch | IndCall | Branch | Call
 
 IndBranch = b:INDBRANCH SEP r:XREG {
+    meter(true, false);
+    mkinsn("%s %s", b.val, r.val);
+    rfree(b); rfree(r);
+}
+
+IndCall = b:INDCALL SEP r:XREG {
     meter(true, true);
-    mkinsn("bic %s, %s, 0xf", r.val, r.val);
     mkinsn("%s %s", b.val, r.val);
     rfree(b); rfree(r);
 }
 
 Branch = b:DIRBRANCH SEP rest:REMAINDER {
-    meter(true, false);
+    meter(false, false);
     mkinsn("%s %s", b.val, rest.val);
 }
 
-INDBRANCH = < ('br' | 'blr') > {
+Call = b:CALL SEP rest:REMAINDER {
+    meter(false, true);
+    mkinsn("%s %s", b.val, rest.val);
+}
+
+INDBRANCH = < ('br') > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+INDCALL = < ('blr') > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+CALL = < ('bl') > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
@@ -93,7 +104,6 @@ DIRBRANCH = < (
 	| 'b.gt'
 	| 'b.le'
 	| 'b.al'
-	| 'bl'
     | 'b'
 	| 'cbnz'
 	| 'cbz'

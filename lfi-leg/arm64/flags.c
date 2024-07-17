@@ -21,10 +21,19 @@ arm64_getflags(enum flags compiler)
         assert(0);
     }
     flags = xasprintf("%s -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x30", flags);
-    if (args.meter == METER_BRANCH || args.meter == METER_TIMER)
-        flags = xasprintf("%s -ffixed-x23", flags);
-    else if (args.meter == METER_FP)
-        flags = xasprintf("%s -ffixed-x23 -ffixed-d31", flags);
+    switch (args.meter) {
+    case METER_BRANCH:
+        flags = xasprintf("%s -ffixed-x23 -falign-functions=32 -falign-labels=32", flags);
+        break;
+    case METER_FP:
+        flags = xasprintf("%s -ffixed-x23 -ffixed-d31 -falign-functions=16 -falign-labels=16", flags);
+        break;
+    case METER_TIMER:
+        flags = xasprintf("%s -ffixed-x23 -falign-functions=8 -falign-labels=8", flags);
+        break;
+    default:
+        break;
+    }
     if (args.sysexternal)
         flags = xasprintf("%s -ffixed-x25", flags);
     return flags;

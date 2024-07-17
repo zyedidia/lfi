@@ -21,6 +21,8 @@ var testflags = map[string][]string{
 	"bundlejumps.s":  []string{"--sandbox=bundle-jumps"},
 	"decl.s":         []string{"--decl"},
 	"meter.s":        []string{"--meter=branch"},
+	"meter_fp.s":     []string{"--meter=fp"},
+	"meter_timer.s":  []string{"--meter=timer"},
 	"variable.s":     []string{"--p2size=variable"},
 }
 
