@@ -21,7 +21,7 @@ enum {
     ARG_meter         = 0x88,
     ARG_flags         = 0x89,
     ARG_p2size        = 0x90,
-    ARG_padcall       = 0x91,
+    ARG_bundlecall       = 0x91,
 };
 
 // options (TODO):
@@ -53,7 +53,7 @@ static struct argp_option options[] = {
     { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp,timer)" },
     { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
     { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,variable)" },
-    { "pad-after-call", ARG_padcall,        0,     0, "Insert call padding after instead of before (must be used with lfi-postlink)" },
+    { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
     { 0 },
 };
 
@@ -111,8 +111,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             return ARGP_ERR_UNKNOWN;
         }
         break;
-    case ARG_padcall:
-        args->padcall = true;
+    case ARG_bundlecall:
+        args->bundlecall = true;
         break;
     case ARG_sys_external:
         args->sysexternal = true;

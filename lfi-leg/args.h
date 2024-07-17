@@ -44,7 +44,7 @@ struct arguments {
     enum meter meter;
     enum flags flags;
     int p2size; // 0 means variable (size stored in register)
-    bool padcall;
+    bool bundlecall;
 };
 
 extern struct arguments args;

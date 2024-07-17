@@ -15,7 +15,6 @@ movq (%rsp), %r15
 andq %r13, %r15
 andq $0xfffffffffffffff0, %r15
 orq %r14, %r15
-.byte 0x0f, 0x1f, 0x00
 callq *%r15
 .bundle_unlock
 .p2align 4

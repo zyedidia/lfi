@@ -116,10 +116,10 @@ bundle_mask(const char* reg)
 static void
 bundle_nop_indcall()
 {
-    // If padcall was used, we don't insert call padding before the call.
+    // If bundlecall was used, we don't insert call padding before the call.
     // Instead it will be inserted afterwards by the assembler, and
     // lfi-postlink will fix it up.
-    if (args.padcall)
+    if (!args.bundlecall)
         return;
     switch (args.cfi) {
     case CFI_BUNDLE16:
@@ -155,7 +155,7 @@ bundle_nop_indcall()
 static void
 bundle_nop_call()
 {
-    if (args.padcall)
+    if (!args.bundlecall)
         return;
     switch (args.cfi) {
     case CFI_BUNDLE16:

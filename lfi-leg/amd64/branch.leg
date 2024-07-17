@@ -59,7 +59,7 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
 }
 
 Call = 'call' 'q'? - rest:ITEM {
-    if (!args.padcall)
+    if (args.bundlecall)
         mkdirective(bundle_align());
     bundle_nop_call();
     mkinsn("callq %s", rest.val);

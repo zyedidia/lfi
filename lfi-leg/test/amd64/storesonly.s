@@ -28,7 +28,6 @@ movq (%rax, %rdi, 4), %r15
 .bundle_lock
 andl $0xfffffff0, %r15d
 orq %r14, %r15
-.byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00
 callq *%r15
 .bundle_unlock
 .p2align 4
