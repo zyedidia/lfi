@@ -54,7 +54,7 @@ callrewrite(uint8_t* insns, size_t bsz, size_t addr)
     while (count < bsz) {
         ZyanStatus status = ZydisDecoderDecodeInstruction(&decoder, &context, &insns[count], bsz-count, &instr);
         if (ZYAN_FAILED(status)) {
-            fprintf(stderr, "call rewrite failed %lx\n", addr);
+            // fprintf(stderr, "call rewrite failed %lx\n", addr);
             return;
         }
 
@@ -142,7 +142,7 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
     while (count < bsz) {
         ZyanStatus status = ZydisDecoderDecodeInstruction(&decoder, &contexts[i], &insns[count], bsz-count, &instrs[i]);
         if (ZYAN_FAILED(status)) {
-            fprintf(stderr, "pad rewrite failed %lx\n", addr + count);
+            // fprintf(stderr, "pad rewrite failed %lx\n", addr + count);
             return;
         }
 
@@ -217,7 +217,7 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
                 ZyanUSize encoded_len = instrs[j].length;
                 if (ZYAN_FAILED(ZydisEncoderEncodeInstruction(&req, insn, &encoded_len))) {
                     fprintf(stderr, "error: zyan encode failed\n");
-                    return;
+                    exit(1);
                 }
             }
             memcpy(curb, insn, instrs[j].length);
