@@ -18,6 +18,7 @@ Top = Insn* !.
 
 Insn = - Label? (
       FnDirective
+    | BundleDirective
     | Directive Comment?
     | Comment
     | AnyPrefix
@@ -32,6 +33,10 @@ Label = < ([0-9]+ | ID) > ':' - {
 
 Directive = < '.' (!EOL .)* > - {
     mkdirective(strndup(yytext, yyleng));
+}
+
+BundleDirective = < '.bundle_align' (!EOL .)* > - {
+    mkdirective(bundle_align());
 }
 
 FnDirective = < '.type' - ([^,])* ',' - '@function' - > {
