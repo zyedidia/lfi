@@ -27,6 +27,7 @@ enum flags {
     FLAGS_NONE,
     FLAGS_CLANG,
     FLAGS_GCC,
+    FLAGS_POSTLINK,
 };
 
 struct arguments {

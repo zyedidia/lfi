@@ -10,6 +10,12 @@ amd64_getflags(enum flags compiler)
         return "";
     char* flags = "";
     switch (compiler) {
+    case FLAGS_POSTLINK:
+        if (args.cfi == CFI_BUNDLE16)
+            flags = "--bundle=16";
+        else if (args.cfi == CFI_BUNDLE32)
+            flags = "--bundle=32";
+        break;
     case FLAGS_CLANG:
         if (args.boxtype > BOX_BUNDLEJUMPS)
             flags = xasprintf("-mllvm --reserve-r14 -mllvm --reserve-r15");

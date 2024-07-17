@@ -10,6 +10,8 @@ arm64_getflags(enum flags compiler)
         return "";
     char* flags = "";
     switch (compiler) {
+    case FLAGS_POSTLINK:
+        return "";
     case FLAGS_CLANG:
         flags = xasprintf("-mllvm --aarch64-enable-compress-jump-tables=false");
         break;

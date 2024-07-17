@@ -135,6 +135,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->flags = FLAGS_CLANG;
         else if (strcmp(arg, "gcc") == 0)
             args->flags = FLAGS_GCC;
+        else if (strcmp(arg, "postlink") == 0)
+            args->flags = FLAGS_POSTLINK;
         else {
             fprintf(stderr, "unsupported compiler type: %s\n", arg);
             return ARGP_ERR_UNKNOWN;
