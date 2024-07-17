@@ -148,7 +148,6 @@ lfi_restore_regs:
 	ld x7, 8*8(a0)
 	ld x8, 8*9(a0)
 	ld x9, 8*10(a0)
-	ld x10, 8*11(a0)
 	ld x11, 8*12(a0)
 	ld x12, 8*13(a0)
 	ld x13, 8*14(a0)
@@ -170,6 +169,7 @@ lfi_restore_regs:
 	ld x29, 8*30(a0)
 	ld x30, 8*31(a0)
 	ld x31, 8*32(a0)
+	ld x10, 8*11(a0)
 	ret
 	
 
