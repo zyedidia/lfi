@@ -23,7 +23,8 @@ arm64_getflags(enum flags compiler)
     flags = xasprintf("%s -ffixed-x18 -ffixed-x21 -ffixed-x22 -ffixed-x30", flags);
     switch (args.meter) {
     case METER_BRANCH:
-        flags = xasprintf("%s -ffixed-x23 -falign-functions=16 -falign-labels=16", flags);
+    case METER_BRANCH_RESUME:
+        flags = xasprintf("%s -ffixed-x24 -ffixed-x23 -falign-functions=16 -falign-labels=16", flags);
         break;
     case METER_FP:
         flags = xasprintf("%s -ffixed-x24 -ffixed-x23 -ffixed-d31 -falign-functions=16 -falign-labels=16", flags);

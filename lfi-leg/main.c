@@ -50,7 +50,7 @@ static struct argp_option options[] = {
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
     { "decl",           ARG_decl,          0,      0, "Produce code for the Deterministic Client" },
-    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,fp,timer)" },
+    { "meter",          ARG_meter,         "TYPE", 0, "Enable program metering (branch,branch-resume,fp,timer)" },
     { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
     { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,variable)" },
     { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
@@ -102,6 +102,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)
             args->meter = METER_BRANCH;
+        else if (strcmp(arg, "branch-resume") == 0)
+            args->meter = METER_BRANCH_RESUME;
         else if (strcmp(arg, "fp") == 0)
             args->meter = METER_FP;
         else if (strcmp(arg, "timer") == 0)

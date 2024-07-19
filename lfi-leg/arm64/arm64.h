@@ -50,6 +50,7 @@ bundle_align()
 {
     switch (args.meter) {
     case METER_BRANCH:
+    case METER_BRANCH_RESUME:
         return ".p2align 4";
     case METER_FP:
         return ".p2align 4";
@@ -66,6 +67,7 @@ bundle_bicmask()
 {
     switch (args.meter) {
     case METER_BRANCH:
+    case METER_BRANCH_RESUME:
         return "0xf";
     case METER_FP:
         return "0xf";

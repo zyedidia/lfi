@@ -19,6 +19,7 @@ enum boxtype {
 enum meter {
     METER_NONE,
     METER_BRANCH,
+    METER_BRANCH_RESUME,
     METER_FP,
     METER_TIMER,
 };

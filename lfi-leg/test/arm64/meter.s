@@ -7,39 +7,31 @@ bl foo
 .p2align 4
 sub x23, x23, #0
 tbz x23, #63, 1000f
-mov x18, x30
 blr x25
-mov x30, x18
-nop
-nop
 1000:
 bl foo
 ------
 blr x0
 >>>
 add x18, x21, w0, uxtw
+bic x24, x18, 0xf
 .p2align 4
 sub x23, x23, #0
 tbz x23, #63, 1000f
-mov x18, x30
 blr x25
-mov x30, x18
-nop
 1000:
-bic x18, x18, 0xf
-blr x18
+blr x24
 ------
 br x0
 >>>
 add x18, x21, w0, uxtw
+bic x24, x18, 0xf
 .p2align 4
 sub x23, x23, #0
 tbz x23, #63, 1000f
-mov x18, x30
 blr x25
-mov x30, x18
 1000:
-br x18
+br x24
 ------
 .bundle_align
 >>>

@@ -13,22 +13,13 @@
 static void
 tbzmeter(bool indirect, bool fncall)
 {
+    if (args.meter == METER_BRANCH_RESUME)
+        mkinsn("mov x18, x30");
     mkdirective(bundle_align());
     mkinsn("sub x23, x23, #0");
     mkinsn("tbz x23, #63, 1000f");
-    mkinsn("mov x18, x30");
     mkinsn("blr x25");
-    mkinsn("mov x30, x18");
-    if (fncall && !indirect) {
-        mkinsn("nop");
-        mkinsn("nop");
-    } else if (fncall && indirect) {
-        mkinsn("nop");
-    }
     mklabel("1000");
-    if (fncall && indirect) {
-        mkinsn("bic x18, x18, 0xf");
-    }
 }
 
 static void
@@ -138,6 +129,7 @@ arm64_meterpass(struct op* op)
 
     switch (args.meter) {
     case METER_BRANCH:
+    case METER_BRANCH_RESUME:
         meter = tbzmeter;
         break;
     case METER_FP:
