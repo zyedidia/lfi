@@ -18,12 +18,14 @@ static char args_doc[] = "INPUT";
 
 enum {
     ARG_bundle    = 0x80,
+    ARG_meter     = 0x81
 };
 
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
     { "bundle",         ARG_bundle,        "SIZE", 0, "Set the bundle size" },
+    { "meter",          ARG_meter,         "TYPE", 0, "Set the metering type (branch,fp,timer)" },
     { 0 },
 };
 

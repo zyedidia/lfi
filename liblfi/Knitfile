@@ -15,6 +15,10 @@ elseif arch == "amd64" then
     cflags = cflags .. " -mfsgsbase"
 end
 
+if cli.sysexternal then
+    cflags = cflags .. " -DSYSEXTERNAL"
+end
+
 local obj = knit.join(
     knit.extrepl(csrc, ".c", ".o"),
     knit.extrepl(ssrc, ".S", ".o")
