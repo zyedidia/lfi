@@ -190,7 +190,7 @@ getarch()
     return "amd64";
 #elif defined(__aarch64__) || defined(_M_ARM64)
     return "arm64";
-#elif defined(__riscv__)
+#elif defined(__riscv__) || defined(__riscv)
     return "riscv64";
 #else
     fprintf(stderr, "running on unsupported architecture, use --arch to specify target\n");
