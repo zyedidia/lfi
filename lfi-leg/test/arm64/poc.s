@@ -50,3 +50,7 @@ stp x25, x26, [x0]
 >>>
 add x18, x21, w0, uxtw
 stp xzr, x26, [x18]
+------
+mov x2, x30
+>>>
+mov w2, w30

@@ -50,3 +50,15 @@ mov x1, x2
 add x18, x21, w1, uxtw
 stur x0, [x18, #3]
 stur x0, [x18, #4]
+------
+stp x3, x3, [x1, #16]
+adrp x18, underflow
+add x3, x3, #0x38
+stp x2, x2, [x1, #32]
+>>>
+add x18, x21, w1, uxtw
+stp x3, x3, [x18, #16]
+adrp x18, underflow
+add x3, x3, #0x38
+add x18, x21, w1, uxtw
+stp x2, x2, [x18, #32]

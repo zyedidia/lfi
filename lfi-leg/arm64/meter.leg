@@ -50,7 +50,7 @@ timermeter(bool indirect, bool fncall)
 static void (*meter)(bool, bool);
 %}
 
-Top = IndBranch | IndCall | Branch | Call
+Top = IndBranch | IndCall | ShortBranch | Branch | Call
 
 IndBranch = b:INDBRANCH SEP r:XREG {
     meter(true, false);
@@ -64,14 +64,25 @@ IndCall = b:INDCALL SEP r:XREG {
     rfree(b); rfree(r);
 }
 
+ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
+    meter(false, false);
+    mktbz(b.val, r.val, imm.val, name.val);
+    rfree(b); rfree(r); rfree(imm); rfree(name);
+}
+
+TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
 Branch = b:DIRBRANCH SEP rest:REMAINDER {
     meter(false, false);
     mkinsn("%s %s", b.val, rest.val);
+    rfree(b); rfree(rest);
 }
 
 Call = b:CALL SEP rest:REMAINDER {
     meter(false, true);
     mkinsn("%s %s", b.val, rest.val);
+    rfree(b); rfree(rest);
 }
 
 INDBRANCH = < ('br') > {

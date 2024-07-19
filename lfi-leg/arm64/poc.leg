@@ -11,7 +11,7 @@
 }                                              \
 %}
 
-Top = Adr | ReadSP | StRes
+Top = Adr | ReadSPLR | StRes
 
 Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
     mkinsn("%s x18, %s", a.val, rest.val);
@@ -21,16 +21,16 @@ Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
 
 ADR = < ('adrp' | 'adr') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-ReadSP = (
-    (i:MODINST rt:XREG COMMA r1:SP COMMA r2:XREG) {
+ReadSPLR = (
+    (i:MODINST rt:XREG COMMA r1:SPLR COMMA r2:XREG) {
         mkinsn("%s w%s, w%s, w%s", i.val, num(rt.val), num(r1.val), num(r2.val));
         rfree(i); rfree(rt); rfree(r1); rfree(r2);
     }
-    | (i:MODINST rt:XREG COMMA r1:SP COMMA rest:REMAINDER) {
+    | (i:MODINST rt:XREG COMMA r1:SPLR COMMA rest:REMAINDER) {
         mkinsn("%s w%s, w%s, %s", i.val, num(rt.val), num(r1.val), rest.val);
         rfree(i); rfree(rt); rfree(r1); rfree(rest);
     }
-    | (i:MODINST rt:XREG COMMA r1:SP) {
+    | (i:MODINST rt:XREG COMMA r1:SPLR) {
         mkinsn("%s w%s, w%s", i.val, num(rt.val), num(r1.val));
         rfree(i); rfree(rt); rfree(r1);
     }

@@ -25,7 +25,7 @@ Guard = 'add' SEP 'x18' - COMMA 'x21' - COMMA w:WREG COMMA 'uxtw' - {
 }
 
 Mod = (!NoMod ID) SEP r:REG rest:REMAINDER {
-    if (guardsrc && strcmp(num(guardsrc), num(r.val)) == 0) {
+    if (guardsrc && (strcmp(num(guardsrc), num(r.val)) == 0 || strcmp(num(r.val), "18") == 0)) {
         guardsrc = NULL;
     }
 }

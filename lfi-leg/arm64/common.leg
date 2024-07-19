@@ -14,6 +14,10 @@ SP = < 'sp' > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
+SPLR = < ('sp' | 'lr' | 'x30') > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
 REG = XREG | WREG | SIMD_REG
 
 SIMD_REG = < (

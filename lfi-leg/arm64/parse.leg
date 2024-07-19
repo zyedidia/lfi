@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "arm64/arm64.h"
+#include "util.h"
 #include "op.h"
 
 // Read a byte from input.
@@ -16,7 +17,9 @@ extern FILE* input;
 Top = Insn* !.
 
 Insn = - Label? (
-      Directive Comment?
+      FnDirective
+    | BundleDirective
+    | Directive Comment?
     | Comment
     | Any
 ) EOL+
@@ -25,6 +28,15 @@ Comment = '//' (!EOL .)*
 
 Label = < ([0-9]+ | ID) > ':' - {
     mklabel(strndup(yytext, yyleng));
+}
+
+BundleDirective = < '.bundle_align' (!EOL .)* > - {
+    mkdirective(bundle_align());
+}
+
+FnDirective = < '.type' - ([^,])* ',' - [@%] 'function' - > {
+    mkdirective(xasprintf("%s", yytext));
+    mkdirective(bundle_align());
 }
 
 Directive = < '.' (!EOL .)* > - {
