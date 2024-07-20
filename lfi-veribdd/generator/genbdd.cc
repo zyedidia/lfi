@@ -23,12 +23,18 @@ add_value(uint32_t val)
 int
 main(int argc, char* argv[])
 {
-    if (argc <= 1) {
-        printf("usage: %s out.bdd\n", argv[0]);
+    if (argc <= 3) {
+        printf("usage: %s out.bdd startHex endHex\n", argv[0]);
         return 1;
     }
 
-    size_t n_verify = 0x0ffffffffULL + 1;
+    char * end_ptr;
+    size_t start = std::strtol(argv[2], &end_ptr, 16);
+    size_t end = std::strtol(argv[3], &end_ptr, 16);
+
+
+    fprintf(stderr, "Beginning BDD generation on instruction range \u001b[46m [0x%016lx, 0x%016lx) \u001b[0m\n", start, end);
+
 
     bdd_init(10000000, 10000);
     bdd_setvarnum(32);
@@ -43,9 +49,9 @@ main(int argc, char* argv[])
     bdd_setvarorder(order);
 
     bdd full = bddfalse;
-    for (size_t i = 0; i < n_verify; i++) {
+    for (size_t i = start; i < end; i++) {
         if (i % 5000000 == 0) {
-            fprintf(stderr, "%.1f\n", (float) i / (float) n_verify * 100);
+            fprintf(stderr, "%.1f\n", (float) (i - start) / (float) (end - start) * 100);
         }
         if (lfi_verify_insn((uint32_t) i)) {
             full |= add_value(i);

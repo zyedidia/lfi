@@ -5,6 +5,8 @@ return b{
         go run bdd.go $input > $output
     $ genbdd: genbdd.o ../../lfi-verify/target/release/liblfiverify.a
         c++ $input -o $output -lbdd
+    $ genbddfinal: genbddfinal.o ../../lfi-verify/target/release/liblfiverify.a
+        c++ $input -o $output -lbdd
     $ %.o: %.cc
         c++ -c -O2 $input -o $output -I../../liblfi
     $ %.o: %.c
