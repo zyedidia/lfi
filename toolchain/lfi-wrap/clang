@@ -2,6 +2,7 @@
 TOOLCHAIN=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/..
 export LFIFLAGS="{{ .LfiFlags }}"
 export LFIARCH="{{ .Arch }}"
+export POSTLINKFLAGS="{{ .PostlinkFlags }}"
 lfi-compile {{ .Compiler }} \
     {{ .LegFlags }} \
     "$@" \
@@ -11,7 +12,7 @@ lfi-compile {{ .Compiler }} \
     -nostdlibinc \
     -isystem $TOOLCHAIN/sysroot/include \
     -isystem /usr/include \
-    -isystem /usr/include/x86_64-linux-gnu \
+    -isystem /usr/include/{{ .GnuArch }}-linux-gnu \
     -fuse-ld=lld \
     -Wno-unused-command-line-argument \
     {{ .ExtraFlags }}

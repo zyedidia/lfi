@@ -24,13 +24,15 @@ var clangTemplate string
 var nolibClangTemplate string
 
 type Args struct {
-	Arch       string
-	LfiFlags   string
-	LegFlags   string
-	Flags      string
-	ExtraFlags string
-	Compiler   string
-	Toolchain  string
+	Arch          string
+	GnuArch       string
+	LfiFlags      string
+	LegFlags      string
+	Flags         string
+	ExtraFlags    string
+	Compiler      string
+	Toolchain     string
+	PostlinkFlags string
 }
 
 func legFlags(compiler, lfiflags, arch string) string {
@@ -113,12 +115,14 @@ func main() {
 	}
 
 	err = t.Execute(os.Stdout, Args{
-		Arch:       arch,
-		LfiFlags:   lfiflags,
-		LegFlags:   legFlags(legToolchain, lfiflags, arch),
-		ExtraFlags: extraflags[*toolchain],
-		Compiler:   *compiler,
-		Toolchain:  legToolchain,
+		Arch:          arch,
+		LfiFlags:      lfiflags,
+		LegFlags:      legFlags(legToolchain, lfiflags, arch),
+		ExtraFlags:    extraflags[*toolchain],
+		Compiler:      *compiler,
+		Toolchain:     legToolchain,
+		PostlinkFlags: legFlags("postlink", lfiflags, arch),
+		GnuArch:       lfiarch,
 	})
 	if err != nil {
 		log.Fatal(err)

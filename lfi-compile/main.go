@@ -57,7 +57,6 @@ func compile(cmdargs []string) {
 	var args, lfiargs, inputs, objs []string
 	var compile, assemble, preprocess, verbose, lto bool
 	var out string
-	var gasRel, gasDirect, precise, aligned string
 
 	lfienv := os.Getenv("LFIFLAGS")
 	if lfienv != "" {
@@ -69,15 +68,6 @@ func compile(cmdargs []string) {
 
 		if strings.HasPrefix(arg, "-flfi") {
 			lfiargs = append(lfiargs, arg[len("-flfi"):])
-			if arg[len("-flfi"):] == "--gas-rel" {
-				gasRel = "--gas-rel"
-			} else if arg[len("-flfi"):] == "--gas" {
-				gasDirect = "--gas"
-			} else if arg[len("-flfi"):] == "--precise" {
-				precise = "--precise"
-			} else if arg[len("-flfi"):] == "--aligned" {
-				aligned = "--aligned"
-			}
 			continue
 		}
 
@@ -263,8 +253,8 @@ func compile(cmdargs []string) {
 		}
 		stage2 = append(stage2, args...)
 		run(compiler, stage2...)
-		if !compile && (gasDirect != "" || gasRel != "") {
-			run("lfi-post", out, gasDirect, gasRel, precise, aligned)
+		if !compile {
+			run("sh", "-c", fmt.Sprintf("lfi-postlink %s %s", out, os.Getenv("POSTLINKFLAGS")))
 		}
 	} else {
 		run("cp", lfiasm, targetasm)
