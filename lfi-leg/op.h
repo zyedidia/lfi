@@ -9,7 +9,7 @@ struct op {
     bool relocated;
     char* label;
 
-    bool shortbr;
+    int shortbr;
     char* replace;
     char* target;
 
@@ -20,6 +20,8 @@ struct op {
 struct op;
 
 struct op* mktbz(char* tbz, char* reg, char* imm, char* label);
+
+struct op* mkbcc(char* bcc, char* label);
 
 struct op* mklabel(char* name);
 

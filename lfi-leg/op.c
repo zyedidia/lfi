@@ -85,13 +85,18 @@ mklabel(char* name)
     return op;
 }
 
+enum {
+    TBZ_DIST = 6000,
+    BCC_DIST = 200000,
+};
+
 static int fixup_count;
 
 struct op*
 mktbz(char* tbz, char* reg, char* imm, char* label)
 {
     struct op* op = mkop();
-    op->shortbr = true;
+    op->shortbr = TBZ_DIST;
     op->insn = true;
     op->text = xasprintf("%s %s, %s, %s", tbz, reg, imm, label);
     op->target = strdup(label);
@@ -101,6 +106,33 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
         "b %s\n"
         ".LFI_FIXUP%d:\n",
         opp(tbz), reg, imm, fixup_count,
+        label,
+        fixup_count
+    );
+
+    fixup_count++;
+
+    return op;
+}
+
+struct op*
+mkbcc(char* bcc, char* label)
+{
+    struct op* op = mkop();
+    op->shortbr = BCC_DIST;
+    op->insn = true;
+    op->text = xasprintf("%s %s", bcc, label);
+    op->target = strdup(label);
+
+    op->replace = xasprintf(
+        "%s .LFI_FIXUP%d\n"
+        "b .LFI_NT%d\n"
+        ".LFI_FIXUP%d:\n"
+        "b %s\n"
+        ".LFI_NT%d:\n",
+        bcc, fixup_count,
+        fixup_count,
+        fixup_count,
         label,
         fixup_count
     );

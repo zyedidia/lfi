@@ -67,6 +67,12 @@ ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
     rfree(b); rfree(r); rfree(imm); rfree(name);
 }
 
+BccBranch = b:BCCBRANCH name:NAME {
+    meter(false, false);
+    mkbcc(b.val, name.val);
+    rfree(b); rfree(name);
+}
+
 TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
@@ -94,24 +100,30 @@ CALL = < ('bl') > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
+BCC = 'b' '.'? 'eq'
+    | 'b' '.'? 'ne'
+    | 'b' '.'? 'cs'
+    | 'b' '.'? 'hs'
+    | 'b' '.'? 'cc'
+    | 'b' '.'? 'lo'
+    | 'b' '.'? 'mi'
+    | 'b' '.'? 'pl'
+    | 'b' '.'? 'vs'
+    | 'b' '.'? 'vc'
+    | 'b' '.'? 'hi'
+    | 'b' '.'? 'ls'
+    | 'b' '.'? 'ge'
+    | 'b' '.'? 'lt'
+    | 'b' '.'? 'gt'
+    | 'b' '.'? 'le'
+    | 'b' '.'? 'al'
+
+BCCBRANCH = < ( BCC ) > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
 DIRBRANCH = < (
-	  'b' '.'? 'eq'
-	| 'b' '.'? 'ne'
-	| 'b' '.'? 'cs'
-	| 'b' '.'? 'hs'
-	| 'b' '.'? 'cc'
-	| 'b' '.'? 'lo'
-	| 'b' '.'? 'mi'
-	| 'b' '.'? 'pl'
-	| 'b' '.'? 'vs'
-	| 'b' '.'? 'vc'
-	| 'b' '.'? 'hi'
-	| 'b' '.'? 'ls'
-	| 'b' '.'? 'ge'
-	| 'b' '.'? 'lt'
-	| 'b' '.'? 'gt'
-	| 'b' '.'? 'le'
-	| 'b' '.'? 'al'
+	  BCC
     | 'b'
 	| 'cbnz'
 	| 'cbz'

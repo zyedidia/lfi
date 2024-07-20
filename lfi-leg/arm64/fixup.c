@@ -4,10 +4,6 @@
 #include "op.h"
 #include "ht.h"
 
-enum {
-    FIXUP_DIST = 6000,
-};
-
 static int
 dist(int a, int b)
 {
@@ -47,10 +43,10 @@ arm64_display(FILE* output, struct op* ops)
             op->relocated = true;
             op = n;
         }
-        if (op->shortbr) {
+        if (op->shortbr != 0) {
             bool found;
             int tcount = ht_get(&labels, op->target, &found);
-            if (found && op->replace && dist(tcount, icount) > FIXUP_DIST) {
+            if (found && op->replace && dist(tcount, icount) > op->shortbr) {
                 fprintf(output, "%s\n", op->replace);
             } else {
                 fprintf(output, "%s\n", op->text);
