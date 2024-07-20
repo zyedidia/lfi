@@ -11,7 +11,17 @@ arm64_getflags(enum flags compiler)
     char* flags = "";
     switch (compiler) {
     case FLAGS_POSTLINK:
-        return "";
+        switch (args.meter) {
+        case METER_BRANCH:
+        case METER_BRANCH_RESUME:
+            return "--meter=branch";
+        case METER_FP:
+            return "--meter=fp";
+        case METER_TIMER:
+            return "--meter=timer";
+        default:
+            return "";
+        }
     case FLAGS_CLANG:
         flags = xasprintf("-mllvm --aarch64-enable-compress-jump-tables=false");
         break;

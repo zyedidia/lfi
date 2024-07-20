@@ -41,12 +41,18 @@ timermeter(bool indirect, bool fncall)
 static void (*meter)(bool, bool);
 %}
 
-Top = IndBranch | IndCall | ShortBranch | Branch | Call
+Top = Ret | IndBranch | IndCall | ShortBranch | Branch | Call
 
 IndBranch = b:INDBRANCH SEP r:XREG {
     meter(true, false);
     mkinsn("%s %s", b.val, r.val);
     rfree(b); rfree(r);
+}
+
+Ret = 'ret' !. {
+    mkinsn("bic x24, x30, %s", bundle_bicmask());
+    meter(true, false);
+    mkinsn("ret x24");
 }
 
 IndCall = b:INDCALL SEP r:XREG {
@@ -89,23 +95,23 @@ CALL = < ('bl') > {
 }
 
 DIRBRANCH = < (
-	  'b.eq'
-	| 'b.ne'
-	| 'b.cs'
-	| 'b.hs'
-	| 'b.cc'
-	| 'b.lo'
-	| 'b.mi'
-	| 'b.pl'
-	| 'b.vs'
-	| 'b.vc'
-	| 'b.hi'
-	| 'b.ls'
-	| 'b.ge'
-	| 'b.lt'
-	| 'b.gt'
-	| 'b.le'
-	| 'b.al'
+	  'b' '.'? 'eq'
+	| 'b' '.'? 'ne'
+	| 'b' '.'? 'cs'
+	| 'b' '.'? 'hs'
+	| 'b' '.'? 'cc'
+	| 'b' '.'? 'lo'
+	| 'b' '.'? 'mi'
+	| 'b' '.'? 'pl'
+	| 'b' '.'? 'vs'
+	| 'b' '.'? 'vc'
+	| 'b' '.'? 'hi'
+	| 'b' '.'? 'ls'
+	| 'b' '.'? 'ge'
+	| 'b' '.'? 'lt'
+	| 'b' '.'? 'gt'
+	| 'b' '.'? 'le'
+	| 'b' '.'? 'al'
     | 'b'
 	| 'cbnz'
 	| 'cbz'

@@ -14,6 +14,7 @@ enum Arg {
     SHOWMAX  = "show-max-procs",
     POC      = "poc",
     P2SIZE   = "p2size",
+    GAS      = "gas",
 }
 
 struct Flags {
@@ -21,6 +22,7 @@ struct Flags {
     bool showmax;
     bool poc;
     int p2size;
+    ulong gas;
 }
 
 __gshared {
@@ -42,6 +44,8 @@ void usage(const(char)* name) {
     fprintf(stderr, "  --no-verify         do not perform verification\n");
     fprintf(stderr, "  --show-max-procs    show the maximum number of lfi processes\n");
     fprintf(stderr, "  --poc               enable position-oblivious code\n");
+    fprintf(stderr, "  --p2size N          give sandboxes 2^n space\n");
+    fprintf(stderr, "  --gas N             use N gas\n");
 }
 
 extern (C) int main(int argc, const(char)** argv) {
@@ -69,6 +73,13 @@ extern (C) int main(int argc, const(char)** argv) {
             }
             i++;
             flags.p2size = atoi(argv[i]);
+        } else if (strcmp(arg, Arg.GAS.ptr) == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "--gas needs argument");
+                continue;
+            }
+            i++;
+            flags.gas = atoll(argv[i]);
         } else {
             fprintf(stderr, "unknown flag: %s\n", argv[i]);
         }
@@ -86,6 +97,7 @@ extern (C) int main(int argc, const(char)** argv) {
     options.stacksize = mb(2);
     options.syshandler = &syscall;
     options.p2size = flags.p2size;
+    options.gas = flags.gas;
 
     lfiengine = lfi_new(options);
     if (!lfiengine) {

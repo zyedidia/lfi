@@ -247,7 +247,8 @@ amd64_postlink(uint8_t* buf, size_t sz)
         uint8_t* code = &buf[p->offset];
         size_t count = 0;
         while (count < p->filesz) {
-            padrewrite(&code[count], args.bundle, p->vaddr + count);
+            if (!args.noprefix)
+                padrewrite(&code[count], args.bundle, p->vaddr + count);
             callrewrite(&code[count], args.bundle, p->vaddr + count);
             count += args.bundle;
         }

@@ -21,6 +21,7 @@ ubyte[] readfile(void* f) {
 extern (C):
 
 int atoi(const(char)* nptr);
+long atoll(const(char)* nptr);
 
 void* memcpy(void* dst, const(void)* src, usize n);
 void* memmove(void* dst, const(void)* src, usize n);

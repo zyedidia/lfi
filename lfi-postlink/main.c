@@ -6,11 +6,9 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <Zydis/Zydis.h>
 
 #include "elf.h"
 #include "postlink.h"
-
 
 static char doc[] = "lfi-postlink: perform LFI transformations after linking";
 
@@ -18,14 +16,16 @@ static char args_doc[] = "INPUT";
 
 enum {
     ARG_bundle    = 0x80,
-    ARG_meter     = 0x81
+    ARG_meter     = 0x81,
+    ARG_noprefix  = 0x82,
 };
 
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
-    { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
-    { "bundle",         ARG_bundle,        "SIZE", 0, "Set the bundle size" },
-    { "meter",          ARG_meter,         "TYPE", 0, "Set the metering type (branch,fp,timer)" },
+    { "arch",           'a',               "ARCH", 0, "set the target architecture (arm64,amd64)" },
+    { "bundle",         ARG_bundle,        "SIZE", 0, "set the bundle size" },
+    { "meter",          ARG_meter,         "TYPE", 0, "set the metering type (branch,fp,timer)" },
+    { "no-prefix-pad",  ARG_noprefix,      0,      0, "disable prefix padding" },
     { 0 },
 };
 
@@ -47,6 +47,19 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_bundle:
         args->bundle = atoi(arg);
+        break;
+    case ARG_meter:
+        if (strcmp(arg, "branch") == 0)
+            args->meter = METER_BRANCH;
+        else if (strcmp(arg, "branch-resume") == 0)
+            args->meter = METER_BRANCH;
+        else if (strcmp(arg, "fp") == 0)
+            args->meter = METER_FP;
+        else if (strcmp(arg, "timer") == 0)
+            args->meter = METER_TIMER;
+        break;
+    case ARG_noprefix:
+        args->noprefix = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;
@@ -124,6 +137,8 @@ main(int argc, char** argv)
 
     if (strcmp(args.arch, "amd64") == 0)
         amd64_postlink(buf, sz);
+    else if (strcmp(args.arch, "arm64") == 0)
+        arm64_postlink(buf, sz);
 
     munmap(buf, sz);
 

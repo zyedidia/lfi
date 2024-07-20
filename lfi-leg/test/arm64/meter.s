@@ -41,3 +41,13 @@ br x24
 >>>
 .type foo, %function
 .p2align 4
+------
+ret
+>>>
+bic x24, x30, 0xf
+.p2align 4
+sub x23, x23, #0
+tbz x23, #63, 1000f
+blr x25
+1000:
+ret x24
