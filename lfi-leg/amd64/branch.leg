@@ -113,12 +113,16 @@ Ret = 'ret' 'q'? - {
     if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(".bundle_lock");
         mkinsn("andq $0xffffffff%s, (%rsp)", bundle_mask_constant());
+        if (args.decl)
+            mkinsn("cmpq %rax, %rax");
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("popq %%r15");
         mkdirective(".bundle_lock");
         bundle_mask("%r15");
+        if (args.decl)
+            mkinsn("cmpq %rax, %rax");
         mkinsn("jmpq *%%r15");
         mkdirective(".bundle_unlock");
     }
