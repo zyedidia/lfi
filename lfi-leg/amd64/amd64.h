@@ -119,8 +119,11 @@ bundle_nop_indcall()
     // If bundlecall was used, we don't insert call padding before the call.
     // Instead it will be inserted afterwards by the assembler, and
     // lfi-postlink will fix it up.
-    if (!args.bundlecall)
+    if (!args.bundlecall) {
+        if (args.decl)
+            mkinsn("cmpq %rax, %rax");
         return;
+    }
     switch (args.cfi) {
     case CFI_BUNDLE16:
         if (args.boxtype > BOX_BUNDLEJUMPS) {
@@ -128,9 +131,13 @@ bundle_nop_indcall()
                 mkdirective(".byte 0x0f, 0x1f, 0x00"); // 3-byte nop
             else
                 mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 6-byte nop
-        } else
-            mkdirective(".byte 0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 9-byte nop
-        return;
+        } else {
+            if (args.decl)
+                mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 6-byte nop
+            else
+                mkdirective(".byte 0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 9-byte nop
+        }
+        break;
     case CFI_BUNDLE32:
         if (args.boxtype > BOX_BUNDLEJUMPS) {
             if (args.p2size == 0) {
@@ -141,15 +148,21 @@ bundle_nop_indcall()
                 mkdirective(".byte 0x65, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
             }
         } else {
-            mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
+            if (args.decl)
+                mkdirective(".byte 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 8-byte nop
+            else
+                mkdirective(".byte 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
             mkdirective(".byte 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 10-byte nop
             mkdirective(".byte 0x0f, 0x1f, 0x40, 0x00"); // 4-byte nop
         }
-        return;
+        break;
     case CFI_HW:
-        return;
+        break;
+    default:
+        assert(0);
     }
-    assert(0);
+    if (args.decl)
+        mkinsn("cmpq %rax, %rax");
 }
 
 static void

@@ -77,6 +77,8 @@ BranchMem = j:JMP - '*' a:Addr {
     }
     mkdirective(".bundle_lock");
     bundle_mask("%r15");
+    if (args.decl)
+        mkinsn("cmpq %rax, %rax");
     mkinsn("%s *%%r15", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -86,6 +88,8 @@ BranchMemSafe = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.unmod);
     mkdirective(".bundle_lock");
     bundle_mask("%r15");
+    if (args.decl)
+        mkinsn("cmpq %rax, %rax");
     mkinsn("%s *%%r15", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -94,6 +98,8 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 Branch = j:JMP '*' r:XREG {
     mkdirective(".bundle_lock");
     bundle_mask(r.val);
+    if (args.decl)
+        mkinsn("cmpq %rax, %rax");
     mkinsn("%s *%s", j.val, r.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(r);
