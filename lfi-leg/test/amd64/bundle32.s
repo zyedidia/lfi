@@ -2,7 +2,6 @@ call *%rax
 >>>
 .bundle_align_mode 5
 movq %rax, %r15
-.p2align 5
 .bundle_lock
 andl $0xffffffe0, %r15d
 orq %r14, %r15
@@ -14,7 +13,6 @@ call *32+output(%rip)
 >>>
 .bundle_align_mode 5
 movq 32+output(%rip), %r15
-.p2align 5
 .bundle_lock
 andl $0xffffffe0, %r15d
 orq %r14, %r15
@@ -36,7 +34,6 @@ callq *(%rax, %rdi, 4)
 >>>
 .bundle_align_mode 5
 movq %gs:(%eax, %edi, 4), %r15
-.p2align 5
 .bundle_lock
 andl $0xffffffe0, %r15d
 orq %r14, %r15
@@ -57,7 +54,6 @@ callq *__cxa_finalize@GOTPCREL(%rip)
 >>>
 .bundle_align_mode 5
 movq __cxa_finalize@GOTPCREL(%rip), %r15
-.p2align 5
 .bundle_lock
 andl $0xffffffe0, %r15d
 orq %r14, %r15

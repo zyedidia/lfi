@@ -18,7 +18,8 @@ Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
     mkinsn("movq %s, %%r15", r.val);
-    mkdirective(bundle_align());
+    if (args.bundlecall)
+        mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     bundle_mask("%r15");
     bundle_nop_indcall();
@@ -36,7 +37,8 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
         mkinsn("movq %s, %%r15", a.val);
         mkpost(a);
     }
-    mkdirective(bundle_align());
+    if (args.bundlecall)
+        mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     bundle_mask("%r15");
     bundle_nop_indcall();
@@ -48,7 +50,8 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
 
 CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     mkinsn("movq %s, %%r15", a.unmod);
-    mkdirective(bundle_align());
+    if (args.bundlecall)
+        mkdirective(bundle_align());
     mkdirective(".bundle_lock");
     bundle_mask("%r15");
     bundle_nop_indcall();

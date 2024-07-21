@@ -10,7 +10,6 @@ callq *(%rsp)
 >>>
 .bundle_align_mode 4
 movq (%rsp), %r15
-.p2align 4
 .bundle_lock
 andq %r13, %r15
 andq $0xfffffffffffffff0, %r15

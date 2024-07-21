@@ -18,7 +18,6 @@ callq *(%rax)
 >>>
 .bundle_align_mode 4
 movq %gs:(%eax), %r15
-.p2align 4
 .bundle_lock
 andl $0xfffffff0, %r15d
 orq %r14, %r15
