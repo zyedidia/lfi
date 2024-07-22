@@ -51,7 +51,7 @@ main(int argc, char* argv[])
     bdd full = bddfalse;
     for (size_t i = start; i < end; i++) {
         if (i % 5000000 == 0) {
-            fprintf(stderr, "%.1f\n", (float) (i - start) / (float) (end - start) * 100);
+            fprintf(stderr, "[0x%016lx, 0x%016lx): %.1f\n", start, end, (float) (i - start) / (float) (end - start) * 100);
         }
         if (lfi_verify_insn((uint32_t) i)) {
             full |= add_value(i);

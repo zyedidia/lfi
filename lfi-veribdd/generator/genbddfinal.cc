@@ -16,7 +16,7 @@
 // The name of the output file subBDD prefix
 #define SUBFILE "lfi"
 // Number of processes to run concurrently
-#define NPROCESSES 8
+#define NPROCESSES 16
 // Instruction range to be checked
 const size_t n_verify = 0x0ffffffffULL + 1;
 
