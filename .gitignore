@@ -21,6 +21,14 @@ lfi.bdd.c
 lfi.bdd.pdf
 lfi.bdd.dot
 
+*.bdd.c
+*.bdd.pdf
+*.bdd.dot
+*.bdd
+!/lfi-veribdd/generator/lfi.bdd
+genbdd
+genbddfinal
+
 lfi-verify-amd64
 /lfi-ld/lfi-ld
 /lfi-leg/lfi-leg
