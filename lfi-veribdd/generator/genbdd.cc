@@ -33,7 +33,7 @@ main(int argc, char* argv[])
     size_t end = std::strtol(argv[3], &end_ptr, 16);
 
 
-    fprintf(stderr, "Beginning BDD generation on instruction range \u001b[46m [0x%016lx, 0x%016lx) \u001b[0m\n", start, end);
+    fprintf(stderr, "Beginning BDD generation on instruction range [0x%016lx, 0x%016lx) \n", start, end);
 
 
     bdd_init(10000000, 10000);

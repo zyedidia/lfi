@@ -8,9 +8,8 @@
 #include "lfi.h"
 
 #define NTHREADS 8
-const size_t n_verify = 0x0fffffffULL + 1; // 0x0ffffffffULL + 1;
+const size_t n_verify = 0x0fffffffULL + 1;
 
-// using namespace std;
 
 std::mutex bdd_mutex;
 
@@ -33,8 +32,8 @@ add_value(uint32_t val)
 
 
 void
-add_value_range(uint32_t start, uint32_t end, bdd &result){
-    // bdd full = bddfalse;
+add_value_range(uint32_t start, uint32_t end, bdd &result)
+{
     for (size_t i = start; i < end; i++) {
         if (i % 5000000 == 0) {
             std::cerr << "Thread ID: " << std::this_thread::get_id() << " - ";
@@ -44,7 +43,6 @@ add_value_range(uint32_t start, uint32_t end, bdd &result){
             result |= add_value(i);
         }
     }
-    // return result;
 }
 
 int
@@ -73,28 +71,22 @@ main(int argc, char* argv[])
     std::thread threads[NTHREADS];
     bdd results[NTHREADS];
 
-    for(int i = 0; i < NTHREADS; i++) results[i] = bddfalse;
+    for (int i = 0; i < NTHREADS; i++) 
+        results[i] = bddfalse;
 
 
-    for(int i = 0; i < NTHREADS; i++){
+    for (int i = 0; i < NTHREADS; i++) {
         threads[i] = std::thread(add_value_range, (uint32_t) (n_verify*i)/NTHREADS, (uint32_t) (n_verify*(i+1))/NTHREADS, std::ref(results[i]));
     }
 
-    for(int i = 0; i < NTHREADS; i++) threads[i].join();
+    for (int i = 0; i < NTHREADS; i++) 
+        threads[i].join();
     fprintf(stderr, "Finished all threads\n");
 
     bdd full = bddfalse;
-    for(int i = 0; i < NTHREADS; i++) full |= results[i];
+    for (int i = 0; i < NTHREADS; i++) 
+        full |= results[i];
 
-
-    /* for (size_t i = 0; i < n_verify; i++) {
-        if (i % 5000000 == 0) {
-            fprintf(stderr, "%.1f\n", (float) i / (float) n_verify * 100);
-        }
-        if (lfi_verify_insn((uint32_t) i)) {
-            full |= add_value(i);
-        }
-    }*/
 
     FILE* f = fopen(argv[1], "w");
     if (!f) {

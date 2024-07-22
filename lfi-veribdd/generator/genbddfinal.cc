@@ -28,11 +28,11 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    fprintf(stderr, "Beginning Master BDD generation on instruction range \u001b[45m [0x%016lx, 0x%016lx) \u001b[0m\n", 0UL, n_verify);
+    fprintf(stderr, "Beginning Master BDD generation on instruction range [0x%016lx, 0x%016lx) \n", 0UL, n_verify);
 
 
     pid_t children[NPROCESSES];
-    for(size_t i = 0; i < NPROCESSES; i++){
+    for (size_t i = 0; i < NPROCESSES; i++) {
         if((children[i] = fork()) == 0) {
             char* cur_path = strdup(argv[0]);
             char* cur_dir = dirname(cur_path);
@@ -60,13 +60,13 @@ main(int argc, char* argv[])
         }
     }
 
-    for(size_t i = 0; i < NPROCESSES; i++){
+    for (size_t i = 0; i < NPROCESSES; i++) {
         int status;
         pid_t pid = waitpid(children[i], &status, 0);
         assert(pid == children[i]);
         assert(WIFEXITED(status));
 
-        fprintf(stderr, "\u001b[42m =============== Process with PID = %d finished =============== \u001b[0m \n", children[i]);
+        fprintf(stderr, " =============== Process with PID = %d finished ===============  \n", children[i]);
     }
     
 
@@ -85,7 +85,7 @@ main(int argc, char* argv[])
     bdd full = bddfalse;
 
     
-    for(size_t i = 0; i < NPROCESSES; i++){
+    for (size_t i = 0; i < NPROCESSES; i++) {
         bdd partial = bddfalse;
         std::string out_file_name = SUBFILE + std::to_string(i) + ".bdd";
         FILE* f = fopen(out_file_name.c_str(), "r");
@@ -106,7 +106,7 @@ main(int argc, char* argv[])
         full |= root;
         fclose(f);
     }
-    fprintf(stderr, "\u001b[46m ----- Stitched Sub BDD's together ----- \u001b[0m \n");
+    fprintf(stderr, " ----- Stitched Sub BDD's together ----- \n");
 
     /* for (size_t i = start; i < end; i++) {
         if (i % 5000000 == 0) {
@@ -126,7 +126,7 @@ main(int argc, char* argv[])
     bdd_save(f, full);
     fclose(f);
 
-    fprintf(stderr, "\u001b[42m ----- Saved final BDD to output file ----- \u001b[0m \n");
+    fprintf(stderr, " ----- Saved final BDD to output file -----  \n");
 
     return 0;
 }
