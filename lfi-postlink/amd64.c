@@ -42,6 +42,28 @@ isjmp(ZydisMnemonic mnemonic)
 }
 
 static void
+bundlefix(uint8_t* insns, size_t n, size_t bsz, size_t addr)
+{
+    ZydisDecoder decoder;
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+
+    ZydisDecoderContext context;
+    ZydisDecodedInstruction instr;
+    size_t count = 0;
+    while (count < bsz) {
+        ZyanStatus status = ZydisDecoderDecodeInstruction(&decoder, &context, &insns[count], n-count, &instr);
+        if (ZYAN_FAILED(status)) {
+            // fprintf(stderr, "call rewrite failed %lx\n", addr);
+            return;
+        }
+        count += instr.length;
+    }
+    if (count > bsz) {
+        memset(&insns[count - instr.length], 0x90, instr.length - (count - bsz));
+    }
+}
+
+static void
 callrewrite(uint8_t* insns, size_t bsz, size_t addr)
 {
     ZydisDecoder decoder;
@@ -247,6 +269,7 @@ amd64_postlink(uint8_t* buf, size_t sz)
         uint8_t* code = &buf[p->offset];
         size_t count = 0;
         while (count < p->filesz) {
+            bundlefix(&code[count], p->filesz, args.bundle, p->vaddr + count);
             if (!args.noprefix)
                 padrewrite(&code[count], args.bundle, p->vaddr + count);
             callrewrite(&code[count], args.bundle, p->vaddr + count);
