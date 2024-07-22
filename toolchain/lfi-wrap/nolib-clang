@@ -1,9 +1,8 @@
 #!/bin/sh
 TOOLCHAIN=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/..
-export LFIFLAGS="{{ .LfiFlags }}"
-export LFIARCH="{{ .Arch }}"
+export LFIFLAGS="$LFIFLAGS {{ .LfiFlags }}"
 lfi-compile {{ .Compiler }} \
-    {{ .LegFlags }} \
+    $(lfi-leg --flags={{ .Toolchain }}) \
     "$@" \
     -fuse-ld=lld \
     -Wno-unused-command-line-argument \

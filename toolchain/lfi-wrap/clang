@@ -4,7 +4,7 @@ export LFIFLAGS="{{ .LfiFlags }}"
 export LFIARCH="{{ .Arch }}"
 export POSTLINKFLAGS="{{ .PostlinkFlags }}"
 lfi-compile {{ .Compiler }} \
-    {{ .LegFlags }} \
+    $(lfi-leg --flags={{ .Toolchain }}) \
     "$@" \
     --sysroot $TOOLCHAIN/sysroot \
     --rtlib=compiler-rt \
