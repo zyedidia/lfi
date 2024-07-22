@@ -25,3 +25,8 @@ cmpq %rax, %rax
 callq *%r15
 .bundle_unlock
 .p2align 4
+------
+syscall
+>>>
+.bundle_align_mode 4
+syscall

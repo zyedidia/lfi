@@ -12,7 +12,10 @@
 %}
 
 Syscall = (('syscall' -) | ('int' - '0x80' -)) {
-    mkinsn("callq *(%%r14)");
+    if (!args.decl)
+        mkinsn("callq *(%%r14)");
+    else
+        mkinsn("syscall");
 }
 
 %%
