@@ -58,6 +58,8 @@ func compile(cmdargs []string) {
 	var compile, assemble, preprocess, verbose, lto bool
 	var out string
 
+	var llvmFlags []string
+
 	lfienv := os.Getenv("LFIFLAGS")
 	if lfienv != "" {
 		lfiargs = append(lfiargs, strings.Fields(lfienv)...)
@@ -85,6 +87,12 @@ func compile(cmdargs []string) {
 			verbose = true
 		case "-K":
 			keep = true
+		case "-mllvm":
+			if i+1 >= len(cmdargs) {
+				fatal("-mllvm needs an argument")
+			}
+			llvmFlags = append(llvmFlags, cmdargs[i+1])
+			i++
 		case "-o":
 			if i+1 >= len(cmdargs) {
 				fatal("-o needs an argument")
@@ -148,18 +156,9 @@ func compile(cmdargs []string) {
 			return
 		}
 
-		mllvmAArch64 := []string{
-			"-Wl,-plugin-opt=--aarch64-enable-compress-jump-tables=false",
-		}
-		mllvmAmd64 := []string{
-			"-Wl,-plugin-opt=--reserve-r14",
-			"-Wl,-plugin-opt=--reserve-r15",
-			"-Wl,-plugin-opt=--align-labels=16",
-		}
-
-		mllvm := mllvmAArch64
-		if runtime.GOARCH == "amd64" {
-			mllvm = mllvmAmd64
+		var mllvm []string
+		for _, f := range llvmFlags {
+			mllvm = append(mllvm, fmt.Sprintf("-Wl,-plugin-opt=%s", f))
 		}
 
 		flags = append(flags, "-Wl,--lto-emit-asm")

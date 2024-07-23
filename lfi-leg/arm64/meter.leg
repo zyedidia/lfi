@@ -41,7 +41,7 @@ timermeter(bool indirect, bool fncall)
 static void (*meter)(bool, bool);
 %}
 
-Top = Ret | IndBranch | IndCall | ShortBranch | Branch | Call
+Top = Ret | IndBranch | IndCall | BccBranch | ShortBranch | Branch | Call
 
 IndBranch = b:INDBRANCH SEP r:XREG {
     meter(true, false);
@@ -67,7 +67,7 @@ ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
     rfree(b); rfree(r); rfree(imm); rfree(name);
 }
 
-BccBranch = b:BCCBRANCH name:NAME {
+BccBranch = b:BCCBRANCH SEP name:NAME {
     meter(false, false);
     mkbcc(b.val, name.val);
     rfree(b); rfree(name);
@@ -100,23 +100,23 @@ CALL = < ('bl') > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
-BCC = 'b' '.'? 'eq'
-    | 'b' '.'? 'ne'
-    | 'b' '.'? 'cs'
-    | 'b' '.'? 'hs'
-    | 'b' '.'? 'cc'
-    | 'b' '.'? 'lo'
-    | 'b' '.'? 'mi'
-    | 'b' '.'? 'pl'
-    | 'b' '.'? 'vs'
-    | 'b' '.'? 'vc'
-    | 'b' '.'? 'hi'
-    | 'b' '.'? 'ls'
-    | 'b' '.'? 'ge'
-    | 'b' '.'? 'lt'
-    | 'b' '.'? 'gt'
-    | 'b' '.'? 'le'
-    | 'b' '.'? 'al'
+BCC = ('b' '.'? 'eq')
+    | ('b' '.'? 'ne')
+    | ('b' '.'? 'cs')
+    | ('b' '.'? 'hs')
+    | ('b' '.'? 'cc')
+    | ('b' '.'? 'lo')
+    | ('b' '.'? 'mi')
+    | ('b' '.'? 'pl')
+    | ('b' '.'? 'vs')
+    | ('b' '.'? 'vc')
+    | ('b' '.'? 'hi')
+    | ('b' '.'? 'ls')
+    | ('b' '.'? 'ge')
+    | ('b' '.'? 'lt')
+    | ('b' '.'? 'gt')
+    | ('b' '.'? 'le')
+    | ('b' '.'? 'al')
 
 BCCBRANCH = < ( BCC ) > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };

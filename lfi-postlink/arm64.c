@@ -163,8 +163,14 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         if (!indbranch && (target - (int64_t) csi->address) > 0) {
             if (args.meter == METER_BRANCH || args.meter == METER_FP) {
                 // forward branches: optimize with nops
-                insns[idx - 1] = NOP;
-                insns[idx - 2] = NOP;
+                if (insns[idx - 2] != 0xb6f80057)
+                    fprintf(stderr, "%lx: error: expected tbz\n", addr + idx * 4);
+                else
+                    insns[idx - 2] = NOP;
+                if (insns[idx - 1] != 0xd63f0320)
+                    fprintf(stderr, "%lx: error: expected blr\n", addr + idx * 4);
+                else
+                    insns[idx - 1] = NOP;
             }
         }
 

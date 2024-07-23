@@ -87,7 +87,7 @@ mklabel(char* name)
 
 enum {
     TBZ_DIST = 6000,
-    BCC_DIST = 200000,
+    BCC_DIST = 190000,
 };
 
 static int fixup_count;
