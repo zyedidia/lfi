@@ -197,6 +197,7 @@ impl Verifier {
         let operand = match inst.op() {
             Op::LDR => inst.operands()[1],
             Op::LDRSW => inst.operands()[1],
+            Op::PRFM => inst.operands()[1],
             _ => return
         };
         if let Operand::Label(_) = operand {
