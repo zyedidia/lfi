@@ -60,6 +60,7 @@ ATOMIC_1 = < (
 ATOMIC_2 = < (
       'cas' 'a'? 'l'? [bh]?
     | 'swp' 'a'? 'l'? [bh]?
+    | 'ld' AO 'a'? 'l'? [bh]?
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 AO = 'add' | 'clr' | 'eor' | 'set'

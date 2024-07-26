@@ -7,7 +7,7 @@
 }                                              \
 %}
 
-Top = LdOpt | LdNoOpt | LdMulti | Atomic2
+Top = LdOpt | LdNoOpt | LdMulti
 
 LdOpt = l:LD rt:REG COMMA addr:AddrOpt {
     ldst(l, rt, addr);
@@ -19,10 +19,6 @@ LdNoOpt = l:LD_BASIC rt:REG COMMA addr:AddrNoOpt {
 
 LdMulti = l:LD_MULTI rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
     ldstmulti(l, rt1, rt2, addr);
-}
-
-Atomic2 = a:ATOMIC_2 rt1:REG COMMA rt2:REG COMMA addr:AddrNoOpt {
-    ldstmulti(a, rt1, rt2, addr);
 }
 
 # Loads that have all addressing modes available.
@@ -50,10 +46,6 @@ LD_MULTI = < (
     | 'ldp'
     | 'ld' 'a'? 'xp'
     | 'ldnp'
-) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
-
-ATOMIC_2 = < (
-    'ld' AO 'a'? 'l'? [bh]?
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 AO = 'add' | 'clr' | 'eor' | 'set'
