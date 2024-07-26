@@ -177,7 +177,7 @@ impl Verifier {
             }
         } else if let ispec @ Operand::ImplSpec{ .. } = inst.operands()[i] {
             // Read of system registers that the disassembler doesn't pretty-print for us.
-            if i == 1 && !legal_implspec(ispec) {
+            if !legal_implspec(ispec) || i != 1 {
                 self.error(inst, "attempt to access illegal system register");
             }
         } else {
