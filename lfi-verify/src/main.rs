@@ -52,7 +52,10 @@ fn main() {
                     Ok(inst) => {
                         verif.check_insn(&inst);
                     }
-                    Err(e) => eprintln!("{:x}: unknown instruction: {}", e.address(), e),
+                    Err(e) => {
+                        verif.failed = true;
+                        eprintln!("{:x}: unknown instruction: {}", e.address(), e);
+                    }
                 }
             }
         } else {
