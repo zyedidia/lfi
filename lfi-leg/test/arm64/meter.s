@@ -51,3 +51,22 @@ tbz x23, #63, 1000f
 blr x25
 1000:
 ret x24
+------
+b foo
+foo:
+>>>
+.p2align 4
+sub x23, x23, #0
+1000:
+b foo
+foo:
+>>>
+------
+cbnz x0, foo
+foo:
+>>>
+.p2align 4
+sub x23, x23, #0
+1000:
+cbnz x0, foo
+foo:

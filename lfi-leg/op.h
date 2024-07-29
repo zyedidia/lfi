@@ -10,8 +10,10 @@ struct op {
     char* label;
 
     int shortbr;
+    bool branch;
     char* replace;
     char* target;
+    bool rmforward;
 
     struct op* next;
     struct op* prev;
@@ -22,6 +24,8 @@ struct op;
 struct op* mktbz(char* tbz, char* reg, char* imm, char* label);
 
 struct op* mkbcc(char* bcc, char* label);
+
+struct op* mkbranch(char* bcc, char* label);
 
 struct op* mklabel(char* name);
 

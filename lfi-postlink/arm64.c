@@ -163,13 +163,9 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         if (!indbranch && (target - (int64_t) csi->address) > 0) {
             if (args.meter == METER_BRANCH || args.meter == METER_FP) {
                 // forward branches: optimize with nops
-                if (insns[idx - 2] != 0xb6f80057)
-                    fprintf(stderr, "%lx: error: expected tbz\n", addr + idx * 4);
-                else
+                if (insns[idx - 2] == 0xb6f80057) // tbz
                     insns[idx - 2] = NOP;
-                if (insns[idx - 1] != 0xd63f0320)
-                    fprintf(stderr, "%lx: error: expected blr\n", addr + idx * 4);
-                else
+                if (insns[idx - 1] == 0xd63f0320) // blr
                     insns[idx - 1] = NOP;
             }
         }
@@ -185,7 +181,11 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
             }
         } else {
             if (insns[idx - 3] != 0xd10002f7) {
-                fprintf(stderr, "%lx: error: expected gas subtraction relocation\n", addr + idx * 4);
+                if (insns[idx - 1] != 0xd10002f7) {
+                    fprintf(stderr, "%lx: error: expected gas subtraction relocation\n", addr + idx * 4);
+                } else {
+                    insns[idx - 1] = subx23(imm);
+                }
             } else {
                 insns[idx - 3] = subx23(imm);
             }

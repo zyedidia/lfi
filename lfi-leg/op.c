@@ -100,6 +100,7 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
     op->insn = true;
     op->text = xasprintf("%s %s, %s, %s", tbz, reg, imm, label);
     op->target = strdup(label);
+    op->branch = true;
 
     op->replace = xasprintf(
         "%s %s, %s, .LFI_FIXUP%d\n"
@@ -123,6 +124,7 @@ mkbcc(char* bcc, char* label)
     op->insn = true;
     op->text = xasprintf("%s %s", bcc, label);
     op->target = strdup(label);
+    op->branch = true;
 
     op->replace = xasprintf(
         "%s .LFI_FIXUP%d\n"
@@ -139,6 +141,18 @@ mkbcc(char* bcc, char* label)
 
     fixup_count++;
 
+    return op;
+}
+
+struct op*
+mkbranch(char* insn, char* label)
+{
+    struct op* op = mkop();
+    op->insn = true;
+    op->text = strdup(insn);
+    if (label)
+        op->target = strdup(label);
+    op->branch = true;
     return op;
 }
 

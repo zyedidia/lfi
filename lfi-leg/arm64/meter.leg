@@ -2,6 +2,7 @@
 #include "arm64/arm64.h"
 #include "op.h"
 #include "args.h"
+#include "util.h"
 
 #define YY_INPUT(ctx, buf, result, max_size)   \
 {                                              \
@@ -10,6 +11,14 @@
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
 
+static struct op*
+mkinsnopt(char* insn)
+{
+    struct op* op = mkinsn(insn);
+    op->rmforward = true;
+    return op;
+}
+
 static void
 tbzmeter(bool indirect, bool fncall)
 {
@@ -17,8 +26,8 @@ tbzmeter(bool indirect, bool fncall)
         mkinsn("mov x18, x30");
     mkdirective(bundle_align());
     mkinsn("sub x23, x23, #0");
-    mkinsn("tbz x23, #63, 1000f");
-    mkinsn("blr x25");
+    mkinsnopt("tbz x23, #63, 1000f");
+    mkinsnopt("blr x25");
     mklabel("1000");
 }
 
@@ -27,8 +36,8 @@ fpmeter(bool indirect, bool fncall)
 {
     mkinsn(bundle_align());
     mkinsn("sub x23, x23, #0");
-    mkinsn("fmov d31, x23");
-    mkinsn("fneg d31, d31");
+    mkinsnopt("fmov d31, x23");
+    mkinsnopt("fneg d31, d31");
 }
 
 static void
@@ -41,7 +50,7 @@ timermeter(bool indirect, bool fncall)
 static void (*meter)(bool, bool);
 %}
 
-Top = Ret | IndBranch | IndCall | BccBranch | ShortBranch | Branch | Call
+Top = Ret | IndBranch | IndCall | TbzBranch | CbzBranch | Branch | Call
 
 IndBranch = b:INDBRANCH SEP r:XREG {
     meter(true, false);
@@ -61,25 +70,30 @@ IndCall = b:INDCALL SEP r:XREG {
     rfree(b); rfree(r);
 }
 
-ShortBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
+TbzBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
     meter(false, false);
     mktbz(b.val, r.val, imm.val, name.val);
     rfree(b); rfree(r); rfree(imm); rfree(name);
 }
 
-BccBranch = b:BCCBRANCH SEP name:NAME {
+CbzBranch = b:CBZ r:REG COMMA name:NAME {
     meter(false, false);
-    mkbcc(b.val, name.val);
-    rfree(b); rfree(name);
+    char* insn = xasprintf("%s %s, %s", b.val, r.val, name.val);
+    mkbranch(insn, name.val);
+    rfree(b); rfree(r); rfree(name);
+    free(insn);
 }
 
 TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+CBZ = < ('cbz' | 'cbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-Branch = b:DIRBRANCH SEP rest:REMAINDER {
+Branch = b:DIRBRANCH SEP name:NAME {
     meter(false, false);
-    mkinsn("%s %s", b.val, rest.val);
-    rfree(b); rfree(rest);
+    char* insn = xasprintf("%s %s", b.val, name.val);
+    mkbranch(insn, name.val);
+    rfree(b); rfree(name);
+    free(insn);
 }
 
 Call = b:CALL SEP rest:REMAINDER {
@@ -125,10 +139,6 @@ BCCBRANCH = < ( BCC ) > {
 DIRBRANCH = < (
 	  BCC
     | 'b'
-	| 'cbnz'
-	| 'cbz'
-	| 'tbnz'
-	| 'tbz'
 ) > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }

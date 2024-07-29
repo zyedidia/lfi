@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "args.h"
 #include "op.h"
 #include "ht.h"
 
@@ -11,6 +12,17 @@ dist(int a, int b)
     if (d < 0)
         d = -d;
     return d;
+}
+
+static struct op*
+findbranch(struct op* op)
+{
+    while (op) {
+        if (op->branch)
+            return op;
+        op = op->next;
+    }
+    return NULL;
 }
 
 // Display the ops, and do any final fixups (short branches, and .tlsdesccall)
@@ -48,6 +60,16 @@ arm64_display(FILE* output, struct op* ops)
             int tcount = ht_get(&labels, op->target, &found);
             if (found && op->replace && dist(tcount, icount) > op->shortbr) {
                 fprintf(output, "%s\n", op->replace);
+            } else {
+                fprintf(output, "%s\n", op->text);
+            }
+        } else if (op->rmforward) {
+            struct op* b = findbranch(op);
+            if (b) {
+                bool found;
+                int tcount = ht_get(&labels, b->target, &found);
+                if (found && tcount <= icount)
+                    fprintf(output, "%s\n", op->text);
             } else {
                 fprintf(output, "%s\n", op->text);
             }
