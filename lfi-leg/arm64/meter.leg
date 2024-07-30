@@ -89,11 +89,11 @@ TbzBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
 
 CbzBranch = b:CBZ r:REG COMMA name:NAME {
     meter(false, false);
-    char* insn = xasprintf("%s %s, %s", b.val, r.val, name.val);
-    mkbranch(insn, name.val);
+    struct op* op = mkinsn("%s %s, %s", b.val, r.val, name.val);
+    op->target = strdup(name.val);
+    op->branch = true;
     mkdirective(".bundle_unlock");
     rfree(b); rfree(r); rfree(name);
-    free(insn);
 }
 
 TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
@@ -102,11 +102,11 @@ NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Branch = b:DIRBRANCH SEP name:NAME {
     meter(false, false);
-    char* insn = xasprintf("%s %s", b.val, name.val);
-    mkbranch(insn, name.val);
+    struct op* op = mkinsn("%s %s", b.val, name.val);
+    op->target = strdup(name.val);
+    op->branch = true;
     mkdirective(".bundle_unlock");
     rfree(b); rfree(name);
-    free(insn);
 }
 
 Call = b:CALL SEP rest:REMAINDER {

@@ -156,18 +156,6 @@ mkbcc(char* bcc, char* label)
     return op;
 }
 
-struct op*
-mkbranch(char* insn, char* label)
-{
-    struct op* op = mkop();
-    op->insn = true;
-    op->text = strdup(insn);
-    if (label)
-        op->target = strdup(label);
-    op->branch = true;
-    return op;
-}
-
 void
 opremove(struct op* n)
 {
