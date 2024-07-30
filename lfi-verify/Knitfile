@@ -6,4 +6,6 @@ return b{
         cargo build --release
     $ install:VB: target/release/liblfiverify.a
         install $input /usr/local/lib
+    $ test:VB: target/release/lfi-verify
+        go run test/runtest.go $input test/arm64/*.s
 }

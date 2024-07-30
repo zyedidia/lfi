@@ -17,6 +17,10 @@ jobs:
     - name: Install Leg
       run: sudo apt install peg
 
-    - name: Test
+    - name: Test Rewriter
       run: |
         knit -C lfi-leg test
+
+    - name: Test Verifier
+      run: |
+        knit -C lfi-verify test
