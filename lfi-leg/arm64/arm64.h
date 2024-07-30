@@ -51,11 +51,26 @@ bundle_align()
     switch (args.meter) {
     case METER_BRANCH:
     case METER_BRANCH_RESUME:
-        return ".p2align 4";
     case METER_FP:
         return ".p2align 4";
     case METER_TIMER:
         return ".p2align 3";
+    default:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
+bundle_align_mode()
+{
+    switch (args.meter) {
+    case METER_BRANCH:
+    case METER_BRANCH_RESUME:
+    case METER_FP:
+        return ".bundle_align_mode 4\n";
+    case METER_TIMER:
+        return ".bundle_align_mode 3\n";
     default:
         return "";
     }

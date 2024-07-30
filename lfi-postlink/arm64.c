@@ -7,7 +7,12 @@
 #include <capstone/capstone.h>
 
 enum {
-    NOP = 0xd503201f,
+    NOP  = 0xd503201f,
+    FMOV = 0x9e6702ff,
+    FNEG = 0x1e6143ff,
+    TBZ  = 0xb6f80057,
+    BLR  = 0xd63f0320,
+
     OP_SUB = (0b110100010UL << 23),
     OP_ADD = (0b100100010UL << 23),
 };
@@ -29,6 +34,18 @@ subx23(int64_t imm)
         imm = ceilimm(imm, 4096);
     }
     return OP_SUB | (1 << 22) | ((imm >> 12) << 10) | (23 << 5) | (23);
+}
+
+static bool
+issub(uint32_t insn)
+{
+    return insn == 0xd10002f7;
+}
+
+static bool
+isnop(uint32_t insn)
+{
+    return insn == NOP;
 }
 
 static void
@@ -163,9 +180,9 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         if (!indbranch && (target - (int64_t) csi->address) > 0) {
             if (args.meter == METER_BRANCH || args.meter == METER_FP) {
                 // forward branches: optimize with nops
-                if (insns[idx - 2] == 0xb6f80057) // tbz
+                if (insns[idx - 2] == TBZ)
                     insns[idx - 2] = NOP;
-                if (insns[idx - 1] == 0xd63f0320) // blr
+                if (insns[idx - 1] == BLR)
                     insns[idx - 1] = NOP;
             }
         }
@@ -174,13 +191,29 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         int64_t imm = idx - cur_leader + 1;
 
         if (args.meter == METER_TIMER) {
-            if (insns[idx - 1] != 0xd10002f7) {
+            if (!issub(insns[idx - 1]) || !isnop(insns[idx - 1])) {
                 fprintf(stderr, "%lx: error: expected gas subtraction relocation\n", addr + idx * 4);
             } else {
                 insns[idx - 1] = subx23(imm);
             }
         } else {
-            if (insns[idx - 3] != 0xd10002f7) {
+            if (isnop(insns[idx - 3]) && isnop(insns[idx - 2]) && isnop(insns[idx - 1])) {
+                switch (args.meter) {
+                case METER_FP:
+                    insns[idx - 3] = subx23(imm);
+                    insns[idx - 2] = FMOV;
+                    insns[idx - 1] = FNEG;
+                    break;
+                case METER_BRANCH:
+                    insns[idx - 3] = subx23(imm);
+                    insns[idx - 2] = TBZ;
+                    insns[idx - 1] = BLR;
+                    break;
+                case METER_TIMER:
+                    insns[idx - 1] = subx23(imm);
+                    break;
+                }
+            } else if (insns[idx - 3] != 0xd10002f7) {
                 if (insns[idx - 1] != 0xd10002f7) {
                     fprintf(stderr, "%lx: error: expected gas subtraction relocation\n", addr + idx * 4);
                 } else {

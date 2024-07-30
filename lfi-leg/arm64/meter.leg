@@ -12,10 +12,11 @@
 }                                              \
 
 static struct op*
-mkinsnopt(char* insn)
+mkinsnopt(char* insn, bool opt)
 {
     struct op* op = mkinsn(insn);
-    op->rmforward = true;
+    if (opt)
+        op->rmforward = true;
     return op;
 }
 
@@ -24,26 +25,32 @@ tbzmeter(bool indirect, bool fncall)
 {
     if (args.meter == METER_BRANCH_RESUME)
         mkinsn("mov x18, x30");
-    mkdirective(bundle_align());
+    if (fncall)
+        mkdirective(bundle_align());
+    mkdirective(".bundle_lock");
     mkinsn("sub x23, x23, #0");
-    mkinsnopt("tbz x23, #63, 1000f");
-    mkinsnopt("blr x25");
+    mkinsnopt("tbz x23, #63, 1000f", !fncall);
+    mkinsnopt("blr x25", !fncall);
     mklabel("1000");
 }
 
 static void
 fpmeter(bool indirect, bool fncall)
 {
-    mkinsn(bundle_align());
+    if (fncall)
+        mkdirective(bundle_align());
+    mkdirective(".bundle_lock");
     mkinsn("sub x23, x23, #0");
-    mkinsnopt("fmov d31, x23");
-    mkinsnopt("fneg d31, d31");
+    mkinsnopt("fmov d31, x23", !fncall);
+    mkinsnopt("fneg d31, d31", !fncall);
 }
 
 static void
 timermeter(bool indirect, bool fncall)
 {
-    mkinsn(bundle_align());
+    if (fncall)
+        mkdirective(bundle_align());
+    mkdirective(".bundle_lock");
     mkinsn("sub x23, x23, #0");
 }
 
@@ -55,6 +62,7 @@ Top = Ret | IndBranch | IndCall | TbzBranch | CbzBranch | Branch | Call
 IndBranch = b:INDBRANCH SEP r:XREG {
     meter(true, false);
     mkinsn("%s %s", b.val, r.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(r);
 }
 
@@ -62,17 +70,20 @@ Ret = 'ret' !. {
     mkinsn("bic x24, x30, %s", bundle_bicmask());
     meter(true, false);
     mkinsn("ret x24");
+    mkdirective(".bundle_unlock");
 }
 
 IndCall = b:INDCALL SEP r:XREG {
     meter(true, true);
     mkinsn("%s %s", b.val, r.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(r);
 }
 
 TbzBranch = b:TBZ r:REG COMMA imm:IMM COMMA name:NAME {
     meter(false, false);
     mktbz(b.val, r.val, imm.val, name.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(r); rfree(imm); rfree(name);
 }
 
@@ -80,6 +91,7 @@ CbzBranch = b:CBZ r:REG COMMA name:NAME {
     meter(false, false);
     char* insn = xasprintf("%s %s, %s", b.val, r.val, name.val);
     mkbranch(insn, name.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(r); rfree(name);
     free(insn);
 }
@@ -92,6 +104,7 @@ Branch = b:DIRBRANCH SEP name:NAME {
     meter(false, false);
     char* insn = xasprintf("%s %s", b.val, name.val);
     mkbranch(insn, name.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(name);
     free(insn);
 }
@@ -99,6 +112,7 @@ Branch = b:DIRBRANCH SEP name:NAME {
 Call = b:CALL SEP rest:REMAINDER {
     meter(false, true);
     mkinsn("%s %s", b.val, rest.val);
+    mkdirective(".bundle_unlock");
     rfree(b); rfree(rest);
 }
 

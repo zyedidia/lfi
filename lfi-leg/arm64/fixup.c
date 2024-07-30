@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "arm64.h"
 #include "args.h"
 #include "op.h"
 #include "ht.h"
@@ -43,6 +44,8 @@ arm64_display(FILE* output, struct op* ops)
         op = op->next;
     }
 
+    fprintf(output, "%s", bundle_align_mode());
+
     icount = 0;
     op = ops;
     while (op) {
@@ -68,7 +71,7 @@ arm64_display(FILE* output, struct op* ops)
             if (b) {
                 bool found;
                 int tcount = ht_get(&labels, b->target, &found);
-                if (found && tcount <= icount)
+                if (!found || tcount <= icount)
                     fprintf(output, "%s\n", op->text);
             } else {
                 fprintf(output, "%s\n", op->text);
