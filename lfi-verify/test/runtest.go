@@ -58,7 +58,7 @@ func main() {
 			tmp.WriteString(asmdata)
 			tmp.Close()
 			bin := filepath.Join(os.TempDir(), "out.elf")
-			out, err := run("gcc", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
+			out, err := run("aarch64-linux-gnu-gcc", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
 			if err != nil {
 				log.Fatal("error compiling:", out)
 			}
