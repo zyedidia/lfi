@@ -2,7 +2,6 @@
 *.o
 xz_r.s
 far.s
-lfi-verify/test
 lfi-verify/target
 lfi-ras/test
 lfi-ras/target
