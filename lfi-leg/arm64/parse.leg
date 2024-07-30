@@ -30,7 +30,7 @@ Label = < ([0-9]+ | ID) > ':' - {
     mklabel(strndup(yytext, yyleng));
 }
 
-BundleDirective = < '.bundle_align' - !. > {
+BundleDirective = < '.bundle_align' - > {
     mkdirective(bundle_align());
 }
 

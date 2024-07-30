@@ -92,6 +92,16 @@ enum {
 
 static int fixup_count;
 
+static char*
+tbzextra()
+{
+    if (args.meter == METER_NONE)
+        return "";
+    return ".bundle_unlock\n"
+        ".bundle_lock\n"
+        "nop\nnop\nnop\n";
+}
+
 struct op*
 mktbz(char* tbz, char* reg, char* imm, char* label)
 {
@@ -104,12 +114,11 @@ mktbz(char* tbz, char* reg, char* imm, char* label)
 
     op->replace = xasprintf(
         "%s %s, %s, .LFI_FIXUP%d\n"
-        ".bundle_unlock\n"
-        ".bundle_lock\n"
-        "nop\nnop\nnop\n"
+        "%s"
         "b %s\n"
         ".LFI_FIXUP%d:\n",
         opp(tbz), reg, imm, fixup_count,
+        tbzextra(),
         label,
         fixup_count
     );
