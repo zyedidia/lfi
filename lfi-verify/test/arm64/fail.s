@@ -49,3 +49,9 @@ mrs	x18, tpidr_el0
 ld4 { v29.2s, v30.2s, v31.2s, v0.2s }, [x0]
 ---
 .long 0xc4ff8005
+---
+swplb w20, w21, [x18]
+---
+swpal x20, x21, [x18]
+---
+ldadd x20, x21, [x18]
