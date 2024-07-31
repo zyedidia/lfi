@@ -55,3 +55,5 @@ swplb w20, w21, [x18]
 swpal x20, x21, [x18]
 ---
 ldadd x20, x21, [x18]
+---
+caspl x20, x21, x0, x1, [x21]
