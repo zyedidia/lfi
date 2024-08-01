@@ -6,6 +6,15 @@ pext %r13, %rsi, %r15
 mov (%r14, %r15), %rdx
 .bundle_unlock
 ------
+mov (%rsi, %rax), %rdx
+>>>
+.bundle_align_mode 4
+leaq (%rsi, %rax), %r15
+.bundle_lock
+pext %r13, %r15, %r15
+mov (%r14, %r15), %rdx
+.bundle_unlock
+------
 callq *(%rsp)
 >>>
 .bundle_align_mode 4
