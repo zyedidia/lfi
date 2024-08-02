@@ -34,7 +34,7 @@ AddrP = (
             .pre = xasprintf("add.uw x18, %s, x21", r.val),
             .val = xasprintf("(x18)"),
         };
-        rfree(r); rfree(i);
+        rfree(r);
     }
 )
 
