@@ -11,6 +11,8 @@ const SP_REG: Reg = Reg::SP;
 const BASE_REG: Reg = Reg::X21;
 const SYS_REG: Reg = Reg::X21;
 
+const MAX_OFFSET: i64 = 32 * 1024;
+
 pub struct Verifier {
     pub failed: bool,
     pub message: Option<fn(bytes: *const u8, size: usize)>,
@@ -66,6 +68,13 @@ fn nimm(imm: Imm, val: i64) -> bool {
     }
 }
 
+fn immle(imm: Imm, val: i64) -> bool {
+    match imm {
+        Imm::Signed(i) => i <= val,
+        Imm::Unsigned(u) => u <= val as u64,
+    }
+}
+
 fn zero(imm: Imm) -> bool {
     nimm(imm, 0)
 }
@@ -80,7 +89,7 @@ fn ok_operand(op: &Operand) -> bool {
             mul_vl,
             ..
         } => {
-            !mul_vl && ((*reg == SYS_REG && (zero(*offset) || nimm(*offset, 8))) || data_reg(*reg))
+            !mul_vl && ((*reg == SYS_REG && (zero(*offset) || nimm(*offset, 8))) || (data_reg(*reg)) && immle(*offset, MAX_OFFSET))
         }
         Operand::MemPreIdx { reg, .. } => data_reg(*reg),
         Operand::MemPostIdxReg { .. } => false,
