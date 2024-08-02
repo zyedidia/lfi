@@ -40,3 +40,5 @@ void opfree(struct op* op);
 void oplocate(struct op* op);
 
 struct op* opinsert(struct op* op);
+
+void opfreeall();

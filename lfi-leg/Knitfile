@@ -3,7 +3,7 @@ local knit = require("knit")
 local src = knit.glob("*.c")
 local obj = knit.prefix(knit.extrepl(src, ".c", ".o"), ".")
 
-local cflags = "-O2 -Wall -Wno-unused-function"
+local cflags = "-O2 -Wall -Wno-unused-function -g"
 
 local obj = {
     leg = knit.prefix(knit.extrepl({
@@ -31,7 +31,7 @@ local obj = {
         "riscv64/branch.leg",
         "riscv64/syscall.leg",
         "riscv64/parse.leg",
-	"riscv64/special.leg",
+        "riscv64/special.leg",
     }, ".leg", ".leg.o"), "."),
     c = knit.prefix(knit.extrepl({
         -- arm64
@@ -42,21 +42,41 @@ local obj = {
         "amd64/display.c",
         "amd64/amd64.c",
         "amd64/flags.c",
-	-- riscv64
-	"riscv64/flags.c",
-	"riscv64/display.c",
-	"riscv64/riscv64.c",
-
+        -- riscv64
+        "riscv64/flags.c",
+        "riscv64/display.c",
+        "riscv64/riscv64.c",
     }, ".c", ".o"), "."),
-    common = knit.prefix(knit.extrepl(knit.glob("*.c"), ".c", ".o"), "."),
+    common = knit.prefix(knit.extrepl({
+        "ht.c", "op.c", "util.c",
+    }, ".c", ".o"), "."),
+    main = knit.prefix(knit.extrepl({
+        "main.c"
+    }, ".c", ".o"), "."),
+    lib = knit.prefix(knit.extrepl({
+        "lib.c"
+    }, ".c", ".o"), "."),
+}
+
+local emobj = {
+    leg = knit.extrepl(obj.leg, ".o", ".em.o"),
+    common = knit.extrepl(obj.common, ".o", ".em.o"),
+    c = knit.extrepl(obj.c, ".o", ".em.o"),
+    lib = knit.extrepl(obj.lib, ".o", ".em.o"),
 }
 
 return b{
-    $ lfi-leg: $(obj.common) $(obj.c) $(obj.leg)
-        cc $input -o $output -static
+    $ lfi-leg: $(obj.main) $(obj.common) $(obj.c) $(obj.leg)
+        cc $input -o $output
 
     $ .%.o:D[.%.dep]: %.c
         cc $cflags -MMD -MF $dep -c $input -o $output -I.
+
+    $ lfileg.js: $(emobj.lib) $(emobj.common) $(emobj.c) $(emobj.leg)
+        emcc -O2 $input -o $output -s EXPORTED_RUNTIME_METHODS='["cwrap"]' -sSINGLE_FILE
+    $ .%.em.o:D[.%.dep]: %.c
+        emcc $cflags -MMD -MF $dep -c $input -o $output -I.
+
     $ install-%:VB: %
         sudo install $input /usr/local/bin
     $ install:VB: install-lfi-leg

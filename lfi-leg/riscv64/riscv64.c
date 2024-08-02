@@ -3,8 +3,9 @@
 
 #include "args.h"
 #include "op.h"
+#include "output.h"
 
-bool riscv64_parseinit();
+bool riscv64_parseinit(FILE* input);
 
 extern struct op* ops;
 
@@ -29,7 +30,7 @@ static Pass passes[] = {
     (Pass) { .fn = &riscv64_syscallpass },
 };
 
-void riscv64_display(FILE* output, struct op* ops);
+void riscv64_display(struct output* output, struct op* ops);
 
 static void
 warnargs()
@@ -45,9 +46,9 @@ warnargs()
 }
 
 bool
-riscv64_rewrite(FILE* input, FILE* output)
+riscv64_rewrite(FILE* input, struct output* output)
 {
-    if (!riscv64_parseinit()) {
+    if (!riscv64_parseinit(input)) {
         fprintf(stderr, "%s: parser failed to initialize\n", args.input);
         return false;
     }
@@ -80,6 +81,8 @@ riscv64_rewrite(FILE* input, FILE* output)
     }
 
     riscv64_display(output, ops);
+
+    opfreeall();
 
     return true;
 }

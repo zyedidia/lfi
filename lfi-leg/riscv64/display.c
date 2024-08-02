@@ -2,13 +2,14 @@
 
 #include "riscv64.h"
 #include "op.h"
+#include "output.h"
 
 void
-riscv64_display(FILE* output, struct op* ops)
+riscv64_display(struct output* output, struct op* ops)
 {
     struct op* op = ops;
     while (op) {
-        fprintf(output, "%s\n", op->text);
+        outwriteln(output, op->text);
         op = op->next;
     }
 }

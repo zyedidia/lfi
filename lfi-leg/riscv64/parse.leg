@@ -5,12 +5,10 @@
 #include "op.h"
 
 // Read a byte from input.
-#define YY_INPUT(ctx, buf, result, max_size) \
-{                                            \
-    result = fread(buf, 1, max_size, input); \
-}                                            \
-
-extern FILE* input;
+#define YY_INPUT(ctx, buf, result, max_size)      \
+{                                                 \
+    result = fread(buf, 1, max_size, ctx->input); \
+}                                                 \
 %}
 
 Top = Insn* !.
@@ -39,10 +37,11 @@ Any = < (!EOL .)* > {
 %%
 
 bool
-riscv64_parseinit()
+riscv64_parseinit(FILE* input)
 {
     yycontext ctx;
     memset(&ctx, 0, sizeof(yycontext));
+    ctx.input = input;
     bool success = yyparse(&ctx);
     yyrelease(&ctx);
     return success;

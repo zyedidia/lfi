@@ -2,15 +2,16 @@
 
 #include "amd64.h"
 #include "op.h"
+#include "output.h"
 
 void
-amd64_display(FILE* output, struct op* ops)
+amd64_display(struct output* output, struct op* ops)
 {
-    fprintf(output, "%s", bundle_align_mode());
+    outwrite(output, bundle_align_mode());
 
     struct op* op = ops;
     while (op) {
-        fprintf(output, "%s\n", op->text);
+        outwriteln(output, op->text);
         op = op->next;
     }
 }

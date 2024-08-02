@@ -5,6 +5,7 @@
 
 #include "args.h"
 #include "op.h"
+#include "output.h"
 
 static char doc[] = "lfi-leg: rewrite assembly files to be compatible with LFI";
 
@@ -202,9 +203,9 @@ getarch()
 
 struct arguments args;
 
-bool amd64_rewrite(FILE* input, FILE* output);
-bool arm64_rewrite(FILE* input, FILE* output);
-bool riscv64_rewrite(FILE* input, FILE* output);
+bool amd64_rewrite(FILE* input, struct output* output);
+bool arm64_rewrite(FILE* input, struct output* output);
+bool riscv64_rewrite(FILE* input, struct output* output);
 
 char* arm64_getflags(enum flags);
 char* amd64_getflags(enum flags);
@@ -227,12 +228,13 @@ main(int argc, char** argv)
         args.arch = getarch();
     }
 
+    struct output out = (struct output) {};
     if (args.boxtype == BOX_NONE) {
         // nothing to do
         char buf[4096];
         size_t n;
         while ((n = fread(buf, 1, 4096, input)) != 0)
-            fwrite(buf, 1, n, output);
+            outwritebuf(&out, buf, n);
     } else if (strcmp(args.arch, "arm64") == 0) {
         if (args.flags != FLAGS_NONE) {
             char* flags = arm64_getflags(args.flags);
@@ -240,7 +242,7 @@ main(int argc, char** argv)
             return 0;
         }
 
-        if (!arm64_rewrite(input, output))
+        if (!arm64_rewrite(input, &out))
             return 1;
     } else if (strcmp(args.arch, "amd64") == 0) {
         if (args.flags != FLAGS_NONE) {
@@ -249,7 +251,7 @@ main(int argc, char** argv)
             return 0;
         }
 
-        if (!amd64_rewrite(input, output))
+        if (!amd64_rewrite(input, &out))
             return 1;
     } else if (strcmp(args.arch, "riscv64") == 0) {
         if (args.flags != FLAGS_NONE) {
@@ -258,9 +260,11 @@ main(int argc, char** argv)
             return 0;
         }
 
-        if (!riscv64_rewrite(input, output))
+        if (!riscv64_rewrite(input, &out))
             return 1;
     }
+
+    outsend(&out, output);
 
     fclose(input);
     fclose(output);

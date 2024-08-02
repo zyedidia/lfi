@@ -3,8 +3,9 @@
 
 #include "args.h"
 #include "op.h"
+#include "output.h"
 
-bool amd64_parseinit();
+bool amd64_parseinit(FILE*);
 
 extern struct op* ops;
 
@@ -31,7 +32,7 @@ static Pass passes[] = {
     (Pass) { .fn = &amd64_syscallpass },
 };
 
-void amd64_display(FILE* output, struct op* ops);
+void amd64_display(struct output* output, struct op* ops);
 
 static void
 warnargs()
@@ -47,9 +48,9 @@ warnargs()
 }
 
 bool
-amd64_rewrite(FILE* input, FILE* output)
+amd64_rewrite(FILE* input, struct output* output)
 {
-    if (!amd64_parseinit()) {
+    if (!amd64_parseinit(input)) {
         fprintf(stderr, "%s: parser failed to initialize\n", args.input);
         return false;
     }
@@ -59,6 +60,7 @@ amd64_rewrite(FILE* input, FILE* output)
     const size_t npass = sizeof(passes) / sizeof(passes[0]);
 
     for (size_t i = 0; i < npass; i++) {
+        passes[i].disabled = false;
         if (args.boxtype < BOX_FULL && passes[i].fn == &amd64_loadspass)
             passes[i].disabled = true;
         if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_storespass)
@@ -69,6 +71,8 @@ amd64_rewrite(FILE* input, FILE* output)
             passes[i].disabled = true;
         if (args.decl && passes[i].fn == &amd64_declpass)
             passes[i].disabled = false;
+        else if (passes[i].fn == &amd64_declpass)
+            passes[i].disabled = true;
     }
 
     for (size_t i = 0; i < npass; i++) {
@@ -83,6 +87,8 @@ amd64_rewrite(FILE* input, FILE* output)
     }
 
     amd64_display(output, ops);
+
+    opfreeall();
 
     return true;
 }

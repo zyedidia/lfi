@@ -5,6 +5,7 @@
 #define YY_CTX_LOCAL 1
 #define YY_PARSE(T) static T
 #define YY_CTX_MEMBERS \
+    FILE* input; \
     struct op* op; \
     size_t idx;
 %}

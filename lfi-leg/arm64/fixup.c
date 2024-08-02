@@ -5,6 +5,7 @@
 #include "args.h"
 #include "op.h"
 #include "ht.h"
+#include "output.h"
 
 static int
 dist(int a, int b)
@@ -28,7 +29,7 @@ findbranch(struct op* op)
 
 // Display the ops, and do any final fixups (short branches, and .tlsdesccall)
 void
-arm64_display(FILE* output, struct op* ops)
+arm64_display(struct output* out, struct op* ops)
 {
     struct ht labels;
     int icount = 0;
@@ -44,7 +45,7 @@ arm64_display(FILE* output, struct op* ops)
         op = op->next;
     }
 
-    fprintf(output, "%s", bundle_align_mode());
+    outwrite(out, bundle_align_mode());
 
     icount = 0;
     op = ops;
@@ -62,9 +63,9 @@ arm64_display(FILE* output, struct op* ops)
             bool found;
             int tcount = ht_get(&labels, op->target, &found);
             if (found && op->replace && dist(tcount, icount) > op->shortbr) {
-                fprintf(output, "%s\n", op->replace);
+                outwriteln(out, op->replace);
             } else {
-                fprintf(output, "%s\n", op->text);
+                outwriteln(out, op->text);
             }
         } else if (op->rmforward) {
             struct op* b = findbranch(op);
@@ -72,12 +73,12 @@ arm64_display(FILE* output, struct op* ops)
                 bool found;
                 int tcount = ht_get(&labels, b->target, &found);
                 if (!found || tcount <= icount)
-                    fprintf(output, "%s\n", op->text);
+                    outwriteln(out, op->text);
             } else {
-                fprintf(output, "%s\n", op->text);
+                outwriteln(out, op->text);
             }
         } else {
-            fprintf(output, "%s\n", op->text);
+            outwriteln(out, op->text);
         }
         icount += op->insn ? 1 : 0;
         op = op->next;

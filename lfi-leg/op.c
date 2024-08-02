@@ -81,7 +81,7 @@ mklabel(char* name)
 {
     struct op* op = mkop();
     op->text = xasprintf("%s:", name);
-    op->label = name;
+    op->label = strdup(name);
     return op;
 }
 
@@ -182,5 +182,21 @@ opfree(struct op* op)
 {
     free(op->text);
     free(op->label);
+    free(op->replace);
+    free(op->target);
     free(op);
+}
+
+void
+opfreeall()
+{
+    struct op* op = ops;
+    while (op) {
+        struct op* next = op->next;
+        opfree(op);
+        op = next;
+    }
+    ops = NULL;
+    ops_last = NULL;
+    location = NULL;
 }

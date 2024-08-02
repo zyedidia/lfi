@@ -3,8 +3,9 @@
 
 #include "args.h"
 #include "op.h"
+#include "output.h"
 
-bool arm64_parseinit();
+bool arm64_parseinit(FILE*);
 
 extern struct op* ops;
 
@@ -35,7 +36,7 @@ static Pass passes[] = {
     (Pass) { .fn = &arm64_syscallpass },
 };
 
-void arm64_display(FILE* output, struct op* ops);
+void arm64_display(struct output* output, struct op* ops);
 
 static void
 warnargs()
@@ -51,9 +52,9 @@ warnargs()
 }
 
 bool
-arm64_rewrite(FILE* input, FILE* output)
+arm64_rewrite(FILE* input, struct output* output)
 {
-    if (!arm64_parseinit()) {
+    if (!arm64_parseinit(input)) {
         fprintf(stderr, "%s: parser failed to initialize\n", args.input);
         return false;
     }
@@ -63,6 +64,7 @@ arm64_rewrite(FILE* input, FILE* output)
     const size_t npass = sizeof(passes) / sizeof(passes[0]);
 
     for (size_t i = 0; i < npass; i++) {
+        passes[i].disabled = false;
         if (args.boxtype < BOX_FULL && passes[i].fn == &arm64_loadspass)
             passes[i].disabled = true;
         if (args.boxtype < BOX_STORES && passes[i].fn == &arm64_storespass)
@@ -75,8 +77,12 @@ arm64_rewrite(FILE* input, FILE* output)
         }
         if (args.poc && passes[i].fn == &arm64_pocpass)
             passes[i].disabled = false;
+        else if (passes[i].fn == &arm64_pocpass)
+            passes[i].disabled = true;
         if (args.meter != METER_NONE && passes[i].fn == &arm64_meterpass)
             passes[i].disabled = false;
+        else if (passes[i].fn == &arm64_meterpass)
+            passes[i].disabled = true;
     }
 
     for (size_t i = 0; i < npass; i++) {
@@ -94,6 +100,8 @@ arm64_rewrite(FILE* input, FILE* output)
         arm64_guardelim(ops);
 
     arm64_display(output, ops);
+
+    opfreeall();
 
     return true;
 }
