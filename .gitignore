@@ -26,3 +26,4 @@ lfi-verify-amd64
 /lfi-postlink/lfi-postlink
 
 *.leg.c
+*.js
