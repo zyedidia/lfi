@@ -68,6 +68,11 @@ mov (,%rax,8),%rdx
 .bundle_align_mode 4
 mov %gs:(, %eax, 8), %rdx
 ------
+mov (,%rax),%rdx
+>>>
+.bundle_align_mode 4
+mov %gs:(, %eax), %rdx
+------
 vmovaps -0x30(%rsi), %xmm15; vmovaps -0x20(%rsi), %xmm14; vmovaps -0x10(%rsi), %xmm13; vmovaps (%rsi), %xmm12; vmovaps 0x10(%rsi), %xmm11; vmovaps 0x20(%rsi), %xmm10; vmovaps 0x30(%rsi), %xmm9 ; vmovaps 0x40(%rsi), %xmm8 ; vmovaps 0x50(%rsi), %xmm7 ; vmovaps 0x60(%rsi), %xmm6
 >>>
 .bundle_align_mode 4

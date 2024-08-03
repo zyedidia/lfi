@@ -58,6 +58,7 @@ riscv64_rewrite(FILE* input, struct output* output)
     const size_t npass = sizeof(passes) / sizeof(passes[0]);
 
     for (size_t i = 0; i < npass; i++) {
+        passes[i].disabled = false;
         if (args.boxtype < BOX_FULL && passes[i].fn == &riscv64_loadspass)
             passes[i].disabled = true;
         if (args.boxtype < BOX_STORES && passes[i].fn == &riscv64_storespass)
@@ -66,7 +67,6 @@ riscv64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = true;
         if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &riscv64_branchpass)
             passes[i].disabled = true;
-        
     }
 
     for (size_t i = 0; i < npass; i++) {

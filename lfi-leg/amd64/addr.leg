@@ -31,7 +31,7 @@ Addr = (
         if (args.p2size == 0) {
             $$.premulti[0] = strdup(".bundle_lock");
             $$.premulti[1] = xasprintf("pext %%r13, %s, %%r15", r.val);
-            $$.val         = xasprintf("%s(%r14, %r15)", i.val);
+            $$.val         = xasprintf("%s(%%r14, %%r15)", i.val);
             $$.post        = strdup(".bundle_unlock");
         } else if (args.nosegue) {
             $$.premulti[0] = strdup(".bundle_lock");
@@ -216,7 +216,7 @@ AddrH = (
     }
 )
 
-AddrRegDisp = AddrRegReg | AddrRegRegImm | AddrRegImm
+AddrRegDisp = AddrRegReg | AddrRegRegImm | AddrRegImm | AddrRegNoImm
 
 AddrRegReg = LP (!AddrReg r1:REG) COMMA (!AddrReg r2:REG) RP {
     $$ = (Result) { .val = xasprintf("(%s, %s)", lo(r1.val), lo(r2.val)) };
@@ -232,6 +232,11 @@ AddrRegImm = LP COMMA (!AddrReg r2:REG) COMMA i:IMM RP {
     $$ = (Result) { .val = xasprintf("(, %s, %s)", lo(r2.val), i.val) };
     $$.unmod = xasprintf("(, %s, %s)", r2.val, i.val);
     rfree(r2); rfree(i);
+}
+AddrRegNoImm = LP COMMA (!AddrReg r2:REG) RP {
+    $$ = (Result) { .val = xasprintf("(, %s)", lo(r2.val)) };
+    $$.unmod = xasprintf("(, %s)", r2.val);
+    rfree(r2);
 }
 
 AddrReg = 'rsp' | 'rip'
