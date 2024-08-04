@@ -44,6 +44,8 @@ tbx v19.16b, { v26.16b }, v14.16b
 ---
 extr x1, x8, x15, #0
 ---
-stp s24, s9, [sp], #-0xc8
+stp s24, s9, [sp], #-0x10
 ---
 ands x16, x30, #0x8f8f8f8f8f8f8f8f
+---
+str q0, [x18, #55696]

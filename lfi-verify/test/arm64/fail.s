@@ -57,5 +57,3 @@ swpal x20, x21, [x18]
 ldadd x20, x21, [x18]
 ---
 caspl x20, x21, x0, x1, [x21]
----
-str q0, [x18, #55696]

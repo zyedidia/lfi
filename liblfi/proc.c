@@ -14,7 +14,7 @@
 #endif
 
 enum {
-    GUARD_SIZE = 48ULL * 1024,
+    GUARD_SIZE = 80ULL * 1024,
     CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
 };
 
