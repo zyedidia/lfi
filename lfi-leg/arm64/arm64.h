@@ -38,6 +38,14 @@ isres(const char* reg)
     return false;
 }
 
+static bool
+isaligned(const char* reg)
+{
+    if (strcmp(reg, "sp") == 0 && args.decl)
+        return true;
+    return false;
+}
+
 static const char*
 opp(const char* tbz) {
     if (strcmp(tbz, "tbz") == 0)

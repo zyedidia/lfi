@@ -19,3 +19,7 @@ sub sp, sp, x0
 >>>
 sub x22, sp, x0
 add sp, x21, w22, uxtw
+------
+mov sp, x0
+>>>
+add sp, x21, w0, uxtw

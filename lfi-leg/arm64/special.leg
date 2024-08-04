@@ -11,7 +11,37 @@
 }                                              \
 %}
 
-Top = ModSpecial | LdRes
+Top = ModMov | ModAddSub | ModSpecial | LdRes
+
+ModMov = ('mov' -) res:RESREG COMMA r:REG {
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("mov %s, %s", res.val, r.val);
+    } else if (isaligned(res.val)) {
+        mkinsn("add x18, x21, w%s, uxtw", num(r.val));
+        mkinsn("bic sp, x18, 0xf");
+    } else {
+        mkinsn("add %s, x21, w%s, uxtw", res.val, num(r.val));
+    }
+    rfree(r); rfree(res);
+}
+
+ModAddSub = i:ADDSUB res:RESREG COMMA r1:REG COMMA r2:REG {
+    if (!isfixed(res.val) && !isres(res.val)) {
+        mkinsn("%s %s, %s, %s", i.val, res.val, r1.val, r2.val);
+    } else if (isaligned(res.val)) {
+        mkinsn("%s x22, %s, %s", i.val, r1.val, r2.val);
+        mkinsn("add x18, x21, w22, uxtw");
+        mkinsn("bic sp, x18, 0xf");
+    } else {
+        mkinsn("%s x22, %s, %s", i.val, r1.val, r2.val);
+        mkinsn("add %s, x21, w22, uxtw", res.val);
+    }
+    rfree(r1); rfree(r2); rfree(res); rfree(i)
+}
+
+ADDSUB = < ('add' | 'sub') > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) }
+}
 
 ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
     if (!isfixed(res.val) && !isres(res.val)) {
