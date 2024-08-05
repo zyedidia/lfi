@@ -11,7 +11,7 @@ const SP_REG: Reg = Reg::SP;
 const BASE_REG: Reg = Reg::X21;
 const SYS_REG: Reg = Reg::X21;
 
-const MAX_OFFSET: i64 = 32 * 1024;
+const MAX_OFFSET: i64 = 64 * 1024;
 
 pub struct Verifier {
     pub failed: bool,
