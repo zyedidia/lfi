@@ -37,6 +37,7 @@ struct arguments {
     bool poc;
     bool sysexternal;
     bool noguardelim;
+    bool nopextelim;
     bool nosegue;
     char* arch;
     enum cfi cfi;

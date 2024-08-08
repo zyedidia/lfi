@@ -25,6 +25,7 @@ local obj = {
         "amd64/stores.leg",
         "amd64/loads.leg",
         "amd64/decl.leg",
+        "amd64/pextelim.leg",
         -- riscv
         "riscv64/loads.leg",
         "riscv64/stores.leg",

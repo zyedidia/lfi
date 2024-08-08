@@ -23,6 +23,8 @@ void amd64_storespass(struct op*);
 void amd64_declpass(struct op*);
 void amd64_syscallpass(struct op*);
 
+void amd64_pextelim(struct op*);
+
 static Pass passes[] = {
     (Pass) { .fn = &amd64_specialpass },
     (Pass) { .fn = &amd64_loadspass },
@@ -85,6 +87,9 @@ amd64_rewrite(FILE* input, struct output* output)
             op = next;
         }
     }
+
+    if (args.p2size == 0 && !args.nopextelim)
+        amd64_pextelim(ops);
 
     amd64_display(output, ops);
 

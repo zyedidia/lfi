@@ -24,6 +24,7 @@ enum {
     ARG_p2size        = 0x8a,
     ARG_bundlecall    = 0x8b,
     ARG_useret        = 0x8c,
+    ARG_no_pext_elim  = 0x8d,
 };
 
 // options (TODO):
@@ -48,6 +49,7 @@ static struct argp_option options[] = {
     { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies --sys-external)" },
     { "sys-external",   ARG_sys_external,  0,      0, "Store runtime call table outside sandbox"},
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
+    { "no-pext-elim",   ARG_no_pext_elim,  0,      0, "Do not run pext elimination"},
     { "no-segue",       ARG_no_segue,      0,      0, "Do not use segment register to store the sandbox base" },
     { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { "single-thread",  ARG_single_thread, 0,      0, "Specify single-threaded target" },
@@ -101,6 +103,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_no_guard_elim:
         args->noguardelim = true;
+        break;
+    case ARG_no_pext_elim:
+        args->nopextelim = true;
         break;
     case ARG_useret:
         args->useret = true;
