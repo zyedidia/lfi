@@ -26,7 +26,7 @@ lfi.bdd.dot
 *.bdd
 !/lfi-veribdd/generator/lfi.bdd
 genbdd
-genbddfinal
+genbddsingle
 
 lfi-verify-amd64
 /lfi-ld/lfi-ld
