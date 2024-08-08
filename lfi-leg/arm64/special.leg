@@ -11,7 +11,7 @@
 }                                              \
 %}
 
-Top = ModMov | ModAddSub | ModSpecial | LdRes
+Top = (ModMov | ModAddSub | ModSpecial | LdRes) !.
 
 ModMov = ('mov' -) res:RESREG COMMA r:REG {
     if (!isfixed(res.val) && !isres(res.val)) {
