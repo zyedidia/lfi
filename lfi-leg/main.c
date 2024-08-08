@@ -21,8 +21,9 @@ enum {
     ARG_decl          = 0x87,
     ARG_meter         = 0x88,
     ARG_flags         = 0x89,
-    ARG_p2size        = 0x90,
-    ARG_bundlecall       = 0x91,
+    ARG_p2size        = 0x8a,
+    ARG_bundlecall    = 0x8b,
+    ARG_useret        = 0x8c,
 };
 
 // options (TODO):
@@ -55,6 +56,7 @@ static struct argp_option options[] = {
     { "flags",          ARG_flags,         "TYPE", 0, "Show flags for compiler (clang,gcc)" },
     { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,variable)" },
     { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
+    { "use-ret",        ARG_useret,        0,      0, "Allow return instructions for x86-64 (unsafe)" },
     { 0 },
 };
 
@@ -99,6 +101,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_no_guard_elim:
         args->noguardelim = true;
+        break;
+    case ARG_useret:
+        args->useret = true;
         break;
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)

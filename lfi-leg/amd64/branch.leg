@@ -113,7 +113,9 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 }
 
 Ret = 'ret' 'q'? - {
-    if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
+    if (args.useret) {
+        mkinsn("ret");
+    } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(".bundle_lock");
         mkinsn("andq $0xffffffff%s, (%rsp)", bundle_mask_constant());
         if (args.decl)
