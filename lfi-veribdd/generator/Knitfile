@@ -6,9 +6,9 @@ return b{
     $ genbdd: genbdd.o ../../lfi-verify/target/release/liblfiverify.a
         c++ $input -o $output -lbdd
     $ genbddfinal: genbddfinal.o ../../lfi-verify/target/release/liblfiverify.a
-        c++ $input -o $output -lbdd
+        c++ $input -o $output -lbdd -fopenmp
     $ %.o: %.cc
-        c++ -c -O2 $input -o $output -I../../liblfi
+        c++ -c -O2 $input -o $output -I../../liblfi -fopenmp
     $ %.o: %.c
         cc -c -O2 $input -o $output
     include("../../lfi-verify/Knitfile")
