@@ -36,12 +36,12 @@ lo(const char* reg)
         return "%r11d";
     if (strcmp(reg, "%r12") == 0)
         return "%r12d";
-    if (strcmp(reg, "%r13") == 0)
-        return "%r13d";
-    if (strcmp(reg, "%r14") == 0)
-        return "%r14d";
     if (strcmp(reg, "%r15") == 0)
         return "%r15d";
+    if (strcmp(reg, "%r14") == 0)
+        return "%r14d";
+    if (strcmp(reg, "%r11") == 0)
+        return "%r11d";
     return reg;
 }
 
@@ -102,7 +102,7 @@ static void
 bundle_mask(const char* reg)
 {
     if (args.boxtype > BOX_BUNDLEJUMPS && args.p2size == 0) {
-        mkinsn("andq %%r13, %s", reg);
+        mkinsn("andq %%r15, %s", reg);
         mkinsn("andq $0xffffffff%s, %s", bundle_mask_constant(), reg);
         mkinsn("orq %%r14, %s", reg);
     } else if (args.boxtype > BOX_BUNDLEJUMPS) {

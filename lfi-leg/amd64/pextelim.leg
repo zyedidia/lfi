@@ -17,7 +17,7 @@ static bool flaguse;
 
 Top = (Pext | FlagClobber | FlagUse) !.
 
-Pext = 'pext' SEP '%r13' - COMMA r:REG COMMA '%r15' - {
+Pext = 'pext' SEP '%r15' - COMMA r:REG COMMA '%r11' - {
     pext = yy->op;
     pextreg = strdup(r.val);
     rfree(r);
@@ -129,9 +129,9 @@ amd64_pextelim(struct op* ops)
             }
             if (replace) {
                 oplocate(mpext);
-                if (strcmp(mpextreg, "%r15") != 0)
-                    mkinsn("movq %s, %%r15", mpextreg);
-                op = mkinsn("andq %%r13, %%r15");
+                if (strcmp(mpextreg, "%r11") != 0)
+                    mkinsn("movq %s, %%r11", mpextreg);
+                op = mkinsn("andq %%r15, %%r11");
                 opremove(mpext);
                 free(mpextreg);
                 removed++;

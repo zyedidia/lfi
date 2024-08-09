@@ -64,7 +64,7 @@ static uint64_t* regs_gas(struct lfi_regs* regs) {
 }
 
 static uint64_t* regs_mask(struct lfi_regs* regs) {
-    return &regs->r13;
+    return &regs->r15;
 }
 
 static void regs_init(struct lfi_regs* regs, uint64_t entry, uint64_t sp) {

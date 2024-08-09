@@ -12,18 +12,18 @@
 
 Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe | Call | Ret
 
-# we use r15 here so that we get consistent instruction sizes, so that the nop
+# we use r11 here so that we get consistent instruction sizes, so that the nop
 # has the correct size to align the call to the end of the bundle. In theory,
 # we could make two CallInds -- one for registers that require a REX prefix and
 # one for ones that don't.
 CallInd = 'call' 'q'? - '*' r:XREG {
-    mkinsn("movq %s, %%r15", r.val);
+    mkinsn("movq %s, %%r11", r.val);
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    bundle_mask("%r15");
+    bundle_mask("%r11");
     bundle_nop_indcall();
-    mkinsn("callq *%%r15");
+    mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
     rfree(r);
@@ -31,31 +31,31 @@ CallInd = 'call' 'q'? - '*' r:XREG {
 
 CallIndMem = 'call' 'q'? - '*' a:Addr {
     if (args.boxtype < BOX_FULL) {
-        mkinsn("movq %s, %%r15", a.unmod);
+        mkinsn("movq %s, %%r11", a.unmod);
     } else {
         mkguards(a);
-        mkinsn("movq %s, %%r15", a.val);
+        mkinsn("movq %s, %%r11", a.val);
         mkpost(a);
     }
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    bundle_mask("%r15");
+    bundle_mask("%r11");
     bundle_nop_indcall();
-    mkinsn("callq *%%r15");
+    mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
     rfree(a);
 }
 
 CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
-    mkinsn("movq %s, %%r15", a.unmod);
+    mkinsn("movq %s, %%r11", a.unmod);
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    bundle_mask("%r15");
+    bundle_mask("%r11");
     bundle_nop_indcall();
-    mkinsn("callq *%%r15");
+    mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
     rfree(a);
@@ -72,28 +72,28 @@ Call = 'call' 'q'? - rest:ITEM {
 
 BranchMem = j:JMP - '*' a:Addr {
     if (args.boxtype < BOX_FULL) {
-        mkinsn("movq %s, %%r15", a.unmod);
+        mkinsn("movq %s, %%r11", a.unmod);
     } else {
         mkguards(a);
-        mkinsn("movq %s, %%r15", a.val);
+        mkinsn("movq %s, %%r11", a.val);
         mkpost(a);
     }
     mkdirective(".bundle_lock");
-    bundle_mask("%r15");
+    bundle_mask("%r11");
     if (args.decl)
         mkinsn("cmpq %rax, %rax");
-    mkinsn("%s *%%r15", j.val);
+    mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
 }
 
 BranchMemSafe = j:JMP - '*' a:Addr {
-    mkinsn("movq %s, %%r15", a.unmod);
+    mkinsn("movq %s, %%r11", a.unmod);
     mkdirective(".bundle_lock");
-    bundle_mask("%r15");
+    bundle_mask("%r11");
     if (args.decl)
         mkinsn("cmpq %rax, %rax");
-    mkinsn("%s *%%r15", j.val);
+    mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
 }
@@ -123,12 +123,12 @@ Ret = 'ret' 'q'? - {
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
-        mkinsn("popq %%r15");
+        mkinsn("popq %%r11");
         mkdirective(".bundle_lock");
-        bundle_mask("%r15");
+        bundle_mask("%r11");
         if (args.decl)
             mkinsn("cmpq %rax, %rax");
-        mkinsn("jmpq *%%r15");
+        mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
     }
 }

@@ -13,7 +13,7 @@ static void
 mask(const char* reg)
 {
     if (args.p2size == 0) {
-        mkinsn("pext %%r13, %s, %s", reg, reg);
+        mkinsn("pext %%r15, %s, %s", reg, reg);
         mkinsn("leaq (%%r14, %s), %s", reg, reg);
     } else {
         mkinsn("movl %s, %s", lo(reg), lo(reg));
