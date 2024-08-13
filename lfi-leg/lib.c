@@ -4,7 +4,10 @@
 #include "args.h"
 #include "op.h"
 #include "output.h"
+
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
 
 struct arguments args;
 
@@ -44,7 +47,9 @@ setargs(char* arch, char* sandbox, char* cfi, char* p2size, char* segue)
         args.nosegue = true;
 }
 
+#ifdef __EMSCRIPTEN__
 EMSCRIPTEN_KEEPALIVE
+#endif
 char*
 lfi_rewrite(char* inputstr, char* arch, char* sandbox, char* cfi, char* p2size, char* segue)
 {
@@ -74,7 +79,9 @@ lfi_rewrite(char* inputstr, char* arch, char* sandbox, char* cfi, char* p2size, 
     return outstr(&out);
 }
 
+#ifdef __EMSCRIPTEN__
 EMSCRIPTEN_KEEPALIVE
+#endif
 char*
 lfi_flags(char* arch, char* sandbox, char* cfi, char* p2size, char* segue)
 {
