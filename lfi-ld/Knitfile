@@ -1,6 +1,0 @@
-return b{
-    $ lfi-ld: main.o rewrite.o
-        gcc $input -o $output -lZydis -static
-    $ %.o: %.c
-        gcc -c $input -o $output -DZYDIS_STATIC_BUILD -O2
-}
