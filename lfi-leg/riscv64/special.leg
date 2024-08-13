@@ -25,12 +25,12 @@ ModSpecial = i:MODINST res:RESREG COMMA r:REMAINDER {
 
 LdRes = LdNormalRes
 
-LdNormalRes = 'ld' - r:RESREG COMMA LP rest:REMAINDER RP {
+LdNormalRes = 'ld' - r:RESREG COMMA rest:REMAINDER {
     if (!isfixed(r.val) && !isres(r.val)) {
         // false positive on RESREG due to flags
-        mkinsn("ld %s, (%s)", r.val, rest.val);
+        mkinsn("ld %s, %s", r.val, rest.val);
     } else if (!isfixed(r.val)) {
-        mkinsn("ldr x22, (%s)", rest.val);
+        mkinsn("ld x22, %s", rest.val);
         mkinsn("add.uw %s, x22, x21", r.val);
     }
     rfree(r); rfree(rest);
