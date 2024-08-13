@@ -9,4 +9,6 @@ lfiv = executable(
   install: true
 )
 
+install_headers('include/lfiv.h')
+
 subdir('test')
