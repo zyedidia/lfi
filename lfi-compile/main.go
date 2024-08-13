@@ -215,6 +215,9 @@ func compile(cmdargs []string) {
 			"-o", asm,
 			input,
 		}
+		for _, f := range llvmFlags {
+			stage1 = append(stage1, "-mllvm", f)
+		}
 		stage1 = append(stage1, args...)
 		run(compiler, stage1...)
 	}
