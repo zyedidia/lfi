@@ -1,6 +1,0 @@
-return b{
-    $ lfi-postlink: main.o amd64.o arm64.o
-        gcc $input -o $output -lZydis -lcapstone
-    $ %.o: %.c
-        gcc -c $input -o $output -O2 -DZYDIS_STATIC_BUILD
-}

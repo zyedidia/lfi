@@ -127,12 +127,10 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
 
         // direct branches: check forward or backward
         int64_t target = 0;
-        bool cond = false;
         bool branch = false;
         bool indbranch = false;
         switch (csi->id) {
         case AArch64_INS_B:
-            cond = csi->detail->aarch64.cc != AArch64CC_AL && csi->detail->aarch64.cc != AArch64CC_NV && csi->detail->aarch64.cc != AArch64CC_Invalid;
             target = csi->detail->aarch64.operands[0].imm;
             branch = true;
             break;
@@ -143,7 +141,6 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         case AArch64_INS_CBZ:
         case AArch64_INS_CBNZ:
             target = csi->detail->aarch64.operands[1].imm;
-            cond = true;
             branch = true;
             break;
         case AArch64_INS_TBZ:
@@ -153,7 +150,6 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
                 continue;
             }
             target = csi->detail->aarch64.operands[2].imm;
-            cond = true;
             branch = true;
             break;
         default:
@@ -212,6 +208,8 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
                 case METER_TIMER:
                     insns[idx - 1] = subx23(imm);
                     break;
+                default:
+                    assert(false);
                 }
             } else if (insns[idx - 3] != 0xd10002f7) {
                 if (insns[idx - 1] != 0xd10002f7) {

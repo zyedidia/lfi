@@ -1,5 +1,5 @@
 tests = {
-  'arm64': [
+  'arm64': files(
     'arm64/arith.s',
     'arm64/br.s',
     'arm64/decl.s',
@@ -13,8 +13,8 @@ tests = {
     'arm64/storesonly.s',
     'arm64/syscall.s',
     'arm64/sysexternal.s',
-  ],
-  'amd64': [
+  ),
+  'amd64': files(
     'amd64/branch.s',
     'amd64/bundle32.s',
     'amd64/bundlejumps.s',
@@ -27,14 +27,14 @@ tests = {
     'amd64/string.s',
     'amd64/syscall.s',
     'amd64/variable.s',
-  ],
-  'riscv64': [
+  ),
+  'riscv64': files(
     'riscv64/arith.s',
     'riscv64/br.s',
     'riscv64/ldst.s',
     'riscv64/storesonly.s',
     'riscv64/syscall.s',
-  ]
+  )
 }
 
 
