@@ -60,9 +60,9 @@ case DA64I_CCMP_IMM:
 case DA64I_CCMN_REG:
 case DA64I_CCMP_REG:
 // case DA64I_CLREX:
-// case DA64I_DSB:
-// case DA64I_DMB:
-// case DA64I_ISB:
+case DA64I_DSB:
+case DA64I_DMB:
+case DA64I_ISB:
 // case DA64I_HINT:
 // case DA64I_HLT:
 // case DA64I_SVC:

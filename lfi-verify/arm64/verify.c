@@ -11,13 +11,13 @@
 enum {
     INSN_SIZE = 4,
 
-    ERRMAX = 64, // maximum size for error
+    ERRMAX = 128, // maximum size for error
 };
 
 #define INSN_NOP 0xd503201f
 
 static void
-verr(Verifier* v, const char* fmt, ...)
+verrmin(Verifier* v, const char* fmt, ...)
 {
     v->failed = true;
 
@@ -26,13 +26,21 @@ verr(Verifier* v, const char* fmt, ...)
 
     va_list ap;
 
-    char buf[ERRMAX];
+    char errbuf[ERRMAX];
 
     va_start(ap, fmt);
-    vsnprintf(buf, ERRMAX, fmt, ap);
+    vsnprintf(errbuf, ERRMAX, fmt, ap);
     va_end(ap);
 
-    v->err(buf, strlen(buf));
+    v->err(errbuf, strlen(errbuf));
+}
+
+static void
+verr(Verifier* v, struct Da64Inst* inst, const char* msg)
+{
+    char fmtbuf[128];
+    da64_format(inst, fmtbuf);
+    verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
 enum {
@@ -147,7 +155,7 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
     case DA64I_RET:
         assert(dinst->ops[0].type == DA_OP_REGGP);
         if (!cfreg(dinst->ops[0].reg)) {
-            verr(v, "%lx: indirect branch using illegal register", v->addr);
+            verr(v, dinst, "indirect branch using illegal register");
         }
         break;
     default:
@@ -163,12 +171,12 @@ chksys(Verifier* v, struct Da64Inst* dinst)
     case DA64I_MSR:
         assert(dinst->ops[0].type == DA_OP_SYSREG);
         if (!sysreg(dinst->ops[0].sysreg))
-            verr(v, "%lx: write to illegal sysreg", v->addr);
+            verr(v, dinst, "write to illegal sysreg");
         break;
     case DA64I_MRS:
         assert(dinst->ops[1].type == DA_OP_SYSREG);
         if (!sysreg(dinst->ops[1].sysreg))
-            verr(v, "%lx: read from illegal sysreg", v->addr);
+            verr(v, dinst, "read from illegal sysreg");
         break;
     }
 }
@@ -214,7 +222,7 @@ chkmemops(Verifier* v, struct Da64Inst* dinst)
 {
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         if (!okmemop(&dinst->ops[i]))
-            verr(v, "%lx: illegal memory operand", v->addr);
+            verr(v, dinst, "illegal memory operand");
     }
 }
 
@@ -256,7 +264,7 @@ vchk(Verifier* v, uint32_t insn)
     da64_decode(insn, &dinst);
 
     if (dinst.mnem == DA64I_UNKNOWN) {
-        verr(v, "%lx: unknown instruction: %x", v->addr, insn);
+        verrmin(v, "%lx: unknown instruction: %x", v->addr, insn);
         return;
     }
 
@@ -264,7 +272,7 @@ vchk(Verifier* v, uint32_t insn)
         return;
 
     if (!okmnem(&dinst))
-        verr(v, "%lx: illegal instruction", v->addr);
+        verr(v, &dinst, "illegal instruction");
 
     chkbranch(v, &dinst);
     chksys(v, &dinst);
@@ -273,7 +281,7 @@ vchk(Verifier* v, uint32_t insn)
     int n = nmod(&dinst);
     for (int i = 0; i < n; i++) {
         if (!okmod(&dinst, &dinst.ops[i]))
-            verr(v, "%lx: illegal modification of reserved register", v->addr);
+            verr(v, &dinst, "illegal modification of reserved register");
     }
 }
 
