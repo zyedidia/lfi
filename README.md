@@ -82,6 +82,8 @@ The LFI project provides the following tools:
 
 * `lfi-leg`: reads a `.s` file, and produces an LFI-compatible `.s` file.
 * `lfi-verify`: verifies ELF binaries for LFI-compatibility.
+* `lfi-postlink`: patches binaries after linking (required for metering and
+  certain x86-64 optimizations).
 * `lfi-run`: runs an LFI-compatible binary.
 * `lfi-compile`: acts like a compiler, but creates an intermediate `.s`
   file during compilation and runs `lfi-leg` on it. Meant to be used with
@@ -124,42 +126,33 @@ You may also want to use `liblfi` to write your own runtime that manages LFI
 sandboxes. The prebuilt releases provide the following libraries:
 
 * `liblfi.a`: the LFI runtime management library.
-* `liblfiverify.a`: the LFI verifier as a library.
-* `liblfiveribdd.a`: the LFI verifier as a library, using a more efficient
-  implementation.
-* `lfi.h`: function signatures for exported functions from all libraries.
+* `liblfiverify-arm64.a`: the LFI verifier as a library.
+* `lfi.h`: signatures for exported functions from `liblfi`.
+* `lfiv.h`: signatures for exported functions from `liblfiverify`.
 
 ## Building from source
 
 To install the tools, you must have the following dependencies installed:
 
-* Go: for `lfi-compile` and `lfi-as`.
-* Leg: for `lfi-leg` (`sudo apt install peg`).
-* C: for `lfi-leg` and `liblfi`.
-* Rust: for `lfi-verify`.
-* LDC: for `lfi-run`.
-* Knit: to build `lfi-run`.
+* Go for `lfi-compile` and running tests.
+* GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
+* LDC for `lfi-run`.
+* Capstone and Zydis for `lfi-postlink`.
 
-To build the LFI binaries from source, run the following:
+LFI uses the Meson build system with Ninja. When configuring the build you will
+be alerted of any missing dependencies.
+
+To build LFI from source, run the following:
 
 ```
-go install ./lfi-compile
-go install ./lfi-as
-
-cd lfi-leg
-knit
-mv lfi-leg /path/to/bin
-cd ..
-
-cd lfi-verify
-cargo install --path /path/to/bin
-cd ..
-
-cd lfi-run
-knit
-mv lfi-run /path/to/bin
-cd ..
+meson build --prefix=$PWD/install
+cd build
+ninja install
 ```
+
+You will find the generated binaries, libraries, and headers in `$PWD/install`
+(or in your prefix of choice). Before building a compiler toolchain, you should
+make sure the installed `bin` directory is on your `PATH`.
 
 Next, you must build an LFI-compatible compiler toolchain. You can use either
 GCC or Clang. See [lfi-gcc](https://github.com/zyedidia/lfi-gcc) and
