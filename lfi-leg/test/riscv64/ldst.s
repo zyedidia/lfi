@@ -44,3 +44,9 @@ sd t0, 25(x18)
 ld t5, (sp)
 >>>
 ld t5, (sp)
+------
+ld sp, (a0)
+>>>
+add.uw x18, a0, x21
+ld x22, (x18)
+add.uw sp, x22, x21
