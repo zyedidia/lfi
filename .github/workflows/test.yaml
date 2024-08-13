@@ -15,7 +15,7 @@ jobs:
     - uses: zyedidia/setup-knit@v1
 
     - name: Install Dependencies
-      run: sudo apt install -y peg gcc-aarch64-linux-gnu
+      run: sudo apt install -y peg gcc-aarch64-linux-gnu meson ninja-build
 
     - name: Test Rewriter
       run: |
@@ -23,4 +23,4 @@ jobs:
 
     - name: Test Verifier
       run: |
-        knit -C lfi-verify test
+        cd lfi-verify && meson build && ninja -C build test

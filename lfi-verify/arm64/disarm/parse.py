@@ -362,7 +362,6 @@ class DecoderGenerator:
         for i, (name, masks) in enumerate(derivs.items()):
             if name in self.mnems:
                 raise Exception(f"redundant mnem {name}")
-            mnem = self.mnems[name] = (grpnum << BITS_SUBGRP) + i
 
             # Ensure that every mnemonic is tied to one feature (i.e., when
             # adding a feature, an existing mnemonic won't get additional
@@ -370,6 +369,7 @@ class DecoderGenerator:
             # can use the mnemonics even when they are disabled.
             if not check_feature(features, featfmt.eval(masks)):
                 continue
+            mnem = self.mnems[name] = (grpnum << BITS_SUBGRP) + i
             for j, mask in enumerate(masks):
                 self.trie_descs.append(TrieDesc(mask, mnem, f"{grp}-{name}#{j}"))
 

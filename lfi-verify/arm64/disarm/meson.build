@@ -19,9 +19,3 @@ instr_data = custom_target('tables',
                            output: ['disarm64-public.inc', 'disarm64-private.inc'])
 
 disarm_srcs = files('classify.c', 'decode.c', 'format.c')
-
-libdisarm64 = static_library('disarm64', 'classify.c', 'decode.c', 'encode.c', 'format.c', instr_data, c_args: ['-Wno-unused-function'])
-disarm64 = declare_dependency(link_with: libdisarm64,
-                              include_directories: include_directories('.'),
-                              sources: instr_data)
-meson.override_dependency('disarm64', disarm64)

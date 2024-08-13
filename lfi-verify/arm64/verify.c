@@ -14,6 +14,8 @@ enum {
     ERRMAX = 64, // maximum size for error
 };
 
+#define INSN_NOP 0xd503201f
+
 static void
 verr(Verifier* v, const char* fmt, ...)
 {
@@ -51,15 +53,29 @@ cfreg(uint8_t reg)
 }
 
 static bool
-datareg(uint8_t reg)
-{
-    return reg == 18 || reg == 31; // sp
-}
-
-static bool
 basereg(uint8_t reg)
 {
     return reg == 21;
+}
+
+static bool
+retreg(uint8_t reg)
+{
+    return reg == 30;
+}
+
+static bool
+fixedreg(uint8_t reg)
+{
+    return reg == 21;
+}
+
+static bool
+addrreg(uint8_t reg, bool sp)
+{
+    if (sp)
+        return reg == 31 || cfreg(reg);
+    return cfreg(reg);
 }
 
 static bool
@@ -88,6 +104,35 @@ nmod(struct Da64Inst* dinst)
     case DA64G_CASP:
     case DA64G_CAS:
         return 2;
+    }
+
+    switch (dinst->mnem) {
+    // load pair instructions
+    case DA64I_LDPW_POST:
+    case DA64I_LDPW:
+    case DA64I_LDPW_PRE:
+    case DA64I_LDPSW_POST:
+    case DA64I_LDPSW:
+    case DA64I_LDPSW_PRE:
+    case DA64I_LDPX_POST:
+    case DA64I_LDPX:
+    case DA64I_LDPX_PRE:
+    case DA64I_LDNPW:
+    case DA64I_LDNPX:
+    case DA64I_LDXPW:
+    case DA64I_LDXPX:
+    case DA64I_LDAXPW:
+    case DA64I_LDAXPX:
+        return 2;
+    // stores
+    case DA64I_STR_IMM:
+    case DA64I_STR_REG:
+    case DA64I_STRX_PRE:
+    case DA64I_STRX_POST:
+    case DA64I_STPX_POST:
+    case DA64I_STPX:
+    case DA64I_STPX_PRE:
+        return 0;
     }
 
     return 1;
@@ -128,18 +173,14 @@ chksys(Verifier* v, struct Da64Inst* dinst)
     }
 }
 
-static void
-chkmnem(Verifier* v, struct Da64Inst* dinst)
+static bool
+okmnem(struct Da64Inst* dinst)
 {
     switch (dinst->mnem) {
-    case DA64I_LDR_LIT:
-    case DA64I_LDRW_LIT:
-    case DA64I_LDRSW_LIT:
-    case DA64I_PRFM_LIT:
-    case DA64I_LDR_LIT_FP:
-        verr(v, "%lx: illegal read", v->addr);
-        break;
+#include "base.instrs"
     }
+
+    return false;
 }
 
 static bool
@@ -151,10 +192,10 @@ okmemop(struct Da64Op* op)
         // runtime call
         if (basereg(op->reg) && op->simm16 == 0)
             return true;
-        return datareg(op->reg);
+        return addrreg(op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
-        return datareg(op->reg);
+        return addrreg(op->reg, true);
     case DA_OP_MEMREG:
         return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW &&
             op->memreg.sc == 0;
@@ -178,22 +219,31 @@ chkmemops(Verifier* v, struct Da64Inst* dinst)
 }
 
 static bool
-okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
+okmod(struct Da64Inst* dinst, struct Da64Op* op)
 {
-    // TODO: check if op type is GP register
-    if (fixedreg(op.reg))
+    if (op->type != DA_OP_REGGP &&
+        op->type != DA_OP_REGGPINC &&
+        op->type != DA_OP_REGGPEXT &&
+        op->type != DA_OP_REGSP)
+        return true;
+
+    if (fixedreg(op->reg))
         return false;
-    if (!resreg(op.reg))
+    if (!addrreg(op->reg, op->type == DA_OP_REGSP))
         return true;
 
     if (dinst->mnem == DA64I_ADD_EXT) {
-        // 'add resreg, base, lo, uxtw' is allowed.
-        // TODO
+        // 'add addrreg, base, lo, uxtw' is allowed.
+        if (addrreg(dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
+                dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
+                dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
+            return true;
     }
 
-    if (retreg(op.reg)) {
+    if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
         // 'ldr x30, [basereg]' is allowed.
-        // TODO
+        if (dinst->ops[1].type == DA_OP_MEMUOFF && dinst->ops[1].uimm16 == 0 && basereg(dinst->ops[1].reg))
+            return true;
     }
 
     return false;
@@ -210,14 +260,19 @@ vchk(Verifier* v, uint32_t insn)
         return;
     }
 
-    chkmnem(v, &dinst);
+    if (insn == INSN_NOP)
+        return;
+
+    if (!okmnem(&dinst))
+        verr(v, "%lx: illegal instruction", v->addr);
+
     chkbranch(v, &dinst);
     chksys(v, &dinst);
     chkmemops(v, &dinst);
 
-    int nmod = nmod(&dinst);
-    for (int i = 0; i < nmod; i++) {
-        if (!okmod(v, &dinst, &dinst->ops[i]))
+    int n = nmod(&dinst);
+    for (int i = 0; i < n; i++) {
+        if (!okmod(&dinst, &dinst.ops[i]))
             verr(v, "%lx: illegal modification of reserved register", v->addr);
     }
 }
