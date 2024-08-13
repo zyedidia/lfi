@@ -16,6 +16,8 @@ if not archdir.has_key(cpu)
   subdir_done()
 endif
 
+add_languages('d', native: false, required: false)
+
 versions += archdir[cpu]
 
 srcs = files(
