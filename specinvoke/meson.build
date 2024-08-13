@@ -1,8 +1,8 @@
-lfi_compile_src = ['main.go']
+specinvoke_src = ['main.go']
 
-custom_target('lfi-compile',
-  output: 'lfi-compile',
-  input: lfi_compile_src,
+custom_target('specinvoke',
+  output: 'specinvoke',
+  input: specinvoke_src,
   command: [go, 'build', '-o', '@OUTPUT@', '@INPUT@'],
   build_by_default: true,
   install: true,
