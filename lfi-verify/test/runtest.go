@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -25,7 +24,7 @@ func run(command string, flags ...string) (string, error) {
 		fmt.Fprintln(os.Stderr, cmd)
 	}
 	cmd.Stderr = buf
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = buf
 	cmd.Stdin = os.Stdin
 	err := cmd.Run()
 	return buf.String(), err
@@ -62,7 +61,12 @@ func main() {
 			asmdata := fmt.Sprintf(".globl _start\n_start:\n%s", t)
 			tmp.WriteString(asmdata)
 			tmp.Close()
-			bin := filepath.Join(os.TempDir(), "out.elf")
+			outtmp, err := os.CreateTemp(os.TempDir(), "lfiout*.elf")
+			if err != nil {
+				log.Fatal("create output temp: ", err)
+			}
+			outtmp.Close()
+			bin := outtmp.Name()
 			out, err := run("aarch64-linux-gnu-gcc", "-march=armv8.1-a+sve", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
 			if err != nil {
 				log.Fatal("error compiling:", out)
