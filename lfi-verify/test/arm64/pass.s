@@ -49,3 +49,7 @@ stp s24, s9, [sp], #-0x10
 ands x16, x30, #0x8f8f8f8f8f8f8f8f
 ---
 str q0, [x18, #55696]
+---
+stp x29, x30, [sp], #16
+---
+ldr x30, [x21]

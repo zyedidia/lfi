@@ -1,0 +1,1631 @@
+
+[UDF]
+  desc: 0000000000000000{16:imm16}
+  mnem: UDF
+  decode: udf OPuimm(@imm16)
+  encmnem: UDF
+  encops: imm16=uimm/bits=16,lsr=0
+
+[ADCSBC]
+  desc: {1:sf}{1:op}{1:S}11010000{5:Rm}000000{5:Rn}{5:Rd}
+  mnem: {op:0=AD:1=SB}C{S:0=:1=S}
+  decode: {op:0=ad:1=sb}c{S:0=:1=s} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf)
+  encmnem: {op:0=AD:1=SB}C{S:0=:1=S}{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp
+  encmnem_ngc: {op:1=}NGC{S:0=:1=S}{sf:0=w:1=x}
+  encops_ngc: Rd=reggp Rn=regzr Rm=reggp
+[ADDSUB_EXT]
+  desc: {1:sf}{1:op}{1:S}01011001{5:Rm}{3:option}{3:imm3}{5:Rn|SP}{5:Rd|SP}
+  cond: imm3 < 5
+  mnem: {op:0=ADD:1=SUB}{S:0=:1=S}_EXT{imm3:0=:1=:2=:3=:4=}
+  decode: {op:0=add:1=sub}{S:0=:1=s} OPreggpmaysp(!@S, @Rd, @sf) OPreggpsp(@Rn, @sf) OPreggpext(@Rm, @sf&&(@option&3)==3, @option, @imm3)
+  encmnem: {op:0=ADD:1=SUB}{S:0=:1=S}{sf:0=w:1=x}_{option:0=uxtb:1=uxth:2=uxtw:3=uxtx:4=sxtb:5=sxth:6=sxtw:7=sxtx}
+  encops: Rd={S:0=reggpsp:1=reggp} Rn=reggpsp Rm=reggp imm3=imm/max=5
+  encmnem_cmp: {S:1=}{op:0=CMN:1=CMP}{sf:0=w:1=x}_{option:0=uxtb:1=uxth:2=uxtw:3=uxtx:4=sxtb:5=sxth:6=sxtw:7=sxtx}
+  encops_cmp: Rd=regzr Rn=reggpsp Rm=reggp imm3=imm/max=5
+[ADDSUB_IMM]
+  desc: {1:sf}{1:op}{1:S}10001{2:shift=0x}{12:imm12}{5:Rn|SP}{5:Rd|SP}
+  mnem: {op:0=ADD:1=SUB}{S:0=:1=S}_IMM
+  decode: {op:0=add:1=sub}{S:0=:1=s} OPreggpmaysp(!@S, @Rd, @sf) OPreggpsp(@Rn, @sf) OPuimmshift(@imm12, 0, @shift*12)
+  encmnem: {op:0=ADD:1=SUB}{S:0=:1=S}{sf:0=w:1=x}i
+  encops: Rd={S:0=reggpsp:1=reggp} Rn=reggpsp shift,imm12=immadd/size={sf:0=32:1=64}
+  encmnem_cmp: {S:1=}{op:0=CMN:1=CMP}{sf:0=w:1=x}i
+  encops_cmp: Rd=regzr Rn=reggpsp shift,imm12=immadd/size={sf:0=32:1=64}
+  encmnem_mov: {op:0=}MOV_SP{S:0=}{sf:0=w:1=x}
+  encops_mov: Rd=reggpsp Rn=reggpsp shift=const/val=0 imm12=const/val=0
+[ADDSUB_SHIFT]
+  desc: {1:sf}{1:op}{1:S}01011{2:shift}0{5:Rm}{6:imm6}{5:Rn}{5:Rd}
+  cond: sf || imm6 < 32
+  mnem: {op:0=ADD:1=SUB}{S:0=:1=S}_SHIFT{shift:0=:1=:2=}{sf,imm6<5>:0,0=:1,0=:1,1=}
+  decode: {op:0=add:1=sub}{S:0=:1=s} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggpext(@Rm, @sf, @shift+8, @imm6)
+  encmnem: {op:0=ADD:1=SUB}{S:0=:1=S}{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr}
+  encops: Rd=reggp Rn=reggp Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_noshift: {op:0=ADD:1=SUB}{S:0=:1=S}{sf:0=w:1=x}{shift:0=}
+  encops_noshift: Rd=reggp Rn=reggp Rm=reggp imm6=const/val=0
+  encmnem_cmp: {S:1=}{op:0=CMN:1=CMP}{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr}
+  encops_cmp: Rd=regzr Rn=reggp Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_cmp_noshift: {S:1=}{op:0=CMN:1=CMP}{sf:0=w:1=x}{shift:0=}
+  encops_cmp_noshift: Rd=regzr Rn=reggp Rm=reggp imm6=const/val=0
+  encmnem_neg: {op:1=}NEG{S:0=:1=S}{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr}
+  encops_neg: Rd=reggp Rn=regzr Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_neg_noshift: {op:1=}NEG{S:0=:1=S}{sf:0=w:1=x}{shift:0=}
+  encops_neg_noshift: Rd=reggp Rn=regzr Rm=reggp imm6=const/val=0
+[ADR]
+  desc: {1:op}{2:immlo}10000{19:immhi|s}{5:Rd}
+  mnem: ADR{op:0=:1=P}
+  decode: adr{op:0=:1=p} OPreggp(@Rd, 1) OPreladdr(ddi, (@immhi<<2|@immlo)<<(@op*12))
+  encmnem: ADR{op:0=:1=P}
+  encops: Rd=reggp immlo,immhi={op:0=immadr:1=immadrp}
+[ANDOREOR_IMM]
+  desc: {1:sf}{2:opc}100100{1:N}{6:immr}{6:imms}{5:Rn}{5:Rd}
+  # Exclude sf=0&&N=1 and N,imms in {0/31,0/47,0/55,0/59,0/61,0/62,0/63,1/63}
+  mnem: {opc:0=AND:1=ORR:2=EOR:3=ANDS}_IMM{sf,N:*,*=:!0,1}{N,imms:*,*=:!0,31:!0,47:!0,55:!0,59:!0,61:!0,62:!0,63:!1,63}
+  decode: {opc:0=and:1=orr:2=eor:3=ands} @OPreggpmaysp(@opc<3, @Rd, @sf) OPreggp(@Rn, @sf) OPimmlogical(ddi, @sf, @N, @immr, @imms)
+  encmnem: {opc:0=AND:1=ORR:2=EOR:3=ANDS}{sf:0=w:1=x}i
+  encops: Rd={opc:0=reggpsp:1=reggpsp:2=reggpsp:3=reggp} Rn=reggp N,immr,imms=immlogical/size={sf:0=32:1=64}
+  encmnem_tst: {opc:3=}TST{sf:0=w:1=x}i
+  encops_tst: Rd=regzr Rn=reggp N,immr,imms=immlogical/size={sf:0=32:1=64}
+[ANDOREOR_SHIFT]
+  desc: {1:sf}{2:opc}01010{2:shift}{1:N}{5:Rm}{6:imm6}{5:Rn}{5:Rd}
+  cond: sf || imm6 < 32
+  mnem: {N,opc:0,0=AND:0,1=ORR:0,2=EOR:0,3=ANDS:1,0=BIC:1,1=ORN:1,2=EON:1,3=BICS}_SHIFT{sf,imm6<5>:0,0=:1,0=:1,1=}
+  decode: {N,opc:0,0=and:0,1=orr:0,2=eor:0,3=ands:1,0=bic:1,1=orn:1,2=eon:1,3=bics} @OPreggp(@Rd, @sf), @OPreggp(@Rn, @sf), @OPreggpext(@Rm, @sf, @shift+8, @imm6)
+  encmnem: {N,opc:0,0=AND:0,1=ORR:0,2=EOR:0,3=ANDS:1,0=BIC:1,1=ORN:1,2=EON:1,3=BICS}{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr:3=ror}
+  encops: Rd=reggp Rn=reggp Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_noshift: {N,opc:0,0=AND:0,1=ORR:0,2=EOR:0,3=ANDS:1,0=BIC:1,1=ORN:1,2=EON:1,3=BICS}{sf:0=w:1=x}{shift:0=}
+  encops_noshift: Rd=reggp Rn=reggp Rm=reggp imm6=const/val=0
+  encmnem_tst: {N,opc:0,3=TST}{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr:3=ror}
+  encops_tst: Rd=regzr Rn=reggp Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_tst_noshift: {N,opc:0,3=TST}{sf:0=w:1=x}{shift:0=}
+  encops_tst_noshift: Rd=regzr Rn=reggp Rm=reggp imm6=const/val=0
+  encmnem_mvn: {N,opc:1,1=}MVN{sf:0=w:1=x}_{shift:0=lsl:1=lsr:2=asr:3=ror}
+  encops_mvn: Rd=reggp Rn=regzr Rm=reggp imm6=imm/max={sf:0=32:1=64}
+  encmnem_mvn_noshift: {N,opc:1,1=}MVN{sf:0=w:1=x}{shift:0=}
+  encops_mvn_noshift: Rd=reggp Rn=regzr Rm=reggp imm6=const/val=0
+  encmnem_mov: {N,opc:0,1=}MOV{sf:0=w:1=x}{shift:0=}
+  encops_mov: Rd=reggp Rn=regzr Rm=reggp imm6=const/val=0
+[SHIFTV]
+  desc: {1:sf}0011010110{5:Rm}0010{2:op2}{5:Rn}{5:Rd}
+  mnem: {op2:0=LSL:1=LSR:2=ASR:3=ROR}V
+  decode: {op2:0=lsl:1=lsr:2=asr:3=ror}v OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf)
+  encmnem: {op2:0=LSL:1=LSR:2=ASR:3=ROR}V{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp
+[MUL]
+  desc: {1:sf}0011011000{5:Rm}{1:o0}{5:Ra}{5:Rn}{5:Rd}
+  mnem: M{o0:0=ADD:1=SUB}
+  decode: m{o0:0=add:1=sub} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf) OPreggp(@Ra, @sf)
+  encmnem: M{o0:0=ADD:1=SUB}{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp Ra=reggp
+  encmnem_mul: M{o0:0=UL:1=NEG}{sf:0=w:1=x}
+  encops_mul: Rd=reggp Rn=reggp Rm=reggp Ra=regzr
+[MULL]
+  desc: {1:sf=1}0011011{1:U}01{5:Rm}{1:o0}{5:Ra}{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}M{o0:0=ADD:1=SUB}L
+  decode: {U:0=s:1=u}m{o0:0=add:1=sub}l OPreggp(@Rd, @sf) OPreggp(@Rn, 0) OPreggp(@Rm, 0) OPreggp(@Ra, @sf)
+  encmnem: {U:0=S:1=U}M{o0:0=ADD:1=SUB}L
+  encops: Rd=reggp Rn=reggp Rm=reggp Ra=reggp
+  encmnem_mul: {U:0=S:1=U}M{o0:0=UL:1=NEG}L
+  encops_mul: Rd=reggp Rn=reggp Rm=reggp Ra=regzr
+[MULH]
+  # canonical encoding of Ra=11111
+  desc: {1:sf=1}0011011{1:U}10{5:Rm}0{5:Ra}{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}MULH
+  decode: {U:0=s:1=u}mulh OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf)
+  encmnem: {U:0=S:1=U}MULH
+  encops: Rd=reggp Rn=reggp Rm=reggp Ra=regzr
+[BCOND]
+  desc: 01010100{19:imm19|s}{1:C}{4:bcond}
+  mnem: B{C:0=:1=C}COND
+  decode: b{C:0=:1=c}. OPcond(@bcond) OPreladdr(ddi, @imm19<<2)
+  encmnem: B{C:0=:1=C}COND
+  encops: bcond=cond imm19=reladdr/bits=19
+  feat: {C:0=:1=HBC}
+[BRANCH]
+  desc: {1:op}00101{26:imm26|s}
+  mnem: B{op:0=:1=L}
+  decode: b{op:0=:1=l} OPreladdr(ddi, @imm26<<2)
+  encmnem: B{op:0=:1=L}
+  encops: imm26=reladdr/bits=26
+[BFM]
+  desc: {1:sf}{2:opc}100110{1:N}{6:immr}{6:imms}{5:Rn}{5:Rd}
+  cond: sf == N && (sf || (imms < 32 && immr < 32))
+  mnem: {opc:0=S:1=:2=U}BFM{sf,N,immr<5>,imms<5>:0,0,0,0=:1,1,0,0=:1,1,0,1=:1,1,1,0=:1,1,1,1=}
+  decode: {opc:0=s:1=:2=u}bfm OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPimmsmall(@immr) OPimmsmall(@imms)
+  encmnem: {opc:0=S:1=:2=U}BFM{sf,N:0,0=w:1,1=x}
+  encops: Rd=reggp Rn=reggp immr=imm/max={sf:0=32:1=64} imms=imm/max={sf:0=32:1=64}
+  encmnem_sr: {opc:0=A:2=L}SR{sf,N:0,0=w:1,1=x}i
+  encops_sr: Rd=reggp Rn=reggp immr=imm/max={sf:0=32:1=64} imms=const/val={sf:0=31:1=63}
+  encmnem_sl: {opc:2=}LSL{sf,N:0,0=w:1,1=x}i
+  encops_sl: Rd=reggp Rn=reggp immr,imms=immlsl/max={sf:0=32:1=64}
+  encmnem_bfx: {opc:0=SBFX:1=BFXIL:2=UBFX}{sf,N:0,0=w:1,1=x}
+  encops_bfx: Rd=reggp Rn=reggp immr,imms=immbfx/max={sf:0=32:1=64}
+  encmnem_bfi: {opc:0=SBFIZ:1=BFI:2=UBFIZ}{sf,N:0,0=w:1,1=x}
+  encops_bfi: Rd=reggp Rn=reggp immr,imms=immbfi/max={sf:0=32:1=64}
+  encmnem_bfc: {opc:1=BFC}{sf,N:0,0=w:1,1=x}
+  encops_bfc: Rd=reggp Rn=regzr immr,imms=immbfi/max={sf:0=32:1=64}
+  encmnem_extb: {opc:0=S:2=U}XTB{opc,sf,N:0,0,0=w:2,0,0=w:0,1,1=x}
+  encops_extb: Rd=reggp Rn=reggp immr=const/val=0 imms=const/val=7
+  encmnem_exth: {opc:0=S:2=U}XTH{opc,sf,N:0,0,0=w:2,0,0=w:0,1,1=x}
+  encops_exth: Rd=reggp Rn=reggp immr=const/val=0 imms=const/val=15
+  encmnem_extw: {opc:0=S}XTW{sf,N:1,1=x}
+  encops_extw: Rd=reggp Rn=reggp immr=const/val=0 imms=const/val=31
+[BRANCHREG]
+  desc: 1101011{1:Z}0{2:op}111110000{1:A}{1:M}{5:Rn}{5:Rm|SP}
+  mnem: {op:0=BR:1=BLR:2=RET}{A,M:0,0=:1,0=AA:1,1=AB}{op<1>,A,Z,Rm,Rn:*,0,0,0,*=:0,1,0,31,*=Z:0,1,1,*,*=:1,1,0,31,31=}
+  decode: {op:0=br:1=blr:2=ret}{A,M:0,0=:1,0=aa:1,1=ab}{op<1>,A,Z:*,0,0=:0,1,0=z:0,1,1=:1,1,0=} {op<1>,A:*,0=OPreggp(@Rn, 1):0,1=OPreggp(@Rn, 1):1,1=} {Z:0=:1=OPreggpsp(@Rm, 1)}
+  encmnem: {op:0=BR:1=BLR:2=RET}{A,M:0,0=:1,0=AA:1,1=AB}{op<1>,A,Z:*,0,0=:0,1,0=Z:0,1,1=:1,1,0=}
+  encops: Rn={op<1>,A:*,0=reggp:0,1=reggp:1,1=regzr} Rm={A,Z:0,*=const/val=0:1,0=regzr:1,1=reggpsp}
+  feat: {A:0=:1=PAuth}
+[BRK]
+  desc: 11010100001{16:imm16}00000
+  mnem: BRK
+  decode: brk OPuimm(@imm16)
+  encmnem: BRK
+  encops: imm16=uimm/bits=16,lsr=0
+[CBZ]
+  desc: {1:sf}011010{1:op}{19:imm19|s}{5:Rt}
+  mnem: CB{op:0=:1=N}Z
+  decode: cb{op:0=:1=n}z OPreggp(@Rt, @sf) OPreladdr(ddi, @imm19<<2)
+  encmnem: CB{op:0=:1=N}Z{sf:0=w:1=x}
+  encops: Rt=reggp imm19=reladdr/bits=19
+[TBZ]
+  desc: {1:b5}011011{1:op}{5:b40}{14:imm14|s}{5:Rt}
+  mnem: TB{op:0=:1=N}Z
+  decode: tb{op:0=:1=n}z OPreggp(@Rt, @b5) OPimmsmall(@b5<<5|@b40) OPreladdr(ddi, @imm14<<2)
+  encmnem: TB{op:0=:1=N}Z
+  encops: Rt=reggp b5,b40=tbz imm14=reladdr/bits=14
+[CCMP_IMM]
+  desc: {1:sf}{1:op}111010010{5:imm5}{4:cond}10{5:Rn}0{4:nzcv}
+  mnem: CCM{op:0=N:1=P}_IMM
+  decode: ccm{op:0=n:1=p} OPreggp(@Rn, @sf) OPimmsmall(@imm5) OPimmsmall(@nzcv) OPcond(@cond)
+  encmnem: CCM{op:0=N:1=P}{sf:0=w:1=x}i
+  encops: Rn=reggp imm5=imm/max=32 nzcv=imm/max=16 cond=cond
+[CCMP_REG]
+  desc: {1:sf}{1:op}111010010{5:Rm}{4:cond}00{5:Rn}0{4:nzcv}
+  mnem: CCM{op:0=N:1=P}_REG
+  decode: ccm{op:0=n:1=p} OPreggp(@Rn, @sf) OPreggp(@Rm, @sf) OPimmsmall(@nzcv) OPcond(@cond)
+  encmnem: CCM{op:0=N:1=P}{sf:0=w:1=x}
+  encops: Rn=reggp Rm=reggp nzcv=imm/max=16 cond=cond
+[CLREX]
+  desc: 11010101000000110011{4:CRm}01011111
+  mnem: CLREX
+  decode: clrex OPimmsmall(@CRm)
+  encmnem: CLREX
+  encops: CRm=const/val=15
+[DSB]
+  desc: 11010101000000110011{4:CRm}1{2:opc}11111
+  mnem: {opc:0=DSB:1=DMB:2=ISB}
+  # TODO: pretty format of immediate
+  decode: {opc:0=dsb:1=dmb:2=isb} OPimmsmall(@CRm)
+  encmnem: {opc:0=DSB:1=DMB:2=ISB}
+  encops: CRm=uimm/bits=4,lsr=0
+  encmnem_ssbb: {opc:0=SSBB}{CRm:0=}
+  encops_ssbb:
+[HINT]
+  # imm is actually {4:CRm}{3:op2}
+  desc: 11010101000000110010{7:imm}11111
+  mnem: HINT
+  # TODO pretty format of immediate
+  decode: hint OPuimm(@imm)
+  encmnem: HINT
+  encops: imm=imm/max=128
+  encmnem_noops: {imm:0=NOP:1=YIELD:2=WFE:3=WFI:4=SEV:5=SEVL:6=DGH:7=XPACLRI:8=PACIA1716:10=PACIB1716:12=AUTIA1716:14=AUTIB1716:16=ESB:17=PSB_CSYNC:18=TSB_CSYNC:19=GCSB:20=CSDB:22=CLRBHB:24=PACIAZ:25=PACIASP:26=PACIBZ:27=PACIBSP:28=AUTIAZ:29=AUTIASP:30=AUTIBZ:31=AUTIBSP:32=BTI:34=BTIc:36=BTIj:38=BTIjc:40=CHKFEAT}
+  encops_noops:
+  encfeat_noops: {imm:0=:1=:2=:3=:4=:5=:6=DGH:7=PAuth:8=PAuth:10=PAuth:12=PAuth:14=PAuth:16=RAS:17=SPE:18=TRF:19=GCS:20=:22=CLRBHB:24=PAuth:25=PAuth:26=PAuth:27=PAuth:28=PAuth:29=PAuth:30=PAuth:31=PAuth:32=BTI:34=BTI:36=BTI:38=BTI:40=CHK}
+[HLT]
+  desc: 11010100010{16:imm16}00000
+  mnem: HLT
+  decode: hlt OPuimm(@imm16)
+  encmnem: HLT
+  encops: imm16=uimm/bits=16,lsr=0
+[SVC]
+  desc: 11010100000{16:imm16}000{2:LL}
+  mnem: {LL:1=SV:2=HV:3=SM}C
+  decode: {LL:1=sv:2=hv:3=sm}c OPuimm(@imm16)
+  encmnem: {LL:1=SV:2=HV:3=SM}C
+  encops: imm16=uimm/bits=16,lsr=0
+  feat: {LL:1=:2=:3=EL3}
+[DCPS]
+  desc: 11010100101{16:imm16}000{2:LL}
+  mnem: DCPS{LL:1=1:2=2:3=3}
+  decode: dcps{LL:1=1:2=2:3=3} OPuimm(@imm16)
+  encmnem: DCPS{LL:1=1:2=2:3=3}
+  encops: imm16=uimm/bits=16,lsr=0
+  feat: {LL:1=:2=:3=EL3}
+[ERET]
+  desc: 11010110100111110000{1:A}{1:M}{5:Rn=11111}{5:op4}
+  mnem: ERET{A,M:0,0=:1,0=AA:1,1=AB}{A,op4:0,0=:1,31=}
+  decode: eret{A,M:0,0=:1,0=aa:1,1=ab}
+  encmnem: ERET{A,M:0,0=:1,0=AA:1,1=AB}{A,op4:0,0=:1,31=}
+  encops:
+  feat: {M:0=:1=PAuth}
+[DRPS]
+  desc: 11010110101111110000001111100000
+  mnem: DRPS
+  decode: drps
+  encmnem: DRPS
+  encops:
+[CLZ]
+  desc: {1:sf}101101011000000{6:opcode}{5:Rn}{5:Rd}
+  mnem: {opcode:4=CLZ:5=CLS:6=CTZ:7=CNT:8=ABS}
+  decode: {opcode:4=clz:5=cls:6=CTZ:7=CNT:8=ABS} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf)
+  encmnem: {opcode:4=CLZ:5=CLS:6=CTZ:7=CNT:8=ABS}{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp
+  feat: {opcode:4=:5=:6=CSSC:7=CSSC:8=CSSC}
+[MINMAX_IMM]
+  desc: {1:sf}0{1:S=0}1000111{4:opcode=00xx}{8:imm8}{5:Rn}{5:Rd}
+  mnem: {opcode<0>:0=S:1=U}{opcode<1>:0=MAX:1=MIN}_GP_IMM
+  decode: {opcode<0>:0=s:1=u}{opcode<1>:0=max:1=min} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) {opcode<0>:0=OPsimm(sext(@imm8, 8)):1=OPuimm(@imm8)}
+  encmnem: {opcode<0>:0=S:1=U}{opcode<1>:0=MAX:1=MIN}{sf:0=w:1=x}i
+  encops: Rd=reggp Rn=reggp imm8={opcode<0>:0=simm/asr=0:1=uimm/lsr=0},bits=8
+  feat: CSSC
+[MINMAX_REG]
+  desc: {1:sf}0{1:S=0}11010110{5:Rm}{6:opcode=0110xx}{5:Rn}{5:Rd}
+  mnem: {opcode<0>:0=S:1=U}{opcode<1>:0=MAX:1=MIN}_GP
+  decode: {opcode<0>:0=s:1=u}{opcode<1>:0=max:1=min} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf)
+  encmnem: {opcode<0>:0=S:1=U}{opcode<1>:0=MAX:1=MIN}{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp
+  feat: CSSC
+[CSEL]
+  desc: {1:sf}{1:op}011010100{5:Rm}{4:cond}0{1:o2}{5:Rn}{5:Rd}
+  mnem: {op,o2:0,0=CSEL:0,1=CSINC:1,0=CSINV:1,1=CSNEG}
+  decode: {op,o2:0,0=csel:0,1=csinc:1,0=csinv:1,1=csneg} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf) OPcond(@cond)
+  encmnem: {op,o2:0,0=CSEL:0,1=CSINC:1,0=CSINV:1,1=CSNEG}{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp cond=cond
+  encmnem_nosel: {op,o2:0,1=CINC:1,0=CINV:1,1=CNEG}{sf:0=w:1=x}
+  encops_nosel: Rd=reggp Rn=reggp Rm=@Rn cond=invcond
+  encmnem_set: {op,o2:0,1=CSET:1,0=CSETM}{sf:0=w:1=x}
+  encops_set: Rd=reggp Rn=regzr Rm=regzr cond=invcond
+[EXTR]
+  desc: {1:sf}00100111{1:N}0{5:Rm}{6:imms}{5:Rn}{5:Rd}
+  mnem: EXTR{sf,N,imms<5>:0,0,0=:1,1,0=:1,1,1=}
+  decode: extr OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf) OPimmsmall(@imms)
+  encmnem: EXTR{sf,N:0,0=w:1,1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp imms=imm/max={sf:0=32:1=64}
+  encmnem_ror: ROR{sf,N:0,0=w:1,1=x}i
+  encops_ror: Rd=reggp Rn=reggp Rm=@Rn imms=imm/max={sf:0=32:1=64}
+[MOV]
+  desc: {1:sf}{2:opc}100101{2:hw}{16:imm16}{5:Rd}
+  mnem: MOV{opc:0=N:2=Z:3=K}{sf,hw:0,0=:0,1=:1,0=:1,1=:1,2=:1,3=}
+  decode: mov{opc:0=n:2=z:3=k} OPreggp(@Rd, @sf) OPuimmshift(@imm16, 0, @hw*16)
+  encmnem: MOV{opc:0=N:2=Z:3=K}{sf,hw:0,0=w:0,1=w16:1,0=x:1,1=x16:1,2=x32:1,3=x48}
+  encops: Rd=reggp imm16=uimm/bits=16,lsr=0
+  encmnem_dyn: MOV{opc:0=N:2=Z:3=K}{sf:0=w:1=x}_shift
+  encops_dyn: Rd=reggp imm16=uimm/bits=16,lsr=0 hw=imm/max={sf:0=2:1=4}
+[SYS]
+  # sysreg is actually 01{3:op1}{4:CRn}{4:CRm}{3:op2}
+  desc: 1101010100{1:SYSL}{16:sysreg=01xxxxxxxxxxxxxx}{5:Rt}
+  mnem: SYS{SYSL:0=:1=L}
+  # TODO: pretty format of sysreg
+  decode: sys{SYSL:0=:1=l} {SYSL:0=:1=OPreggp(@Rt, 1)} OPsysreg(@sysreg) {SYSL:0=OPreggp(@Rt, 1):1=}
+  encmnem: SYS{SYSL:0=:1=L}
+  encops: {SYSL:0=:1=Rt=reggp} sysreg=uimm/bits=16,lsr=0 {SYSL:0=Rt=reggp:1=}
+  encmnem_at: AT_{SYSL:0=}S1{sysreg<13:0>:0x03c0=E1R:0x03c1=E1W:0x03c2=E0R:0x03c3=E0W:0x03c8=E1RP:0x03c9=E1WP:0x03ca=E1A:0x23c0=E2R:0x23c1=E2W:0x23c4=2E1R:0x23c5=2E1W:0x23c6=2E0R:0x23c7=2E0W:0x23ca=E2A:0x33c0=E3R:0x33c1=E3W:0x33ca=E3A}
+  encops_at: Rt=reggp
+  encfeat_at: {sysreg<13:0>:0x03c0=:0x03c1=:0x03c2=:0x03c3=:0x03c8=PAN2:0x03c9=PAN2:0x03ca=ATS1A:0x23c0=:0x23c1=:0x23c4=:0x23c5=:0x23c6=:0x23c7=:0x23ca=ATS1A:0x33c0=:0x33c1=:0x33ca=ATS1A}
+  encmnem_brb: BRB_{SYSL:0=}{sysreg<13:0>:0x0b94=IALL:0x0b95=INJ}
+  encops_brb: Rt=regzr
+  encfeat_brb: BRBE
+  encmnem_specres: {SYSL:0=}{sysreg<13:0>:0x1b9c=CFP:0x1b9d=DVP:0x1b9e=COSP:0x1b9f=CPP}_RCTX
+  encops_specres: Rt=reggp
+  encfeat_specres: SPECRES{sysreg<13:0>:0x1b9c=:0x1b9d=:0x1b9e=2:0x1b9f=}
+  encmnem_dc: DC_{SYSL:0=}{sysreg<13:0>:0x03b1=IVAC:0x03b2=ISW:0x03b3=IGVAC:0x03b4=IGSW:0x03b5=IGDVAC:0x03b6=IGDSW:0x03d2=CSW:0x03d4=CGSW:0x03d6=CGDSW:0x03f2=CISW:0x03f4=CIGSW:0x03f6=CIGDSW:0x1ba1=ZVA:0x1ba3=GVA:0x1ba4=GZVA:0x1bd1=CVAC:0x1bd3=CGVAC:0x1bd5=CGDVAC:0x1bd9=CVAU:0x1be1=CVAP:0x1be3=CGVAP:0x1be5=CGDVAP:0x1be9=CVADP:0x1beb=CGVADP:0x1bed=CGDVADP:0x1bf1=CIVAC:0x1bf3=CIGVAC:0x1bf5=CIGDVAC:0x23f0=CIPAE:0x23f7=CIGDPAE:0x33f1=CIPAPA:0x33f5=CIGDPAPA}
+  encops_dc: Rt=reggp
+  encfeat_dc: {sysreg<13:0>:0x03b1=:0x03b2=:0x03b3=MTE2:0x03b4=MTE2:0x03b5=MTE2:0x03b6=MTE2:0x03d2=:0x03d4=MTE2:0x03d6=MTE2:0x03f2=:0x03f4=MTE2:0x03f6=MTE2:0x1ba1=:0x1ba3=MTE:0x1ba4=MTE:0x1bd1=:0x1bd3=MTE:0x1bd5=MTE:0x1bd9=:0x1be1=DPB:0x1be3=MTE:0x1be5=MTE:0x1be9=DPB2:0x1beb=MTE:0x1bed=MTE:0x1bf1=:0x1bf3=MTE:0x1bf5=MTE:0x23f0=MEC:0x23f7=MEC&&MTE2:0x33f1=RME:0x33f5=RME}
+  encmnem_ic: IC_{SYSL:0=}{sysreg<13:0>:0x0388=IALLUIS:0x03a8=IALLU:0x1ba9=IVAU}
+  encops_ic: Rt={sysreg<13:0>:*=regzr:^0x1ba9=reggp}
+  encfeat_ic:
+  encmnem_tlbi_base: TLBI_{SYSL:0=}{sysreg<13:0>:0x0418=VMALLE1IS:0x0419=VAE1IS:0x041a=ASIDE1IS:0x041b=VAAE1IS:0x041d=VALE1IS:0x041f=VAALE1IS:0x0438=VMALLE1:0x0439=VAE1:0x043a=ASIDE1:0x043b=VAAE1:0x043d=VALE1:0x043f=VAALE1:0x2401=IPAS2E1IS:0x2405=IPAS2LE1IS:0x2418=ALLE2IS:0x2419=VAE2IS:0x241c=ALLE1IS:0x241d=VALE2IS:0x241e=VMALLS12E1IS:0x2421=IPAS2E1:0x2425=IPAS2LE1:0x2438=ALLE2:0x2439=VAE2:0x243c=ALLE1:0x243d=VALE2:0x243e=VMALLS12E1:0x3418=ALLE3IS:0x3419=VAE3IS:0x341d=VALE3IS:0x3438=ALLE3:0x3439=VAE3:0x343d=VALE3}
+  encops_tlbi_base: Rt={sysreg<13:0>:*=reggp:^0x0418=regzr:^0x0438=regzr:^0x2418=regzr:^0x241c=regzr:^0x241e=regzr:^0x2438=regzr:^0x243c=regzr:^0x243e=regzr:^0x3418=regzr:^0x3438=regzr}
+  encmnem_tlbi_rme: TLBI_{SYSL:0=}{sysreg<13:0>:0x340c=PAALLOS:0x3423=RPAOS:0x3427=RPALOS:0x343c=PAALL}
+  encops_tlbi_rme: Rt={sysreg<13:0>:0x340c=regzr:0x3423=reggp:0x3427=reggp:0x343c=regzr}
+  encfeat_tlbi_rme: RME
+  encmnem_tlbi_os: TLBI_{SYSL:0=}{sysreg<13:0>:0x0408=VMALLE1:0x0409=VAE1:0x040a=ASIDE1:0x040b=VAAE1:0x040d=VALE1:0x040f=VAALE1:0x2408=ALLE2:0x2409=VAE2:0x240c=ALLE1:0x240d=VALE2:0x240e=VMALLS12E1:0x2420=IPAS2E1:0x2424=IPAS2LE1:0x3408=ALLE3:0x3409=VAE3:0x340d=VALE3}OS
+  encops_tlbi_os: Rt={sysreg<13:0>:*=reggp:^0x0408=regzr:^0x2408=regzr:^0x240c=regzr:^0x240e=regzr:^0x3408=regzr}
+  encfeat_tlbi_os: TLBIOS
+  encmnem_tlbi_range: TLBI_{SYSL:0=}R{sysreg<13:0>:0x0411=VAE1IS:0x0413=VAAE1IS:0x0415=VALE1IS:0x0417=VAALE1IS:0x0429=VAE1OS:0x042b=VAAE1OS:0x042d=VALE1OS:0x042f=VAALE1OS:0x0431=VAE1:0x0433=VAAE1:0x0435=VALE1:0x0437=VAALE1:0x2402=IPAS2E1IS:0x2406=IPAS2LE1IS:0x2411=VAE2IS:0x2415=VALE2IS:0x2422=IPAS2E1:0x2423=IPAS2E1OS:0x2426=IPAS2LE1:0x2427=IPAS2LE1OS:0x2429=VAE2OS:0x242d=VALE2OS:0x2431=VAE2:0x2435=VALE2:0x3411=VAE3IS:0x3415=VALE3IS:0x3429=VAE3OS:0x342d=VALE3OS:0x3431=VAE3:0x3435=VALE3}
+  encops_tlbi_range: Rt=reggp
+  encfeat_tlbi_range: TLBIRANGE
+  encmnem_tlbi_w: TLBI_{SYSL:0=}VMALLWS2E1{sysreg<13:0>:0x2412=IS:0x242a=OS:0x2432=:0x2492=ISNXS:0x24aa=OSNXS:0x24b2=NXS}
+  encops_tlbi_w: Rt=reggp
+  encfeat_tlbi_w: TLBIW
+  encmnem_tlbi_xs: TLBI_{SYSL:0=}{sysreg<13:0>:0x34bd=VALE3:0x0488=VMALLE1OS:0x0489=VAE1OS:0x048a=ASIDE1OS:0x048b=VAAE1OS:0x048d=VALE1OS:0x048f=VAALE1OS:0x0491=RVAE1IS:0x0493=RVAAE1IS:0x0495=RVALE1IS:0x0497=RVAALE1IS:0x0498=VMALLE1IS:0x0499=VAE1IS:0x049a=ASIDE1IS:0x049b=VAAE1IS:0x049d=VALE1IS:0x049f=VAALE1IS:0x04a9=RVAE1OS:0x04ab=RVAAE1OS:0x04ad=RVALE1OS:0x04af=RVAALE1OS:0x04b1=RVAE1:0x04b3=RVAAE1:0x04b5=RVALE1:0x04b7=RVAALE1:0x04b8=VMALLE1:0x04b9=VAE1:0x04ba=ASIDE1:0x04bb=VAAE1:0x04bd=VALE1:0x04bf=VAALE1:0x2481=IPAS2E1IS:0x2482=RIPAS2E1IS:0x2485=IPAS2LE1IS:0x2486=RIPAS2LE1IS:0x2488=ALLE2OS:0x2489=VAE2OS:0x248c=ALLE1OS:0x248d=VALE2OS:0x248e=VMALLS12E1OS:0x2491=RVAE2IS:0x2495=RVALE2IS:0x2498=ALLE2IS:0x2499=VAE2IS:0x249c=ALLE1IS:0x249d=VALE2IS:0x249e=VMALLS12E1IS:0x24a0=IPAS2E1OS:0x24a1=IPAS2E1:0x24a2=RIPAS2E1:0x24a3=RIPAS2E1OS:0x24a4=IPAS2LE1OS:0x24a5=IPAS2LE1:0x24a6=RIPAS2LE1:0x24a7=RIPAS2LE1OS:0x24a9=RVAE2OS:0x24ad=RVALE2OS:0x24b1=RVAE2:0x24b5=RVALE2:0x24b8=ALLE2:0x24b9=VAE2:0x24bc=ALLE1:0x24bd=VALE2:0x24be=VMALLS12E1:0x3488=ALLE3OS:0x3489=VAE3OS:0x348d=VALE3OS:0x3491=RVAE3IS:0x3495=RVALE3IS:0x3498=ALLE3IS:0x3499=VAE3IS:0x349d=VALE3IS:0x34a9=RVAE3OS:0x34ad=RVALE3OS:0x34b1=RVAE3:0x34b5=RVALE3:0x34b8=ALLE3:0x34b9=VAE3}NXS
+  encops_tlbi_xs: Rt=reggp
+  encfeat_tlbi_xs: XS
+[MSR_REG]
+  # sysreg is actually 1{1:o0}{3:op1}{4:CRn}{4:CRm}{3:op2}
+  desc: 1101010100{1:SYSL}{16:sysreg=1xxxxxxxxxxxxxxx}{5:Rt}
+  mnem: M{SYSL:0=SR:1=RS}
+  # TODO: pretty format of sysreg
+  decode: m{SYSL:0=sr:1=rs} {SYSL:0=:1=OPreggp(@Rt, 1)} OPsysreg(@sysreg) {SYSL:0=OPreggp(@Rt, 1):1=}
+  encmnem: M{SYSL:0=SR:1=RS}
+  encops: {SYSL:0=:1=Rt=reggp} sysreg=uimm/bits=16,lsr=0 {SYSL:0=Rt=reggp:1=}
+[MSR_IMM]
+  desc: 1101010100000{3:op1}0100{4:CRm}{3:op2}11111
+  mnem: MSR_{op1,op2,CRm<3:1>:0,3,*=UAO:0,4,*=PAN:0,5,*=SPSel:1,0,0=ALLINT:1,0,1=PM:3,1,*=SSBS:3,2,*=DIT:3,4,*=TCO:3,6,*=DAIFSet:3,7,*=DAIFClr:3,3,1=SVCRSM:3,3,2=SVCRZA:3,3,3=SVCRSMZA}
+  decode: msr_{op1,op2,CRm<3:1>:0,3,*=uao:0,4,*=pan:0,5,*=spsel:1,0,0=allint:1,0,1=pm:3,1,*=ssbs:3,2,*=dit:3,4,*=tco:3,6,*=daifset:3,7,*=daifclr:3,3,1=svcrsm:3,3,2=svcrza:3,3,3=svcrsmza}, OPimmsmall(@CRm&{op1,op2:0,*=15:1,0=1:3,1,*=15:3,2,*=15:3,3=1:3,4,*=15:3,6,*=15:3,7,*=15})
+  feat: {op1,op2,CRm<3:1>:0,3,*=UAO:0,4,*=PAN:0,5,*=:1,0,0=NMI:1,0,1=EBEP:3,1,*=SSBS:3,2,*=DIT:3,4,*=MTE:3,6,*=:3,7,*=:3,3,*=SME}
+  encmnem: MSRi
+  encops: op1=imm/max=8 op2=imm/max=8 CRm=imm/max=16
+  encfeat:
+  encmnem_4: MSRi_{op1,op2:0,3=UAO:0,4=PAN:0,5=SPSel:3,1=SSBS:3,2=DIT:3,4=TCO:3,6=DAIFSet:3,7=DAIFClr}
+  encfeat_4: {op1,op2:0,3=UAO:0,4=PAN:0,5=:3,1=SSBS:3,2=DIT:3,4=MTE:3,6=:3,7=}
+  encops_4: CRm=imm/max=16
+  encmnem_1: MSRi_{op1,op2,CRm<3:1>:1,0,0=ALLINT:1,0,1=PM:3,3,1=SVCRSM:3,3,2=SVCRZA:3,3,3=SVCRSMZA}
+  encops_1: CRm=imm/max=2
+  encfeat_1: {op1,op2,CRm<3:1>:1,0,0=NMI:1,0,1=EBEP:3,3,*=SME}
+  encmnem_sm: SM{op1,op2,CRm<0>:3,3,0=STOP:3,3,1=START}{CRm<3:1>:1=_SM:2=_ZA:3=}
+  encops_sm:
+  encfeat_sm: SME
+[REV]
+  desc: {1:sf}1011010110000000000{2:opc}{5:Rn}{5:Rd}
+  mnem: {opc,sf:0,*=RBIT:1,*=REV16:2,0=REV:2,1=REV32:3,1=REV64}
+  decode: {opc,sf:0,*=rbit:1,*=rev16:2,0=rev:2,1=rev32:3,1=rev64} OPreggp(@Rd, @sf) OPreggp(@Rn, @sf)
+  encmnem: {opc,sf:0,0=RBITw:0,1=RBITx:1,0=REV16w:1,1=REV16x:2,0=REV32w:2,1=REV32x:3,1=REV64x}
+  encops: Rd=reggp Rn=reggp
+[DIV]
+  desc: {1:sf}0011010110{5:Rm}00001{1:o1}{5:Rn}{5:Rd}
+  mnem: {o1:0=U:1=S}DIV
+  decode: {o1:0=u:1=s}div OPreggp(@Rd, @sf) OPreggp(@Rn, @sf) OPreggp(@Rm, @sf)
+  encmnem: {o1:0=U:1=S}DIV{sf:0=w:1=x}
+  encops: Rd=reggp Rn=reggp Rm=reggp
+[MEMOR]
+  # canonical encoding of Rt2=11111 Rs=11111
+  desc: {2:size}0010001{1:L}0{5:Rs}{1:o0}{5:Rt2}{5:Rn|SP}{5:Rt}
+  mnem: {L,o0:0,0=STLL:0,1=STL:1,0=LDLA:1,1=LDA}R{size:0=B:1=H:2=W:3=}
+  decode: {L,o0:0,0=stll:0,1=stl:1,0=ldla:1,1=lda}r{size:0=b:1=h:2=:3=} OPreggp(@Rt, @size==3) OPmemuoff(@Rn, 0)
+  encmnem: {L,o0:0,0=STLL:0,1=STL:1,0=LDLA:1,1=LDA}R{size:0=B:1=H:2=w:3=x}
+  encops: Rs=regzr Rt=reggp Rt2=regzr Rn=reggpsp
+  feat: {o0:0=LOR:1=}
+[MEMX]
+  # canonical encoding of LDXR/STXR-Rt2=11111 LDX*-Rs=11111
+  desc: {2:size}0010000{1:L}{1:P}{5:Rs}{1:o0}{5:Rt2}{5:Rn|SP}{5:Rt}
+  mnem: {L,o0:0,0=ST:0,1=STL:1,0=LD:1,1=LDA}X{P,size<1>:0,0=R:0,1=R:1,1=P}{size:0=B:1=H:2=W:3=X}
+  decode: {L,o0:0,0=st:0,1=stl:1,0=ld:1,1=lda}x{P,size<1>:0,0=r:0,1=r:1,1=p}{size:0=b:1=h:2=:3=} {L:0=OPreggp(@Rs, 0):1=} OPreggp(@Rt, @size==3) {P:0=:1=OPreggp(@Rt, @size==3)} OPmemsoff(@Rn, 0)
+  encmnem: {L,o0:0,0=ST:0,1=STL:1,0=LD:1,1=LDA}X{P,size:0,0=RBw:0,1=RHw:0,2=Rw:0,3=Rx:1,2=Pw:1,3=Px}
+  encops: Rs={L:0=reggp:1=regzr} Rt=reggp Rt2={P:0=regzr:1=reggp} Rn=reggpsp
+[MEMNP]
+  desc: {2:opc}1010000{1:L}{7:imm7|s}{5:Rt2}{5:Rn|SP}{5:Rt}
+  mnem: {L:0=ST:1=LD}NP{opc:0=W:2=X}
+  decode: {L:0=st:1=ld}np OPreggp(@Rt, @opc>0) OPreggp(@Rt2, @opc>0) OPmemsoff(@Rn, @imm7<<(2+(@opc>=2)))
+  encmnem: {L:0=ST:1=LD}NP{opc:0=w:2=x}
+  encops: Rt=reggp Rt2=reggp Rn=reggpsp imm7=simm/bits=7,asr={opc:0=2:2=3}
+  enccond: {L:0=:1=@Rt!=@Rt2}
+[MEMP]
+  desc: {2:opc}10100{2:op2}{1:L}{7:imm7|s}{5:Rt2}{5:Rn|SP}{5:Rt}
+  mnem: {L,opc:0,0=STPW:0,1=STGP:0,2=STPX:1,0=LDPW:1,1=LDPSW:1,2=LDPX}{op2:1=_POST:2=:3=_PRE}
+  decode: {L,opc:0,0=stp:0,1=stgp:0,2=stp:1,0=ldp:1,1=ldpsw:1,2=ldp} OPreggp(@Rt, @opc>0) OPreggp(@Rt2, @opc>0) OPmemsoff{op2:1=post:2=:3=pre}(@Rn, @imm7<<{L,opc:*,0=2:0,1=4:1,1=2:*,2=3})
+  encmnem: {L,opc:0,0=STPw:0,1=STGP:0,2=STPx:1,0=LDPw:1,1=LDPSW:1,2=LDPx}{op2:1=_post:2=:3=_pre}
+  encops: Rt=reggp Rt2=reggp Rn=reggpsp imm7=simm/bits=7,asr={L,opc:*,0=2:0,1=4:1,1=2:*,2=3}
+  enccond: {op2<0>:0=1:1=(@Rn==31||(@Rt!=@Rn&&@Rt2!=@Rn))}{L:0=:1=&&@Rt!=@Rt2}
+  feat: {L,opc:*,0=:0,1=MTE:1,1=:*,2=}
+[MEMU]
+  desc: {2:size}111000{2:opc}0{9:imm9|s}{2:op2}{5:Rn|SP}{5:Rt}
+  mnem: {opc,op2,size:0,*,*=ST:1,*,*=LD:2,*,*=LD:3,*,*=LD:!2,*,3:2,0,3=PRF}{op2:0=U:1=:2=T:3=}{opc,size:0,0=RB:0,1=RH:0,2=RW:0,3=RX:1,0=RB:1,1=RH:1,2=RW:1,3=RX:2,0=RSB:2,1=RSH:2,2=RSW:2,3=M:3,0=RSBW:3,1=RSHW}{op2:0=:1=_POST:2=:3=_PRE}
+  decode: {opc,op2,size:0,*,*=st:1,*,*=ld:2,*,*=ld:3,*,*=ld:^2,0,3=prf}{op2:0=u:1=:2=t:3=}{opc,size:0,0=rb:0,1=rh:0,2=r:0,3=r:1,0=rb:1,1=rh:1,2=r:1,3=r:2,0=rsb:2,1=rsh:2,2=rsw:2,3=m:3,0=rsb:3,1=rsh} OPreggpprf(@op2==0&&@opc==2&&@size==3, @Rt, @size>2||@opc==2) OPmemsoff{op2:0=:1=post:2=:3=pre}(@Rn, @imm9)
+  encmnem: {opc,op2,size:0,*,*=ST:1,*,*=LD:2,*,*=LD:3,*,*=LD:^2,0,3=PRF}{op2:0=U:1=:2=T:3=}{opc,size:0,0=RB:0,1=RH:0,2=Rw:0,3=Rx:1,0=RB:1,1=RH:1,2=Rw:1,3=Rx:2,0=RSBx:2,1=RSHx:2,2=RSWx:2,3=M:3,0=RSBw:3,1=RSHw}{op2:0=:1=_post:2=:3=_pre}
+  encops: Rt={opc,op2,size:*,*,*=reggp:^2,0,3=prfop} Rn=reggpsp imm9=simm/bits=9,asr=0
+  enccond: {op2<0>:0=:1=(@Rn==31||@Rt!=@Rn)}
+[MEM_IMM]
+  desc: {2:size}111001{2:opc}{12:imm12}{5:Rn|SP}{5:Rt}
+  mnem: {opc,size:0,0=STRB:0,1=STRH:0,2=STRW:0,3=STR:1,0=LDRB:1,1=LDRH:1,2=LDRW:1,3=LDR:2,0=LDRSB:2,1=LDRSH:2,2=LDRSW:2,3=PRFM:3,0=LDRSBW:3,1=LDRSHW}_IMM
+  decode: {opc,size:0,0=strb:0,1=strh:0,2=str:0,3=str:1,0=ldrb:1,1=ldrh:1,2=ldr:1,3=ldr:2,0=ldrsb:2,1=ldrsh:2,2=ldrsw:2,3=prfm:3,0=ldrsb:3,1=ldrsh} OPreggpprf(@opc==2&&@size==3, @Rt, @size>2||@opc==2) OPmemuoff(@Rn, @imm12<<@size)
+  encmnem: {opc,size:0,0=STRB:0,1=STRH:0,2=STRw:0,3=STRx:1,0=LDRB:1,1=LDRH:1,2=LDRw:1,3=LDRx:2,0=LDRSBx:2,1=LDRSHx:2,2=LDRSWx:2,3=PRFM:3,0=LDRSBw:3,1=LDRSHw}u
+  encops: Rt={opc,size:*,*=reggp:^2,3=prfop} Rn=reggpsp imm12=uimm/bits=12,lsr={size:0=0:1=1:2=2:3=3}
+[MEM_REG]
+  desc: {2:size}111000{2:opc}1{5:Rm}{3:option}{1:sc}10{5:Rn|SP}{5:Rt}
+  mnem: {opc,size:0,0=STRB:0,1=STRH:0,2=STRW:0,3=STR:1,0=LDRB:1,1=LDRH:1,2=LDRW:1,3=LDR:2,0=LDRSB:2,1=LDRSH:2,2=LDRSW:2,3=PRFM:3,0=LDRSBW:3,1=LDRSHW}_REG{option<1>:1=}
+  decode: {opc,size:0,0=strb:0,1=strh:0,2=str:0,3=str:1,0=ldrb:1,1=ldrh:1,2=ldr:1,3=ldr:2,0=ldrsb:2,1=ldrsh:2,2=ldrsw:2,3=prfm:3,0=ldrsb:3,1=ldrsh} OPreggpprf(@opc==2&&@size==3, @Rt, @size>2||@opc==2) OPmemreg(@Rn, @Rm, @option, @sc, @size)
+  encmnem: {opc,size:0,0=STRB:0,1=STRH:0,2=STRw:0,3=STRx:1,0=LDRB:1,1=LDRH:1,2=LDRw:1,3=LDRx:2,0=LDRSBx:2,1=LDRSHx:2,2=LDRSWx:2,3=PRFM:3,0=LDRSBw:3,1=LDRSHw}r_{option:2=uxtw:3=lsl:6=sxtw:7=sxtx}
+  encops: Rt={opc,size:*,*=reggp:^2,3=prfop} Rn=reggpsp Rm=reggp sc=bool
+  encmnem_noext: {opc,size:0,0=STRB:0,1=STRH:0,2=STRw:0,3=STRx:1,0=LDRB:1,1=LDRH:1,2=LDRw:1,3=LDRx:2,0=LDRSBx:2,1=LDRSHx:2,2=LDRSWx:2,3=PRFM:3,0=LDRSBw:3,1=LDRSHw}r{option,sc:3,0=}
+  encops_noext: Rt={opc,size:*,*=reggp:^2,3=prfop} Rn=reggpsp Rm=reggp
+[MEM_LIT]
+  desc: {2:opc}011000{19:imm19|s}{5:Rt}
+  mnem: {opc:0=LDRW:1=LDR:2=LDRSW:3=PRFM}_LIT
+  decode: {opc:0=ldr:1=ldr:2=ldrsw:3=prfm} OPreggpprf(@opc==3, @Rt, @opc>0) OPreladdr(ddi, @imm19<<2)
+  encmnem: {opc:0=LDRw:1=LDRx:2=LDRSWx:3=PRFM}_pcrel
+  encops: Rt={opc:0=reggp:1=reggp:2=reggp:3=prfop} imm19=reladdr/bits=19
+
+[MEMP_FP]
+  desc: {2:opc}101{1:V=1}0{2:op2}{1:L}{7:imm7|s}{5:Rt2}{5:Rn|SP}{5:Rt}
+  mnem: {L:0=ST:1=LD}{op2:0=N:1=:2=:3=}P{opc:0=:1=:2=}_FP{op2:0=:1=_POST:2=:3=_PRE}
+  decode: {L:0=st:1=ld}{op2:0=n:1=:2=:3=}p OPregfp(@Rt, @opc+2), @OPregfp(@Rt2, @opc+2) OPmemsoff{op2:0=:1=post:2=:3=pre}(@Rn, @imm7<<(@opc+2))
+  encmnem: {L:0=ST:1=LD}{op2:0=N:1=:2=:3=}P{opc:0=s:1=d:2=q}{op2:0=:1=_post:2=:3=_pre}
+  encops: Rt=regfp Rt2=regfp Rn=reggpsp imm7=simm/bits=7,asr={opc:0=2:1=3:2=4}
+  enccond: {L:0=:1=@Rt!=@Rt2}
+[MEMU_FP]
+  desc: {2:size}111{1:V=1}00{2:opc}0{9:imm9|s}{2:op4}{5:Rn|SP}{5:Rt}
+  mnem: {opc<0>:0=ST:1=LD}{op4:0=U:1=:3=}R_FP{op4:0=:1=_POST:3=_PRE}{size,opc<1>:0,0=:0,1=:1,0=:2,0=:3,0=}
+  decode: {opc<0>:0=st:1=ld}{op4:0=u:1=:3=}r OPregfp(@Rt, @size+(@opc<<1&4)) OPmemsoff{op4:0=:1=post:3=pre}(@Rn, @imm9)
+  encmnem: {opc<0>:0=ST:1=LD}{op4:0=U:1=:3=}R{opc<1>,size:0,0=b:0,1=h:0,2=s:0,3=d:1,0=q}{op4:0=:1=_post:3=_pre}
+  encops: Rt=regfp Rn=reggpsp imm9=simm/bits=9,asr=0
+[MEM_IMM_FP]
+  desc: {2:size}111{1:V=1}01{2:opc}{12:imm12}{5:Rn|SP}{5:Rt}
+  mnem: {opc<0>:0=STR:1=LDR}_IMM_FP{size,opc<1>:0,0=:0,1=:1,0=:2,0=:3,0=}
+  decode: {opc<0>:0=str:1=ldr} OPregfp(@Rt, @size+(@opc<<1&4)) OPmemuoff(@Rn, @imm12<<(@size+(@opc<<1&4)))
+  encmnem: {opc<0>:0=STR:1=LDR}{size,opc<1>:0,0=b:0,1=q:1,0=h:2,0=s:3,0=d}u
+  encops: Rt=regfp Rn=reggpsp imm12=uimm/bits=12,lsr={size,opc<1>:0,0=0:0,1=4:1,0=1:2,0=2:3,0=3}
+[MEM_REG_FP]
+  desc: {2:size}111{1:V=1}00{2:opc}1{5:Rm}{3:option}{1:sc}10{5:Rn|SP}{5:Rt}
+  mnem: {opc<0>:0=STR:1=LDR}_REG_FP{option<1>:1=}{size,opc<1>:0,0=:0,1=:1,0=:2,0=:3,0=}
+  decode: {opc<0>:0=str:1=ldr} OPregfp(@Rt, @size+(@opc<<1&4)) OPmemreg(@Rn, @Rm, @option, @sc, @size+(@opc<<1&4))
+  encmnem: {opc<0>:0=STR:1=LDR}{size,opc<1>:0,0=b:0,1=q:1,0=h:2,0=s:3,0=d}r_{option:2=uxtw:3=lsl:6=sxtw:7=sxtx}
+  encops: Rt=regfp Rn=reggpsp Rm=reggp sc=bool
+  encmnem_noext: {opc<0>:0=STR:1=LDR}{size,opc<1>:0,0=b:0,1=q:1,0=h:2,0=s:3,0=d}r{option,sc:3,0=}
+  encops_noext: Rt=regfp Rn=reggpsp Rm=reggp
+[MEM_LIT_FP]
+  desc: {2:opc}011{1:V=1}00{19:imm19|s}{5:Rt}
+  mnem: LDR_LIT{opc:0=:1=:2=}_FP
+  decode: ldr OPregfp(@Rt, @opc+2) OPreladdr(ddi, @imm19<<2)
+  encmnem: {opc:0=LDRs:1=LDRd:2=LDRq}_pcrel
+  encops: Rt=regfp imm19=reladdr/bits=19
+[MEMSIMD_MULT]
+  desc: 0{1:Q}0011000{1:L}000000{4:opcode}{2:size}{5:Rn|SP}{5:Rt}
+  # condition: opcode & 2 || size != 3 || Q
+  mnem: {L:0=ST:1=LD}{opcode:7=1_1:10=1_2:6=1_3:2=1_4:8=2:4=3:0=4}{opcode<1>,size,Q:*,*,*=:!0,3,0}
+  decode: {L:0=st:1=ld}{opcode:7=1:10=1:6=1:2=1:8=2:4=3:0=4} OPregvtbl(@Rt, @size, @Q, @opcode&1?1:4-(@opcode>>2)) OPmemsoff(@Rn, 0)
+  encmnem: {L:0=ST:1=LD}{opcode:7=1_1:10=1_2:6=1_3:2=1_4:8=2:4=3:0=4}_{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}{opcode<1>,size,Q:*,*,*=:!0,3,0}
+  encops: Rt=regfp Rn=reggpsp
+[MEMSIMD_MULT_POST]
+  desc: 0{1:Q}0011001{1:L}0{5:Rm}{4:opcode}{2:size}{5:Rn|SP}{5:Rt}
+  # condition: opcode & 2 || size != 3 || Q
+  mnem: {L:0=ST:1=LD}{opcode:7=1_1:10=1_2:6=1_3:2=1_4:8=2:4=3:0=4}_POST{opcode<1>,size,Q:*,*,*=:!0,3,0}
+  decode: {L:0=st:1=ld}{opcode:7=1:10=1:6=1:2=1:8=2:4=3:0=4} OPregvtbl(@Rt, @size, @Q, {opcode:7=1:10=2:6=3:2=4:8=2:4=3:0=4}) OPmemregsimdpost(@Rn, @Rm, {opcode:7=1:10=2:6=3:2=4:8=2:4=3:0=4}<<(@Q+3))
+  encmnem: {L:0=ST:1=LD}{opcode:7=1_1:10=1_2:6=1_3:2=1_4:8=2:4=3:0=4}_{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}{opcode<1>,size,Q:*,*,*=:!0,3,0}_post
+  encops: Rt=regfp Rn=reggpsp Rm=reggpnozr
+  encmnem_noreg: {L:0=ST:1=LD}{opcode:7=1_1:10=1_2:6=1_3:2=1_4:8=2:4=3:0=4}_{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}{opcode<1>,size,Q:*,*,*=:!0,3,0}_post{opcode,Q:7,0=8:7,1=16:10,0=16:10,1=32:6,0=24:6,1=48:2,0=32:2,1=64:8,0=16:8,1=32:4,0=24:4,1=48:0,0=32:0,1=64}
+  encops_noreg: Rt=regfp Rn=reggpsp Rm=regzr
+[MEMSIMD_SINGLE]
+  desc: 0{1:Q}0011010{1:L}{1:R}00000{3:opc}{1:S}{2:size}{5:Rn|SP}{5:Rt}
+  mnem: {L:0=ST:1=LD}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}{opc<2:1>,S,size:0,0,0=B:0,1,0=B:0,0,1=B:0,1,1=B:0,0,2=B:0,1,2=B:0,0,3=B:0,1,3=B:1,0,0=H:1,1,0=H:1,0,2=H:1,1,2=H:2,0,0=S:2,1,0=S:2,0,1=D}
+  decode: {L:0=st:1=ld}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4} OPregvtblidx(@Rt, (@opc>>1)+(@opc>=4?@size:0), (@Q<<3|@S<<2|@size) >> ((@opc>>1)+(@opc>=4?@size:0)), {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}) OPmemsoff(@Rn, 0)
+  encmnem: {L:0=ST:1=LD}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}{opc<2:1>,size:0,0=b:1,0=h:2,0=s:2,1=d}
+  encops: Rt=regfp Q,S,size=memsimdidx/size={opc<2:1>,size:0,*=0:1,*=1:2,0=2:2,1=3} Rn=reggpsp
+[MEMSIMD_SINGLE_POST]
+  desc: 0{1:Q}0011011{1:L}{1:R}{5:Rm}{3:opc}{1:S}{2:size}{5:Rn|SP}{5:Rt}
+  mnem: {L:0=ST:1=LD}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}{opc<2:1>,S,size:0,0,0=B:0,1,0=B:0,0,1=B:0,1,1=B:0,0,2=B:0,1,2=B:0,0,3=B:0,1,3=B:1,0,0=H:1,1,0=H:1,0,2=H:1,1,2=H:2,0,0=S:2,1,0=S:2,0,1=D}_POST
+  decode: {L:0=st:1=ld}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4} OPregvtblidx(@Rt, (@opc>>1)+(@opc>=4?@size:0), (@Q<<3|@S<<2|@size) >> ((@opc>>1)+(@opc>=4?@size:0)), {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}) OPmemregsimdpost(@Rn, @Rm, {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4} << ((@opc>>1)+(@opc>=4?@size:0)))
+  encmnem: {L:0=ST:1=LD}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}{opc<2:1>,size:0,0=b:1,0=h:2,0=s:2,1=d}_post
+  encops: Rt=regfp Q,S,size=memsimdidx/size={opc<2:1>,size:0,*=0:1,*=1:2,0=2:2,1=3} Rn=reggpsp Rm=reggpnozr
+  encmnem_noreg: {L:0=ST:1=LD}{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}{opc<2:1>,size:0,0=b:1,0=h:2,0=s:2,1=d}_post{opc,R,size:0,0,*=1:0,1,*=2:1,0,*=3:1,1,*=4:2,0,*=2:2,1,*=4:3,0,*=6:3,1,*=8:4,0,0=4:4,1,0=8:5,0,0=12:5,1,0=16:4,0,1=8:4,1,1=16:5,0,1=24:5,1,1=32}
+  encops_noreg: Rt=regfp Q,S,size=memsimdidx/size={opc<2:1>,size:0,*=0:1,*=1:2,0=2:2,1=3} Rn=reggpsp Rm=regzr
+[MEMSIMD_REP]
+  desc: 0{1:Q}0011010{1:L=1}{1:R}00000{3:opc}{1:S=0}{2:size}{5:Rn|SP}{5:Rt}
+  mnem: LD{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}R{opc<2:1>:3=}
+  decode: ld{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}r OPregvtbl(@Rt, @size, @Q, {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}) OPmemsoff(@Rn, 0)
+  encmnem: LD{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}R{opc<2:1>:3=}{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rt=regfp Rn=reggpsp
+[MEMSIMD_REP_POST]
+  desc: 0{1:Q}0011011{1:L=1}{1:R}{5:Rm}{3:opc}{1:S=0}{2:size}{5:Rn|SP}{5:Rt}
+  mnem: LD{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}R{opc<2:1>:3=}_POST
+  decode: ld{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}r OPregvtbl(@Rt, @size, @Q, {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}) OPmemregsimdpost(@Rn, @Rm, {opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}<<@size)
+  encmnem: LD{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}R{opc<2:1>:3=}{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}_post
+  encops: Rt=regfp Rn=reggpsp Rm=reggpnozr
+  encmnem_noreg: LD{opc<0>,R:0,0=1:0,1=2:1,0=3:1,1=4}R{opc<2:1>:3=}{size,Q:0,0=8b:1,0=4h:2,0=2s:3,0=1d:0,1=16b:1,1=8h:2,1=4s:3,1=2d}_post{opc<0>,R,size:0,0,0=1:0,0,1=2:0,0,2=4:0,0,3=8:0,1,0=2:0,1,1=4:0,1,2=8:0,1,3=16:1,0,0=3:1,0,1=6:1,0,2=12:1,0,3=24:1,1,0=4:1,1,1=8:1,1,2=16:1,1,3=32}
+  encops_noreg: Rt=regfp Rn=reggpsp Rm=regzr
+
+[FCVT_TOFIXED]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}0{2:rmode=11}{3:opcode}{6:scale}{5:Rn}{5:Rd}
+  # cond: sf || scale >= 32
+  mnem: FCVTZ{opcode:0=S:1=U}_FIX{sf,scale<5>:0,1=:1,0=:1,1=}{ftype:0=:1=:3=_FP16}
+  decode: fcvtz{opcode:0=s:1=u} OPreggp(@Rd, @sf) OPregfp(@Rn, @ftype^2) OPimmsmall(64-@scale)
+  encmnem: FCVTZ{opcode:0=S:1=U}{sf:0=w:1=x}{ftype:0=s:1=d:3=h}_fix
+  encops: Rd=reggp Rn=regfp scale=fcvtfixscale/max={sf:0=32:1=64}
+  feat: {ftype:0=:1=:3=FP16}
+[FCVT_FROMFIXED]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}0{2:rmode=00}{3:opcode}{6:scale}{5:Rn}{5:Rd}
+  # cond: sf || scale >= 32
+  mnem: {opcode:2=S:3=U}CVTF_FIX{sf,scale<5>:0,1=:1,0=:1,1=}{ftype:0=:1=:3=_FP16}
+  decode: {opcode:2=s:3=u}cvtf OPregfp(@Rd, @ftype^2) OPreggp(@Rn, @sf) OPimmsmall(64-@scale)
+  encmnem: {opcode:2=S:3=U}CVTF{ftype:0=s:1=d:3=h}{sf:0=w:1=x}_fix
+  encops: Rd=regfp Rn=reggp scale=fcvtfixscale/max={sf:0=32:1=64}
+  feat: {ftype:0=:1=:3=FP16}
+[FCVT_TOINT]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}1{2:rmode}{3:opcode}000000{5:Rn}{5:Rd}
+  mnem: FCVT{opcode<2>,rmode:0,0=N:0,1=P:0,2=M:0,3=Z:1,0=A}{opcode<0>:0=S:1=U}{ftype:0=:1=:3=_FP16}{opcode<1>:0=}
+  decode: fcvt{opcode<2>,rmode:0,0=n:0,1=p:0,2=m:0,3=z:1,0=a}{opcode<0>:0=s:1=u} OPreggp(@Rd, @sf) OPregfp(@Rn, @ftype^2)
+  encmnem: FCVT{opcode<2>,rmode:0,0=N:0,1=P:0,2=M:0,3=Z:1,0=A}{opcode<0>:0=S:1=U}{sf:0=w:1=x}{ftype:0=s:1=d:3=h}{opcode<1>:0=}
+  encops: Rd=reggp Rn=regfp
+  feat: {ftype:0=:1=:3=FP16}
+[FCVT_FROMINT]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}1{2:rmode=00}{3:opcode}000000{5:Rn}{5:Rd}
+  mnem: {opcode<0>:0=S:1=U}CVTF{ftype:0=:1=:3=_FP16}{opcode<2:1>:1=}
+  decode: {opcode<0>:0=s:1=u}cvtf OPregfp(@Rd, @ftype^2) OPreggp(@Rn, @sf)
+  encmnem: {opcode<0>:0=S:1=U}CVTF{ftype:0=s:1=d:3=h}{sf:0=w:1=x}{opcode<2:1>:1=}
+  encops: Rd=regfp Rn=reggp
+  feat: {ftype:0=:1=:3=FP16}
+[FMOV_TOGP]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}1{2:rmode}{3:opcode=110}000000{5:Rn}{5:Rd}
+  mnem: FMOV_TOGP{sf,ftype,rmode:0,0,0=:1,1,0=:0,3,0=_FP16:1,3,0=_FP16:1,2,1=_HIGH}
+  decode: fmov OPreggp(@Rd, @sf), {rmode:0=OPregfp(@Rn, @ftype^2):1=OPregvidx(@Rn, 3, 1)}
+  encmnem: FMOV{sf,ftype,rmode:0,0,0=ws:1,1,0=xd:0,3,0=wh:1,3,0=xh:1,2,1=_HIGHxd}
+  encops: Rd=reggp Rn=regfp
+  feat: {ftype:0=:1=:2=:3=FP16}
+[FMOV_FROMGP]
+  desc: {1:sf}0{1:S=0}11110{2:ftype}1{2:rmode}{3:opcode=111}000000{5:Rn}{5:Rd}
+  mnem: FMOV_FROM{sf,ftype,rmode:0,0,0=:1,1,0=:0,3,0=_FP16:1,3,0=_FP16:1,2,1=_HIGH}
+  decode: fmov {rmode:0=OPregfp(@Rd, @ftype^2):1=OPregvidx(@Rd, 3, 1)} OPreggp(@Rn, @sf)
+  encmnem: FMOV{sf,ftype,rmode:0,0,0=sw:1,1,0=dx:0,3,0=hw:1,3,0=hx:1,2,1=_HIGHdx}
+  encops: Rd=regfp Rn=reggp
+  feat: {ftype:0=:1=:2=:3=FP16}
+[FJCVTZS]
+  desc: {1:sf=0}0{1:S=0}11110{2:ftype=01}1{2:rmode=11}{3:opcode=110}000000{5:Rn}{5:Rd}
+  mnem: FJCVTZS
+  decode: fjcvtzs OPreggp(@Rd, @sf) OPregfp(@Rn, @ftype^2)
+  encmnem: FJCVTZSwd
+  encops: Rd=reggp Rn=regfp
+  feat: JSCVT
+[FCVT_FP]
+  desc: {1:M=0}0{1:S=0}11110{2:ftype}10001{2:opc}10000{5:Rn}{5:Rd}
+  mnem: {ftype,opc:0,1=:0,3=:1,0=:1,2=B:1,3=:3,0=:3,1=}FCVT
+  decode: {opc:0=:1=:2=b:3=}fcvt OPregfp(@Rd, @opc==2?1:@opc^2) OPregfp(@Rn, @opc==2?2:@ftype^2)
+  encmnem: {ftype,opc:0,1=FCVTds:0,3=FCVThs:1,0=FCVTsd:1,2=BFCVT:1,3=FCVThd:3,0=FCVTsh:3,1=FCVTdh}
+  encops: Rd=regfp Rn=regfp
+  feat: {ftype,opc:0,1=:0,3=:1,0=:1,2=BF16:1,3=:3,0=:3,1=}
+[FRINT]
+  desc: {1:M=0}0{1:S=0}11110{2:ftype}1001{3:rmode}10000{5:Rn}{5:Rd}
+  mnem: FRINT{rmode:0=N:1=P:2=M:3=Z:4=A:6=X:7=I}{ftype:0=:1=:3=_FP16}
+  decode: frint{rmode:0=n:1=p:2=m:3=z:4=a:6=x:7=i} OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2)
+  encmnem: FRINT{rmode:0=N:1=P:2=M:3=Z:4=A:6=X:7=I}{ftype:0=s:1=d:3=h}
+  encops: Rd=regfp Rn=regfp
+  feat: {ftype:0=:1=:3=FP16}
+[FRINTTS]
+  desc: {1:M=0}0{1:S=0}11110{2:ftype}10100{2:op}10000{5:Rn}{5:Rd}
+  mnem: FRINT{op<1>:0=32:1=64}{op<0>:0=Z:1=X}{ftype:0=:1=}
+  decode: frint{op<1>:0=32:1=64}{op<0>:0=z:1=x} OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2)
+  encmnem: FRINT{op<1>:0=32:1=64}{op<0>:0=Z:1=X}{ftype:0=s:1=d}
+  encops: Rd=regfp Rn=regfp
+  feat: FRINTTS
+[FARITH1]
+  desc: {1:M=0}0{1:S=0}11110{2:ftype}10000{2:opc}10000{5:Rn}{5:Rd}
+  mnem: F{opc:0=MOV:1=ABS:2=NEG:3=SQRT}{ftype:0=:1=:3=_FP16}
+  decode: f{opc:0=mov:1=abs:2=neg:3=sqrt} OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2)
+  encmnem: F{opc:0=MOV:1=ABS:2=NEG:3=SQRT}{ftype:0=s:1=d:3=h}
+  encops: Rd=regfp Rn=regfp
+  feat: {ftype:0=:1=:3=FP16}
+[FMOV_IMM]
+  desc: 00011110{2:ftype}1{8:imm8}10000000{5:Rd}
+  mnem: FMOV_IMM{ftype:0=:1=:3=_FP16}
+  decode: fmov OPregfp(@Rd, @ftype^2) OPimmfloat(ddi, @imm8)
+  encmnem: FMOV{ftype:0=s:1=d:3=h}i
+  encops: Rd=regfp imm8=immfmov{ftype:0=32:1=64:3=32}
+  feat: {ftype:0=:1=:3=FP16}
+[FARITH2]
+  desc: 00011110{2:ftype}1{5:Rm}{4:opc}10{5:Rn}{5:Rd}
+  mnem: F{opc:0=MUL:1=DIV:2=ADD:3=SUB:4=MAX:5=MIN:6=MAXNM:7=MINNM:8=NMUL}{ftype:0=:1=:3=_FP16}
+  decode: f{opc:0=mul:1=div:2=add:3=sub:4=max:5=min:6=maxnm:7=minnm:8=nmul} OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2) OPregfp(@Rm, @ftype^2)
+  encmnem: F{opc:0=MUL:1=DIV:2=ADD:3=SUB:4=MAX:5=MIN:6=MAXNM:7=MINNM:8=NMUL}{ftype:0=s:1=d:3=h}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {ftype:0=:1=:3=FP16}
+[FCMP]
+  desc: 00011110{2:ftype}1{5:Rm}001000{5:Rn}{2:opc}000
+  mnem: FCMP{opc<1>:0=:1=E}{ftype:0=:1=:3=_FP16}{opc<0>:0=:1=_ZERO}
+  decode: fcmp{opc<1>:0=:1=e} OPregfp(@Rn, @ftype^2) {opc<0>:0=OPregfp(@Rm, @ftype^2):1=OPimmfloatzero(ddi)}
+  encmnem: FCMP{opc<1>:0=:1=E}_{opc<0>:0=:1=0}{ftype:0=s:1=d:3=h}
+  encops: Rn=regfp Rm={opc<0>:0=regfp:1=const/val=0}
+  feat: {ftype:0=:1=:3=FP16}
+[FCCMP]
+  desc: 00011110{2:ftype}1{5:Rm}{4:cond}01{5:Rn}{1:op}{4:nzcv}
+  mnem: FCCMP{op:0=:1=E}{ftype:0=:1=:3=_FP16}
+  decode: fccmp{op:0=:1=e} OPregfp(@Rn, @ftype^2) OPregfp(@Rm, @ftype^2) OPimmsmall(@nzcv) OPcond(@cond)
+  encmnem: FCCMP{op:0=:1=E}{ftype:0=s:1=d:3=h}
+  encops: Rn=regfp Rm=regfp nzcv=imm/max=16 cond=cond
+  feat: {ftype:0=:1=:3=FP16}
+[FCSEL]
+  desc: 00011110{2:ftype}1{5:Rm}{4:cond}11{5:Rn}{5:Rd}
+  mnem: FCSEL{ftype:0=:1=:3=_FP16}
+  decode: fcsel OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2) OPregfp(@Rm, @ftype^2) OPcond(@cond)
+  encmnem: FCSEL{ftype:0=s:1=d:3=h}
+  encops: Rd=regfp Rn=regfp Rm=regfp cond=cond
+  feat: {ftype:0=:1=:3=FP16}
+[FMADD]
+  desc: 00011111{2:ftype}{1:o1}{5:Rm}{1:o0}{5:Ra}{5:Rn}{5:Rd}
+  mnem: F{o1:0=:1=N}M{o0:0=ADD:1=SUB}{ftype:0=:1=:3=_FP16}
+  decode: f{o1:0=:1=n}m{o0:0=add:1=sub} OPregfp(@Rd, @ftype^2) OPregfp(@Rn, @ftype^2) OPregfp(@Rm, @ftype^2) OPregfp(@Ra, @ftype^2)
+  encmnem: F{o1:0=:1=N}M{o0:0=ADD:1=SUB}{ftype:0=s:1=d:3=h}
+  encops: Rd=regfp Rn=regfp Rm=regfp Ra=regfp
+  feat: {ftype:0=:1=:3=FP16}
+
+[DUP_SCALAR]
+  desc: 01011110000{5:imm5}000001{5:Rn}{5:Rd}
+  # Disallow imm5=x0000
+  mnem: DUP_SCALAR{imm5<3:0>:*=:!0}
+  decode: dup OPregfp(@Rd, ctz(@imm5)) OPregvidx(@Rn, ctz(@imm5), @imm5>>(ctz(@imm5)+1))
+  encmnem: DUP{imm5:1=b:2=h:4=s:8=d}
+  encops: Rd=regfp Rn=regfp imm5=immvidx/shift=1,size={imm5:1=0:2=1:4=2:8=3}
+[DUP_VEC]
+  desc: 0{1:Q}001110000{5:imm5}0000{1:op}1{5:Rn}{5:Rd}
+  # Disallow imm5=x0000 and imm5=x1000 with Q=0
+  mnem: DUP_{op:0=ELEM:1=GP}{imm5<3:0>:*=:!0}{imm5<3:0>,Q:*,*=:!8,0}
+  decode: dup OPregvec(@Rd, ctz(@imm5), @Q), {op:0=OPregvidx(@Rn, ctz(@imm5), @imm5>>(ctz(@imm5)+1)):1=OPreggp(@Rn, !(@imm5&7))}
+  encmnem_elem: DUP{op:0=}{Q,imm5:0,1=8b:1,1=16b:0,2=4h:1,2=8h:0,4=2s:1,4=4s:1,8=2d}
+  encops_elem: Rd=regfp Rn=regfp imm5=immvidx/shift=1,size={imm5:1=0:2=1:4=2:8=3}
+  encmnem_gp: DUP{op:1=}{Q,imm5:0,1=8bw:1,1=16bw:0,2=4hw:1,2=8hw:0,4=2sw:1,4=4sw:1,8=2dx}
+  encops_gp: Rd=regfp Rn=reggp
+[INS]
+  desc: 0{1:Q=1}{1:op}01110000{5:imm5}0{4:imm4}1{5:Rn}{5:Rd}
+  # Disallow imm5=x0000
+  mnem: INS_{op,imm4:0,3=GP:1,*=ELEM}{imm5<3:0>:*=:!0}
+  decode: ins OPregvidx(@Rd, ctz(@imm5), @imm5>>(ctz(@imm5)+1)), {op:0=OPreggp(@Rn, !(@imm5&7)):1=OPregvidx(@Rn, ctz(@imm5), @imm4>>ctz(@imm5))}
+  encmnem_elem: INS{op:1=}{imm5:1=b:2=h:4=s:8=d}
+  encops_elem: Rd=regfp imm5=immvidx/shift=1,size={imm5:1=0:2=1:4=2:8=3} Rn=regfp imm4=immvidx/shift=0,size={imm5:1=0:2=1:4=2:8=3}
+  encmnem_gp: INS{op,imm4:0,3=}{imm5:1=bw:2=hw:4=sw:8=dx}
+  encops_gp: Rd=regfp imm5=immvidx/shift=1,size={imm5:1=0:2=1:4=2:8=3} Rn=reggp
+[MOV_TOGP]
+  desc: 0{1:Q}001110000{5:imm5}001{1:U}11{5:Rn}{5:Rd}
+  # SMOV: disallow imm5=xx000 and imm5=xxx00 with Q=1
+  # UMOV: disallow imm5=xx000 with Q=0 and imm5!=x1000 with Q=1
+  mnem: {U:0=S:1=U}MOV{U,Q,imm5<2:0>:*,*,*=:!0,*,0}{U,Q,imm5<1:0>:*,*,*=:!0,0,0}{U,Q,imm5<3:0>:0,*,*=:1,0,*=:1,1,8=:!1,0,0:!1,0,8}
+  decode: {U:0=s:1=u}mov OPreggp(@Rd, @Q) OPregvidx(@Rn, ctz(@imm5), @imm5>>(ctz(@imm5)+1))
+  encmnem: {U:0=S:1=U}MOV{U,Q,imm5:0,0,1=wb:0,1,1=xb:0,0,2=wh:0,1,2=xh:0,1,4=xs:1,0,1=wb:1,0,2=wh:1,0,4=ws:1,1,8=xd}
+  encops: Rd=reggp Rn=regfp imm5=immvidx/shift=1,size={imm5:1=0:2=1:4=2:8=3}
+[TBL]
+  desc: 0{1:Q}001110{2:size=00}0{5:Rm}0{2:len}{1:op}00{5:Rn}{5:Rd}
+  mnem: TB{op:0=L:1=X}{len:0=1:1=2:2=3:3=4}
+  decode: tb{op:0=l:1=x} OPregvec(@Rd, @size, @Q) OPregvtbl(@Rn, 0, 1, @len+1) OPregvec(@Rm, @size, @Q)
+  encmnem: TB{op:0=L:1=X}{len:0=1:1=2:2=3:3=4}_{Q:0=8b:1=16b}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ZIP]
+  desc: 0{1:Q}001110{2:size}0{5:Rm}0{3:opcode}10{5:Rn}{5:Rd}
+  mnem: {opcode:1=UZP1:2=TRN1:3=ZIP1:5=UZP2:6=TRN2:7=ZIP2}{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: {opcode:1=uzp1:2=trn1:3=zip1:5=uzp2:6=trn2:7=zip2} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {opcode:1=UZP1:2=TRN1:3=ZIP1:5=UZP2:6=TRN2:7=ZIP2}_{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[EXT]
+  desc: 0{1:Q}101110{2:size=00}0{5:Rm}0{4:imm4}0{5:Rn}{5:Rd}
+  mnem: EXT{Q,imm4<3>:0,0=:1,0=:1,1=}
+  decode: ext OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q) OPimmsmall(@imm4)
+  encmnem: EXT{Q:0=8b:1=16b}
+  encops: Rd=regfp Rn=regfp Rm=regfp imm4=imm/max={Q:0=8:1=16}
+[HADDSUB_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}00{1:op}{1:R}01{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{op,R:0,0=HADD:0,1=RHADD:1,0=HSUB}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{op,R:0,0=hadd:0,1=rhadd:1,0=hsub} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{op,R:0,0=HADD:0,1=RHADD:1,0=HSUB}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[QADDSUB_SCALAR]
+  desc: 01{1:U}11110{2:size}1{5:Rm}00{1:op}011{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}Q{op:0=ADD:1=SUB}_SCALAR
+  decode: {U:0=s:1=u}q{op:0=add:1=sub} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: {U:0=S:1=U}Q{op:0=ADD:1=SUB}{size:0=b:1=h:2=s:3=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[QADDSUB_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}00{1:op}011{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}Q{op:0=ADD:1=SUB}{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: {U:0=s:1=u}q{op:0=add:1=sub} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}Q{op:0=ADD:1=SUB}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[CMGT_SCALAR]
+  desc: 01{1:U}11110{2:size=11}1{5:Rm}0011{1:eq}1{5:Rn}{5:Rd}
+  mnem: CM{U,eq:0,0=GT:0,1=GE:1,0=HI:1,1=HS}
+  decode: cm{U,eq:0,0=gt:0,1=ge:1,0=hi:1,1=hs} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: CM{U,eq:0,0=GT:0,1=GE:1,0=HI:1,1=HS}d
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[CMGT_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}0011{1:eq}1{5:Rn}{5:Rd}
+  mnem: CM{U,eq:0,0=GT:0,1=GE:1,0=HI:1,1=HS}V{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: cm{U,eq:0,0=gt:0,1=ge:1,0=hi:1,1=hs} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: CM{U,eq:0,0=GT:0,1=GE:1,0=HI:1,1=HS}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[CMEQ_SCALAR]
+  desc: 01{1:U}11110{2:size=11}1{5:Rm}100011{5:Rn}{5:Rd}
+  mnem: CM{U:0=TST:1=EQ}
+  decode: cm{U:0=tst:1=eq} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: CM{U:0=TST:1=EQ}d
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[CMEQ_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}100011{5:Rn}{5:Rd}
+  mnem: CM{U:0=TST:1=EQ}V{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: cm{U:0=tst:1=eq} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: CM{U:0=TST:1=EQ}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[CMZERO_SCALAR]
+  desc: 01{1:U}11110{2:size=11}10000010{2:op}10{5:Rn}{5:Rd}
+  mnem: CM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}_ZERO
+  decode: cm{U,op:0,0=gt:1,0=ge:0,1=eq:1,1=le:0,2=lt} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPimmsmall(0)
+  encmnem: CM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}d_zero
+  encops: Rd=regfp Rn=regfp
+[CMZERO_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}10000010{2:op}10{5:Rn}{5:Rd}
+  mnem: CM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}_ZERO_VEC{size,Q:*,*=:!3,0}
+  decode: cm{U,op:0,0=gt:1,0=ge:0,1=eq:1,1=le:0,2=lt} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPimmsmall(0)
+  encmnem: CM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}_zero
+  encops: Rd=regfp Rn=regfp
+[ARITH1_SCALAR]
+  desc: 01{1:U}11110{2:size}100000{2:op}1110{5:Rn}{5:Rd}
+  mnem: {op,U,size:0,0,*=SUQADD:0,1,*=USQADD:1,0,*=SQABS:1,1,*=SQNEG:2,0,3=ABS:2,1,3=NEG}_SCALAR
+  decode: {op,U,size:0,0,*=suqadd:0,1,*=usqadd:1,0,*=sqabs:1,1,*=sqneg:2,0,3=abs:2,1,3=neg} OPregfp(@Rd, @size) OPregfp(@Rn, @size)
+  encmnem: {op,U,size:0,0,*=SUQADD:0,1,*=USQADD:1,0,*=SQABS:1,1,*=SQNEG:2,0,3=ABS:2,1,3=NEG}{size:0=b:1=h:2=s:3=d}{op,size:0,*=:1,*=:2,3=}
+  encops: Rd=regfp Rn=regfp
+[ARITH1_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}100000{2:op}1110{5:Rn}{5:Rd}
+  mnem: {op,U:0,0=SUQADD:0,1=USQADD:1,0=SQABS:1,1=SQNEG:2,0=ABS:2,1=NEG}_VEC{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: {op,U:0,0=suqadd:0,1=usqadd:1,0=sqabs:1,1=sqneg:2,0=abs:2,1=neg} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q)
+  encmnem: {op,U:0,0=SUQADD:0,1=USQADD:1,0=SQABS:1,1=SQNEG:2,0=ABS:2,1=NEG}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp
+[ADDLP_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1000000{1:op}1010{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}AD{op:0=D:1=A}LP{size:0=:1=:2=}
+  decode: {U:0=s:1=u}ad{op:0=d:1=a}lp OPregvec(@Rd, @size+1, @Q) OPregvec(@Rn, @size, @Q)
+  encmnem: {U:0=S:1=U}AD{op:0=D:1=A}LP{size,Q:0,0=4h:1,0=2s:2,0=1d:0,1=8h:1,1=4s:2,1=2d}
+  encops: Rd=regfp Rn=regfp
+[CLZ_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}100000010010{5:Rn}{5:Rd}
+  mnem: CL{U:0=S:1=Z}_VEC{size:0=:1=:2=}
+  decode: cl{U:0=s:1=z} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q)
+  encmnem: CL{U:0=S:1=Z}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp
+[BIT_VEC]
+  desc: 0{1:Q}{1:U}01110{2:op}100000010110{5:Rn}{5:Rd}
+  mnem: {U,op:0,0=CNT:1,0=NOT:1,1=RBIT}_VEC
+  decode: {U,op:0,0=cnt:1,0=not:1,1=rbit} OPregvec(@Rd, 0, @Q) OPregvec(@Rn, 0, @Q)
+  encmnem: {U,op:0,0=CNT:1,0=NOT:1,1=RBIT}{Q:0=8b:1=16b}
+  encops: Rd=regfp Rn=regfp
+  encmnem_mvn: {U,op:1,0=MVN}{Q:0=8b:1=16b}
+  encops_mvn: Rd=regfp Rn=regfp
+[REV_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}100000000{1:op}10{5:Rn}{5:Rd}
+  # REV16: size <= 0; REV32: size <= 1; REV64: size <= 2
+  mnem: REV{op,U,size:0,0,0=64:0,0,1=64:0,0,2=64:0,1,0=32:0,1,1=32:1,0,0=16}_VEC
+  decode: rev{op,U:0,0=64:0,1=32:1,0=16} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q)
+  encmnem: REV{op,U,size:0,0,0=64:0,0,1=64:0,0,2=64:0,1,0=32:0,1,1=32:1,0,0=16}_{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp
+[XTN_SCALAR]
+  desc: 01{1:U}11110{2:size}1000010{2:op}010{5:Rn}{5:Rd}
+  mnem: {U,op:1,1=SQXTUN:0,2=SQXTN:1,2=UQXTN}_SCALAR{size:0=:1=:2=}
+  decode: {U,op:1,1=sqxtun:0,2=sqxtn:1,2=uqxtn} OPregfp(@Rd, @size) OPregfp(@Rn, @size+1)
+  encmnem: {U,op:1,1=SQXTUN:0,2=SQXTN:1,2=UQXTN}{size:0=b:1=h:2=s}
+  encops: Rd=regfp Rn=regfp
+[XTN_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1000010{2:op}010{5:Rn}{5:Rd}
+  mnem: {U,op:0,1=XTN:1,1=SQXTUN:0,2=SQXTN:1,2=UQXTN}{Q:0=:1=2}_VEC{size:0=:1=:2=}
+  decode: {U,op:0,1=xtn:1,1=sqxtun:0,2=sqxtn:1,2=uqxtn}{Q:0=:1=2} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size+1, 1)
+  encmnem: {U,op:0,1=XTN:1,1=SQXTUN:0,2=SQXTN:1,2=UQXTN}{size,Q:0,0=_8b:1,0=_4h:2,0=_2s:0,1=2_16b:1,1=2_8h:2,1=2_4s}
+  encops: Rd=regfp Rn=regfp
+[SHL_REG_SCALAR]
+  desc: 01{1:U}11110{2:size}1{5:Rm}010{1:R}{1:S}1{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{S:0=:1=Q}{R:0=:1=R}SHL_SCALAR{S,size:0,3=:1,0=:1,1=:1,2=:1,3=}
+  decode: {U:0=s:1=u}{S:0=:1=q}{R:0=:1=r}shl OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: {U:0=S:1=U}{S:0=:1=Q}{R:0=:1=R}SHL{S,size:0,3=d:1,0=b:1,1=h:1,2=s:1,3=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[SHL_REG_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}010{1:R}{1:S}1{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{S:0=:1=Q}{R:0=:1=R}SHL{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: {U:0=s:1=u}{S:0=:1=q}{R:0=:1=r}shl OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{S:0=:1=Q}{R:0=:1=R}SHL{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[MINMAX_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{2:o2}10{1:o1}1{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{o1:0=MAX:1=MIN}{o2:1=:2=P}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{o1:0=max:1=min}{o2:1=:2=p} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{o1:0=MAX:1=MIN}{o2:1=:2=P}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ABD_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}0111{1:ac}1{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}AB{ac:0=D:1=A}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}ab{ac:0=d:1=a} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}AB{ac:0=D:1=A}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ADDSUB_SCALAR]
+  desc: 01{1:U}11110{2:size=11}1{5:Rm}100001{5:Rn}{5:Rd}
+  mnem: {U:0=ADD:1=SUB}_SCALAR
+  decode: {U:0=add:1=sub} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: {U:0=ADD:1=SUB}d
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ADDSUB_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}100001{5:Rn}{5:Rd}
+  mnem: {U:0=ADD:1=SUB}_VEC{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: {U:0=add:1=sub} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=ADD:1=SUB}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ADDP_VEC]
+  desc: 0{1:Q}{1:U=0}01110{2:size}1{5:Rm}101111{5:Rn}{5:Rd}
+  mnem: ADDP{size,Q:0,0=:1,0=:2,0=:0,1=:1,1=:2,1=:3,1=}
+  decode: addp OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: ADDP{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[MUL_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}1001{1:ac}1{5:Rn}{5:Rd}
+  # size=11 is reserved; for PMUL size != 00 is reserved
+  mnem: {ac,U:0,0=MLA:0,1=MLS:1,0=MUL:1,1=PMUL}_VEC{ac,U,size:0,0,0=:0,0,1=:0,0,2=:0,1,0=:0,1,1=:0,1,2=:1,0,0=:1,0,1=:1,0,2=:1,1,0=}
+  decode: {ac,U:0,0=mla:0,1=mls:1,0=mul:1,1=pmul} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {ac,U:0,0=MLA:0,1=MLS:1,0=MUL:1,1=PMUL}{size,Q:0,0=8b:1,0=4h:2,0=2s:0,1=16b:1,1=8h:2,1=4s}{ac,U,size:0,0,0=:0,0,1=:0,0,2=:0,1,0=:0,1,1=:0,1,2=:1,0,0=:1,0,1=:1,0,2=:1,1,0=}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[SQDMULH_SCALAR]
+  desc: 01{1:U}11110{2:size}1{5:Rm}101101{5:Rn}{5:Rd}
+  mnem: SQ{U:0=:1=R}DMULH_SCALAR{size:1=:2=}
+  decode: sq{U:0=:1=r}dmulh OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: SQ{U:0=:1=R}DMULH{size:1=h:2=s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[SQDMULH_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}101101{5:Rn}{5:Rd}
+  mnem: SQ{U:0=:1=R}DMULH{size:1=:2=}
+  decode: sq{U:0=:1=r}dmulh OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: SQ{U:0=:1=R}DMULH{size,Q:1,0=4h:2,0=2s:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FMINMAX_VEC]
+  desc: 0{1:Q}{1:U}01110{1:o1}{1:sz}1{5:Rm}{5:opcode}1{5:Rn}{5:Rd}
+  mnem: F{o1:0=MAX:1=MIN}{opcode:24=NM:30=}{U:0=:1=P}_VEC{sz,Q:0,0=:0,1=:1,1=}
+  decode: f{o1:0=max:1=min}{opcode:24=nm:30=}{U:0=:1=p} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: F{o1:0=MAX:1=MIN}{opcode:24=NM:30=}{U:0=:1=P}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FCMP_REG_SCALAR]
+  desc: 01{1:U}11110{1:E}{1:sz}1{5:Rm}1110{1:ac}1{5:Rn}{5:Rd}
+  mnem: F{E,U,ac:0,0,0=CMEQ:0,1,0=CMGE:0,1,1=ACGE:1,1,0=CMGT:1,1,1=ACGT}
+  decode: f{E,U,ac:0,0,0=cmeq:0,1,0=cmge:0,1,1=acge:1,1,0=cmgt:1,1,1=acgt} OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPregfp(@Rm, @sz+2)
+  encmnem: F{E,U,ac:0,0,0=CMEQ:0,1,0=CMGE:0,1,1=ACGE:1,1,0=CMGT:1,1,1=ACGT}{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FCMP_ZERO_SCALAR]
+  desc: 01{1:U}111101{1:sz}10000011{2:op}10{5:Rn}{5:Rd}
+  mnem: FCM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}_ZERO
+  decode: fcm{U,op:0,0=gt:1,0=ge:0,1=eq:1,1=le:0,2=lt} OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPimmfloatzero(ddi)
+  encmnem: FCM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}{sz:0=s:1=d}_zero
+  encops: Rd=regfp Rn=regfp
+[FCMP_REG_VEC]
+  desc: 0{1:Q}{1:U}01110{1:E}{1:sz}1{5:Rm}1110{1:ac}1{5:Rn}{5:Rd}
+  mnem: F{E,U,ac:0,0,0=CMEQ:0,1,0=CMGE:0,1,1=ACGE:1,1,0=CMGT:1,1,1=ACGT}_VEC{sz,Q:0,0=:0,1=:1,1=}
+  decode: f{E,U,ac:0,0,0=cmeq:0,1,0=cmge:0,1,1=acge:1,1,0=cmgt:1,1,1=acgt} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: F{E,U,ac:0,0,0=CMEQ:0,1,0=CMGE:0,1,1=ACGE:1,1,0=CMGT:1,1,1=ACGT}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FCMP_ZERO_VEC]
+  desc: 0{1:Q}{1:U}011101{1:sz}10000011{2:op}10{5:Rn}{5:Rd}
+  mnem: FCM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}_ZERO_VEC{sz,Q:0,0=:0,1=:1,1=}
+  decode: fcm{U,op:0,0=gt:1,0=ge:0,1=eq:1,1=le:0,2=lt} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPimmfloatzero(ddi)
+  encmnem: FCM{U,op:0,0=GT:1,0=GE:0,1=EQ:1,1=LE:0,2=LT}{sz,Q:0,0=2s:0,1=4s:1,1=2d}_zero
+  encops: Rd=regfp Rn=regfp
+[FARITH1_VEC]
+  desc: 0{1:Q}{1:U}011101{1:sz}10000{1:o1}111110{5:Rn}{5:Rd}
+  mnem: F{o1,U:0,0=ABS:0,1=NEG:1,1=SQRT}_VEC{sz,Q:0,0=:0,1=:1,1=}
+  decode: f{o1,U:0,0=abs:0,1=neg:1,1=sqrt} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q)
+  encmnem: F{o1,U:0,0=ABS:0,1=NEG:1,1=SQRT}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp
+[FABD_SCALAR]
+  desc: 01{1:U=1}11110{1:o1=1}{1:sz}1{5:Rm}110101{5:Rn}{5:Rd}
+  mnem: FABD
+  decode: fabd OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPregfp(@Rm, @sz+2)
+  encmnem: FABD{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FADDSUB_VEC]
+  desc: 0{1:Q}{1:U}01110{1:o1}{1:sz}1{5:Rm}110101{5:Rn}{5:Rd}
+  mnem: F{o1,U:0,0=ADD:0,1=ADDP:1,0=SUB:1,1=ABD}_VEC{sz,Q:0,0=:0,1=:1,1=}
+  decode: f{o1,U:0,0=add:0,1=addp:1,0=sub:1,1=abd} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: F{o1,U:0,0=ADD:0,1=ADDP:1,0=SUB:1,1=ABD}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FRECP_SCALAR]
+  desc: 01{1:U}111101{1:sz}10000111{1:o1}110{5:Rn}{5:Rd}
+  mnem: F{U,o1:0,0=RECPE:0,1=RECPX:1,0=RSQRTE}_SCALAR
+  decode: f{U,o1:0,0=recpe:0,1=recpx:1,0=rsqrte} OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2)
+  encmnem: F{U,o1:0,0=RECPE:0,1=RECPX:1,0=RSQRTE}{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp
+[FRECP_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}100001110{1:o1}10{5:Rn}{5:Rd}
+  mnem: {o1:0=U:1=F}{U:0=RECP:1=RSQRT}E_VEC{o1,size,Q:0,2,*=:1,2,*=:1,3,1=}
+  decode: {o1:0=u:1=f}{U:0=recp:1=rsqrt}e OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q)
+  encmnem: {o1:0=U:1=F}{U:0=RECP:1=RSQRT}E{size,Q:2,0=2s:2,1=4s:3,1=2d}{o1,size,Q:0,2,*=:1,2,*=:1,3,1=}
+  encops: Rd=regfp Rn=regfp
+[FRECP_STEP_SCALAR]
+  desc: 01{1:U=0}11110{1:o1}{1:sz}1{5:Rm}111111{5:Rn}{5:Rd}
+  mnem: F{o1:0=RECP:1=RSQRT}S
+  decode: f{o1:0=recp:1=rsqrt}s OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPregfp(@Rm, @sz+2)
+  encmnem: F{o1:0=RECP:1=RSQRT}S{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FRECP_STEP_VEC]
+  desc: 0{1:Q}{1:U=0}01110{1:o1}{1:sz}1{5:Rm}111111{5:Rn}{5:Rd}
+  mnem: F{o1:0=RECP:1=RSQRT}SV{sz,Q:0,0=:0,1=:1,1=}
+  decode: f{o1:0=recp:1=rsqrt}s OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: F{o1:0=RECP:1=RSQRT}S{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FMULX_SCALAR]
+  desc: 01{1:U=0}111100{1:sz}1{5:Rm}110111{5:Rn}{5:Rd}
+  mnem: FMULX
+  decode: fmulx OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPregfp(@Rm, @sz+2)
+  encmnem: FMULX{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FMUL_VEC]
+  desc: 0{1:Q}{1:U}011100{1:sz}1{5:Rm}110111{5:Rn}{5:Rd}
+  mnem: FMUL{U:0=X:1=}V{sz,Q:0,0=:0,1=:1,1=}
+  decode: fmul{U:0=x:1=} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: FMUL{U:0=X:1=}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FMLA_VEC]
+  desc: 0{1:Q}{1:U=0}01110{1:o1}{1:sz}1{5:Rm}110011{5:Rn}{5:Rd}
+  mnem: FML{o1:0=A:1=S}V{sz,Q:0,0=:0,1=:1,1=}
+  decode: fml{o1:0=a:1=s} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: FML{o1:0=A:1=S}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FDIV_VEC]
+  desc: 0{1:Q}{1:U=1}011100{1:sz}1{5:Rm}111111{5:Rn}{5:Rd}
+  mnem: FDIVV{sz,Q:0,0=:0,1=:1,1=}
+  decode: fdiv OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvec(@Rm, @sz+2, @Q)
+  encmnem: FDIV{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[FP16_3REG_SCALAR]
+  desc: 01{1:U}11110{1:a}10{5:Rm}00{3:opcode}1{5:Rn}{5:Rd}
+  mnem: {opcode,a,U:2,1,1=FABD:3,0,0=FMULX:4,0,0=FCMEQ:4,0,1=FCMGE:4,1,1=FCMGT:5,0,1=FACGE:5,1,1=FACGT:7,0,0=FRECPS:7,1,0=FRSQRTS}_SCALAR_FP16
+  decode: {opcode,a,U:2,1,1=fabd:3,0,0=fmulx:4,0,0=fcmeq:4,0,1=fcmge:4,1,1=fcmgt:5,0,1=facge:5,1,1=facgt:7,0,0=frecps:7,1,0=frsqrts} OPregfp(@Rd, 1) OPregfp(@Rn, 1) OPregfp(@Rm, 1)
+  encmnem: {opcode,a,U:2,1,1=FABD:3,0,0=FMULX:4,0,0=FCMEQ:4,0,1=FCMGE:4,1,1=FCMGT:5,0,1=FACGE:5,1,1=FACGT:7,0,0=FRECPS:7,1,0=FRSQRTS}h
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: FP16
+[FP16_3REG_VEC]
+  desc: 0{1:Q}{1:U}01110{1:a}10{5:Rm}00{3:opcode}1{5:Rn}{5:Rd}
+  mnem: {opcode,a,U:0,0,0=FMAXNM:0,0,1=FMAXNMP:0,1,0=FMINNM:0,1,1=FMINNMP:1,0,0=FMLA:1,1,0=FMLS:2,0,0=FADD:2,0,1=FADDP:2,1,0=FSUB:2,1,1=FABD:3,0,0=FMULX:3,0,1=FMUL:3,1,0=FAMAX:3,1,1=FAMIN:4,0,0=FCMEQ:4,0,1=FCMGE:4,1,1=FCMGT:5,0,1=FACGE:5,1,1=FACGT:6,0,0=FMAX:6,0,1=FMAXP:6,1,0=FMIN:6,1,1=FMINP:7,0,0=FRECPS:7,0,1=FDIV:7,1,0=FRSQRTS:7,1,1=FSCALE}_VEC_FP16
+  decode: {opcode,a,U:0,0,0=fmaxnm:0,0,1=fmaxnmp:0,1,0=fminnm:0,1,1=fminnmp:1,0,0=fmla:1,1,0=fmls:2,0,0=fadd:2,0,1=faddp:2,1,0=fsub:2,1,1=fabd:3,0,0=fmulx:3,0,1=fmul:3,1,0=famax:3,1,1=famin:4,0,0=fcmeq:4,0,1=fcmge:4,1,1=fcmgt:5,0,1=facge:5,1,1=facgt:6,0,0=fmax:6,0,1=fmaxp:6,1,0=fmin:6,1,1=fminp:7,0,0=frecps:7,0,1=fdiv:7,1,0=frsqrts:7,1,1=fscale} OPregvec(@Rd, 1, @Q) OPregvec(@Rn, 1, @Q) OPregvec(@Rm, 1, @Q)
+  encmnem: {opcode,a,U:0,0,0=FMAXNM:0,0,1=FMAXNMP:0,1,0=FMINNM:0,1,1=FMINNMP:1,0,0=FMLA:1,1,0=FMLS:2,0,0=FADD:2,0,1=FADDP:2,1,0=FSUB:2,1,1=FABD:3,0,0=FMULX:3,0,1=FMUL:3,1,0=FAMAX:3,1,1=FAMIN:4,0,0=FCMEQ:4,0,1=FCMGE:4,1,1=FCMGT:5,0,1=FACGE:5,1,1=FACGT:6,0,0=FMAX:6,0,1=FMAXP:6,1,0=FMIN:6,1,1=FMINP:7,0,0=FRECPS:7,0,1=FDIV:7,1,0=FRSQRTS:7,1,1=FSCALE}{Q:0=4h:1=8h}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {opcode,a,U:0,*,*=FP16:1,*,*=FP16:2,*,*=FP16:3,0,*=FP16:3,1,*=FAMINMAX:4,*,*=FP16:5,*,*=FP16:6,*,*=FP16:7,0,*=FP16:7,1,0=FP16:7,1,1=FP8}
+[FP16_2REG_SCALAR]
+  desc: 01{1:U}11110{1:a}111100{5:opcode}10{5:Rn}{5:Rd}
+  mnem: {opcode,a,U:12,1,0=FCMGT_ZERO:12,1,1=FCMGE_ZERO:13,1,0=FCMEQ_ZERO:13,1,1=FCMLE_ZERO:14,1,0=FCMLT_ZERO:26,0,0=FCVTNS:26,0,1=FCVTNU:26,1,0=FCVTPS:26,1,1=FCVTPU:27,0,0=FCVTMS:27,0,1=FCVTMU:27,1,0=FCVTZS:27,1,1=FCVTZU:28,0,0=FCVTAS:28,0,1=FCVTAU:29,0,0=SCVTF:29,0,1=UCVTF:29,1,0=FRECPE:29,1,1=FRSQRTE:31,1,0=FRECPX}_SCALAR_FP16
+  decode: {opcode,a,U:12,1,0=fcmgt:12,1,1=fcmge:13,1,0=fcmeq:13,1,1=fcmle:14,1,0=fcmlt:26,0,0=fcvtns:26,0,1=fcvtnu:26,1,0=fcvtps:26,1,1=fcvtpu:27,0,0=fcvtms:27,0,1=fcvtmu:27,1,0=fcvtzs:27,1,1=fcvtzu:28,0,0=fcvtas:28,0,1=fcvtau:29,0,0=scvtf:29,0,1=ucvtf:29,1,0=frecpe:29,1,1=frsqrte:31,1,0=frecpx} OPregfp(@Rd, 1) OPregfp(@Rn, 1) {opcode<4>:0=OPimmfloatzero(ddi):1=}
+  encmnem: {opcode,a,U:12,1,0=FCMGT:12,1,1=FCMGE:13,1,0=FCMEQ:13,1,1=FCMLE:14,1,0=FCMLT:26,0,0=FCVTNS:26,0,1=FCVTNU:26,1,0=FCVTPS:26,1,1=FCVTPU:27,0,0=FCVTMS:27,0,1=FCVTMU:27,1,0=FCVTZS:27,1,1=FCVTZU:28,0,0=FCVTAS:28,0,1=FCVTAU:29,0,0=SCVTF:29,0,1=UCVTF:29,1,0=FRECPE:29,1,1=FRSQRTE:31,1,0=FRECPX}h{opcode<4>:0=_zero:1=}
+  encops: Rd=regfp Rn=regfp
+  feat: FP16
+[FP16_2REG_VEC]
+  desc: 0{1:Q}{1:U}01110{1:a}111100{5:opcode}10{5:Rn}{5:Rd}
+  mnem: {opcode,a,U:12,1,0=FCMGT_ZERO:12,1,1=FCMGE_ZERO:13,1,0=FCMEQ_ZERO:13,1,1=FCMLE_ZERO:14,1,0=FCMLT_ZERO:15,1,0=FABS:15,1,1=FNEG:24,0,0=FRINTN:24,0,1=FRINTA:24,1,0=FRINTP:25,0,0=FRINTM:25,0,1=FRINTX:25,1,0=FRINTZ:25,1,1=FRINTI:26,0,0=FCVTNS:26,0,1=FCVTNU:26,1,0=FCVTPS:26,1,1=FCVTPU:27,0,0=FCVTMS:27,0,1=FCVTMU:27,1,0=FCVTZS:27,1,1=FCVTZU:28,0,0=FCVTAS:28,0,1=FCVTAU:29,0,0=SCVTF:29,0,1=UCVTF:29,1,0=FRECPE:29,1,1=FRSQRTE:31,1,1=FSQRT}_VEC_FP16
+  decode: {opcode,a,U:12,1,0=fcmgt:12,1,1=fcmge:13,1,0=fcmeq:13,1,1=fcmle:14,1,0=fcmlt:15,1,0=fabs:15,1,1=fneg:24,0,0=frintn:24,0,1=frinta:24,1,0=frintp:25,0,0=frintm:25,0,1=frintx:25,1,0=frintz:25,1,1=frinti:26,0,0=fcvtns:26,0,1=fcvtnu:26,1,0=fcvtps:26,1,1=fcvtpu:27,0,0=fcvtms:27,0,1=fcvtmu:27,1,0=fcvtzs:27,1,1=fcvtzu:28,0,0=fcvtas:28,0,1=fcvtau:29,0,0=scvtf:29,0,1=ucvtf:29,1,0=frecpe:29,1,1=frsqrte:31,1,1=fsqrt} OPregvec(@Rd, 1, @Q) OPregvec(@Rn, 1, @Q) {opcode<4>,opcode<3:0>:0,12=OPimmfloatzero(ddi):0,13=OPimmfloatzero(ddi):0,14=OPimmfloatzero(ddi):0,15=:1,*=}
+  encmnem: {opcode,a,U:12,1,0=FCMGT:12,1,1=FCMGE:13,1,0=FCMEQ:13,1,1=FCMLE:14,1,0=FCMLT:15,1,0=FABS:15,1,1=FNEG:24,0,0=FRINTN:24,0,1=FRINTA:24,1,0=FRINTP:25,0,0=FRINTM:25,0,1=FRINTX:25,1,0=FRINTZ:25,1,1=FRINTI:26,0,0=FCVTNS:26,0,1=FCVTNU:26,1,0=FCVTPS:26,1,1=FCVTPU:27,0,0=FCVTMS:27,0,1=FCVTMU:27,1,0=FCVTZS:27,1,1=FCVTZU:28,0,0=FCVTAS:28,0,1=FCVTAU:29,0,0=SCVTF:29,0,1=UCVTF:29,1,0=FRECPE:29,1,1=FRSQRTE:31,1,1=FSQRT}{Q:0=4h:1=8h}{opcode<4>,opcode<3:0>:0,12=_zero:0,13=_zero:0,14=_zero:0,15=:1,*=}
+  encops: Rd=regfp Rn=regfp
+  feat: FP16
+[ANDOREOR_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}000111{5:Rn}{5:Rd}
+  mnem: {U,size:0,0=AND:0,1=BIC:0,2=ORR:0,3=ORN:1,0=EOR:1,1=BSL:1,2=BIT:1,3=BIF}V
+  decode: {U,size:0,0=and:0,1=bic:0,2=orr:0,3=orn:1,0=eor:1,1=bsl:1,2=bit:1,3=bif} OPregvec(@Rd, 0, @Q) OPregvec(@Rn, 0, @Q) OPregvec(@Rm, 0, @Q)
+  encmnem: {U,size:0,0=AND:0,1=BIC:0,2=ORR:0,3=ORN:1,0=EOR:1,1=BSL:1,2=BIT:1,3=BIF}{Q:0=8b:1=16b}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  encmnem_mov: {U,size:0,2=MOV}{Q:0=8b:1=16b}
+  encops_mov: Rd=regfp Rn=regfp Rm=@Rn
+[ADDSUBL_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{opcode:0=ADD:2=SUB}L{Q:0=:1=2}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{opcode:0=add:2=sub}l{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{opcode:0=ADD:2=SUB}L{Q:0=:1=2}_{size:0=8h:1=4s:2=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ADDSUBW_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{opcode:1=ADD:3=SUB}W{Q:0=:1=2}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{opcode:1=add:3=sub}w{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size+1, 1) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{opcode:1=ADD:3=SUB}W{Q:0=:1=2}_{size:0=8h:1=4s:2=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ADDSUBHN_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: {U:0=:1=R}{opcode:4=ADD:6=SUB}HN{Q:0=:1=2}{size:0=:1=:2=}
+  decode: {U:0=:1=r}{opcode:4=add:6=sub}hn{Q:0=:1=2} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size+1, 1) OPregvec(@Rm, @size+1, 1)
+  encmnem: {U:0=:1=R}{opcode:4=ADD:6=SUB}HN{size,Q:0,0=_8b:1,0=_4h:2,0=_2s:0,1=2_16b:1,1=2_8h:2,1=2_4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[ABDL_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{opcode:5=ABA:7=ABD}L{Q:0=:1=2}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{opcode:5=aba:7=abd}l{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{opcode:5=ABA:7=ABD}L{Q:0=:1=2}_{size:0=8h:1=4s:2=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[MULL_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{opcode:8=MLA:10=MLS:12=MUL}L{Q:0=:1=2}{size:0=:1=:2=}
+  decode: {U:0=s:1=u}{opcode:8=mla:10=mls:12=mul}l{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: {U:0=S:1=U}{opcode:8=MLA:10=MLS:12=MUL}L{Q:0=:1=2}_{size:0=8h:1=4s:2=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[SQDMULL_SCALAR]
+  desc: 01{1:U=0}11110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: SQD{opcode:9=MLA:11=MLS:13=MUL}L_SCALAR{size:1=:2=}
+  decode: sqd{opcode:9=mla:11=mls:13=mul}l OPregfp(@Rd, @size+1) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: SQD{opcode:9=MLA:11=MLS:13=MUL}L{size:1=s:2=d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[SQDMULL_VEC]
+  desc: 0{1:Q}{1:U=0}01110{2:size}1{5:Rm}{4:opcode}00{5:Rn}{5:Rd}
+  mnem: SQD{opcode:9=MLA:11=MLS:13=MUL}L{Q:0=:1=2}{size:1=:2=}
+  decode: sqd{opcode:9=mla:11=mls:13=mul}l{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: SQD{opcode:9=MLA:11=MLS:13=MUL}L{Q:0=:1=2}_{size:1=4s:2=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+[PMULL_VEC]
+  desc: 0{1:Q}{1:U=0}01110{2:size}1{5:Rm}{4:opcode=1110}00{5:Rn}{5:Rd}
+  mnem: PMULL{Q:0=:1=2}{size:0=:3=64}
+  decode: pmull{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: PMULL{Q:0=:1=2}_{size:0=8h:3=1q}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {size:0=:3=PMULL}
+[SQRDMLAH_SCALAR]
+  desc: 01{1:U=1}11110{2:size}0{5:Rm}1000{1:S}1{5:Rn}{5:Rd}
+  mnem: SQRDML{S:0=A:1=S}H_SCALAR{size:1=:2=}
+  decode: sqrdml{S:0=a:1=s}h OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregfp(@Rm, @size)
+  encmnem: SQRDML{S:0=A:1=S}H_SCALAR{size:1=h:2=s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: RDM
+[SQRDMLAH_VEC]
+  desc: 0{1:Q}{1:U=1}01110{2:size}0{5:Rm}1000{1:S}1{5:Rn}{5:Rd}
+  mnem: SQRDML{S:0=A:1=S}H{size:1=:2=}
+  decode: sqrdml{S:0=a:1=s}h OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q)
+  encmnem: SQRDML{S:0=A:1=S}H{size,Q:1,0=4h:1,1=8h:2,0=2s:2,1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: RDM
+[SHR_SCALAR_IMM]
+  desc: 01{1:U}111110{4:immh=1xxx}{3:immb}00{1:o1}{1:o0}01{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{o1:0=:1=R}{o0:0=SHR:1=SRA}_SCALAR
+  decode: {U:0=s:1=u}{o1:0=:1=r}{o0:0=shr:1=sra} OPregfp(@Rd, 3) OPregfp(@Rn, 3) OPimmsmall(128-(@immh<<3|@immb))
+  encmnem: {U:0=S:1=U}{o1:0=:1=R}{o0:0=SHR:1=SRA}d
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base=64
+[SHR_VEC_IMM]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}00{1:o1}{1:o0}01{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  cond: immh != 0
+  mnem: {U:0=S:1=U}{o1:0=:1=R}{o0:0=SHR:1=SRA}{immh<3>,Q:0,0=:0,1=:1,1=}{immh:1=:2=:3=:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {U:0=s:1=u}{o1:0=:1=r}{o0:0=shr:1=sra} OPregvec(@Rd, 3-clz(@immh, 4), @Q) OPregvec(@Rn, 3-clz(@immh, 4), @Q) OPimmsmall((16<<(3-clz(@immh, 4)))-(@immh<<3|@immb))
+  encmnem: {U:0=S:1=U}{o1:0=:1=R}{o0:0=SHR:1=SRA}{Q,immh:0,1=8b:1,1=16b:0,2=4h:1,2=8h:0,4=2s:1,4=4s:1,8=2d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base={immh:1=8:2=16:4=32:8=64}
+[QSHL_SCALAR_IMM]
+  desc: 01{1:U}111110{4:immh}{3:immb}011{1:op}01{5:Rn}{5:Rd}
+  # immh = 0 is reserved
+  cond: immh != 0
+  mnem: {op,U:0,1=SQSHLU:1,0=SQSHL:1,1=UQSHL}_IMM_SCALAR{immh:1=:2=:3=:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {op,U:0,1=sqshlu:1,0=sqshl:1,1=uqshl} OPregfp(@Rd, 3-clz(@immh, 4)) OPregfp(@Rn, 3-clz(@immh, 4)) OPimmsmall((@immh<<3|@immb)-(8<<(3-clz(@immh, 4))))
+  encmnem: {op,U:0,1=SQSHLU:1,0=SQSHL:1,1=UQSHL}{immh:1=b:2=h:4=s:8=d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftl/base={immh:1=8:2=16:4=32:8=64}
+[QSHL_VEC_IMM]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}011{1:op}01{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  cond: immh != 0
+  mnem: {op,U:0,1=SQSHLU:1,0=SQSHL:1,1=UQSHL}_IMM{immh<3>,Q:0,0=:0,1=:1,1=}{immh:1=:2=:3=:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {op,U:0,1=sqshlu:1,0=sqshl:1,1=uqshl} OPregvec(@Rd, 3-clz(@immh, 4), @Q) OPregvec(@Rn, 3-clz(@immh, 4), @Q) OPimmsmall((@immh<<3|@immb)-(8<<(3-clz(@immh, 4))))
+  encmnem: {op,U:0,1=SQSHLU:1,0=SQSHL:1,1=UQSHL}{Q,immh:0,1=8b:1,1=16b:0,2=4h:1,2=8h:0,4=2s:1,4=4s:1,8=2d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftl/base={immh:1=8:2=16:4=32:8=64}
+[SHRN_SCALAR_IMM]
+  desc: 01{1:U}111110{4:immh}{3:immb}100{1:op}{1:R}1{5:Rn}{5:Rd}
+  # immh = 0 is reserved
+  cond: immh != 0 && immh < 8
+  mnem: {U,op:0,1=SQ:1,0=SQ:1,1=UQ}{R:0=:1=R}SHR{U,op:0,1=:1,0=U:1,1=}N_SCALAR{immh:1=:2=:3=:4=:5=:6=:7=}
+  decode: {U,op:0,1=sq:1,0=sq:1,1=uq}{R:0=:1=r}shr{U,op:0,1=:1,0=u:1,1=}n OPregfp(@Rd, 3-clz(@immh, 4)) OPregfp(@Rn, 4-clz(@immh, 4)) OPimmsmall((16<<(3-clz(@immh, 4)))-(@immh<<3|@immb))
+  encmnem: {U,op:0,1=SQ:1,0=SQ:1,1=UQ}{R:0=:1=R}SHR{U,op:0,1=:1,0=U:1,1=}N{immh:1=b:2=h:4=s}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base={immh:1=8:2=16:4=32}
+[SHRN_VEC_IMM]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}100{1:op}{1:R}1{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  cond: immh != 0 && immh < 8
+  mnem: {U,op:0,0=:0,1=SQ:1,0=SQ:1,1=UQ}{R:0=:1=R}SHR{U,op:0,0=:0,1=:1,0=U:1,1=}N{Q:0=:1=2}{immh:1=:2=:3=:4=:5=:6=:7=}
+  decode: {U,op:0,0=:0,1=sq:1,0=sq:1,1=uq}{R:0=:1=r}shr{U,op:0,0=:0,1=:1,0=u:1,1=}n{Q:0=:1=2} OPregvec(@Rd, 3-clz(@immh, 4), @Q) OPregvec(@Rn, 4-clz(@immh, 4), 1) OPimmsmall((16<<(3-clz(@immh, 4)))-(@immh<<3|@immb))
+  encmnem: {U,op:0,0=:0,1=SQ:1,0=SQ:1,1=UQ}{R:0=:1=R}SHR{U,op:0,0=:0,1=:1,0=U:1,1=}N{immh,Q:1,0=_8b:2,0=_4h:4,0=_2s:1,1=2_16b:2,1=2_8h:4,1=2_4s}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base={immh:1=8:2=16:4=32}
+[SHLL_VEC_IMM]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}101001{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  # cond: immh != 0 && immh < 8
+  mnem: {U:0=S:1=U}SHLL{Q:0=:1=2}{immh:1=:2=:3=:4=:5=:6=:7=}
+  decode: {U:0=s:1=u}shll{Q:0=:1=2} OPregvec(@Rd, 4-clz(@immh, 4), 1) OPregvec(@Rn, 3-clz(@immh, 4), @Q) OPimmsmall((@immh<<3|@immb)-(8<<(3-clz(@immh, 4))))
+  encmnem: {U:0=S:1=U}SHLL{Q:0=:1=2}_{immh:1=8h:2=4s:4=2d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftl/base={immh:1=8:2=16:4=32}
+  encmnem_xtl: {U:0=S:1=U}XTL{Q:0=:1=2}_{immh:1=8h:2=4s:4=2d}
+  encops_xtl: Rd=regfp Rn=regfp immb=const/val=0
+[SHLL_VEC_ESZ]
+  desc: 0{1:Q}{1:U=1}01110{2:size}100001001110{5:Rn}{5:Rd}
+  mnem: SHLL{Q:0=:1=2}_VEC_ESZ{size:0=:1=:2=}
+  decode: shll{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPimmsmall(8<<@size)
+  encmnem: SHLL{Q,size:0,0=_8h_8:0,1=_4s_16:0,2=_2d_32:1,0=2_8h_8:1,1=2_4s_16:1,2=2_2d_32}
+  encops: Rd=regfp Rn=regfp
+[SHIFT_SCALAR_IMM]
+  desc: 01{1:U}111110{4:immh=1xxx}{3:immb}010{1:op}01{5:Rn}{5:Rd}
+  mnem: {op,U:0,1=SRI:1,0=SHL:1,1=SLI}_SCALAR
+  decode: {op,U:0,1=sri:1,0=shl:1,1=sli} OPregfp(@Rd, 3) OPregfp(@Rn, 3) OPimmsmall(@op?(@immh<<3|@immb)-64:128-(@immh<<3|@immb))
+  encmnem: {op,U:0,1=SRI:1,0=SHL:1,1=SLI}di
+  encops: Rd=regfp Rn=regfp immh,immb=immshift{op:0=r:1=l}/base=64
+[SHIFT_VEC_IMM]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}010{1:op}01{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  cond: immh != 0
+  mnem: {op,U:0,1=SRI:1,0=SHL:1,1=SLI}{immh<3>,Q:0,0=:0,1=:1,1=}{immh:1=:2=:3=:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {op,U:0,1=sri:1,0=shl:1,1=sli} OPregvec(@Rd, 3-clz(@immh, 4), @Q) OPregvec(@Rn, 3-clz(@immh, 4), @Q) OPimmsmall(@op?(@immh<<3|@immb)-(8<<(3-clz(@immh, 4))):(16<<(3-clz(@immh,4)))-(@immh<<3|@immb))
+  encmnem: {op,U:0,1=SRI:1,0=SHL:1,1=SLI}{Q,immh:0,1=8b:1,1=16b:0,2=4h:1,2=8h:0,4=2s:1,4=4s:1,8=2d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshift{op:0=r:1=l}/base={immh:1=8:2=16:4=32:8=64}
+[FCVT_SCALAR_FIXED]
+  desc: 01{1:U}111110{4:immh}{3:immb}111{2:op}1{5:Rn}{5:Rd}
+  # immh = 0 is reserved
+  cond: immh != 0
+  mnem: {op,U:0,0=S:0,1=U:3,0=F:3,1=F}CVT{op,U:0,0=F:0,1=F:3,0=ZS:3,1=ZU}_SCALAR_FIX{immh:2=_FP16:3=_FP16:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {op,U:0,0=s:0,1=u:3,0=f:3,1=f}cvt{op,U:0,0=f:0,1=f:3,0=zs:3,1=zu} OPregfp(@Rd, 3-clz(@immh, 4)) OPregfp(@Rn, 3-clz(@immh, 4)) OPimmsmall((16<<(3-clz(@immh, 4)))-(@immh<<3|@immb))
+  encmnem: {op,U:0,0=S:0,1=U:3,0=F:3,1=F}CVT{op,U:0,0=F:0,1=F:3,0=ZS:3,1=ZU}{immh:2=h:4=s:8=d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base={immh:2=16:4=32:8=64}
+  feat: {immh:2=FP16:3=FP16:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+[FCVT_VEC_FIXED]
+  desc: 0{1:Q}{1:U}011110{4:immh}{3:immb}111{2:op}1{5:Rn}{5:Rd}
+  # immh = 0 is SIMD imm
+  cond: immh != 0
+  mnem: {op,U:0,0=S:0,1=U:3,0=F:3,1=F}CVT{op,U:0,0=F:0,1=F:3,0=ZS:3,1=ZU}_VEC_FIX{immh<3>,Q:0,0=:0,1=:1,1=}{immh:2=_FP16:3=_FP16:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+  decode: {op,U:0,0=s:0,1=u:3,0=f:3,1=f}cvt{op,U:0,0=f:0,1=f:3,0=zs:3,1=zu} OPregvec(@Rd, 3-clz(@immh, 4), @Q) OPregvec(@Rn, 3-clz(@immh, 4), @Q) OPimmsmall((16<<(3-clz(@immh, 4)))-(@immh<<3|@immb))
+  encmnem: {op,U:0,0=S:0,1=U:3,0=F:3,1=F}CVT{op,U:0,0=F:0,1=F:3,0=ZS:3,1=ZU}{Q,immh:0,2=4h:1,2=8h:0,4=2s:1,4=4s:1,8=2d}i
+  encops: Rd=regfp Rn=regfp immh,immb=immshiftr/base={immh:2=16:4=32:8=64}
+  feat: {immh:2=FP16:3=FP16:4=:5=:6=:7=:8=:9=:10=:11=:12=:13=:14=:15=}
+[FCVT_SCALAR]
+  desc: 01{1:U}11110{1:o2}{1:sz}10000{5:opcode}10{5:Rn}{5:Rd}
+  mnem: FCVT{o2,opcode:0,26=N:1,26=P:0,27=M:1,27=Z:0,28=A}{U:0=S:1=U}_SCALAR
+  decode: fcvt{o2,opcode:0,26=n:1,26=p:0,27=m:1,27=z:0,28=a}{U:0=s:1=u} OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2)
+  encmnem: FCVT{o2,opcode:0,26=N:1,26=P:0,27=M:1,27=Z:0,28=A}{U:0=S:1=U}{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp
+[FCVT_VEC]
+  desc: 0{1:Q}{1:U}01110{1:o2}{1:sz}10000{5:opcode}10{5:Rn}{5:Rd}
+  mnem: FCVT{o2,opcode:0,26=N:1,26=P:0,27=M:1,27=Z:0,28=A}{U:0=S:1=U}_VEC{Q,sz:*,*=:!0,1}
+  decode: fcvt{o2,opcode:0,26=n:1,26=p:0,27=m:1,27=z:0,28=a}{U:0=s:1=u} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q)
+  encmnem: FCVT{o2,opcode:0,26=N:1,26=P:0,27=M:1,27=Z:0,28=A}{U:0=S:1=U}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp
+[FCVTL_VEC]
+  desc: 0{1:Q}{1:U=0}011100{1:sz}100001011110{5:Rn}{5:Rd}
+  mnem: FCVTL{Q:0=:1=2}_VEC
+  decode: fcvtl{Q:0=:1=2} OPregvec(@Rd, @sz+2, 1) OPregvec(@Rn, @sz+1, @Q)
+  encmnem: FCVTL{sz,Q:0,0=_4s:0,1=2_4s:1,0=_2d:1,1=2_2d}
+  encops: Rd=regfp Rn=regfp
+[FCVT_FROMINT_SCALAR]
+  desc: 01{1:U}111100{1:sz}100001110110{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}CVTF_VEC_SCALAR
+  decode: {U:0=s:1=u}cvtf OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2)
+  encmnem: {U:0=S:1=U}CVTF{sz:0=s:1=d}
+  encops: Rd=regfp Rn=regfp
+[FCVT_FROMINT_VEC]
+  desc: 0{1:Q}{1:U}011100{1:sz}100001110110{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}CVTF_VEC{Q,sz:*,*=:!0,1}
+  decode: {U:0=s:1=u}cvtf OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q)
+  encmnem: {U:0=S:1=U}CVTF{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp
+[FCVTN_SCALAR]
+  desc: 01{1:U=1}111100{1:sz=1}100001011010{5:Rn}{5:Rd}
+  mnem: FCVTXN_SCALAR
+  decode: fcvtxn OPregfp(@Rd, 2) OPregfp(@Rn, 3)
+  encmnem: FCVTXNs
+  encops: Rd=regfp Rn=regfp
+[FCVTN_VEC]
+  desc: 0{1:Q}{1:U}01110{1:o1}{1:sz}100001011010{5:Rn}{5:Rd}
+  mnem: {o1,U,sz:0,0,*=FCVTN:0,1,1=FCVTXN:1,0,0=BFCVTN}{Q:0=:1=2}
+  decode: {o1,U,sz:0,0,*=fcvtn:0,1,1=fcvtxn:1,0,0=bfcvtn}{Q:0=:1=2} OPregvec(@Rd, @sz+1, @Q) OPregvec(@Rn, @sz+2, 1)
+  encmnem: {o1,U,sz:0,0,*=FCVTN:0,1,1=FCVTXN:1,0,0=BFCVTN}{sz,Q:0,0=_4h:1,0=_2s:0,1=2_8h:1,1=2_4s}
+  encops: Rd=regfp Rn=regfp
+  feat: {o1,U,sz:0,0,*=:0,1,1=:1,0,0=BF16}
+[FRINT_VEC]
+  desc: 0{1:Q}{1:U}01110{1:o2}{1:sz}100001100{1:o1}10{5:Rn}{5:Rd}
+  mnem: FRINT{U,o1,o2:0,0,0=N:0,0,1=P:0,1,0=M:0,1,1=Z:1,0,0=A:1,1,0=X:1,1,1=I}_VEC{Q,sz:*,*=:!0,1}
+  decode: frint{U,o1,o2:0,0,0=n:0,0,1=p:0,1,0=m:0,1,1=z:1,0,0=a:1,1,0=x:1,1,1=i} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q)
+  encmnem: FRINT{U,o1,o2:0,0,0=N:0,0,1=P:0,1,0=M:0,1,1=Z:1,0,0=A:1,1,0=X:1,1,1=I}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp
+[FRINTTS_VEC]
+  desc: 0{1:Q}{1:U}011100{1:sz}100001111{1:o1}10{5:Rn}{5:Rd}
+  mnem: FRINT{o1:0=32:1=64}{U:0=Z:1=X}_VEC{Q,sz:*,*=:!0,1}
+  decode: frint{o1:0=32:1=64}{U:0=z:1=x} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q)
+  encmnem: FRINT{o1:0=32:1=64}{U:0=Z:1=X}{sz,Q:0,0=2s:0,1=4s:1,1=2d}
+  encops: Rd=regfp Rn=regfp
+  feat: FRINTTS
+[INT_HORZ_SCALAR]
+  desc: 01{1:U=0}11110{2:size=11}11000{5:opcode=11011}10{5:Rn}{5:Rd}
+  mnem: ADDP_SCALAR
+  decode: addp OPregfp(@Rd, @size) OPregvec(@Rn, 3, 1)
+  encmnem: ADDPd
+  encops: Rd=regfp Rn=regfp
+[INT_HORZ_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}11000{5:opcode}10{5:Rn}{5:Rd}
+  mnem: {U,opcode:0,3=SADDL:1,3=UADDL:0,10=SMAX:1,10=UMAX:0,26=SMIN:1,26=UMIN:0,27=ADD}V{size,Q:0,0=:0,1=:1,0=:1,1=:2,1=}
+  decode: {U,opcode:0,3=saddl:1,3=uaddl:0,10=smax:1,10=umax:0,26=smin:1,26=umin:0,27=add}v OPregfp(@Rd, @size+!(@opcode&8)) OPregvec(@Rn, @size, @Q)
+  encmnem: {U,opcode:0,3=SADDL:1,3=UADDL:0,10=SMAX:1,10=UMAX:0,26=SMIN:1,26=UMIN:0,27=ADD}V{size,Q:0,0=8b:0,1=16b:1,0=4h:1,1=8h:2,1=4s}
+  encops: Rd=regfp Rn=regfp
+[FP_HORZ_SCALAR]
+  desc: 01{1:U}11110{2:size}11000{5:opcode=011xx}10{5:Rn}{5:Rd}
+  mnem: F{size<1>,opcode<1:0>:0,1=ADD:0,0=MAXNM:0,3=MAX:1,0=MINNM:1,3=MIN}P{U,size<0>:0,0=:1,0=:1,1=}_SCALAR{U:0=_FP16:1=}
+  # Second operand depends on U,size<0>: 0,0=2H(!); 1,0=2S; 1,1=2D.
+  decode: f{size<1>,opcode<1:0>:0,1=add:0,0=maxnm:0,3=max:1,0=minnm:1,3=min}p OPregfp(@Rd, (@size&1)+1+@U) OPregvec(@Rn, (@U|(@size&1))?(@U<<1|(@size&1)):4, @U&@size&1)
+  encmnem: F{size<1>,opcode<1:0>:0,1=ADD:0,0=MAXNM:0,3=MAX:1,0=MINNM:1,3=MIN}P{U,size<0>:0,0=h:1,0=s:1,1=d}
+  encops: Rd=regfp Rn=regfp
+  feat: {U:0=FP16:1=}
+[FP_HORZ_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size=x0}11000{5:opcode=011xx}10{5:Rn}{5:Rd}
+  mnem: F{size<1>,opcode<1:0>:0,0=MAXNM:0,3=MAX:1,0=MINNM:1,3=MIN}V{U,Q:0,0=:0,1=:1,1=}{U:0=_FP16:1=}
+  decode: f{size<1>,opcode<1:0>:0,0=maxnm:0,3=max:1,0=minnm:1,3=min}v OPregfp(@Rd, @U+1) OPregvec(@Rn, @U+1, @Q)
+  encmnem: F{size<1>,opcode<1:0>:0,0=MAXNM:0,3=MAX:1,0=MINNM:1,3=MIN}V{U,Q:0,0=4h:0,1=8h:1,1=4s}
+  encops: Rd=regfp Rn=regfp
+  feat: {U:0=FP16:1=}
+[MUL_ELEM_SCALAR]
+  desc: 01{1:U}11111{2:size}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {U,opcode:0,12=SQDMULH:0,13=SQRDMULH:1,13=SQRDMLAH:1,15=SQRDMLSH}_ELEM_SCALAR{size:1=:2=}
+  decode: {U,opcode:0,12=sqdmulh:0,13=sqrdmulh:1,13=sqrdmlah:1,15=sqrdmlsh} OPregfp(@Rd, @size) OPregfp(@Rn, @size) OPregvidx(@Rm+(@size>=2?@M<<4:0), @size, @size>=2?2*@H+@L:4*@H+2*@L+@M)
+  encmnem: {U,opcode:0,12=SQDMULH:0,13=SQRDMULH:1,13=SQRDMLAH:1,15=SQRDMLSH}{size:1=h:2=s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max={size:1=16:2=32} H,L,M=velemidx/size={size:1=1:2=2}
+  feat: {U:0=:1=RDM}
+[MUL_ELEM]
+  desc: 0{1:Q}{1:U}01111{2:size}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {U,opcode:0,8=MUL:1,0=MLA:1,4=MLS:0,12=SQDMULH:0,13=SQRDMULH:1,13=SQRDMLAH:1,15=SQRDMLSH}_ELEM{size:1=:2=}
+  decode: {U,opcode:0,8=mul:1,0=mla:1,4=mls:0,12=sqdmulh:0,13=sqrdmulh:1,13=sqrdmlah:1,15=sqrdmlsh} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvidx(@Rm+(@size>=2?@M<<4:0), @size, @size>=2?2*@H+@L:4*@H+2*@L+@M)
+  encmnem: {U,opcode:0,8=MUL:1,0=MLA:1,4=MLS:0,12=SQDMULH:0,13=SQRDMULH:1,13=SQRDMLAH:1,15=SQRDMLSH}{size,Q:1,0=4h:1,1=8h:2,0=2s:2,1=4s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max={size:1=16:2=32} H,L,M=velemidx/size={size:1=1:2=2}
+  feat: {U,opcode:0,8=:1,0=:1,4=:0,12=:0,13=:1,13=RDM:1,15=RDM}
+[MULL_ELEM_SCALAR]
+  desc: 01{1:U=0}11111{2:size}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: SQD{opcode:3=MLA:7=MLS:11=MUL}L_ELEM_SCALAR{size:1=:2=}
+  decode: sqd{opcode:3=mla:7=mls:11=mul}l OPregfp(@Rd, @size+1) OPregfp(@Rn, @size) OPregvidx(@Rm+(@size>=2?@M<<4:0), @size, @size>=2?2*@H+@L:4*@H+2*@L+@M)
+  encmnem: SQD{opcode:3=MLA:7=MLS:11=MUL}L{size:1=h:2=s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max={size:1=16:2=32} H,L,M=velemidx/size={size:1=1:2=2}
+[MULL_ELEM]
+  desc: 0{1:Q}{1:U}01111{2:size}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {U:0=S:1=U}{opcode,U:2,*=MLA:6,*=MLS:10,*=MUL:3,0=QDMLA:7,0=QDMLS:11,0=QDMUL}L{Q:0=:1=2}_ELEM{size:1=:2=}
+  decode: {U:0=s:1=u}{opcode,U:2,*=mla:6,*=mls:10,*=mul:3,0=qdmla:7,0=qdmls:11,0=qdmul}l{Q:0=:1=2} OPregvec(@Rd, @size+1, 1) OPregvec(@Rn, @size, @Q) OPregvidx(@Rm+(@size>=2?@M<<4:0), @size, @size>=2?2*@H+@L:4*@H+2*@L+@M)
+  encmnem: {U:0=S:1=U}{opcode,U:2,*=MLA:6,*=MLS:10,*=MUL:3,0=QDMLA:7,0=QDMLS:11,0=QDMUL}L{size,Q:1,0=_4s:1,1=2_4s:2,0=_2d:2,1=2_2d}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max={size:1=16:2=32} H,L,M=velemidx/size={size:1=1:2=2}
+[FMUL_ELEM_SCALAR]
+  desc: 01{1:U}111111{1:sz}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  # sz=1 and L=1 is reserved
+  mnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}_ELEM_SCALAR{sz,L:0,*=:1,0=}
+  decode: {U,opcode:0,1=fmla:0,5=fmls:0,9=fmul:1,9=fmulx} OPregfp(@Rd, @sz+2) OPregfp(@Rn, @sz+2) OPregvidx(@Rm+(@M<<4), @sz+2, @sz?@H:2*@H+@L)
+  encmnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}{sz:0=s:1=d}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=32 H,L,M=velemidx/size={sz:0=2:1=3}
+[FMUL_ELEM_SCALAR_FP16]
+  desc: 01{1:U}1111100{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}_ELEM_SCALAR_FP16
+  decode: {U,opcode:0,1=fmla:0,5=fmls:0,9=fmul:1,9=fmulx} OPregfp(@Rd, 1) OPregfp(@Rn, 1) OPregvidx(@Rm, 1, 4*@H+2*@L+@M)
+  encmnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}h_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=16 H,L,M=velemidx/size=1
+  feat: FP16
+[FMUL_ELEM]
+  desc: 0{1:Q}{1:U}011111{1:sz}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  # sz=1 and L=1 is reserved; sz=1 and Q=0 is reserved
+  mnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}_ELEM{sz,L:0,*=:1,0=}{sz,Q:0,0=:0,1=:1,1=}
+  decode: {U,opcode:0,1=fmla:0,5=fmls:0,9=fmul:1,9=fmulx} OPregvec(@Rd, @sz+2, @Q) OPregvec(@Rn, @sz+2, @Q) OPregvidx(@Rm+(@M<<4), @sz+2, @sz?@H:2*@H+@L)
+  encmnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}{sz,Q:0,0=2s:0,1=4s:1,1=2d}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=32 H,L,M=velemidx/size={sz:0=2:1=3}
+[FMUL_ELEM_FP16]
+  desc: 0{1:Q}{1:U}0111100{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}_ELEM_FP16
+  decode: {U,opcode:0,1=fmla:0,5=fmls:0,9=fmul:1,9=fmulx} OPregvec(@Rd, 1, @Q) OPregvec(@Rn, 1, @Q) OPregvidx(@Rm, 1, 4*@H+2*@L+@M)
+  encmnem: {U,opcode:0,1=FMLA:0,5=FMLS:0,9=FMUL:1,9=FMULX}{Q:0=4h:1=8h}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=16 H,L,M=velemidx/size=1
+  feat: FP16
+[DOT_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size}0{5:Rm}1{4:opcode}1{5:Rn}{5:Rd}
+  mnem: {opcode,U:2,0=SDOT:2,1=UDOT:3,0=USDOT:4,0=SMMLA:4,1=UMMLA:5,0=USMMLA:13,1=BFMMLA:15,1=BFDOT}{opcode<3>,size:0,2=:1,1=}{opcode<2:1>,Q:0,*=:1,*=:2,1=:3,*=}_VEC
+  decode: {opcode,U:2,0=sdot:2,1=udot:3,0=usdot:4,0=smmla:4,1=ummla:5,0=usmmla:13,1=bfmmla:15,1=bfdot} OPregvec(@Rd, 2, @Q) OPregvec(@Rn, {opcode<3>:0=0:1=1}, @Q) OPregvec(@Rm, {opcode<3>:0=0:1=1}, @Q)
+  encmnem: {opcode,U:2,0=SDOT:2,1=UDOT:3,0=USDOT:4,0=SMMLA:4,1=UMMLA:5,0=USMMLA:13,1=BFMMLA:15,1=BFDOT}{Q:0=2s:1=4s}{opcode<2:1>,Q:0,*=:1,*=:2,1=:3,*=}{opcode<3>,size:0,2=:1,1=}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {opcode:2=DotProd:3=I8MM:4=I8MM:5=I8MM:13=BF16:15=BF16}
+[DOT_ELEM]
+  desc: 0{1:Q}{1:U}01111{2:size}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {opcode,U,size:14,0,2=SDOT:14,1,2=UDOT:15,0,0=SUDOT:15,0,1=BFDOT:15,0,2=USDOT}_ELEM
+  decode: {opcode,U,size:14,0,2=sdot:14,1,2=udot:15,0,0=sudot:15,0,1=bfdot:15,0,2=usdot} OPregvec(@Rd, 2, @Q) OPregvec(@Rn, {size<0>:0=0:1=1}, @Q) OPregvidx(@Rm+(@M<<4), {size<0>:0=6:1=7}, @H<<1|@L)
+  encmnem: {opcode,U,size:14,0,2=SDOT:14,1,2=UDOT:15,0,0=SUDOT:15,0,1=BFDOT:15,0,2=USDOT}{Q:0=2s:1=4s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=32 H,L,M=velemidx/size=2
+  feat: {opcode,size<0>:14,*=DotProd:15,0=I8MM:15,1=BF16}
+[FMLAL_VEC]
+  desc: 0{1:Q}{1:U}01110{2:size=11}0{5:Rm}1{4:opcode=1111}1{5:Rn}{5:Rd}
+  mnem: {U:0=:1=B}FMLAL{Q:0=B:1=T}_VEC
+  decode: {U:0=:1=b}fmlal{Q:0=b:1=t} OPregvec(@Rd, {U:0=1:1=2}, 1) OPregvec(@Rn, {U:0=0:1=1}, 1) OPregvec(@Rm, {U:0=0:1=1}, 1)
+  encmnem: {U:0=:1=B}FMLAL{Q:0=B:1=T}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {U:0=FP8FMA:1=BF16}
+[FMLAL_ELEM]
+  desc: 0{1:Q}{1:U=0}01111{2:size=11}{1:L}{1:M}{4:Rm}{4:opcode}{1:H}0{5:Rn}{5:Rd}
+  mnem: {opcode:0=:15=B}FMLAL{Q:0=B:1=T}_ELEM
+  decode: {opcode:0=:15=b}fmlal{Q:0=b:1=t} OPregvec(@Rd, {opcode:0=1:15=2}, 1) OPregvec(@Rn, {opcode:0=0:15=1}, 1) OPregvidx(@Rm{opcode:0=&7:15=}, {opcode:0=0:15=1}, (@H<<3|@L<<2|@M<<1|@Rm>>3)>>{opcode:0=0:15=1})
+  encmnem: {opcode:0=:15=B}FMLAL{Q:0=B:1=T}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max={opcode:0=8:15=16} H,L,M,Rm=velemidx0/size={opcode:0=0:15=1}
+  feat: {opcode:0=FP8FMA:15=BF16}
+[FHM_VEC]
+  desc: 0{1:Q}{1:U}01110{1:S}01{5:Rm}{5:opcode}1{5:Rn}{5:Rd}
+  mnem: FML{S:0=A:1=S}L{U,opcode:0,29=:1,25=2}_VEC
+  decode: fml{S:0=a:1=s}l{U:0=:1=2} OPregvec(@Rd, 2, @Q) OPregvec(@Rn, @Q?1:4, 0) OPregvec(@Rm, @Q?1:4, 0)
+  encmnem: FML{S:0=A:1=S}L{U,opcode:0,29=:1,25=2}_{Q:0=2s:1=4s}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: FHM
+[FHM_ELEM]
+  desc: 0{1:Q}{1:U}01111{2:size=10}{1:L}{1:M}{4:Rm}{1:o1}{1:S}00{1:H}0{5:Rn}{5:Rd}
+  mnem: FML{S:0=A:1=S}L{U,o1:0,0=:1,1=2}_ELEM
+  decode: fml{S:0=a:1=s}l{U:0=:1=2} OPregvec(@Rd, 2, @Q) OPregvec(@Rn, @Q?1:4, 0) OPregvidx(@Rm, 1, @H<<2|@L<<1|@M<<0)
+  encmnem: FML{S:0=A:1=S}L{U,o1:0,0=:1,1=2}_{Q:0=2s:1=4s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=16 H,L,M=velemidx/size=1
+  feat: FHM
+[FCMLA_VEC]
+  desc: 0{1:Q}{1:U=1}01110{2:size}0{5:Rm}11{1:o1}{2:rot}1{5:Rn}{5:Rd}
+  mnem: FC{o1,rot<0>:0,*=MLA:1,0=ADD}_VEC{size,Q:1,*=:2,*=:3,1=}
+  decode: fc{o1:0=mla:1=add} OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvec(@Rm, @size, @Q) OPuimm(@rot*90{o1:0=:1=+90})
+  encmnem: FC{o1:0=MLA:1=ADD}{size,Q:1,0=4h:1,1=8h:2,0=2s:2,1=4s:3,1=2d}
+  encops: Rd=regfp Rn=regfp Rm=regfp rot=immrot{o1:0=mul:1=add}
+  feat: FCMA
+[FCMLA_ELEM]
+  desc: 0{1:Q}{1:U=1}01111{2:size}{1:L}{1:M}{4:Rm}0{2:rot}1{1:H}0{5:Rn}{5:Rd}
+  mnem: FCMLA_ELEM{size,Q,L,H:1,0,*,0=:1,1,*,*=:2,1,0,*=}
+  decode: fcmla OPregvec(@Rd, @size, @Q) OPregvec(@Rn, @size, @Q) OPregvidx(@Rm|@M<<4, @size, (@H<<2|@L<<1|@M<<0)>>@size) OPuimm(@rot*90)
+  encmnem: FCMLA{size,Q:1,0=4h:1,1=8h:2,1=4s}_elem
+  encops: Rd=regfp Rn=regfp M,Rm=regfplim/max=32 H,L,M=velemidxlim/size={size:1=2:2=3},lim={Q:0=2:1=4} rot=immrotmul
+  feat: FCMA
+[SIMD_IMM]
+  desc: 0{1:Q}{1:op}0111100000{3:immh}{4:cmode}{1:o2}1{5:imml}{5:Rd}
+  # FMOV64 only exists for Q=1
+  mnem: {cmode,op,o2:0,0,0=MOVI32:0,1,0=MVNI32:1,0,0=ORRI32:1,1,0=BICI32:2,0,0=MOVI32:2,1,0=MVNI32:3,0,0=ORRI32:3,1,0=BICI32:4,0,0=MOVI32:4,1,0=MVNI32:5,0,0=ORRI32:5,1,0=BICI32:6,0,0=MOVI32:6,1,0=MVNI32:7,0,0=ORRI32:7,1,0=BICI32:8,0,0=MOVI16:8,1,0=MVNI16:9,0,0=ORRI16:9,1,0=BICI16:10,0,0=MOVI16:10,1,0=MVNI16:11,0,0=ORRI16:11,1,0=BICI16:12,0,0=MOVI32_MSL:12,1,0=MVNI32_MSL:13,0,0=MOVI32_MSL:13,1,0=MVNI32_MSL:14,0,0=MOVI8:14,1,0=MOVI64:15,0,0=FMOV32:15,1,0=FMOV64:15,0,1=FMOV16}{cmode,op,o2,Q:*,*,*,*=:!15,1,0,0}
+  decode: {cmode<3:1>,cmode<0>,op:*,0,0=movi:*,0,1=mvni:*,1,0=orr:*,1,1=bic:^6,1,0=movi:^6,1,1=mvni:^7,0,1=movi:^7,1,*=fmov} @op&&@cmode>=14&&!@Q?OPregfp(@Rd, 3):OPregvec(@Rd, @cmode<8?2:@cmode<12?1:@cmode<14?2:@cmode==14?(@op?3:0):(@op?3:@o2?1:2), @Q) @cmode<14?OPuimmshift(@immh<<5|@imml, @cmode>=12, @cmode<12?(@cmode>>1&3)*8:(@cmode&1)*8+8):@cmode==14?(@op==0?OPuimm(@immh<<5|@imml):OPimmsimdmask(ddi, @immh<<5|@imml)):OPimmfloat(ddi, @immh<<5|@imml)
+  encmnem_movi: MOVI{Q:0=d:1=2d}{o2:0=}
+  encops_movi: Rd=regfp immh,imml,op,cmode=immsimd8movi
+  encmnem_bit32: {op:0=ORR:1=BIC}{cmode<3>,Q:0,0=2s:0,1=4s}i{o2:0=}
+  encops_bit32: Rd=regfp immh,imml,cmode=immsimd8lsl/maxshift=4
+  encmnem_bit16: {op:0=ORR:1=BIC}{cmode<3:2>,Q:2,0=4h:2,1=8h}i{o2:0=}
+  encops_bit16: Rd=regfp immh,imml,cmode=immsimd8lsl/maxshift=2
+  encmnem_fmov: FMOV{cmode,op,o2,Q:15,0,1,0=4h:15,0,1,1=8h:15,0,0,0=2s:15,0,0,1=4s:15,1,0,1=2d}i
+  encops_fmov: Rd=regfp immh,imml=immsimd8fmov
+  feat: {o2:0=:1=FP16}
+
+[AUT]
+  desc: 110110101100000100{1:Z}{1:op}{1:D}{1:M}{5:Rn|SP}{5:Rd}
+  mnem: {op:0=PAC:1=AUT}{D:0=I:1=D}{Z,Rn:0,*=:1,31=Z}{M:0=A:1=B}
+  decode: {op:0=pac:1=aut}{D:0=i:1=d}{Z:0=:1=z}{M:0=a:1=b} OPreggp(@Rd, 1) {Z:0=OPreggpsp(@Rn, 1):1=}
+  encmnem: {op:0=PAC:1=AUT}{D:0=I:1=D}{Z:0=:1=Z}{M:0=A:1=B}
+  encops: Rd=reggp Rn={Z:0=reggpsp:1=regzr}
+  feat: PAuth
+[LDRAUT]
+  desc: {2:size=11}111000{1:M}{1:S|s}1{9:imm9}{1:W}1{5:Rn|SP}{5:Rt}
+  mnem: LDRA{M:0=A:1=B}{W:0=:1=_PRE}
+  decode: ldra{M:0=a:1=b} OPreggp(@Rt, 1) OPmemsoff{W:0=:1=pre}(@Rn, @S*0x1000+@imm9*8)
+  encmnem: LDRA{M:0=A:1=B}{W:0=:1=_pre}
+  encops: Rt=reggp Rn=reggpsp S,imm9=immldraut
+  feat: PAuth
+[XPAC]
+  desc: 110110101100000101000{1:D}{5:Rn=11111}{5:Rd}
+  mnem: XPAC{D:0=I:1=D}
+  decode: xpac{D:0=i:1=d} OPreggp(@Rd, 1)
+  encmnem: XPAC{D:0=I:1=D}
+  encops: Rd=reggp
+  feat: PAuth
+[PACGA]
+  desc: 10011010110{5:Rm|SP}001100{5:Rn}{5:Rd}
+  mnem: PACGA
+  decode: pacga OPreggp(@Rd, 1) OPreggp(@Rn, 1) OPreggpsp(@Rm, 1)
+  encmnem: PACGA
+  encops: Rd=reggp Rn=reggp Rm=reggpsp
+  feat: PAuth
+
+[CAS]
+  desc: {2:size}0010001{1:L}1{5:Rs}{1:o0}11111{5:Rn|SP}{5:Rt}
+  mnem: CAS{L:0=:1=A}{o0:0=:1=L}{size:0=B:1=H:2=:3=}
+  decode: cas{L:0=:1=a}{o0:0=:1=l}{size:0=b:1=h:2=:3=} OPreggp(@Rs, @size==3) OPreggp(@Rt, @size==3) OPmemsoff(@Rn, 0)
+  encmnem: CAS{L:0=:1=A}{o0:0=:1=L}{size:0=B:1=H:2=w:3=x}
+  encops: Rs=reggp Rt=reggp Rn=reggpsp
+  feat: LSE
+[CASP]
+  desc: 0{1:size}0010000{1:L}1{5:Rs}{1:o0}{5:Rt2=11111}{5:Rn|SP}{5:Rt}
+  mnem: CASP{L:0=:1=A}{o0:0=:1=L}
+  decode: cas{L:0=:1=a}{o0:0=:1=l} OPreggp(@Rs, @size==3) OPreggp(@Rs+1, @size==3) OPreggp(@Rt, @size==3) OPreggp(@Rt+1, @size==3) OPmemsoff(@Rn, 0)
+  encmnem: CASP{L:0=:1=A}{o0:0=:1=L}{size:0=w:1=x}
+  encops: Rs=reggp Rt=reggp Rn=reggpsp
+  feat: LSE
+[SWP]
+  desc: {2:size}111000{1:A}{1:R}1{5:Rs}100000{5:Rn|SP}{5:Rt}
+  mnem: SWP{A:0=:1=A}{R:0=:1=L}{size:0=B:1=H:2=:3=}
+  decode: swp{A:0=:1=a}{R:0=:1=l}{size:0=b:1=h:2=:3=} OPreggp(@Rs, @size==3) OPreggp(@Rt, @size==3) OPmemsoff(@Rn, 0)
+  encmnem: SWP{A:0=:1=A}{R:0=:1=L}{size:0=B:1=H:2=w:3=x}
+  encops: Rs=reggp Rt=reggp Rn=reggpsp
+  feat: LSE
+[LDATOMIC]
+  desc: {2:size}111{1:VR=0}00{1:A}{1:R}1{5:Rs}{1:o3=0}{3:opc}00{5:Rn}{5:Rt}
+  mnem: LD{opc:0=ADD:1=CLR:2=EOR:3=SET:4=SMAX:5=SMIN:6=UMAX:7=UMIN}{A:0=:1=A}{R:0=:1=L}{size:0=B:1=H:2=W:3=X}
+  decode: ld{opc:0=add:1=clr:2=eor:3=set:4=smax:5=smin:6=umax:7=umin}{A:0=:1=a}{R:0=:1=l}{size:0=b:1=h:2=:3=} OPreggp(@Rs, @size==3) OPreggp(@Rt, @size==3) OPmemsoff(@Rn, 0)
+  encmnem: LD{opc:0=ADD:1=CLR:2=EOR:3=SET:4=SMAX:5=SMIN:6=UMAX:7=UMIN}{A:0=:1=A}{R:0=:1=L}{size:0=B:1=H:2=w:3=x}
+  encops: Rs=reggp Rt=reggp Rn=reggpsp
+  feat: LSE
+[RCPCU]
+  # NB: extremely similar to MEMU
+  desc: {2:size}011001{2:opc}0{9:imm9|s}00{5:Rn|SP}{5:Rt}
+  mnem: {opc,size:0,0=STLURB:0,1=STLURH:0,2=STLURW:0,3=STLUR:1,0=LDAPURB:1,1=LDAPURH:1,2=LDAPURW:1,3=LDAPUR:2,0=LDAPURSB:2,1=LDAPURSH:2,2=LDAPURSW:3,0=LDAPURSBW:3,1=LDAPURSHW}
+  decode: {opc,size:0,0=stlurb:0,1=stlurh:0,2=stlur:0,3=stlur:1,0=ldapurb:1,1=ldapurh:1,2=ldapur:1,3=ldapur:2,0=ldapursb:2,1=ldapursh:2,2=ldapursw:3,0=ldapursb:3,1=ldapursh} OPreggp(@Rt, @size>2||@opc==2) OPmemsoff(@Rn, @imm9)
+  encmnem: {opc,size:0,0=STLURB:0,1=STLURH:0,2=STLURw:0,3=STLURx:1,0=LDAPURB:1,1=LDAPURH:1,2=LDAPURw:1,3=LDAPURx:2,0=LDAPURSBx:2,1=LDAPURSHx:2,2=LDAPURSWx:3,0=LDAPURSBw:3,1=LDAPURSHw}
+  encops: Rt=reggp Rn=reggpsp imm9=simm/bits=9,asr=0
+  feat: LRCPC2
+[RCPC]
+  desc: {2:size}111000101{5:Rs=11111}110000{5:Rn}{5:Rt}
+  mnem: LDAPR{size:0=B:1=H:2=W:3=X}
+  decode: LDAPR{size:0=B:1=H:2=:3=} OPreggp(@Rt, @size>=3) OPmemsoff(@Rn, 0)
+  encmnem: LDAPR{size:0=B:1=H:2=w:3=x}
+  encops: Rt=reggp Rn=reggpsp
+  feat: LRCPC
+[CRC32]
+  desc: {1:sf}0011010110{5:Rm}010{1:C}{2:sz}{5:Rn}{5:Rd}
+  mnem: CRC32{C:0=:1=C}{sf,sz:0,0=B:0,1=H:0,2=W:1,3=X}
+  decode: crc32{C:0=:1=c}{sf,sz:0,0=b:0,1=h:0,2=w:1,3=x} OPreggp(@Rd, 0) OPreggp(@Rn, 0) OPreggp(@Rm, @sf)
+  encmnem: CRC32{C:0=:1=C}{sf,sz:0,0=B:0,1=H:0,2=W:1,3=X}
+  encops: Rd=reggp Rn=reggp Rm=reggp
+  feat: CRC32
+
+[ADDSUBG]
+  desc: 1{1:op}01000110{6:uimm6}{2:op3=00}{4:uimm4}{5:Rn|SP}{5:Rd|SP}
+  mnem: {op:0=ADD:1=SUB}G
+  decode: {op:0=add:1=sub}g OPreggpsp(@Rd, 1) OPreggpsp(@Rn, 1) OPuimm(@uimm6<<4) OPimmsmall(@uimm4)
+  encmnem: {op:0=ADD:1=SUB}G
+  encops: Rd=reggpsp Rn=reggpsp uimm6=uimm/bits=6,lsr=4 uimm4=uimm/bits=4,lsr=0 op3=const/val=0
+  feat: MTE
+[TAGINSERT]
+  desc: {1:sf=1}0{1:S=0}11010110{5:Rm}00010{1:op}{5:Rn|SP}{5:Rd}
+  mnem: {op:0=IRG:1=GMI}
+  decode: {op:0=irg:1=gmi} OPreggp{op:0=sp:1=}(@Rd, 1) OPreggpsp(@Rn, 1) OPreggp(@Rm, 1)
+  encmnem: {op:0=IRG:1=GMI}
+  encops: Rd=reggp{op:0=sp:1=} Rn=reggpsp Rm=reggp
+  feat: MTE
+[SUBP]
+  desc: {1:sf=1}0{1:S}11010110{5:Rm|SP}000000{5:Rn|SP}{5:Rd}
+  mnem: SUBP{S:0=:1=S}
+  decode: subp{S:0=:1=s} OPreggp(@Rd, 1) OPreggpsp(@Rn, 1) OPreggpsp(@Rm, 1)
+  encmnem: SUBP{S:0=:1=S}
+  encops: Rd=reggp Rn=reggpsp Rm=reggpsp
+  encmnem_cmp: CMPP{S:1=}
+  encops_cmp: Rd=regzr Rn=reggpsp Rm=reggpsp
+  feat: MTE
+[STG]
+  desc: 11011001{2:opc}1{9:imm9|s}{2:op2}{5:Rn|SP}{5:Rt}
+  mnem: {opc:0=ST:1=STZ:2=ST2:3=STZ2}G{op2:1=_POST:2=:3=_PRE}
+  decode: {opc:0=st:1=stz:2=st2:3=stz2}g OPreggpsp(@Rt, 1) OPmemsoff{op2:1=post:2=:3=pre}(@Rn, @imm9*16)
+  encmnem: {opc:0=ST:1=STZ:2=ST2:3=STZ2}G{op2:1=_post:2=:3=_pre}
+  encops: Rt=reggpsp Rn=reggpsp imm9=simm/bits=9,asr=4
+  feat: MTE
+[LDG]
+  desc: 11011001{2:opc=01}1{9:imm9|s}{2:op2=00}{5:Rn}{5:Rt}
+  mnem: LDG
+  decode: ldg OPreggp(@Rt, 1) OPmemsoff(@Rn, @imm9*16)
+  encmnem: ldg
+  encops: Rt=reggp Rn=reggpsp imm9=simm/bits=9,asr=4
+  feat: MTE
+[MEMGM]
+  desc: 11011001{2:opc}100000000000{5:Rn}{5:Rt}
+  mnem: {opc:0=STZ:2=ST:3=LD}GM
+  decode: {opc:0=stz:2=st:3=ld}gm OPreggp(@Rt, 1) OPmemsoff(@Rn, 0)
+  encmnem: {opc:0=STZ:2=ST:3=LD}GM
+  encops: Rt=reggp Rn=reggpsp
+  feat: MTE2
+
+# This is MSR_IMM
+[MSR_FLAGM]
+  desc: 1101010100000{3:op1=000}0100{4:CRm}{3:op2}11111
+  mnem: {op2:0=CFINV:1=XAFLAG:2=AXFLAG}
+  decode: {op2:0=cfinv:1=xaflag:2=axflag}
+  encmnem: {op2:0=CFINV:1=XAFLAG:2=AXFLAG}
+  encops: CRm=const/val=0
+  feat: {op2:0=FlagM:1=FlagM2:2=FlagM2}
+[RMIF]
+  desc: {1:sf=1}0111010000{6:imm6}00001{5:Rn}0{4:mask}
+  mnem: RMIF
+  decode: rmif OPreggp(@Rn, 1) OPimmsmall(@imm6) OPimmsmall(@mask)
+  encmnem: RMIF
+  encops: Rn=reggp imm6=imm/max=64 mask=imm/max=16
+  feat: FlagM
+[SETF]
+  desc: {1:sf=0}0111010000000000{1:sz}0010{5:Rn}01101
+  mnem: SETF{sz:0=8:1=16}
+  decode: setf{sz:0=8:1=16} OPreggp(@Rn, 0)
+  encmnem: SETF{sz:0=8:1=16}
+  encops: Rn=reggp
+  feat: FlagM
+
+[SB]
+  desc: 11010101000000110011{4:CRm=0000}1{2:opc=11}11111
+  mnem: SB
+  decode: sb
+  encmnem: SB
+  encops:
+  feat: SB
+
+[TCANCEL]
+  desc: 11010100011{16:imm16}00000
+  mnem: TCANCEL
+  decode: tcancel OPuimm(@imm16)
+  encmnem: TCANCEL
+  encops: imm16=uimm/bits=16,lsr=0
+  feat: TME
+[TCOMMIT]
+  desc: 11010101000000110011000001111111
+  mnem: TCOMMIT
+  decode: tcommit
+  encmnem: TCOMMIT
+  encops:
+  feat: TME
+[TSTART]
+  desc: 110101010010001100110000011{5:Rt}
+  mnem: TSTART
+  decode: tstart OPreggp(@Rt, 1)
+  encmnem: TSTART
+  encops: Rt=reggp
+  feat: TME
+[TTEST]
+  desc: 110101010010001100110001011{5:Rt}
+  mnem: TTEST
+  decode: ttest OPreggp(@Rt, 1)
+  encmnem: TTEST
+  encops: Rt=reggp
+  feat: TME
+
+[WFXT]
+  desc: 110101010000001100010000{3:op2}{5:Rd}
+  mnem: WF{op2:0=E:1=I}T
+  decode: wf{op2:0=e:1=i}t OPreggp(@Rd, 1)
+  encmnem: WF{op2:0=E:1=I}T
+  encops: Rd=reggp
+  feat: WFxT
+
+[LS64]
+  desc: 11111000001111111{1:o1}0100{5:Rn}{5:Rt}
+  mnem: {o1:0=ST:1=LD}64B{Rt<4:3>,Rt<0>:0,0=:1,0=:2,0=}
+  decode: {o1:0=st:1=ld}64b OPreggp(@Rt, 1) OPmemsoff(@Rn, 0)
+  encmnem: {o1:0=ST:1=LD}64B
+  encops: Rt=reggpls64 Rn=reggpsp
+  feat: LS64
+[LS64V]
+  desc: 11111000001{5:Rs}1{3:op=01x}00{5:Rn}{5:Rt}
+  mnem: ST64BV{op<0>:0=0:1=}{Rt<4:3>,Rt<0>:0,0=:1,0=:2,0=}
+  decode: st64bv{op<0>:0=0:1=} OPreggp(@Rs, 1) OPreggp(@Rt, 1) OPmemsoff(@Rn, 0)
+  encmnem: ST64BV{op<0>:0=0:1=}
+  encops: Rs=reggp Rt=reggpls64 Rn=reggpsp
+  feat: LS64{op<1:0>:1=:2=_ACCDATA:3=_V}
+
+[CPY]
+  desc: {2:size=00}011{1:o0}01{2:op1}0{5:Rs}{4:op2}01{5:Rn}{5:Rd}
+  mnem: CPY{o0:0=F:1=}{op1:0=P:1=M:2=E}{op2:0=:1=WT:2=RT:3=T:4=WN:5=WTWN:6=RTWN:7=TWN:8=RN:9=WTRN:10=RTRN:11=TRN:12=N:13=WTN:14=RTN:15=TN}
+  decode: cpy{o0:0=f:1=}{op1:0=p:1=m:2=e}{op2:0=:1=wt:2=rt:3=t:4=wn:5=wtwn:6=rtwn:7=twn:8=rn:9=wtrn:10=rtrn:11=trn:12=n:13=wtn:14=rtn:15=tn} OPmeminc(@Rd) OPmeminc(@Rs) OPreggpinc(@Rn)
+  encmnem: CPY{o0:0=F:1=}{op1:0=P:1=M:2=E}{op2:0=:1=WT:2=RT:3=T:4=WN:5=WTWN:6=RTWN:7=TWN:8=RN:9=WTRN:10=RTRN:11=TRN:12=N:13=WTN:14=RTN:15=TN}
+  encops: Rd=reggpnozr Rs=reggpnozr Rn=reggpnozr
+  enccond: @Rd!=@Rs&&@Rd!=@Rn&&@Rs!=@Rn
+  feat: MOPS
+[SET]
+  desc: {2:size=00}011{1:o0}01{2:op1=11}0{5:Rs}{4:op2}01{5:Rn}{5:Rd}
+  mnem: SET{o0:0=:1=G}{op2<3:2>:0=P:1=M:2=E}{op2<0>:0=:1=T}{op2<1>:0=:1=N}
+  decode: set{o0:0=:1=g}{op2<3:2>:0=p:1=m:2=e}{op2<0>:0=:1=t}{op2<1>:0=:1=n} OPmeminc(@Rd) OPreggpinc(@Rn) OPreggp(@Rs, 1)
+  encmnem: SET{o0:0=:1=G}{op2<3:2>:0=P:1=M:2=E}{op2<0>:0=:1=T}{op2<1>:0=:1=N}
+  encops: Rd=reggpnozr Rs=reggpnozr Rn=reggp
+  enccond: @Rd!=@Rs&&@Rd!=@Rn&&@Rs!=@Rn
+  feat: MOPS
+
+[AES]
+  desc: 01001110{2:size=00}10100001{2:opc}10{5:Rn}{5:Rd}
+  mnem: AES{opc:0=E:1=D:2=MC:3=IMC}
+  decode: aes{opc:0=e:1=d:2=mc:3=imc} OPregvec(@Rd, 0, 1) OPregvec(@Rn, 0, 1)
+  encmnem: AES{opc:0=E:1=D:2=MC:3=IMC}
+  encops: Rd=regfp Rn=regfp
+  feat: {opc<1>:0=AES:1=}
+[SHA2_3REG]
+  desc: 01011110{2:size=00}0{5:Rm}0{3:opcode}00{5:Rn}{5:Rd}
+  mnem: SHA{opcode:0=1C:1=1P:2=1M:3=1SU0:4=256H:5=256H2:6=256SU1}
+  decode: sha{opcode:0=1c:1=1p:2=1m:3=1su0:4=256h:5=256h2:6=256su1} {opcode:0=OPregfp(@Rd, 4):1=OPregfp(@Rd, 4):2=OPregfp(@Rd, 4):3=OPregvec(@Rd, 2, 1):4=OPregfp(@Rd, 4):5=OPregfp(@Rd, 4):6=OPregvec(@Rd, 2, 1)} {opcode:0=OPregfp(@Rn, 2):1=OPregfp(@Rn, 2):2=OPregfp(@Rn, 2):3=OPregvec(@Rn, 2, 1):4=OPregfp(@Rn, 4):5=OPregfp(@Rn, 4):6=OPregvec(@Rn, 2, 1)} OPregvec(@Rm, 2, 1)
+  encmnem: SHA{opcode:0=1C:1=1P:2=1M:3=1SU0:4=256H:5=256H2:6=256SU1}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: SHA{opcode<2>:0=1:1=256}
+[SHA2_2REG]
+  desc: 01011110{2:size=00}10100000{2:opcode}10{5:Rn}{5:Rd}
+  mnem: SHA{opcode:0=1H:1=1SU1:2=256SU0}
+  decode: sha{opcode:0=1h:1=1su1:2=256su0} {opcode:0=OPregfp(@Rd, 2):1=OPregvec(@Rd, 2, 1):2=OPregvec(@Rd, 2, 1)} {opcode:0=OPregfp(@Rn, 2):1=OPregvec(@Rn, 2, 1):2=OPregvec(@Rn, 2, 1)}
+  encmnem: SHA{opcode:0=1H:1=1SU1:2=256SU0}
+  encops: Rd=regfp Rn=regfp
+  feat: SHA{opcode<1>:0=1:1=256}
+[SM3TT]
+  desc: 11001110010{5:Rm}10{2:imm2}{2:opcode}{5:Rn}{5:Rd}
+  mnem: SM3TT{opcode:0=1A:1=1B:2=2A:3=2B}
+  decode: sm3tt{opcode:0=1a:1=1b:2=2a:3=2b} OPregvec(@Rd, 2, 1) OPregvec(@Rn, 2, 1) OPregvidx(@Rm, 2, @imm2)
+  encmnem: SM3TT{opcode:0=1A:1=1B:2=2A:3=2B}
+  encops: Rd=regfp Rn=regfp Rm=regfp imm2=imm/max=4
+  feat: SM3
+[SHA3_4REG]
+  desc: 110011100{2:op0}{5:Rm}0{5:Ra}{5:Rn}{5:Rd}
+  mnem: {op0:0=EOR3:1=BCAX:2=SM3SS1}
+  decode: {op0:0=eor3:1=bcax:2=sm3ss1} OPregvec(@Rd, {op0<1>:0=0:1=2}, 1) OPregvec(@Rn, {op0<1>:0=0:1=2}, 1) OPregvec(@Rm, {op0<1>:0=0:1=2}, 1) OPregvec(@Ra, {op0<1>:0=0:1=2}, 1)
+  encmnem: {op0:0=EOR3:1=BCAX:2=SM3SS1}
+  encops: Rd=regfp Rn=regfp Rm=regfp Ra=regfp
+  feat: {op0<1>:0=SHA3:1=SM3}
+[SHA512_2REG]
+  desc: 11001110110000001000{2:opcode}{5:Rn}{5:Rd}
+  mnem: {opcode:0=SHA512SU0:1=SM4E}
+  decode: {opcode:0=sha512su0:1=sm4e} OPregvec(@Rd, {opcode:0=3:1=2}, 1) OPregvec(@Rn, {opcode:0=3:1=2}, 1)
+  encmnem: {opcode:0=SHA512SU0:1=SM4E}
+  encops: Rd=regfp Rn=regfp
+  feat: {opcode:0=SHA512:1=SM4}
+[SHA512_3REG]
+  desc: 11001110011{5:Rm}1{1:O=0}00{2:opcode}{5:Rn}{5:Rd}
+  mnem: {opcode:0=SHA512H:1=SHA512H2:2=SHA512SU1:3=RAX1}
+  decode: {opcode:0=sha512h:1=sha512h2:2=sha512su1:3=rax1} {opcode<1>:0=OPregfp(@Rd, 4):1=OPregvec(@Rd, 3, 1)} {opcode<1>:0=OPregfp(@Rn, 4):1=OPregvec(@Rn, 3, 1)} OPregvec(@Rm, 3, 1)
+  encmnem: {opcode:0=SHA512H:1=SHA512H2:2=SHA512SU1:3=RAX1}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {opcode:0=SHA512:1=SHA512:2=SHA512:3=SHA3}
+[SM3_3REG]
+  desc: 11001110011{5:Rm}1{1:O=1}00{2:opcode}{5:Rn}{5:Rd}
+  mnem: {opcode:0=SM3PARTW1:1=SM3PARTW2:2=SM4EKEY}
+  decode: {opcode:0=sm3partw1:1=sm3partw2:2=sm4ekey} OPregvec(@Rd, 2, 1) OPregvec(@Rn, 2, 1) OPregvec(@Rm, 2, 1)
+  encmnem: {opcode:0=SM3PARTW1:1=SM3PARTW2:2=SM4EKEY}
+  encops: Rd=regfp Rn=regfp Rm=regfp
+  feat: {opcode:0=SM3:1=SM3:2=SM4}
+[XAR]
+  desc: 11001110100{5:Rm}{6:imm6}{5:Rn}{5:Rd}
+  mnem: XAR
+  decode: xar OPregvec(@Rd, 3, 1) OPregvec(@Rn, 3, 1) OPregvec(@Rm, 3, 1) OPimmsmall(@imm6)
+  encmnem: XAR
+  encops: Rd=regfp Rn=regfp Rm=regfp imm6=imm/max=64
+  feat: SHA3

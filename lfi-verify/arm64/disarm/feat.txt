@@ -1,0 +1,403 @@
+# Features introduced in Armv8.0
+[AES]
+  armname: FEAT_AES
+  llvmname: aes
+  availopt: armv8.0a
+[CRC32]
+  armname: FEAT_CRC32
+  llvmname: crc
+  availopt: armv8.0a
+  avail: armv8.1a
+[EL3]
+  armname: FEAT_EL3
+  llvmname: el3
+  availopt: armv8.0a
+[PMULL]
+  armname: FEAT_PMULL
+  llvmname: aes
+  availopt: armv8.0a
+  requires: AES
+[SHA1]
+  armname: FEAT_SHA1
+  llvmname: sha2
+  availopt: armv8.0a
+[SHA256]
+  armname: FEAT_SHA256
+  llvmname: sha2
+  availopt: armv8.0a
+  requires: SHA1
+
+# Features introduced in Armv8.1
+[LOR]
+  armname: FEAT_LOR
+  llvmname: lor
+  availopt: armv8.0a
+  avail: armv8.1a
+[LSE]
+  armname: FEAT_LSE
+  llvmname: lse
+  availopt: armv8.0a
+  avail: armv8.1a
+[PAN]
+  armname: FEAT_PAN
+  llvmname: pan
+  availopt: armv8.0a
+  avail: armv8.1a
+[RDM]
+  armname: FEAT_RDM
+  llvmname: rdm
+  availopt: armv8.0a
+  avail: armv8.1a
+
+# Features introduced in Armv8.2
+[DPB]
+  armname: FEAT_DPB
+  llvmname: ccpp
+  availopt: armv8.1a
+  avail: armv8.2a
+[F32MM]
+  armname: FEAT_F32MM
+  llvmname: f32mm
+  availopt: armv8.2a
+  requires: SVE
+  incomplete: yes
+[F64MM]
+  armname: FEAT_F64MM
+  llvmname: f64mm
+  availopt: armv8.2a
+  requires: SVE
+  incomplete: yes
+[FP16]
+  armname: FEAT_FP16
+  llvmname: fullfp16
+  availopt: armv8.2a
+  requires: !armv8.4a||FHM
+[I8MM]
+  armname: FEAT_I8MM
+  llvmname: i8mm
+  availopt: armv8.1a
+  avail: armv8.6a
+[PAN2]
+  armname: FEAT_PAN2
+  llvmname: pan-rwv
+  availopt: armv8.1a
+  avail: armv8.2a
+  requires: PAN
+[RAS]
+  armname: FEAT_RAS
+  llvmname: ras
+  availopt: armv8.0a
+  avail: armv8.2a
+[SHA3]
+  armname: FEAT_SHA3
+  llvmname: sha3
+  availopt: armv8.1a
+  requires: SHA256;SHA1
+[SHA512]
+  armname: FEAT_SHA512
+  llvmname: sha3
+  availopt: armv8.1a
+  requires: SHA256;SHA1
+[SM3]
+  armname: FEAT_SM3
+  llvmname: sm4
+  availopt: armv8.1a
+[SM4]
+  armname: FEAT_SM4
+  llvmname: sm4
+  availopt: armv8.1a
+[SVE]
+  armname: FEAT_SVE
+  llvmname: sve
+  availopt: armv8.2a
+  requires: FP16;FCMA
+  incomplete: yes, very
+[UAO]
+  armname: FEAT_UAO
+  llvmname: uaops
+  availopt: armv8.1a
+  avail: armv8.2a
+
+# Features introduced in Armv8.3
+[FCMA]
+  armname: FEAT_FCMA
+  llvmname: complxnum
+  availopt: armv8.2a
+  avail: armv8.3a
+[JSCVT]
+  armname: FEAT_JSCVT
+  llvmname: jsconv
+  availopt: armv8.2a
+  avail: armv8.3a
+[LRCPC]
+  armname: FEAT_LRCPC
+  llvmname: rcpc
+  availopt: armv8.2a
+  avail: armv8.3a
+[PAuth]
+  armname: FEAT_PAuth
+  llvmname: pauth
+  availopt: armv8.2a
+  avail: armv8.3a
+
+# Features introduced in Armv8.4
+[DIT]
+  armname: FEAT_DIT
+  llvmname: dit
+  availopt: armv8.3a
+  avail: armv8.4a
+[DotProd]
+  armname: FEAT_DotProd
+  llvmname: dotprod
+  availopt: armv8.1a
+  avail: armv8.4a
+[FHM]
+  armname: FEAT_FHM
+  llvmname: fp16fml
+  availopt: armv8.1a
+  requires: FP16
+[FlagM]
+  armname: FEAT_FlagM
+  llvmname: flagm
+  availopt: armv8.1a
+  avail: armv8.4a
+[LRCPC2]
+  armname: FEAT_LRCPC2
+  llvmname: rcpc-immo
+  availopt: armv8.2a
+  avail: armv8.4a
+[LSE2]
+  armname: FEAT_LSE2
+  llvmname: lse2
+  availopt: armv8.2
+  avail: armv8.4
+[TLBIOS]
+  armname: FEAT_TLBIOS
+  llvmname: tlb-rmi
+  availopt: armv8.3a
+  avail: armv8.4a
+[TLBIRANGE]
+  armname: FEAT_TLBIRANGE
+  llvmname: tlb-rmi
+  availopt: armv8.3a
+  avail: armv8.4a
+
+# Features introduced in Armv8.5
+[BTI]
+  armname: FEAT_BTI
+  llvmname: bti
+  availopt: armv8.4a
+  avail: armv8.5a
+[DPB2]
+  armname: FEAT_DPB2
+  llvmname: ccdp
+  availopt: armv8.1a
+  avail: armv8.5a
+  requires: DPB
+[FRINTTS]
+  armname: FEAT_FRINTTS
+  llvmname: fptoint
+  availopt: armv8.4a
+  avail: armv8.5a
+[FlagM2]
+  armname: FEAT_FlagM2
+  llvmname: altnzcv
+  availopt: armv8.4a
+  requires: FlagM
+[MTE]
+  armname: FEAT_MTE
+  llvmname: mte
+  availopt: armv8.4a
+[MTE2]
+  armname: FEAT_MTE2
+  llvmname: mte
+  availopt: armv8.4a
+  requires: MTE
+[SB]
+  armname: FEAT_SB
+  llvmname: sb
+  availopt: armv8.0a
+  avail: armv8.5a
+[SSBS]
+  armname: FEAT_SSBS
+  llvmname: ssbs
+  availopt: armv8.0a
+[SSBS2]
+  armname: FEAT_SSBS2
+  llvmname: ssbs
+  availopt: armv8.0a
+  requires: SSBS
+
+# Features introduced in Armv8.6
+[BF16]
+  armname: FEAT_BF16
+  llvmname: bf16
+  availopt: armv8.2a
+  avail: armv8.6a
+[DGH]
+  armname: FEAT_DGH
+  availopt: armv8.0a
+  note: Hint instruction always available
+
+# Features introduced in Armv8.7
+[AFP]
+  armname: FEAT_AFP
+  availopt: armv8.6a
+  avail: armv8.7a
+[LS64]
+  armname: FEAT_LS64
+  llvmname: ls64
+  availopt: armv8.6a
+[LS64_V]
+  armname: FEAT_LS64_V
+  llvmname: ls64
+  availopt: armv8.6a
+  requires: LS64
+[LS64_ACCDATA]
+  armname: FEAT_LS64_ACCDATA
+  llvmname: ls64
+  availopt: armv8.6a
+  requires: LS64_V
+[WFxT]
+  armname: FEAT_WFxT
+  llvmname: wfxt
+  availopt: armv8.6a
+  avail: armv8.7a
+
+# Features introduced in Armv8.8
+[HBC]
+  armname: FEAT_HBC
+  llvmname: hbc
+  availopt: armv8.7a
+  avail: armv8.8a
+[MOPS]
+  armname: FEAT_MOPS
+  llvmname: mops
+  availopt: armv8.7a
+  avail: armv8.8a
+[NMI]
+  armname: FEAT_NMI
+  llvmname: nmi
+  availopt: armv8.7a
+  avail: armv8.8a
+
+# Features introduced in Armv8.9
+[CLRBHB]
+  armname: FEAT_CLRBHB
+  llvmname: clrbhb
+  availopt: armv8.0a
+  avail: armv8.9a
+  note: Hint instruction always available
+[CSSC]
+  armname: FEAT_CSSC
+  llvmname: cssc
+  availopt: armv8.7a
+  avail: armv8.9a
+[LRCPC3]
+  armname: FEAT_LRCPC3
+  llvmname: rcpc3
+  availopt: armv8.2a
+  requires: LRCPC2
+  incomplete: yes
+[RPRFM]
+  armname: FEAT_RPRFM
+  availopt: armv8.0a
+  incomplete: yes
+[THE]
+  armname: FEAT_THE
+  llvmname: the
+  availopt: armv8.8a
+  incomplete: yes
+
+# Features introduced in Armv9.0
+# TODO: FEAT_SVE2
+# TODO: FEAT_SVE_AES
+# TODO: FEAT_SVE_BitPerm
+# TODO: FEAT_SVE_PMULL128
+# TODO: FEAT_SVE_SHA3
+# TODO: FEAT_SVE_SM4
+[TME]
+  armname: FEAT_TME
+  llvmname: tme
+  availopt: armv9.0a
+
+# Features introduced in Armv9.2
+[SME]
+  armname: FEAT_SME
+  llvmname: sme
+  availopt: armv9.2a
+  requires: FCMA;FP16;BF16;FHM
+  incomplete: yes
+# TODO: FEAT_SME_F64F64
+# TODO: FEAT_SME_FA64
+# TODO: FEAT_SME_I16I64
+
+# Features introduced in Armv9.3
+# TODO: SME2
+
+# Features introduced in Armv9.4
+[CHK]
+  armname: FEAT_CHK
+  llvmname: chk
+  avail: armv8.0a
+  availopt: armv9.4a
+  note: Hint instruction always available
+# TODO: D128
+[EBEP]
+  armname: FEAT_EBEP
+  availopt: armv9.3a
+[GCS]
+  armname: FEAT_GCS
+  avail: armv9.3a
+  availopt: armv9.4a
+  requires: CHK;S1PIE
+  note: Hint instruction always available
+  incomplete: yes GCSSTR GCSSTTR, SYS decode/encode
+# TODO: ITE (SYS TRCIT)
+# TODO: LSE128
+# TODO: SME2p1
+# TODO: SME_F16F16
+# TODO: SVE2p1
+# TODO: SVE_B16B16
+# TODO: SYSINSTR128
+# TODO: SYSREG128
+
+# availability TBD
+[FAMINMAX]
+  armname: FEAT_FAMINMAX
+  llvmname: faminmax
+  incomplete: yes
+[FP8]
+  armname: FEAT_FP8
+  llvmname: fp8
+  incomplete: yes
+[FP8DOT4]
+  armname: FEAT_FP8DOT4
+  incomplete: yes
+[FP8DOT2]
+  armname: FEAT_FP8DOT2
+  incomplete: yes
+[FP8FMA]
+  armname: FEAT_FP8FMA
+  llvmname: fp8fma
+  incomplete: yes
+[SPE]
+  incomplete: yes
+[TRF]
+  incomplete: yes
+[MEC]
+  incomplete: yes
+[RME]
+  incomplete: yes
+[TLBIW]
+  incomplete: yes
+[XS]
+  incomplete: yes
+[BRBE]
+  incomplete: yes
+[SPECRES]
+  incomplete: yes
+[SPECRES2]
+  incomplete: yes
+[ATS1A]
+  incomplete: yes

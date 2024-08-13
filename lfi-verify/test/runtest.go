@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var verbose = flag.Bool("V", false, "verbose")
+
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
 	os.Exit(1)
@@ -19,8 +21,11 @@ func fatal(err ...interface{}) {
 func run(command string, flags ...string) (string, error) {
 	buf := &bytes.Buffer{}
 	cmd := exec.Command(command, flags...)
+	if *verbose {
+		fmt.Fprintln(os.Stderr, cmd)
+	}
 	cmd.Stderr = buf
-	cmd.Stdout = buf
+	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	err := cmd.Run()
 	return buf.String(), err
@@ -58,7 +63,7 @@ func main() {
 			tmp.WriteString(asmdata)
 			tmp.Close()
 			bin := filepath.Join(os.TempDir(), "out.elf")
-			out, err := run("aarch64-linux-gnu-gcc", "-march=armv8.1-a", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
+			out, err := run("aarch64-linux-gnu-gcc", "-march=armv8.1-a+sve", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
 			if err != nil {
 				log.Fatal("error compiling:", out)
 			}
