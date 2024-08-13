@@ -132,8 +132,6 @@ void* lfi_sys_ctx(uint64_t syspage);
 
 bool lfi_verify_bytes(void* b, size_t size, void* fn);
 
-bool lfi_verify_insn(uint32_t insn);
-
 int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
 
 #ifdef __cplusplus
