@@ -1,4 +1,5 @@
-leg = executable('leg', files('minipeg/minipeg.c'), native: true, install: false)
+# GCC 13 has a bug that generates an incorrect array-bounds warning: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523
+leg = executable('leg', files('minipeg/minipeg.c'), c_args: ['-Wno-array-bounds'], native: true, install: false)
 # leg = find_program('leg')
 
 srcs = files(
