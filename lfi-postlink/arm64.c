@@ -52,7 +52,7 @@ static void
 meteropt(uint8_t* buf, size_t sz, size_t addr)
 {
     csh handle;
-    if (cs_open(CS_ARCH_AARCH64, CS_MODE_ARM, &handle) != CS_ERR_OK) {
+    if (cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) != CS_ERR_OK) {
         return;
     }
     cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -75,29 +75,29 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         // target of a branch is a leader
         int64_t target = 0;
         switch (csi->id) {
-        case AArch64_INS_B:
-        case AArch64_INS_BL:
-            target = csi->detail->aarch64.operands[0].imm;
+        case ARM64_INS_B:
+        case ARM64_INS_BL:
+            target = csi->detail->arm64.operands[0].imm;
             leaders[target / 4] = true;
             break;
-        case AArch64_INS_CBZ:
-        case AArch64_INS_CBNZ:
-            target = csi->detail->aarch64.operands[1].imm;
+        case ARM64_INS_CBZ:
+        case ARM64_INS_CBNZ:
+            target = csi->detail->arm64.operands[1].imm;
             leaders[target / 4] = true;
             break;
-        case AArch64_INS_TBZ:
-        case AArch64_INS_TBNZ:
-            if (csi->detail->aarch64.operands[0].reg == AArch64_REG_X23) {
+        case ARM64_INS_TBZ:
+        case ARM64_INS_TBNZ:
+            if (csi->detail->arm64.operands[0].reg == ARM64_REG_X23) {
                 cs_free(csi, 1);
                 continue;
             }
-            target = csi->detail->aarch64.operands[2].imm;
+            target = csi->detail->arm64.operands[2].imm;
             leaders[target / 4] = true;
             break;
-        case AArch64_INS_BLR:
-        case AArch64_INS_BR:
-        case AArch64_INS_RET:
-            if (csi->id == AArch64_INS_BLR && csi->detail->aarch64.operands[0].reg == AArch64_REG_X25) {
+        case ARM64_INS_BLR:
+        case ARM64_INS_BR:
+        case ARM64_INS_RET:
+            if (csi->id == ARM64_INS_BLR && csi->detail->arm64.operands[0].reg == ARM64_REG_X25) {
                 cs_free(csi, 1);
                 continue;
             }
@@ -130,34 +130,34 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         bool branch = false;
         bool indbranch = false;
         switch (csi->id) {
-        case AArch64_INS_B:
-            target = csi->detail->aarch64.operands[0].imm;
+        case ARM64_INS_B:
+            target = csi->detail->arm64.operands[0].imm;
             branch = true;
             break;
-        case AArch64_INS_BL:
-            target = csi->detail->aarch64.operands[0].imm;
+        case ARM64_INS_BL:
+            target = csi->detail->arm64.operands[0].imm;
             branch = true;
             break;
-        case AArch64_INS_CBZ:
-        case AArch64_INS_CBNZ:
-            target = csi->detail->aarch64.operands[1].imm;
+        case ARM64_INS_CBZ:
+        case ARM64_INS_CBNZ:
+            target = csi->detail->arm64.operands[1].imm;
             branch = true;
             break;
-        case AArch64_INS_TBZ:
-        case AArch64_INS_TBNZ:
-            if (csi->detail->aarch64.operands[0].reg == AArch64_REG_X23) {
+        case ARM64_INS_TBZ:
+        case ARM64_INS_TBNZ:
+            if (csi->detail->arm64.operands[0].reg == ARM64_REG_X23) {
                 cs_free(csi, 1);
                 continue;
             }
-            target = csi->detail->aarch64.operands[2].imm;
+            target = csi->detail->arm64.operands[2].imm;
             branch = true;
             break;
         default:
             switch (csi->id) {
-                case AArch64_INS_BR:
-                case AArch64_INS_BLR:
-                case AArch64_INS_RET:
-                    if (csi->id == AArch64_INS_BLR && (csi->detail->aarch64.operands[0].reg == AArch64_REG_X25 || csi->detail->aarch64.operands[0].reg == AArch64_REG_X30)) {
+                case ARM64_INS_BR:
+                case ARM64_INS_BLR:
+                case ARM64_INS_RET:
+                    if (csi->id == ARM64_INS_BLR && (csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30)) {
                         cs_free(csi, 1);
                         continue;
                     }

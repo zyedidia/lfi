@@ -37,3 +37,5 @@ lfi-verify-amd64
 *.js
 
 install
+
+subprojects/capstone

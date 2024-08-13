@@ -1,4 +1,4 @@
-capstone = dependency('capstone', version: '>=5.0.0')
+capstone = subproject('capstone', default_options: ['default_library=static']).get_variable('capstone_dep')
 zydis = dependency('Zydis')
 
 lfi_postlink = executable(

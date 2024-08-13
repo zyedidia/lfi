@@ -136,8 +136,8 @@ To install the tools, you must have the following dependencies installed:
 
 * Go for `lfi-compile` and running tests.
 * GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
-* LDC for `lfi-run`.
-* Capstone and Zydis for `lfi-postlink`.
+* LDC (`apt install ldc`) for `lfi-run`.
+* Zydis (`apt install libzydis-dev`) for `lfi-postlink` (Capstone is also required but is built internally).
 
 LFI uses the Meson build system with Ninja. When configuring the build you will
 be alerted of any missing dependencies.
