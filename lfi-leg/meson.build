@@ -1,4 +1,4 @@
-leg = executable('leg', files('minipeg/minipeg.c'), install: false)
+leg = executable('leg', files('minipeg/minipeg.c'), native: true, install: false)
 # leg = find_program('leg')
 
 srcs = files(

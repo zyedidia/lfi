@@ -27,18 +27,18 @@ enum Err {
     NOSYS = -38,
 }
 
-uintptr syscall(void* p, ulong num,
+extern (C) uintptr syscall(void* p, ulong num,
         ulong a0, ulong a1, ulong a2, ulong a3, ulong a4, ulong a5) {
     if (num >= systbl.length) {
         fprintf(stderr, "unknown system call: %ld\n", num);
         assert(0, "NOSYS");
-        return Err.NOSYS;
+        // return Err.NOSYS;
     }
     SyscallFn fn = systbl[num];
     if (fn == null) {
         fprintf(stderr, "unknown system call: %ld\n", num);
         assert(0, "NOSYS");
-        return Err.NOSYS;
+        // return Err.NOSYS;
     }
     uintptr ret = fn(cast(Proc*) p, [a0, a1, a2, a3, a4, a5]);
     // fprintf(stderr, "syscall %ld = %lx\n", num, ret);

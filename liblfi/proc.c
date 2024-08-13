@@ -85,7 +85,7 @@ static struct lfi_mem lfi_mem_map(uintptr_t base, size_t size, int prot) {
     };
 }
 
-static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, int noverify) {
+static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, int noverify, lfi_verifier verify) {
     if (prot_exec(prot)) {
         if (prot_write(prot)) {
             return LFI_ERR_PROTECTION;
@@ -94,7 +94,7 @@ static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, i
             if (mem->base + mem->size - proc_base >= CODE_MAX) {
                 return LFI_ERR_PROTECTION;
             }
-            if (lfi_verify_bytes((void*) mem->base, mem->size, NULL) == 0) {
+            if (verify((void*) mem->base, mem->size) == 0) {
                 return LFI_ERR_VERIFY;
             }
         }
@@ -112,7 +112,7 @@ int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot) {
         .size = size,
         .prot = prot,
     };
-    return lfi_mem_protect(&mem, p->base, prot, p->lfi->opts.noverify);
+    return lfi_mem_protect(&mem, p->base, prot, p->lfi->opts.noverify, p->lfi->opts.verifier);
 }
 
 static int lfi_mem_valid(struct lfi_mem* mem) {
@@ -128,7 +128,7 @@ static int lfi_mem_unmap(struct lfi_mem* mem) {
     return 0;
 }
 
-static struct lfi_mem lfi_mem_copy_to(struct lfi_mem* mem, uintptr_t newbase) {
+static struct lfi_mem lfi_mem_copy_to(struct lfi_mem* mem, uintptr_t newbase, lfi_verifier verify) {
     // Force writable so that we can copy to into it.
     int prot = mem->prot;
     if (prot_read(prot)) {
@@ -145,7 +145,7 @@ static struct lfi_mem lfi_mem_copy_to(struct lfi_mem* mem, uintptr_t newbase) {
         if (mem->prot != prot) {
             // No verification necessary since we are copying from an existing
             // region (already verified).
-            lfi_mem_protect(&copy, newbase, mem->prot, 1);
+            lfi_mem_protect(&copy, newbase, mem->prot, 1, verify);
         }
     }
     return copy;
@@ -300,7 +300,7 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         memcpy((void*) (seg.base + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg.base + offset + p->filesz), 0, p->memsz - p->filesz);
 
-        if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify)) < 0) {
+        if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify, proc->lfi->opts.verifier)) < 0) {
             goto err1;
         }
 
@@ -360,12 +360,12 @@ int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* pr
     child->sys = sys;
     *childp = child;
 
-    child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base);
-    child->guards[1] = lfi_mem_copy_to(&proc->guards[1], child->base);
-    child->stack = lfi_mem_copy_to(&proc->stack, child->base);
+    child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base, lfi->opts.verifier);
+    child->guards[1] = lfi_mem_copy_to(&proc->guards[1], child->base, lfi->opts.verifier);
+    child->stack = lfi_mem_copy_to(&proc->stack, child->base, lfi->opts.verifier);
     struct lfi_mem* segment = proc->segments;
     while (segment) {
-        lfi_mem_append(&child->segments, lfi_mem_copy_to(segment, child->base));
+        lfi_mem_append(&child->segments, lfi_mem_copy_to(segment, child->base, lfi->opts.verifier));
         segment = segment->next;
     }
     sys_setup(child->sys, child);

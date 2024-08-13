@@ -1,4 +1,4 @@
-capstone = dependency('capstone')
+capstone = dependency('capstone', version: '>=5.0.0')
 zydis = dependency('Zydis')
 
 lfi_postlink = executable(

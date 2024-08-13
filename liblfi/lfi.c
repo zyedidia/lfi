@@ -16,6 +16,9 @@ struct lfi* lfi_new(struct lfi_options options) {
     if (!lfi) {
         return NULL;
     }
+    if (options.verifier == NULL && !options.noverify) {
+        return NULL;
+    }
     *lfi = (struct lfi) {
         .opts = options,
     };

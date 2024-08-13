@@ -4,7 +4,9 @@ alias LFI = void;
 
 alias LFIProc = void;
 
-alias SyshandlerFn = ulong function(void*, ulong, ulong, ulong, ulong, ulong, ulong, ulong);
+alias SyshandlerFn = extern (C) ulong function(void*, ulong, ulong, ulong, ulong, ulong, ulong, ulong);
+
+alias VerifierFn = extern (C) bool function(void*, usize);
 
 struct LFIOptions {
     bool noverify;
@@ -16,6 +18,7 @@ struct LFIOptions {
     int poc;
     int hidesys;
     int p2size;
+    VerifierFn verifier;
 }
 
 struct LFIProcInfo {

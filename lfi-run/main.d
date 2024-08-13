@@ -48,6 +48,8 @@ void usage(const(char)* name) {
     fprintf(stderr, "  --gas N             use N gas\n");
 }
 
+extern (C) bool lfiv_verify(void*, usize);
+
 extern (C) int main(int argc, const(char)** argv) {
     dofilemax();
 
@@ -98,6 +100,7 @@ extern (C) int main(int argc, const(char)** argv) {
     options.syshandler = &syscall;
     options.p2size = flags.p2size;
     options.gas = flags.gas;
+    options.verifier = &lfiv_verify;
 
     lfiengine = lfi_new(options);
     if (!lfiengine) {

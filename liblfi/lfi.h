@@ -36,6 +36,8 @@ struct lfi_regs;
 
 typedef uint64_t (*lfi_syshandler)(void* ctxp, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
+typedef bool (*lfi_verifier)(void* code, size_t size);
+
 struct lfi_options {
     int noverify;
     int fastyield;
@@ -46,6 +48,7 @@ struct lfi_options {
     int poc;
     int hidesys;
     int p2size;
+    lfi_verifier verifier;
 };
 
 struct lfi_proc_info {
@@ -129,8 +132,6 @@ uint64_t lfi_signal_start(uint64_t syspage);
 void lfi_signal_end(uint64_t saved);
 
 void* lfi_sys_ctx(uint64_t syspage);
-
-bool lfi_verify_bytes(void* b, size_t size, void* fn);
 
 int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
 

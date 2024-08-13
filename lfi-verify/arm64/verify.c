@@ -310,7 +310,7 @@ lfiv_verify_verbose(void* code, size_t size, uintptr_t addr, ErrFn err)
 }
 
 bool
-lfiv_verify(void* code, size_t size, uintptr_t addr)
+lfiv_verify(void* code, size_t size)
 {
-    return lfiv_verify_verbose(code, size, addr, NULL);
+    return lfiv_verify_verbose(code, size, 0, NULL);
 }
