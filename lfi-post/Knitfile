@@ -1,9 +1,0 @@
-local cc = "gcc"
-local cflags = "-O2 -Wall -Wextra"
-
-return b{
-    $ lfi-post: .main.o
-        $cc $input -o $output -lcapstone
-    $ .%.o:D[.%.dep]: %.c
-        $cc $cflags -MD -MF $dep -c $input -o $output
-}
