@@ -40,7 +40,7 @@ zydis_c_args = [
   '-DZYDIS_STATIC_BUILD',
 ]
 
-libzydis = library('zydis', zydis_files,
+libzydis = static_library('zydis', zydis_files,
   c_args: zydis_c_args,
   include_directories: zydis_includes,
   implicit_include_directories: false
