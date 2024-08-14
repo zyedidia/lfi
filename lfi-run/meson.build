@@ -44,6 +44,6 @@ subdir('cwalk')
 subdir('buddy')
 subdir('arch')
 
-lfi_run = executable('lfi-run', srcs, d_args: d_args, d_module_versions: versions, link_args: ['-betterC'], link_with: [liblfi, liblfiv_arm64], install: true)
+lfi_run = executable('lfi-run', srcs, d_args: d_args, d_module_versions: versions, link_args: ['-betterC'], link_with: [liblfi, liblfiv_arm64, liblfiv_amd64], install: true)
 
 subdir('test')

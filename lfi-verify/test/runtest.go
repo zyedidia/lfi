@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -15,6 +16,11 @@ var verbose = flag.Bool("V", false, "verbose")
 func fatal(err ...interface{}) {
 	fmt.Fprintln(os.Stderr, err...)
 	os.Exit(1)
+}
+
+var compilers = map[string]string{
+	"arm64": "aarch64-linux-gnu-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
+	"amd64": "x86_64-linux-gnu-gcc -nostdlib -z separate-code %s -o %s",
 }
 
 func run(command string, flags ...string) (string, error) {
@@ -31,11 +37,16 @@ func run(command string, flags ...string) (string, error) {
 }
 
 func main() {
+	arch := flag.String("arch", runtime.GOARCH, "architecture")
 	flag.Parse()
 	args := flag.Args()
 
 	if len(args) < 2 {
 		fatal("no input")
+	}
+
+	if _, ok := compilers[*arch]; !ok {
+		fatal("unsupported architecture", *arch)
 	}
 
 	lfiverify := args[0]
@@ -67,11 +78,11 @@ func main() {
 			}
 			outtmp.Close()
 			bin := outtmp.Name()
-			out, err := run("aarch64-linux-gnu-gcc", "-march=armv8.1-a+sve", "-nostdlib", "-z", "separate-code", tmp.Name(), "-o", bin)
+			out, err := run("sh", "-c", fmt.Sprintf(compilers[*arch], tmp.Name(), bin))
 			if err != nil {
 				log.Fatal("error compiling:", out)
 			}
-			out, err = run(lfiverify, bin)
+			out, err = run(lfiverify, "-a", *arch, bin)
 			var success bool
 			if strings.Contains(input, "fail") {
 				success = err != nil

@@ -286,7 +286,7 @@ vchk(Verifier* v, uint32_t insn)
 }
 
 bool
-lfiv_verify_verbose(void* code, size_t size, uintptr_t addr, ErrFn err)
+lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err)
 {
     if (size % INSN_SIZE != 0)
         return false;
@@ -310,7 +310,7 @@ lfiv_verify_verbose(void* code, size_t size, uintptr_t addr, ErrFn err)
 }
 
 bool
-lfiv_verify(void* code, size_t size)
+lfiv_verify_arm64(void* code, size_t size)
 {
-    return lfiv_verify_verbose(code, size, 0, NULL);
+    return lfiv_verify_verbose_arm64(code, size, 0, NULL);
 }

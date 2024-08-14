@@ -22,9 +22,12 @@ enum {
 
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
+    { "arch",           'a',               "ARCH", 0, "run on architecture (amd64,arm64)" },
     { "n",              'n',               "NUM",  0, "run the verifier n times (for benchmarking)" },
     { 0 },
 };
+
+static VerifyVFn verify_fn;
 
 static error_t
 parse_opt(int key, char* arg, struct argp_state* state)
@@ -37,6 +40,13 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case 'n':
         args->n = atoi(arg);
+        break;
+    case 'a':
+        if (strcmp(arg, "amd64") != 0 && strcmp(arg, "arm64") != 0 && strcmp(arg, "riscv64") != 0) {
+            fprintf(stderr, "unknown architecture: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
+        args->arch = arg;
         break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)
@@ -111,7 +121,7 @@ verify(const char* file)
                 continue;
             }
 
-            if (!lfiv_verify_verbose(&buf[p->offset], p->filesz, p->vaddr, errfn)) {
+            if (!verify_fn(&buf[p->offset], p->filesz, p->vaddr, errfn)) {
                 printf("verification failed\n");
                 return false;
             }
@@ -126,6 +136,21 @@ verify(const char* file)
     return true;
 }
 
+static char*
+getarch()
+{
+#if defined(__x86_64__) || defined(_M_X64)
+    return "amd64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#elif defined(__riscv__)
+    return "riscv64";
+#else
+    fprintf(stderr, "running on unsupported architecture, use --arch to specify target\n");
+    exit(1);
+#endif
+}
+
 Args args;
 
 int
@@ -133,8 +158,20 @@ main(int argc, char** argv)
 {
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 
+    if (args.arch == NULL)
+        args.arch = getarch();
+
     if (args.n == 0)
         args.n = 1;
+
+    if (strcmp(args.arch, "amd64") == 0)
+        verify_fn = lfiv_verify_verbose_amd64;
+    else if (strcmp(args.arch, "arm64") == 0)
+        verify_fn = lfiv_verify_verbose_arm64;
+    else {
+        fprintf(stderr, "verifier for %s does not exist\n", args.arch);
+        return 1;
+    }
 
     bool failed = false;
     for (size_t i = 0; i < args.ninputs; i++) {

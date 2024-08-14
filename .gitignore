@@ -40,3 +40,5 @@ install
 
 subprojects/capstone
 subprojects/zydis
+subprojects/fadec
+subprojects/disarm

@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/zyedidia/fadec.git
+revision = lfi
+directory = fadec

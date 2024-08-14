@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/zyedidia/disarm.git
+revision = lfi
+directory = disarm
