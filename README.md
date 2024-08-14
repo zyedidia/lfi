@@ -137,7 +137,6 @@ To install the tools, you must have the following dependencies installed:
 * Go for `lfi-compile` and running tests.
 * GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
 * LDC (`apt install ldc`) for `lfi-run`.
-* Zydis (`apt install libzydis-dev`) for `lfi-postlink` (Capstone is also required but is built internally).
 
 To perform a complete build of all tools and of both a GCC and Clang toolchain run
 

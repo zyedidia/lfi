@@ -1,5 +1,5 @@
 capstone = subproject('capstone', default_options: ['default_library=static']).get_variable('capstone_dep')
-zydis = dependency('Zydis', version: '>=4.0.0.0')
+zydis = subproject('zydis').get_variable('zydis_dep')
 
 lfi_postlink = executable(
   'lfi-postlink',

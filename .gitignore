@@ -39,3 +39,4 @@ lfi-verify-amd64
 install
 
 subprojects/capstone
+subprojects/zydis
