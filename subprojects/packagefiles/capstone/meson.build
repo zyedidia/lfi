@@ -31,6 +31,7 @@ libcapstone_c_args = [
   '-DCAPSTONE_DIET_NO',
   '-DCAPSTONE_HAS_ARM64',
   '-DCAPSTONE_HAS_X86',
+  '-Wno-stringop-overflow',
 ]
 
 libcapstone = library('capstone', cs_files,
