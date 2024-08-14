@@ -23,7 +23,9 @@ rm -rf build-toolchain
 export PATH=$PREFIX/bin:$PATH
 
 # install clang
-# (cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang $TARGET_ARCH)
+if [ "$TARGET_ARCH" != x86_64 ]; then
+    (cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang $TARGET_ARCH)
+fi
 
 # install gcc
 (cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc $TARGET_ARCH)
