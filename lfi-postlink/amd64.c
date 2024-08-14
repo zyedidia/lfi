@@ -246,6 +246,7 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
             count += instrs[j].length;
             curb += instrs[j].length;
         }
+
         memcpy(insns, newbundle, bsz);
         free(newbundle);
     }
@@ -268,7 +269,7 @@ amd64_postlink(uint8_t* buf, size_t sz)
 
         uint8_t* code = &buf[p->offset];
         size_t count = 0;
-        while (count < p->filesz) {
+        while (count + args.bundle <= p->filesz) {
             bundlefix(&code[count], p->filesz, args.bundle, p->vaddr + count);
             if (!args.noprefix)
                 padrewrite(&code[count], args.bundle, p->vaddr + count);
