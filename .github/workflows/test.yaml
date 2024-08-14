@@ -15,7 +15,7 @@ jobs:
     - uses: zyedidia/setup-knit@v1
 
     - name: Install Dependencies
-      run: sudo apt install -y gcc-aarch64-linux-gnu meson ninja-build ldc libzydis-dev
+      run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu meson ninja-build ldc libzydis-dev
 
     - name: Build and Test
       run: |
