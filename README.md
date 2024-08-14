@@ -96,7 +96,7 @@ LFI-compatible binaries, and a runtime library for creating, verifying, and
 managing sandboxes. For either of these components, you can either use prebuilt
 versions provided with releases, or build from source.
 
-## Prebuilt toolchain
+## Prebuilt distribution
 
 Prebuilt toolchains are provided in the GitHub releases:
 https://github.com/zyedidia/lfi/releases/. The prebuilt toolchain includes
@@ -117,18 +117,15 @@ When you download a prebuilt toolchain, you will see the following directories:
   plus wrapper scripts. You can run the `lfi-clang` and `lfi-clang++` scripts
   in `clang/bin/` to invoke your system Clang with the LFI sysroot. You may
   want to put this directory on your `PATH` (`clang/bin/`).
-* `llvm/`: for x86-64 toolchains, a patched version of Clang is provided, which
-  includes support for reserving registers and aligning basic blocks.
 
-## Prebuilt liblfi
+The x86-64 toolchain only supports GCC by default (patches to LLVM are required
+to use Clang).
 
-You may also want to use `liblfi` to write your own runtime that manages LFI
-sandboxes. The prebuilt releases provide the following libraries:
-
-* `liblfi.a`: the LFI runtime management library.
-* `liblfiverify-arm64.a`: the LFI verifier as a library.
-* `lfi.h`: signatures for exported functions from `liblfi`.
-* `lfiv.h`: signatures for exported functions from `liblfiverify`.
+You will also find libraries in the prebuilt archives. The `liblfi` and
+`liblfiverify` libraries allow you to write your own runtime with your own
+runtime call API. The `liblfileg` library allows you to use the rewriter as a
+library. See the files installed to `include` and `lib` in the provided
+archives for details.
 
 ## Building from source
 
