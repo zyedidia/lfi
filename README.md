@@ -135,19 +135,26 @@ To install the tools, you must have the following dependencies installed:
 * GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
 * LDC (`apt install ldc`) for `lfi-run`.
 
+LFI uses the Meson build system with Ninja. When configuring the build you will
+be alerted of any missing dependencies.
+
 To perform a complete build of all tools and of both a GCC and Clang toolchain run
 
 ```
 ./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64_lfi or x86-64
 ```
 
-LFI uses the Meson build system with Ninja. When configuring the build you will
-be alerted of any missing dependencies.
+Note: if you get an error about `asm/types.h` not found while building LLVM
+libc++, you may have to symlink `/usr/include/asm-generic` to
+`/usr/include/asm`.
 
-To build LFI from source, run the following:
+Running the script may take a long time (10-15 minutes) as it will build a
+compiler toolchain for you along with the standard LFI tools/libraries.
+
+To build just the LFI tools/libraries from source, run the following:
 
 ```
-meson build --prefix=$PWD/install
+meson setup build --prefix=$PWD/install
 cd build
 ninja install
 ```
@@ -156,10 +163,10 @@ You will find the generated binaries, libraries, and headers in `$PWD/install`
 (or in your prefix of choice). Before building a compiler toolchain, you should
 make sure the installed `bin` directory is on your `PATH`.
 
-Next, you must build an LFI-compatible compiler toolchain. You can use either
-GCC or Clang. See [lfi-gcc](https://github.com/zyedidia/lfi-gcc) and
-[lfi-clang](https://github.com/zyedidia/lfi-clang) for details and
-instructions. These are included as submodules in the `toolchain` directory.
+For more details about building a compiler toolchain, see
+[lfi-gcc](https://github.com/zyedidia/lfi-gcc) and
+[lfi-clang](https://github.com/zyedidia/lfi-clang). These are included as
+submodules in the `toolchain` directory.
 
 # Example
 
