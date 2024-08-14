@@ -36,12 +36,12 @@ lo(const char* reg)
         return "%r11d";
     if (strcmp(reg, "%r12") == 0)
         return "%r12d";
-    if (strcmp(reg, "%r15") == 0)
-        return "%r15d";
+    if (strcmp(reg, "%r13") == 0)
+        return "%r13d";
     if (strcmp(reg, "%r14") == 0)
         return "%r14d";
-    if (strcmp(reg, "%r11") == 0)
-        return "%r11d";
+    if (strcmp(reg, "%r15") == 0)
+        return "%r15d";
     return reg;
 }
 

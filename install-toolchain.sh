@@ -16,14 +16,14 @@ mkdir -p $PREFIX/gcc
 cp LICENSE $PREFIX
 cp README.md $PREFIX
 
-meson build-toolchain --prefix $PREFIX
+meson setup build-toolchain --prefix $PREFIX
 ninja -C build-toolchain install
 rm -rf build-toolchain
 
 export PATH=$PREFIX/bin:$PATH
 
 # install clang
-(cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang $TARGET_ARCH)
+# (cd toolchain/lfi-clang && ./install-toolchain.sh $PREFIX/clang $TARGET_ARCH)
 
 # install gcc
 (cd toolchain/lfi-gcc && ./install-toolchain.sh $PREFIX/gcc $TARGET_ARCH)
