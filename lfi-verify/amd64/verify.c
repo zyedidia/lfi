@@ -40,9 +40,9 @@ vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
 {
     size_t count = 0;
 
-    while (count < size) {
+    while (count < bundlesize && count < size) {
         FdInstr instr;
-        int ret = fd_decode(buf, size, 64, 0, &instr);
+        int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
         if (ret < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             return;
@@ -51,6 +51,7 @@ vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
         if (count + ret > bundlesize) {
             verr(v, &instr, "instruction spans bundle boundary");
             v->abort = true; // not useful to give further errors
+            return;
         }
 
         v->addr += ret;
@@ -86,6 +87,5 @@ lfiv_verify_verbose_amd64(void* code, size_t size, uintptr_t addr, ErrFn err)
 bool
 lfiv_verify_amd64(void* code, size_t size)
 {
-    lfiv_verify_verbose_amd64(code, size, 0, NULL);
-    return false;
+    return lfiv_verify_verbose_amd64(code, size, 0, NULL);
 }
