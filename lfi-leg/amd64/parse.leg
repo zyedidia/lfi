@@ -48,11 +48,13 @@ PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {
 
 AnyPrefix = p:PREFIX rest:RemainderOrComment {
     mkinsn("%s %s", p.val, rest.val);
+    rfree(p); rfree(rest);
 }
 
 Any = rest:RemainderOrComment {
     if (strlen(rest.val) > 0)
         mkinsn("%s", rest.val);
+    rfree(rest);
 }
 
 RemainderOrComment = < (!(EOL | ';' | '/*' | '//' | '#') .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }

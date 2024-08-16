@@ -568,26 +568,26 @@ static char *preamble= "\
 \n\
 #ifndef YY_PART\n\
 \n\
-typedef void (*yyaction)(yycontext *yy, char *yytext, int yyleng);\n\
-typedef struct _yythunk { int begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;\n\
+typedef void (*yyaction)(yycontext *yy, char *yytext, ssize_t yyleng);\n\
+typedef struct _yythunk { ssize_t begin, end;  yyaction  action;  struct _yythunk *next; } yythunk;\n\
 \n\
 struct _yycontext {\n\
   char     *__buf;\n\
-  int       __buflen;\n\
-  int       __pos;\n\
-  int       __limit;\n\
+  ssize_t       __buflen;\n\
+  ssize_t       __pos;\n\
+  ssize_t       __limit;\n\
   char     *__text;\n\
-  int       __textlen;\n\
-  int       __begin;\n\
-  int       __end;\n\
-  int       __textmax;\n\
+  ssize_t       __textlen;\n\
+  ssize_t       __begin;\n\
+  ssize_t       __end;\n\
+  ssize_t       __textmax;\n\
   yythunk  *__thunks;\n\
-  int       __thunkslen;\n\
-  int       __thunkpos;\n\
+  ssize_t       __thunkslen;\n\
+  ssize_t       __thunkpos;\n\
   YYSTYPE   __;\n\
   YYSTYPE  *__val;\n\
   YYSTYPE  *__vals;\n\
-  int       __valslen;\n\
+  ssize_t       __valslen;\n\
 #ifdef YY_CTX_MEMBERS\n\
   YY_CTX_MEMBERS\n\
 #endif\n\
@@ -625,7 +625,7 @@ yycontext *yyctx= &_yyctx;\n\
 \n\
 YY_LOCAL(int) YY_MAYBE_UNUSED yyrefill(yycontext *yy)\n\
 {\n\
-  int yyn;\n\
+  ssize_t yyn;\n\
   while (yy->__buflen - yy->__pos < 512)\n\
     {\n\
       yy->__buflen *= 2;\n\
@@ -663,7 +663,7 @@ YY_LOCAL(int) YY_MAYBE_UNUSED yymatchChar(yycontext *yy, int c)\n\
 \n\
 YY_LOCAL(int) YY_MAYBE_UNUSED yymatchString(yycontext *yy, const char *s)\n\
 {\n\
-  int yysav= yy->__pos;\n\
+  ssize_t yysav= yy->__pos;\n\
   while (*s)\n\
     {\n\
       if (yy->__pos >= yy->__limit && !yyrefill(yy)) return 0;\n\
@@ -693,7 +693,7 @@ YY_LOCAL(int) YY_MAYBE_UNUSED yymatchClass(yycontext *yy, unsigned char *bits)\n
   return 0;\n\
 }\n\
 \n\
-YY_LOCAL(void) YY_MAYBE_UNUSED yyDo(yycontext *yy, yyaction action, int begin, int end)\n\
+YY_LOCAL(void) YY_MAYBE_UNUSED yyDo(yycontext *yy, yyaction action, ssize_t begin, ssize_t end)\n\
 {\n\
   while (yy->__thunkpos >= yy->__thunkslen)\n\
     {\n\
@@ -706,9 +706,9 @@ YY_LOCAL(void) YY_MAYBE_UNUSED yyDo(yycontext *yy, yyaction action, int begin, i
   ++yy->__thunkpos;\n\
 }\n\
 \n\
-YY_LOCAL(int) YY_MAYBE_UNUSED yyText(yycontext *yy, int begin, int end)\n\
+YY_LOCAL(int) YY_MAYBE_UNUSED yyText(yycontext *yy, ssize_t begin, ssize_t end)\n\
 {\n\
-  int yyleng= end - begin;\n\
+  ssize_t yyleng= end - begin;\n\
   if (yyleng <= 0)\n\
     yyleng= 0;\n\
   else\n\
@@ -726,11 +726,11 @@ YY_LOCAL(int) YY_MAYBE_UNUSED yyText(yycontext *yy, int begin, int end)\n\
 \n\
 YY_LOCAL(void) yyDone(yycontext *yy)\n\
 {\n\
-  int pos;\n\
+  ssize_t pos;\n\
   for (pos= 0;  pos < yy->__thunkpos;  ++pos)\n\
     {\n\
       yythunk *thunk= &yy->__thunks[pos];\n\
-      int yyleng= thunk->end ? yyText(yy, thunk->begin, thunk->end) : thunk->begin;\n\
+      ssize_t yyleng= thunk->end ? yyText(yy, thunk->begin, thunk->end) : thunk->begin;\n\
       yyprintf((stderr, \"DO [%d] %p %s\\n\", pos, thunk->action, yy->__text));\n\
       thunk->action(yy, yy->__text, yyleng);\n\
     }\n\
@@ -748,11 +748,11 @@ YY_LOCAL(void) yyCommit(yycontext *yy)\n\
   yy->__pos= yy->__thunkpos= 0;\n\
 }\n\
 \n\
-YY_LOCAL(int) YY_MAYBE_UNUSED yyAccept(yycontext *yy, int tp0)\n\
+YY_LOCAL(int) YY_MAYBE_UNUSED yyAccept(yycontext *yy, ssize_t tp0)\n\
 {\n\
   if (tp0)\n\
     {\n\
-      fprintf(stderr, \"accept denied at %d\\n\", tp0);\n\
+      fprintf(stderr, \"accept denied at %ld\\n\", tp0);\n\
       return 0;\n\
     }\n\
   else\n\
@@ -763,7 +763,7 @@ YY_LOCAL(int) YY_MAYBE_UNUSED yyAccept(yycontext *yy, int tp0)\n\
   return 1;\n\
 }\n\
 \n\
-YY_LOCAL(void) YY_MAYBE_UNUSED yyPush(yycontext *yy, char *text, int count)\n\
+YY_LOCAL(void) YY_MAYBE_UNUSED yyPush(yycontext *yy, char *text, ssize_t count)\n\
 {\n\
   yy->__val += count;\n\
   while (yy->__valslen <= yy->__val - yy->__vals)\n\
@@ -774,8 +774,8 @@ YY_LOCAL(void) YY_MAYBE_UNUSED yyPush(yycontext *yy, char *text, int count)\n\
       yy->__val= yy->__vals + offset;\n\
     }\n\
 }\n\
-YY_LOCAL(void) YY_MAYBE_UNUSED yyPop(yycontext *yy, char *text, int count)   { yy->__val -= count; }\n\
-YY_LOCAL(void) YY_MAYBE_UNUSED yySet(yycontext *yy, char *text, int count)   { yy->__val[count]= yy->__; }\n\
+YY_LOCAL(void) YY_MAYBE_UNUSED yyPop(yycontext *yy, char *text, ssize_t count)   { yy->__val -= count; }\n\
+YY_LOCAL(void) YY_MAYBE_UNUSED yySet(yycontext *yy, char *text, ssize_t count)   { yy->__val[count]= yy->__; }\n\
 \n\
 #endif /* YY_PART */\n\
 \n\
@@ -919,7 +919,7 @@ void Rule_compile_c(Node *node, int nolines)
   fprintf(output, "\n");
   for (n= actions;  n;  n= n->action.list)
     {
-      fprintf(output, "YY_ACTION(void) yy%s(yycontext *yy, char *yytext, int yyleng)\n{\n", n->action.name);
+      fprintf(output, "YY_ACTION(void) yy%s(yycontext *yy, char *yytext, ssize_t yyleng)\n{\n", n->action.name);
       defineVariables(n->action.rule->rule.variables);
       fprintf(output, "  yyprintf((stderr, \"do yy%s\\n\"));\n", n->action.name);
       fprintf(output, "  {\n");
