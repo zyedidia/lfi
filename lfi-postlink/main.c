@@ -128,6 +128,10 @@ main(int argc, char** argv)
         exit(1);
     }
 
+    if (sz == 0) {
+        return 0;
+    }
+
     uint8_t* buf = mmap(NULL, sz, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(f), 0);
     if (buf == (uint8_t*) -1) {
         perror("mmap");
