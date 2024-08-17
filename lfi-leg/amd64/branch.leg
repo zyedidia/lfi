@@ -61,6 +61,12 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     rfree(a);
 }
 
+# unused
+CallTls = 'call' 'q'? SEP '__tls_get_addr' - rest:REMAINDER {
+    mkinsn("callq __tls_get_addr%s", rest.val);
+    rfree(rest);
+}
+
 Call = 'call' 'q'? - rest:ITEM {
     if (args.bundlecall)
         mkdirective(bundle_align());

@@ -37,6 +37,7 @@ srcs = files(
   'signal.d',
   'sys.d',
   'lfi/package.d',
+  'lfi/env.d',
 )
 
 subdir('core')

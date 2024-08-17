@@ -57,7 +57,9 @@ struct lfi_proc_info {
     uint64_t lastva;
     uint64_t extradata;
     uint64_t elfentry;
+    uint64_t ldentry;
     uint64_t elfbase;
+    uint64_t ldbase;
     uint64_t elfphoff;
     uint16_t elfphnum;
     uint16_t elfphentsize;
@@ -120,8 +122,13 @@ struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc);
 // sandbox slot. This function can be used to implement a "fork" operation.
 int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* proc, void* new_ctxp);
 
-// Reset a process's address space and load the given ELF file into its
-// address space. This can be used to implement an "execve" operation.
+// Reset a process's address space and load the given ELF file into its address
+// space. This can be used to implement an "execve" operation. The _dyn
+// version is used to load dynamically-linked libraries, and the user must
+// provide the ELF interpreter to use. Pass NULL for the interpeter for static
+// ELF files.
+int lfi_proc_exec_dyn(struct lfi_proc* proc, uint8_t* prog, size_t size, uint8_t* interp, size_t interp_size, struct lfi_proc_info* info);
+
 int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info);
 
 // Return the base address of the process.

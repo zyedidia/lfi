@@ -10,6 +10,7 @@ import arch.regs;
 import sys;
 import sched;
 import lfi;
+import lfi.env;
 import fd;
 import queue;
 import elf;
@@ -242,7 +243,7 @@ bool stacksetup(Proc* p, int argc, const(char)** argv, ref LFIProcInfo info, out
     // Set up auxv.
     Auxv* av = cast(Auxv*) p_envp;
     *av++ = Auxv(AT_SECURE, 0);
-    *av++ = Auxv(AT_BASE, procuseraddr(p, info.elfbase));
+    *av++ = Auxv(AT_BASE, procuseraddr(p, info.ldbase));
     *av++ = Auxv(AT_PHDR, procuseraddr(p, info.elfbase + info.elfphoff));
     *av++ = Auxv(AT_PHNUM, info.elfphnum);
     *av++ = Auxv(AT_PHENT, info.elfphentsize);
@@ -265,13 +266,31 @@ bool procsetup(Proc* p, ubyte[] buf, int argc, const(char)** argv) {
     bool success;
 
     LFIProcInfo info;
-    lfi_proc_exec(p.lp, buf.ptr, buf.length, &info);
+
+    int r;
+    char* ldfile = elfinterp(buf.ptr);
+    if (ldfile) {
+        ubyte[] ld = lfireadfile(ldfile);
+        if (!ld)
+            return false;
+        scope(exit) kfree(ld);
+        r = lfi_proc_exec_dyn(p.lp, buf.ptr, buf.length, ld.ptr, ld.length, &info);
+    } else {
+        r = lfi_proc_exec(p.lp, buf.ptr, buf.length, &info);
+    }
+
+    if (r < 0)
+        return false;
 
     uintptr sp;
     if (!stacksetup(p, argc, argv, info, sp))
         return false;
 
-    lfi_proc_init_regs(p.lp, info.elfentry, sp);
+    uintptr entry = info.elfentry;
+    if (ldfile)
+        entry = info.ldentry;
+
+    lfi_proc_init_regs(p.lp, entry, sp);
 
     p.brkbase = info.lastva;
     p.brksize = 0;
@@ -460,4 +479,12 @@ void mapunmap(Proc* p, MMap m) {
     else
         buddy_unsafe_release_range(p.mapalloc, cast(void*) m.base, m.size);
     ensure(munmap(cast(void*) m.base, m.size) == 0);
+}
+
+int procmprotect(Proc* p, uintptr start, usize size, int prot) {
+    // TODO: record these changes properly in maps
+    ubyte[] buf = procbuf(p, start, size);
+    if (!buf)
+        return Err.INVAL;
+    return lfi_mprotect(p.lp, start, size, prot);
 }

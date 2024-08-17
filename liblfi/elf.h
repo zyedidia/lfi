@@ -2,6 +2,7 @@
 #define LFI_ELF_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 enum {
     ELF_MAGIC = 0x464C457FU, // "\x7ELF" in little endian

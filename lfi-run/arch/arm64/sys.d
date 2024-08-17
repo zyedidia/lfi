@@ -44,6 +44,7 @@ enum Sys {
     RT_SIGACTION    = 134,
     PRCTL           = 167,
     MADVISE         = 233,
+    MPROTECT        = 226,
 }
 
 alias SyscallFn = uintptr function(Proc* p, ulong[6] args);
@@ -88,4 +89,5 @@ SyscallFn[] systbl = [
     Sys.RT_SIGACTION:    &ignore,
     Sys.PRCTL:           &ignore,
     Sys.MADVISE:         &ignore,
+    Sys.MPROTECT:        &sysmprotect_,
 ];

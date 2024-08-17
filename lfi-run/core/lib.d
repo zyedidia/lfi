@@ -71,6 +71,8 @@ void* mremap(void* old, usize old_size, usize new_size, int flags);
 
 ssize getrandom(void* buf, usize buflen, uint flags);
 
+char* getenv(const(char)* name);
+
 noreturn exit(int status);
 
 __gshared {

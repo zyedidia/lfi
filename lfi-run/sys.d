@@ -568,6 +568,13 @@ uintptr sysbrk(Proc* p, uintptr addr) {
     return procuseraddr(p, p.brkbase + p.brksize);
 }
 
+uintptr sysmprotect_(Proc* p, ulong[6] args) {
+    return sysmprotect(p, args[0], args[1], cast(int) args[2]);
+}
+uintptr sysmprotect(Proc* p, uintptr addrp, usize length, int prot) {
+    return syserr(procmprotect(p, procaddr(p, truncpg(addrp)), ceilpg(length), prot));
+}
+
 uintptr sysmremap_(Proc* p, ulong[6] args) {
     return -1;
 }

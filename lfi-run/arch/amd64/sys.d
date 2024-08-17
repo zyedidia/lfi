@@ -56,6 +56,7 @@ enum Sys {
     DUP             = 32,
     PIPE            = 22,
     MADVISE         = 28,
+    MPROTECT        = 10,
 }
 
 enum {
@@ -155,4 +156,5 @@ SyscallFn[] systbl = [
     // Sys.DUP:             &sysdup_,
     // Sys.PIPE:            &syspipe1_,
     Sys.MADVISE:         &ignore, // TODO
+    Sys.MPROTECT:        &sysmprotect_,
 ];

@@ -3,7 +3,7 @@ arches = {
   'x86_64': 'x86_64',
 }
 
-lfi_gcc = find_program('/opt/lfi-amd64/bin/x86_64-linux-musl-gcc', required: false)
+lfi_gcc = find_program('x86_64-lfi-linux-musl-gcc', required: false)
 
 if not lfi_gcc.found()
   message('LFI GCC was not found, cannot perform lfi-run tests')

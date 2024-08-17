@@ -84,6 +84,13 @@ static struct lfi_mem lfi_mem_map(uintptr_t base, size_t size, int prot) {
         .prot = prot,
     };
 }
+typedef void (*ErrFn)(char* msg, size_t sz);
+
+static void errfn(char* msg, size_t sz) {
+    puts(msg);
+}
+
+bool lfiv_verify_verbose_amd64(void*, size_t, uintptr_t, ErrFn);
 
 static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, int noverify, lfi_verifier verify) {
     if (prot_exec(prot)) {
@@ -95,6 +102,7 @@ static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, i
                 return LFI_ERR_PROTECTION;
             }
             if (verify((void*) mem->base, mem->size) == 0) {
+                lfiv_verify_verbose_amd64((void*) mem->base, mem->size, 0, errfn);
                 return LFI_ERR_VERIFY;
             }
         }
@@ -227,12 +235,10 @@ static void lfi_proc_clear_regions(struct lfi_proc* proc) {
     lfi_proc_clear(&proc->segments);
 }
 
-int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
-    if (proc->guards[0].base != 0) {
-        lfi_proc_clear_regions(proc);
-    }
-
+static int load(struct lfi_proc* proc, uint8_t* prog, size_t size, uintptr_t base, uintptr_t* plast, uintptr_t* pentry) {
     int err = LFI_ERR_INVALID_ELF;
+
+    uintptr_t last = 0;
 
     struct elf_file_header* ehdr = (struct elf_file_header*) prog;
 
@@ -245,26 +251,6 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
     }
 
     struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[0]));
-    proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[1]));
-
-    size_t stack_size = proc->lfi->opts.stacksize;
-    proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
-    if (!lfi_mem_valid(&proc->stack)) {
-        err = LFI_ERR_INVALID_STACK;
-        goto err1;
-    }
-
-    uintptr_t base = proc->guards[0].base + proc->guards[0].size;
-    uintptr_t last = 0;
-
-    proc->sys = sys_alloc(proc->base, proc->lfi->opts.hidesys, proc->lfi->opts.pagesize);
-    if (!proc->sys) {
-        goto err1;
-    }
-    sys_setup(proc->sys, proc);
 
     if (ehdr->entry >= CODE_MAX) {
         goto err1;
@@ -297,8 +283,14 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
             goto err1;
         }
 
+#if defined(__x86_64__) || defined(_M_X64)
+        memset((void*) (seg.base), 0xcc, end - start);
+#endif
+
         memcpy((void*) (seg.base + offset), &prog[p->offset], p->filesz);
         memset((void*) (seg.base + offset + p->filesz), 0, p->memsz - p->filesz);
+
+        /* printf("load %lx %lx -> %lx (%ld %ld)\n", start, end, seg.base + offset, p->memsz, end - start); */
 
         if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify, proc->lfi->opts.verifier)) < 0) {
             goto err1;
@@ -316,12 +308,60 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
         }
     }
 
+    *plast = last;
+    *pentry = ehdr->type == ET_DYN ? base + ehdr->entry : proc->base + ehdr->entry;
+
+    return 0;
+err1:
+    return err;
+}
+
+int lfi_proc_exec_dyn(struct lfi_proc* proc, uint8_t* prog, size_t size, uint8_t* interp, size_t interp_size, struct lfi_proc_info* info) {
+    if (proc->guards[0].base != 0) {
+        lfi_proc_clear_regions(proc);
+    }
+
+    int err = LFI_ERR_INVALID_ELF;
+
+    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
+    assert(lfi_mem_valid(&proc->guards[0]));
+    proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
+    assert(lfi_mem_valid(&proc->guards[1]));
+
+    size_t stack_size = proc->lfi->opts.stacksize;
+    proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
+    if (!lfi_mem_valid(&proc->stack)) {
+        err = LFI_ERR_INVALID_STACK;
+        goto err1;
+    }
+
+    proc->sys = sys_alloc(proc->base, proc->lfi->opts.hidesys, proc->lfi->opts.pagesize);
+    if (!proc->sys) {
+        goto err1;
+    }
+    sys_setup(proc->sys, proc);
+
+    // load
+    uintptr_t base = proc->guards[0].base + proc->guards[0].size;
+    uintptr_t plast, pentry, ilast, ientry;
+    if ((err = load(proc, prog, size, base, &plast, &pentry)) < 0)
+        goto err1;
+
+    if (interp) {
+        if ((err = load(proc, interp, interp_size, plast, &ilast, &ientry)) < 0)
+            goto err1;
+    }
+
+    struct elf_file_header* ehdr = (struct elf_file_header*) prog;
+
     *info = (struct lfi_proc_info) {
         .stack = (void*) proc->stack.base,
         .stacksize = proc->stack.size,
-        .lastva = last,
-        .elfentry = ehdr->type == ET_DYN ? base + ehdr->entry : proc->base + ehdr->entry,
+        .lastva = interp ? ilast : plast,
+        .elfentry = pentry,
+        .ldentry = interp ? ientry : 0,
         .elfbase = base,
+        .ldbase = interp ? plast : base,
         .elfphoff = ehdr->phoff,
         .elfphnum = ehdr->phnum,
         .elfphentsize = ehdr->phentsize,
@@ -332,6 +372,10 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 err1:
     lfi_proc_clear_regions(proc);
     return err;
+}
+
+int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
+    return lfi_proc_exec_dyn(proc, prog, size, NULL, 0, info);
 }
 
 struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc) {
