@@ -82,7 +82,7 @@ uintptr sysopenat(Proc* p, int dirfd, uintptr pathp, int flags, int mode) {
         return Err.FAULT;
     FDFile* f = filenew(p.cwd.fd, path, flags, mode);
     if (!f)
-        return Err.INVAL;
+        return Err.NOENT;
     int fd = fdalloc(&p.fdtable);
     if (fd < 0) {
         fdrelease(f, p);

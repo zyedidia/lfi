@@ -115,7 +115,7 @@ main(int argc, char** argv)
     FILE* f = fopen(args.input, "r+");
     if (!f) {
         fprintf(stderr, "error opening %s: %s\n", args.input, strerror(errno));
-        exit(1);
+        exit(0);
     }
 
     if (fseek(f, 0, SEEK_END) != 0) {
