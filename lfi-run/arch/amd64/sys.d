@@ -57,6 +57,7 @@ enum Sys {
     PIPE            = 22,
     MADVISE         = 28,
     MPROTECT        = 10,
+    POLL            = 7,
 }
 
 enum {
@@ -157,4 +158,6 @@ SyscallFn[] systbl = [
     // Sys.PIPE:            &syspipe1_,
     Sys.MADVISE:         &ignore, // TODO
     Sys.MPROTECT:        &sysmprotect_,
+    Sys.POLL:            &ignore,
+    324: &ignore, // TODO (membarrier)
 ];

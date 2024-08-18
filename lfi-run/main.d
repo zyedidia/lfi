@@ -100,7 +100,7 @@ extern (C) int main(int argc, const(char)** argv) {
     LFIOptions options;
     options.noverify = flags.noverify;
     options.pagesize = PAGESIZE;
-    options.stacksize = mb(2);
+    options.stacksize = mb(8);
     options.syshandler = &syscall;
     options.p2size = flags.p2size;
     options.gas = flags.gas;
