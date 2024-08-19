@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/zyedidia/libmmap.git
+revision = head
+directory = libmmap

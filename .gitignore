@@ -42,5 +42,6 @@ subprojects/capstone
 subprojects/zydis
 subprojects/fadec
 subprojects/disarm
+subprojects/libmmap
 
 .cache

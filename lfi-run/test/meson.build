@@ -24,7 +24,7 @@ foreach tc : tests
     f'@tc@.elf',
     output: [f'@tc@.elf'],
     input: tc_path,
-    command: [lfi_gcc, '@INPUT@', '-o', '@OUTPUT@'],
+    command: [lfi_gcc, '@INPUT@', '-o', '@OUTPUT@', '-static-pie'],
   )
   test('@0@'.format(tc_path), lfi_run, args: ['--no-verify', targ], suite: 'lfi-run')
 endforeach
