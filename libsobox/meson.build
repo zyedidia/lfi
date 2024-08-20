@@ -36,8 +36,7 @@ libsobox = static_library(
   'sobox',
   srcs,
   sbxstub_inc,
-  objects: [liblfi.extract_all_objects(recursive: true)],
-  dependencies: mmap.as_link_whole(),
+  dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole()],
   install: true,
 )
 

@@ -3,5 +3,5 @@ tests = [
 ]
 
 foreach t : tests
-  test(t, executable(t + '.elf', t, dependencies: sobox), suite: ['libsobox'])
+  test(t, executable(t + '.elf', t, dependencies: [sobox, liblfi_dep]), suite: ['libsobox'])
 endforeach

@@ -4,7 +4,7 @@
 #include <immintrin.h>
 #include <stdlib.h>
 
-#include "arch/amd64/regs.h"
+#include "lfi.h"
 
 static uint64_t r_tpidr() {
     return _readfsbase_u64();

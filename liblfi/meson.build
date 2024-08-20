@@ -23,3 +23,5 @@ subdir(archdir[cpu])
 liblfi = static_library('lfi', srcs, c_args: c_args, install: true)
 
 install_headers('lfi.h')
+
+liblfi_dep = declare_dependency(link_with: liblfi, include_directories: include_directories('.'))

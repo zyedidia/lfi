@@ -12,3 +12,7 @@ typedef struct SoboxLib {
     MMAddrSpace* mm;
     FDTable fdtable;
 } SoboxLib;
+
+uintptr_t libaddr(SoboxLib* lib, uintptr_t addr);
+
+uintptr_t libuseraddr(SoboxLib* lib, uintptr_t addr);

@@ -7,9 +7,9 @@
 #include "lfi_internal.h"
 #include "elf.h"
 
-#if defined(ARCH_arm64)
+#if defined(__aarch64__) || defined(_M_ARM64)
 #include "arch/arm64/arm64.h"
-#elif defined(ARCH_amd64)
+#elif defined(__x86_64__) || defined(_M_X64)
 #include "arch/amd64/amd64.h"
 #endif
 

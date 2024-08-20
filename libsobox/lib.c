@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "sobox.h"
 #include "lib.h"
@@ -11,10 +12,16 @@ static bool libsetup(SoboxLib* l, uint8_t* buf, size_t bufsize, int argc, const 
 static bool libfile(SoboxLib* l, int argc, const char** argv);
 static void libfree(SoboxLib*);
 
-static uintptr_t
-libuseraddr(SoboxLib* lib, uintptr_t addr)
+uintptr_t
+libaddr(SoboxLib* lib, uintptr_t addr)
 {
     return ((uint32_t) addr) | lib->base;
+}
+
+uintptr_t
+libuseraddr(SoboxLib* lib, uintptr_t addr)
+{
+    return libaddr(lib, addr);
 }
 
 static SoboxLib*
@@ -65,14 +72,16 @@ stacksetup(SoboxLib* l, int argc, const char** argv, struct lfi_proc_info* info,
 {
     // TODO: do we actually want to support argc/argv? Technically not
     // necessary for libraries since they are not used by the stub.
-    argc = 0;
+    argc = 1;
 
     void* stack_top = info->stack + info->stacksize;
+    memcpy(stack_top - 1024, "stub", strlen("stub") + 1);
     long* p_argc = (long*) (stack_top - 4096);
     *newsp = (uintptr_t) p_argc;
     *p_argc++ = argc;
     char** p_argvp = (char**) p_argc;
-    p_argvp[argc] = NULL;
+    p_argvp[0] = stack_top - 1024;
+    p_argvp[1] = NULL;
 
     char** p_envp = (char**) &p_argvp[argc + 1];
     *p_envp++ = NULL;
@@ -88,7 +97,7 @@ stacksetup(SoboxLib* l, int argc, const char** argv, struct lfi_proc_info* info,
     *av++ = (Auxv) { AT_PAGESZ, getpagesize() };
     *av++ = (Auxv) { AT_HWCAP, 0 };
     *av++ = (Auxv) { AT_HWCAP2, 0 };
-    *av++ = (Auxv) { AT_RANDOM, 0xdeadbeef };
+    *av++ = (Auxv) { AT_RANDOM, libuseraddr(l, info->elfentry) }; // TODO
     *av++ = (Auxv) { AT_FLAGS, 0 };
     *av++ = (Auxv) { AT_UID, 1000 };
     *av++ = (Auxv) { AT_EUID, 1000 };

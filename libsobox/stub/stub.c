@@ -16,5 +16,6 @@ static SoboxFns myfns = (SoboxFns) {
 int
 main()
 {
-    syscall(SOBOXDL, &myfns);
+    return 0;
+    /* syscall(SOBOXDL, &myfns); */
 }

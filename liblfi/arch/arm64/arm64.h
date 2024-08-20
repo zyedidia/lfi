@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "arch/arm64/regs.h"
+#include "lfi.h"
 
 static uint64_t r_tpidr() {
     uint64_t val;
