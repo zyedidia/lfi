@@ -17,7 +17,7 @@
 // The name of the output file subBDD prefix
 #define SUBFILE "lfi"
 // Instruction range to be checked
-const size_t n_verify = 0x0fffffffULL + 1;
+const size_t n_verify = 0x0ffffffffULL + 1;
 
 static bdd
 add_value(uint32_t val)
