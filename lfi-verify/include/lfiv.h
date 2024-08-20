@@ -12,6 +12,7 @@ typedef bool (*VerifyFn)(void* code, size_t size);
 
 bool lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err);
 bool lfiv_verify_arm64(void* code, size_t size);
+bool lfiv_verify_insn_arm64(uint32_t insn);
 
 bool lfiv_verify_verbose_amd64(void* code, size_t size, uintptr_t addr, ErrFn err);
 bool lfiv_verify_amd64(void* code, size_t size);

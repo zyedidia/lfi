@@ -286,6 +286,14 @@ vchk(Verifier* v, uint32_t insn)
 }
 
 bool
+lfiv_verify_insn_arm64(uint32_t insn)
+{
+    Verifier v = {0};
+    vchk(&v, insn);
+    return !v.failed;
+}
+
+bool
 lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err)
 {
     if (size % INSN_SIZE != 0)
