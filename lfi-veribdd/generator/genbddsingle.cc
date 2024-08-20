@@ -4,6 +4,7 @@
 #include <fcntl.h>
 
 #include "lfi.h"
+#include "lfiv.h"
 
 bdd
 add_value(uint32_t val)
@@ -47,7 +48,7 @@ main(int argc, char* argv[])
         if (i % 5000000 == 0) {
             fprintf(stderr, "%.1f\n", (float) i / (float) n_verify * 100);
         }
-        if (lfi_verify_insn((uint32_t) i)) {
+        if (lfiv_verify_insn_arm64((uint32_t) i)) {
             full |= add_value(i);
         }
     }

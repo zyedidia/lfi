@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <omp.h>
+#include <chrono>
 
 #include "lfiv.h"
 
@@ -72,6 +73,7 @@ main(int argc, char* argv[])
 {
     if (argc <= 1) {
         printf("usage: %s out.bdd\n", argv[0]);
+        printf("OR usage: %s out.bdd numProcs\n", argv[0]);
         return 1;
     }
 
@@ -79,11 +81,14 @@ main(int argc, char* argv[])
     assert(valid);
 
     size_t nproc = omp_get_num_procs();
+    if (argc > 2 && atoi(argv[2])>0) nproc = atoi(argv[2]);
     printf("nproc: %ld\n", nproc);
 
     omp_set_num_threads(nproc);
 
     printf("finding valid instructions...\n");
+    
+    auto start = std::chrono::steady_clock::now();
 
 #pragma omp parallel
 #pragma omp for
@@ -182,8 +187,16 @@ main(int argc, char* argv[])
     }
     bdd_save(f, full);
     fclose(f);
+    
+    auto end = std::chrono::steady_clock::now();
 
     fprintf(stderr, "saved final bdd to output file\n");
+    
+    std::chrono::duration<double> duration = end - start;
+    
+    fprintf(stdout, "Time for program completion with [%ld] threads: %f \n", nproc, duration.count());
+    
+    
 
     return 0;
 }
