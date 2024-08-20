@@ -43,7 +43,7 @@ lfi_proc_entry:
 .globl lfi_asm_proc_exit
 lfi_asm_proc_exit:
 	mov %rdi, %rsp
-	mov %rsi, %rdi
+	mov %rsi, %rax
 	add $8, %rsp
 	popq %rbp
 	popq %rbx

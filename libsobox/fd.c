@@ -29,21 +29,21 @@ fdget(FDTable* t, int fd)
 }
 
 void
-fdrelease(FDFile* f, SoboxLib* l)
+fdrelease(FDFile* f, SoboxProc* p)
 {
     f->refs--;
     if (f->refs == 0) {
         if (f->close)
-            f->close(f->dev, l);
+            f->close(f->dev, p);
         free(f);
     }
 }
 
 bool
-fdremove(FDTable* t, int fd, SoboxLib* l)
+fdremove(FDTable* t, int fd, SoboxProc* p)
 {
     if (fdhas(t, fd)) {
-        fdrelease(t->files[fd], l);
+        fdrelease(t->files[fd], p);
         t->files[fd] = NULL;
         return true;
     }
@@ -57,10 +57,10 @@ fdhas(FDTable* t, int fd)
 }
 
 void
-fdclear(FDTable* t, SoboxLib* l)
+fdclear(FDTable* t, SoboxProc* p)
 {
     for (int fd = 0; fd < NOFILE; fd++) {
-        fdremove(t, fd, l);
+        fdremove(t, fd, p);
     }
 }
 

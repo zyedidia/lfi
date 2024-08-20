@@ -1,5 +1,12 @@
+#pragma once
+
 #include <stdint.h>
 #include <errno.h>
+
+enum {
+    MB = 1ULL * 1024 * 1024,
+    GB = 1ULL * 1024 * 1024 * 1024,
+};
 
 int syserr(int val);
 

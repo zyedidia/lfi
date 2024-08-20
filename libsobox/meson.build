@@ -24,7 +24,7 @@ mmap = subproject('libmmap').get_variable('mmap')
 
 srcs = files(
   'sobox.c',
-  'lib.c',
+  'proc.c',
   'file.c',
   'fd.c',
   'sys.c',

@@ -20,30 +20,30 @@ filefd(void* dev)
 }
 
 static ssize_t
-fileread(void* dev, SoboxLib* l, uint8_t* buf, size_t buflen)
+fileread(void* dev, SoboxProc* p, uint8_t* buf, size_t buflen)
 {
-    (void) l;
+    (void) p;
     return syserr(read(filefd(dev), buf, buflen));
 }
 
 static ssize_t
-filewrite(void* dev, SoboxLib* l, uint8_t* buf, size_t buflen)
+filewrite(void* dev, SoboxProc* p, uint8_t* buf, size_t buflen)
 {
-    (void) l;
+    (void) p;
     return syserr(write(filefd(dev), buf, buflen));
 }
 
 static ssize_t
-filelseek(void* dev, SoboxLib* l, off_t off, int whence)
+filelseek(void* dev, SoboxProc* p, off_t off, int whence)
 {
-    (void) l;
+    (void) p;
     return syserr(lseek(filefd(dev), off, whence));
 }
 
 static int
-fileclose(void* dev, SoboxLib* l)
+fileclose(void* dev, SoboxProc* p)
 {
-    (void) l;
+    (void) p;
     return syserr(close(filefd(dev)));
 }
 

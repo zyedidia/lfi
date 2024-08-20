@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 enum {
-    SOBOXDL = 0xffff,
+    SYS_SBX_dl = 0xffff,
 };
 
 typedef struct {

@@ -2,12 +2,7 @@
 
 #include "sys.h"
 #include "sobox.h"
-
-enum {
-    MB = 1024ULL * 1024,
-    GB = MB * 1024,
-    PROC_SIZE = 4ULL * GB,
-};
+#include "proc.h"
 
 bool
 sbx_init(Sobox* sbx, uint8_t* (*readfile)(const char* filename, size_t* size))
@@ -23,7 +18,7 @@ sbx_init(Sobox* sbx, uint8_t* (*readfile)(const char* filename, size_t* size))
         return false;
     sbx->lfimgr = engine;
     sbx->readfile = readfile;
-    if (lfi_auto_add_vaspaces(sbx->lfimgr, 16 * PROC_SIZE) < 0)
+    if (lfi_auto_add_vaspaces(sbx->lfimgr, 16 * PROCSIZE) < 0)
         return false;
     return true;
 }
