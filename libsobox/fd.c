@@ -1,4 +1,7 @@
+#include <stdio.h>
+
 #include "fd.h"
+#include "file.h"
 
 void
 fdassign(FDTable* t, int fd, FDFile* ff)
@@ -67,4 +70,7 @@ fdclear(FDTable* t, SoboxProc* p)
 void
 fdinit(FDTable* t)
 {
+    fdassign(t, 0, filefdnew(fileno(stdin)));
+    fdassign(t, 1, filefdnew(fileno(stdout)));
+    fdassign(t, 2, filefdnew(fileno(stderr)));
 }

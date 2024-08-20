@@ -232,6 +232,9 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
     if (!proc)
         return NULL;
     int code = lfi_proc_start(proc->proc);
-    printf("library stub exited with code %d\n", code);
+    assert(code == 0);
+    assert(proc->fns);
+    /* size_t namelen = strlen(filename); */
+    lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->dlret);
     return proc;
 }

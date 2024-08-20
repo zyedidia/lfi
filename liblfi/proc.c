@@ -464,7 +464,14 @@ int lfi_proc_start(struct lfi_proc* proc) {
 #endif
 }
 
-extern void lfi_asm_proc_exit(void* kstackp, int code) asm ("lfi_asm_proc_exit");
+extern void lfi_asm_invoke(struct lfi_proc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
+
+void lfi_invoke(struct lfi_proc* proc, void* fn, void* ret) {
+    *((void**) proc->regs.rsp) = ret;
+    lfi_asm_invoke(proc, fn, &proc->kstackp);
+}
+
+extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_exit");
 
 void lfi_proc_exit(struct lfi_proc* proc, int code) {
 #ifdef DYNARMIC
@@ -474,6 +481,10 @@ void lfi_proc_exit(struct lfi_proc* proc, int code) {
 #else
     lfi_asm_proc_exit(proc->kstackp, code);
 #endif
+}
+
+void lfi_proc_return(struct lfi_proc* proc, uint64_t val) {
+    lfi_asm_proc_exit(proc->kstackp, val);
 }
 
 uintptr_t lfi_proc_base(struct lfi_proc* proc) {

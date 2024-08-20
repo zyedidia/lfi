@@ -21,6 +21,46 @@
     // TODO: save SIMD registers?
 .endm
 
+.macro RESTORE_INVOKE_REGS
+	mov 8*18(%rdi), %r11
+	wrgsbase %r11
+	mov 8*1(%rdi), %rsp
+	mov 8*1(%rdi), %rsp
+	mov 8*2(%rdi), %rax
+	mov 8*3(%rdi), %rcx
+	mov 8*4(%rdi), %rdx
+	mov 8*5(%rdi), %rbx
+	mov 8*6(%rdi), %rbp
+	mov 8*7(%rdi), %rsi
+	mov 8*9(%rdi), %r8
+	mov 8*10(%rdi), %r9
+	// zero out other registers?
+	mov 8*15(%rdi), %r14
+	mov 8*16(%rdi), %r15
+	mov 8*17(%rdi), %r11
+	wrfsbase %r11
+	mov 8*8(%rdi), %rdi
+.endm
+
+// lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
+.p2align 4
+.globl lfi_asm_invoke
+lfi_asm_invoke:
+	// save callee-saved registers to stack
+	pushq %r15
+	pushq %r14
+	pushq %r13
+	pushq %r12
+	pushq %rbx
+	pushq %rbp
+
+	movq %rsi, %r12
+	subq $8, %rsp
+	movq %rsp, (%rdx)
+	RESTORE_INVOKE_REGS
+	jmpq *%r12
+	int3
+
 // lfi_proc_entry(Proc* p, void** kstackp)
 .p2align 4
 .globl lfi_proc_entry

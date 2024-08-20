@@ -1,9 +1,9 @@
 sbxstub = custom_target(
   'sbxstub',
   output: ['stub'],
-  input: files('stub.c'),
-  depend_files: files('stub.h'),
-  command: [lfi_gcc, '@INPUT@', '-o', '@OUTPUT@'],
+  input: files('stub.c', 'stub.S'),
+  depend_files: files('stub.h', 'stubasm.h'),
+  command: [lfi_gcc, '@INPUT@', '-O2', '-o', '@OUTPUT@'],
 )
 
 sbxstub_inc = custom_target(

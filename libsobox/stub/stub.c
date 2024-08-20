@@ -5,12 +5,15 @@
 
 #include "stub.h"
 
+extern void dlret() asm ("dlret");
+
 static SoboxFns myfns = (SoboxFns) {
     .dlopen = dlopen,
     .dlclose = dlclose,
     .dlsym = dlsym,
     .malloc = malloc,
     .free = free,
+    .dlret = dlret,
 };
 
 int

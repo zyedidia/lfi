@@ -135,11 +135,15 @@ int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_
 // Return the base address of the process.
 uintptr_t lfi_proc_base(struct lfi_proc* proc);
 
+void lfi_invoke(struct lfi_proc* proc, void* fn, void* ret);
+
 uint64_t lfi_signal_start(uint64_t syspage);
 
 void lfi_signal_end(uint64_t saved);
 
 void* lfi_sys_ctx(uint64_t syspage);
+
+void lfi_proc_return(struct lfi_proc* proc, uint64_t val);
 
 int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
 
