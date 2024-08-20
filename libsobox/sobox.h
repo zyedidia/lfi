@@ -51,3 +51,6 @@ void sbx_free(void* lib, void* ptr);
 
 // sbx_deinit deletes the Sobox sandbox manager.
 void sbx_deinit(Sobox* sbx);
+
+// this function is temporary and will be removed in a future version
+uint64_t sbx_dlinvoke(void* handle, void* symbol, uint64_t a0, uint64_t a1);

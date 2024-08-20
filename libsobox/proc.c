@@ -240,13 +240,69 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
     size_t namelen = strlen(filename);
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
     regs->rdi = namelen + 1;
-    uint64_t ret = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
-    memcpy((void*) ret, filename, namelen);
+    uint64_t s_filename = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    memcpy((void*) s_filename, filename, namelen);
 
     // call dlopen in the sandbox
-    regs->rdi = ret;
+    regs->rdi = s_filename;
     regs->rsi = 0;
-    ret = lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
-    proc->libhandle = (void*) ret;
+    uint64_t handle = lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
+    proc->libhandle = (void*) handle;
+
+    regs->rdi = s_filename;
+    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
     return proc;
+}
+
+void*
+sbx_dlsymfn(void* handle, const char* symbol, const char* ty)
+{
+    (void) ty;
+    SoboxProc* proc = (SoboxProc*) handle;
+
+    // allocate the filename in the sandbox
+    size_t symlen = strlen(symbol);
+    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
+    regs->rdi = symlen + 1;
+
+    uint64_t s_symbol = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    memcpy((void*) s_symbol, symbol, symlen);
+
+    regs->rdi = (uint64_t) proc->libhandle;
+    regs->rsi = s_symbol;
+    void* sym = (void*) lfi_invoke(proc->proc, proc->fns->dlsym, proc->fns->ret);
+
+    regs->rdi = s_symbol;
+    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
+
+    return sym;
+}
+
+void*
+sbx_malloc(void* handle, size_t size)
+{
+    SoboxProc* proc = (SoboxProc*) handle;
+    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
+    regs->rdi = size;
+    return (void*) lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+}
+
+void
+sbx_free(void* handle, void* ptr)
+{
+    SoboxProc* proc = (SoboxProc*) handle;
+    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
+    regs->rdi = (uint64_t) ptr;
+    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
+}
+
+// this function is temporary and will be removed in a future version
+uint64_t
+sbx_dlinvoke(void* handle, void* symbol, uint64_t a0, uint64_t a1)
+{
+    SoboxProc* proc = (SoboxProc*) handle;
+    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
+    regs->rdi = a0;
+    regs->rsi = a1;
+    return lfi_invoke(proc->proc, symbol, proc->fns->ret);
 }
