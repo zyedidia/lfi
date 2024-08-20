@@ -3,13 +3,13 @@ return b{
         ./genbdd $output
     $ lfi.bdd: lfi.bdd.txt
         go run bdd.go $input > $output
-    $ genbddsingle: genbddsingle.o ../../lfi-verify/target/release/liblfiverify.a
-        c++ $input -o $output -lbdd
-    $ genbdd: genbdd.o ../../lfi-verify/target/release/liblfiverify.a
-        c++ $input -o $output -lbdd -fopenmp
+    $ genbddsingle: genbddsingle.o
+        c++ $input -o $output -lbdd -llfiverify-arm64 -L/usr/local/lib/x86_64-linux-gnu
+    $ genbdd: genbdd.o
+        c++ $input -o $output -lbdd -fopenmp -llfiverify-arm64 -L/usr/local/lib/x86_64-linux-gnu
     $ %.o: %.cc
         c++ -c -O2 $input -o $output -I../../liblfi -fopenmp
     $ %.o: %.c
         cc -c -O2 $input -o $output
-    include("../../lfi-verify/Knitfile")
+    
 }
