@@ -61,6 +61,13 @@
 	ldr x21,    [x21, #8+16*10+8]
 .endm
 
+// lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
+.p2align 4
+.globl lfi_asm_invoke
+lfi_asm_invoke:
+	// TODO
+	brk #0
+
 // lfi_proc_entry(Proc* p)
 .p2align 4
 .globl lfi_proc_entry
