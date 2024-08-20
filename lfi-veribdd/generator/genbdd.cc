@@ -11,6 +11,7 @@
 #include <omp.h>
 
 #include "lfi.h"
+#include "lfiv.h"
 
 // The name of the output file subBDD prefix
 #define SUBFILE "lfi"
@@ -78,8 +79,8 @@ main(int argc, char* argv[])
     bool* valid = (bool*) calloc(1, n_verify * sizeof(bool));
     assert(valid);
 
-    int nproc = omp_get_num_procs();
-    printf("nproc: %d\n", nproc);
+    size_t nproc = omp_get_num_procs();
+    printf("nproc: %ld\n", nproc);
 
     omp_set_num_threads(nproc);
 
@@ -88,7 +89,7 @@ main(int argc, char* argv[])
 #pragma omp parallel
 #pragma omp for
     for (uint64_t insn = 0; insn < n_verify; insn++) {
-        if (lfi_verify_insn((uint32_t) insn)) {
+        if (lfiv_verify_insn_arm64((uint32_t) insn)) {
             valid[insn] = true;
         }
     }
@@ -114,8 +115,6 @@ main(int argc, char* argv[])
     pid_t children[nproc];
     for (size_t i = 0; i < nproc; i++) {
         if((children[i] = fork()) == 0) {
-            char* cur_path = strdup(argv[0]);
-            char* cur_dir = dirname(cur_path);
             std::string out_file_name = SUBFILE + std::to_string(i) + ".bdd";
 
             size_t n_insns = valid_insns.size();

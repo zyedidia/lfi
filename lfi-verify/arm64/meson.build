@@ -7,3 +7,5 @@ liblfiv_arm64 = static_library(
   install: true,
   include_directories: include_directories('../include'),
 )
+
+liblfiv_arm64_dep = declare_dependency(link_with: [liblfiv_arm64], include_directories: include_directories('../include'))

@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*ErrFn)(char* msg, size_t sz);
 
 typedef bool (*VerifyVFn)(void* code, size_t size, uintptr_t addr, ErrFn err);
@@ -41,3 +45,7 @@ typedef struct {
     uintptr_t addr;
     ErrFn err;
 } Verifier;
+
+#ifdef __cplusplus
+}
+#endif
