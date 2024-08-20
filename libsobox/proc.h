@@ -23,6 +23,7 @@ typedef struct SoboxProc {
     MMAddrSpace mm;
 
     SoboxFns* fns;
+    void* libhandle;
 
     FDTable fdtable;
 } SoboxProc;

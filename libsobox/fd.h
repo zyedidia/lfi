@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sys/stat.h>
+
 #include "sobox.h"
 
 typedef struct SoboxProc SoboxProc;
@@ -15,6 +17,7 @@ typedef struct {
     ssize_t (*write)(void*, SoboxProc*, uint8_t*, size_t);
     ssize_t (*lseek)(void*, SoboxProc*, off_t, int);
     int (*close)(void*, SoboxProc*);
+    int (*stat)(void*, SoboxProc*, struct stat*);
     int (*mapfd)(void*);
 } FDFile;
 

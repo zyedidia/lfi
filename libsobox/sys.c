@@ -4,11 +4,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdalign.h>
+#include <string.h>
 #include <sys/mman.h>
 
 #include "sys.h"
 #include "proc.h"
+#include "file.h"
 
 #include "stub/stub.h"
 
@@ -27,6 +30,9 @@ enum {
     SYS_write           = 1,
     SYS_readv           = 19,
     SYS_writev          = 20,
+    SYS_open            = 2,
+    SYS_close           = 3,
+    SYS_fstat           = 5,
 };
 
 enum {
@@ -43,7 +49,7 @@ truncp(uintptr_t addr, size_t align)
 static bool
 procinbrk(SoboxProc* p, uintptr_t addr, size_t size)
 {
-    return addr >= p->brkbase && size < p->brksize;
+    return addr >= p->brkbase && addr + size <= p->brkbase + p->brksize;
 }
 
 static uint8_t*
@@ -64,6 +70,23 @@ procbuf(SoboxProc* p, uintptr_t buf, size_t size)
     if (size >= PROCSIZE || buf + size >= p->base + PROCSIZE)
         return NULL;
     return (uint8_t*) buf;
+}
+
+enum {
+    PATH_MAX = 4096,
+};
+
+static const char*
+procpath(SoboxProc* p, uintptr_t path)
+{
+    path = procaddr(p, path);
+    const char* str = (const char*) path;
+    size_t len = strnlen(str, PATH_MAX);
+    if (path + len >= p->base + PROCSIZE)
+        return NULL;
+    if (str[len] != 0)
+        return NULL;
+    return str;
 }
 
 static int
@@ -123,10 +146,8 @@ sysmmap(SoboxProc* p, uintptr_t addrp, size_t length, int prot, int flags, int f
 {
     if (length == 0)
         return -EINVAL;
-    if ((prot & PROT_EXEC) != 0)
-        return -EPERM;
-
-    fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld)\n", addrp, length, prot, flags, fd, offset);
+    /* if ((prot & PROT_EXEC) != 0) */
+    /*     return -EPERM; */
 
     // The flags listed are the only allowed flags.
     const int illegal_mask = ~MAP_ANONYMOUS &
@@ -135,8 +156,9 @@ sysmmap(SoboxProc* p, uintptr_t addrp, size_t length, int prot, int flags, int f
         ~MAP_FIXED &
         ~MAP_NORESERVE &
         ~MAP_DENYWRITE;
-    if ((flags & illegal_mask) != 0)
+    if ((flags & illegal_mask) != 0) {
         return -EPERM;
+    }
 
     int r;
     if (addrp == 0) {
@@ -148,13 +170,22 @@ sysmmap(SoboxProc* p, uintptr_t addrp, size_t length, int prot, int flags, int f
             return -EINVAL;
         addrp = procaddr(p, addrp);
 
-        if (procinbrk(p, addrp, length))
+        if (procinbrk(p, addrp, length)) {
+            // TODO: handle brk region properly with mmap
             return procuseraddr(p, addrp);
+        }
         r = procmapat(p, addrp, length, prot, flags, fd, offset);
     }
     if (r < 0)
         return r;
+    /* fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld) = %lx\n", addrp, length, prot, flags, fd, offset, addrp); */
     return procuseraddr(p, addrp);
+}
+
+static int
+sysmunmap(SoboxProc* p, uintptr_t addrp, size_t length)
+{
+    return 0;
 }
 
 static int
@@ -248,6 +279,58 @@ syswritev(SoboxProc* p, int fd, uintptr_t iovp, ssize_t iovcnt)
     return total;
 }
 
+static uintptr_t
+sysopenat(SoboxProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    FDFile* f = filenew(AT_FDCWD, path, flags, mode);
+    if (!f)
+        return -ENOENT;
+    int fd = fdalloc(&p->fdtable);
+    if (fd < 0) {
+        fdrelease(f, p);
+        return -EMFILE;
+    }
+    fdassign(&p->fdtable, fd, f);
+    return fd;
+}
+
+static uintptr_t
+sysclose(SoboxProc* p, int fd)
+{
+    bool ok = fdremove(&p->fdtable, fd, p);
+    if (!ok)
+        return -EBADF;
+    return 0;
+}
+
+static int
+sysfstatat(SoboxProc* p, int dirfd, uintptr_t pathp, uintptr_t statbuf, int flags)
+{
+    uint8_t* statb = procbufalign(p, statbuf, sizeof(struct stat), alignof(struct stat));
+    if (!statb)
+        return -EFAULT;
+    struct stat* stat = (struct stat*) statb;
+    if ((flags & AT_EMPTY_PATH) == 0) {
+        const char* path = procpath(p, pathp);
+        if (!path)
+            return -EFAULT;
+        if (dirfd != AT_FDCWD)
+            return -EBADF;
+        return syserr(fstatat(AT_FDCWD, path, stat, flags));
+    }
+    FDFile* f = fdget(&p->fdtable, dirfd);
+    if (!f)
+        return -EBADF;
+    if (!f->stat)
+        return -EACCES;
+    return f->stat(f->dev, p, stat);
+}
+
 static int
 syssbxdl(SoboxProc* p, uintptr_t fns)
 {
@@ -260,7 +343,7 @@ syssbxdl(SoboxProc* p, uintptr_t fns)
 }
 
 static uintptr_t
-syssbxdlret(SoboxProc* p, uintptr_t val)
+syssbxret(SoboxProc* p, uintptr_t val)
 {
     lfi_proc_return(p->proc, val);
     assert(!"unreachable");
@@ -285,6 +368,9 @@ syshandler(void* ctxp, uint64_t sysno,
     case SYS_mprotect:
         ret = sysmprotect(p, a0, a1, a2);
         break;
+    case SYS_munmap:
+        ret = sysmunmap(p, a0, a1);
+        break;
     case SYS_read:
         ret = sysread(p, a0, a1, a2);
         break;
@@ -297,14 +383,24 @@ syshandler(void* ctxp, uint64_t sysno,
     case SYS_writev:
         ret = syswritev(p, a0, a1, a2);
         break;
+    case SYS_open:
+        ret = sysopenat(p, AT_FDCWD, a0, a1, a2);
+        break;
+    case SYS_close:
+        ret = sysclose(p, a0);
+        break;
+    case SYS_fstat:
+        ret = sysfstatat(p, a0, 0, a1, AT_EMPTY_PATH);
+        break;
     case SYS_SBX_dl:
         ret = syssbxdl(p, a0);
         break;
-    case SYS_SBX_dlret:
-        ret = syssbxdlret(p, a0);
+    case SYS_SBX_ret:
+        ret = syssbxret(p, a0);
         break;
     case SYS_set_tid_address:
     case SYS_ioctl:
+    case SYS_fcntl:
         ret = 0;
         break;
     default:

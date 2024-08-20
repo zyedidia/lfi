@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -48,6 +50,13 @@ fileclose(void* dev, SoboxProc* p)
 }
 
 static int
+filestat(void* dev, SoboxProc* p, struct stat* statbuf)
+{
+    (void) p;
+    return syserr(fstatat(filefd(dev), "", statbuf, AT_EMPTY_PATH));
+}
+
+static int
 filemapfd(void* dev)
 {
     return filefd(dev);
@@ -66,6 +75,7 @@ filefdnew(int kfd)
         .write = filewrite,
         .lseek = filelseek,
         .close = fileclose,
+        .stat = filestat,
         .mapfd = filemapfd,
     };
     return ff;

@@ -378,8 +378,9 @@ const(char)* procarg(Proc* p, uintptr arg) {
     return str;
 }
 
-// TODO: check alignment for these types
 T* procobj(T)(Proc* p, uintptr ptr) {
+    if (ptr % T.alignof != 0)
+        return null;
     ubyte[] buf = procbuf(p, ptr, T.sizeof);
     if (!buf)
         return null;
@@ -387,6 +388,8 @@ T* procobj(T)(Proc* p, uintptr ptr) {
 }
 
 T[] procarr(T)(Proc* p, uintptr ptr, usize size) {
+    if (ptr % T.alignof != 0)
+        return null;
     ubyte[] buf = procbuf(p, ptr, T.sizeof * size);
     if (!buf)
         return null;

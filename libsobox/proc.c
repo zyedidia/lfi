@@ -186,6 +186,7 @@ procmapany(SoboxProc* p, size_t size, int prot, int flags, int fd, off_t offset,
         mm_unmap(&p->mm, addr, size);
         return r;
     }
+    *o_mapstart = addr;
     return 0;
 }
 
@@ -234,7 +235,18 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
     int code = lfi_proc_start(proc->proc);
     assert(code == 0);
     assert(proc->fns);
-    /* size_t namelen = strlen(filename); */
-    lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->dlret);
+
+    // allocate the filename in the sandbox
+    size_t namelen = strlen(filename);
+    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
+    regs->rdi = namelen + 1;
+    uint64_t ret = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    memcpy((void*) ret, filename, namelen);
+
+    // call dlopen in the sandbox
+    regs->rdi = ret;
+    regs->rsi = 0;
+    ret = lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
+    proc->libhandle = (void*) ret;
     return proc;
 }

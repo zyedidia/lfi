@@ -464,11 +464,13 @@ int lfi_proc_start(struct lfi_proc* proc) {
 #endif
 }
 
-extern void lfi_asm_invoke(struct lfi_proc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
+extern uint64_t lfi_asm_invoke(struct lfi_proc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
 
-void lfi_invoke(struct lfi_proc* proc, void* fn, void* ret) {
+uint64_t lfi_invoke(struct lfi_proc* proc, void* fn, void* ret) {
+#if defined(__x86_64__) || defined(_M_X64)
     *((void**) proc->regs.rsp) = ret;
-    lfi_asm_invoke(proc, fn, &proc->kstackp);
+#endif
+    return lfi_asm_invoke(proc, fn, &proc->kstackp);
 }
 
 extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_exit");

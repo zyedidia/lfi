@@ -5,7 +5,7 @@
 
 #include "stub.h"
 
-extern void dlret() asm ("dlret");
+extern void ret() asm ("ret");
 
 static SoboxFns myfns = (SoboxFns) {
     .dlopen = dlopen,
@@ -13,7 +13,7 @@ static SoboxFns myfns = (SoboxFns) {
     .dlsym = dlsym,
     .malloc = malloc,
     .free = free,
-    .dlret = dlret,
+    .ret = ret,
 };
 
 int

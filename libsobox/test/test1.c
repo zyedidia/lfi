@@ -35,6 +35,7 @@ main()
     b = sbx_init(&sbx, readfile);
     assert(b);
 
-    void* lib = sbx_dlopen(&sbx, "hello.so", 0);
+    void* lib = sbx_dlopen(&sbx, "libsobox/test/libtest.so", 0);
+    printf("handle: %p\n", lib);
     assert(lib != NULL);
 }

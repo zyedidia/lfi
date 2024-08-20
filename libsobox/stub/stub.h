@@ -11,6 +11,6 @@ typedef struct {
     void* (*dlsym)(void*, const char*);
     void* (*malloc)(size_t);
     void (*free)(void*);
-    void (*dlret)(uint64_t ret);
+    void (*ret)(uint64_t ret);
     void (*hello)(void);
 } SoboxFns;
