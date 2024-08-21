@@ -24,6 +24,11 @@ endif
 
 versions += archdir[cpu]
 
+r = run_command('getconf', 'PAGESIZE', check: false)
+if r.returncode() == 0 and r.stdout().strip() == '16384'
+  versions += 'page16k'
+endif
+
 srcs = files(
   'elf.d',
   'fd.d',

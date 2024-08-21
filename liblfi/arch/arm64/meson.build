@@ -1,1 +1,1 @@
-srcs += files('runtime.S')
+srcs += files('runtime.S', 'arm64.c')

@@ -93,10 +93,12 @@ static int
 sysarchprctl(SoboxProc* p, int code, uintptr_t addr)
 {
     switch (code) {
+#if defined(__x86_64__) || defined(_M_X64)
     case ARCH_SET_FS:
         addr = procaddr(p, addr);
         lfi_proc_get_regs(p->proc)->fs = addr;
         return 0;
+#endif
     default:
         return -EINVAL;
     }

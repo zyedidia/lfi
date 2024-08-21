@@ -124,7 +124,7 @@ procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, int argc, const char** arg
     char* ldfile = elfinterp(buf);
     if (ldfile) {
         // TODO: fix this
-        ldfile = "/opt/lfi-amd64/x86_64-lfi-linux-musl/lib/ld-musl-x86_64.so.1";
+        ldfile = DYNLINKER;
         size_t ldsize;
         assert(p->sbx->readfile);
         uint8_t* ld = p->sbx->readfile(ldfile, &ldsize);
@@ -239,17 +239,17 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
     // allocate the filename in the sandbox
     size_t namelen = strlen(filename);
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    regs->rdi = namelen + 1;
+    *regs_arg(regs, 0) = namelen + 1;
     uint64_t s_filename = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
     memcpy((void*) s_filename, filename, namelen);
 
     // call dlopen in the sandbox
-    regs->rdi = s_filename;
-    regs->rsi = 0;
+    *regs_arg(regs, 0) = s_filename;
+    *regs_arg(regs, 1) = 0;
     uint64_t handle = lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
     proc->libhandle = (void*) handle;
 
-    regs->rdi = s_filename;
+    *regs_arg(regs, 0) = s_filename;
     lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
     return proc;
 }
@@ -263,16 +263,16 @@ sbx_dlsymfn(void* handle, const char* symbol, const char* ty)
     // allocate the filename in the sandbox
     size_t symlen = strlen(symbol);
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    regs->rdi = symlen + 1;
+    *regs_arg(regs, 0) = symlen + 1;
 
     uint64_t s_symbol = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
     memcpy((void*) s_symbol, symbol, symlen);
 
-    regs->rdi = (uint64_t) proc->libhandle;
-    regs->rsi = s_symbol;
+    *regs_arg(regs, 0) = (uint64_t) proc->libhandle;
+    *regs_arg(regs, 1) = s_symbol;
     void* sym = (void*) lfi_invoke(proc->proc, proc->fns->dlsym, proc->fns->ret);
 
-    regs->rdi = s_symbol;
+    *regs_arg(regs, 0) = s_symbol;
     lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
 
     return sym;
@@ -283,7 +283,7 @@ sbx_malloc(void* handle, size_t size)
 {
     SoboxProc* proc = (SoboxProc*) handle;
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    regs->rdi = size;
+    *regs_arg(regs, 0) = size;
     return (void*) lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
 }
 
@@ -292,7 +292,7 @@ sbx_free(void* handle, void* ptr)
 {
     SoboxProc* proc = (SoboxProc*) handle;
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    regs->rdi = (uint64_t) ptr;
+    *regs_arg(regs, 0) = (uint64_t) ptr;
     lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
 }
 
@@ -302,7 +302,7 @@ sbx_dlinvoke(void* handle, void* symbol, uint64_t a0, uint64_t a1)
 {
     SoboxProc* proc = (SoboxProc*) handle;
     struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    regs->rdi = a0;
-    regs->rsi = a1;
+    *regs_arg(regs, 0) = a0;
+    *regs_arg(regs, 1) = a1;
     return lfi_invoke(proc->proc, symbol, proc->fns->ret);
 }

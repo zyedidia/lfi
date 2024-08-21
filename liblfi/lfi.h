@@ -190,6 +190,7 @@ struct lfi_regs {
     uint64_t tpidr;
     uint64_t vector[64];
 };
+
 #elif defined(__x86_64__) || defined(_M_X64)
 struct lfi_regs {
     uint64_t rsp;
@@ -212,5 +213,15 @@ struct lfi_regs {
     uint64_t gs;
 };
 #endif
+
+uint64_t* regs_arg(struct lfi_regs* regs, int arg);
+
+uint64_t* regs_ret(struct lfi_regs* regs);
+
+uint64_t* regs_sysno(struct lfi_regs* regs);
+
+uint64_t* regs_sysarg(struct lfi_regs* regs, int arg);
+
+uint64_t* regs_sysret(struct lfi_regs* regs);
 
 #endif

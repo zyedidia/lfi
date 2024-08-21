@@ -20,6 +20,13 @@ if not lfi_gcc.found()
   subdir_done()
 endif
 
+r = run_command(lfi_gcc, '--print-file-name', 'ld-musl-' + cpu + '.so.1', check: false)
+dynlinker = find_program(r.stdout().strip())
+if r.returncode() != 0 or not dynlinker.found()
+  warning('LFI dynamic linker was not found, cannot build libsobox')
+  subdir_done()
+endif
+
 mmap = subproject('libmmap').get_variable('mmap')
 
 srcs = files(
@@ -36,6 +43,7 @@ libsobox = static_library(
   'sobox',
   srcs,
   sbxstub_inc,
+  c_args: '-DDYNLINKER="' + dynlinker.full_path() + '"',
   dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole()],
   install: true,
 )

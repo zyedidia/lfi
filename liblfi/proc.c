@@ -426,14 +426,14 @@ void lfi_proc_free(struct lfi_proc* proc) {
 void lfi_syscall_handler(struct lfi_proc* proc) asm ("lfi_syscall_handler");
 
 void lfi_syscall_handler(struct lfi_proc* proc) {
-    uint64_t sysno = regs_sysno(&proc->regs);
+    uint64_t sysno = *regs_sysno(&proc->regs);
 
-    uint64_t a0 = regs_sysarg(&proc->regs, 0);
-    uint64_t a1 = regs_sysarg(&proc->regs, 1);
-    uint64_t a2 = regs_sysarg(&proc->regs, 2);
-    uint64_t a3 = regs_sysarg(&proc->regs, 3);
-    uint64_t a4 = regs_sysarg(&proc->regs, 4);
-    uint64_t a5 = regs_sysarg(&proc->regs, 5);
+    uint64_t a0 = *regs_sysarg(&proc->regs, 0);
+    uint64_t a1 = *regs_sysarg(&proc->regs, 1);
+    uint64_t a2 = *regs_sysarg(&proc->regs, 2);
+    uint64_t a3 = *regs_sysarg(&proc->regs, 3);
+    uint64_t a4 = *regs_sysarg(&proc->regs, 4);
+    uint64_t a5 = *regs_sysarg(&proc->regs, 5);
 
     assert(proc->lfi->opts.syshandler);
 

@@ -17,32 +17,6 @@ static void w_tpidr(uint64_t val) {
     asm volatile ("msr tpidr_el0, %0" :: "r"(val));
 }
 
-static uint64_t regs_sysno(struct lfi_regs* regs) {
-    return regs->x8;
-}
-
-static uint64_t regs_sysarg(struct lfi_regs* regs, int arg) {
-    switch (arg) {
-    case 0:
-        return regs->x0;
-    case 1:
-        return regs->x1;
-    case 2:
-        return regs->x2;
-    case 3:
-        return regs->x3;
-    case 4:
-        return regs->x4;
-    case 5:
-        return regs->x5;
-    }
-    assert(0);
-}
-
-static uint64_t* regs_sysret(struct lfi_regs* regs) {
-    return &regs->x0;
-}
-
 static void wr_regs_base(struct lfi_regs* regs, uint64_t val) {
     regs->x21 = val;
 }
