@@ -347,7 +347,7 @@ ubyte[] procbuf(Proc* p, uintptr buf, usize size) {
 }
 
 bool procinbrk(Proc* p, uintptr addr, usize size) {
-    return addr >= p.brkbase && size < p.brksize;
+    return addr >= p.brkbase && addr + size <= p.brkbase + p.brksize;
 }
 
 bool procinmap(Proc* p, uintptr addr, usize size) {
