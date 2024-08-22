@@ -240,6 +240,8 @@ main(int argc, char** argv)
 
     struct output out = (struct output) {};
     if (args.boxtype == BOX_NONE) {
+        if (args.flags != FLAGS_NONE)
+            return 0;
         // nothing to do
         char buf[4096];
         size_t n;
