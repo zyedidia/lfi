@@ -10,7 +10,6 @@
 #include <string.h>
 #include <omp.h>
 
-#include "lfi.h"
 #include "lfiv.h"
 
 // The name of the output file subBDD prefix
