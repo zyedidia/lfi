@@ -72,7 +72,7 @@ func writeC(nodes []Node, w io.Writer){
 func writeCv2(nodes []Node, maxRank int, w io.Writer){
 	fmt.Fprintln(w,"#include <stdint.h>")
 	fmt.Fprintln(w,"#include <stdbool.h>")
-	fmt.Fprintln(w,"int evaluate(uint8_t *input){")
+	fmt.Fprintln(w,"static int evaluate(uint8_t *input){")
 	
 	entry := 0
 	for _, n := range nodes {
