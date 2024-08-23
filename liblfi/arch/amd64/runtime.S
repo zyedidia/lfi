@@ -1,46 +1,54 @@
 #define N_RTCALLS 256
+#define PROC_REGS 16
 
 .text
 
 // save caller-saved registers, assuming sandbox syspage is at %gs
 .macro SAVE_PARTIAL_REGS
-	mov %gs:(N_RTCALLS*8), %rcx
-	mov %rsp, 8*1(%rcx)
-	mov %rax, 8*2(%rcx)
+	mov %fs:lfi_myproc@tpoff, %rcx
+	mov %rsp, PROC_REGS+8*0(%rcx)
+	mov %rax, PROC_REGS+8*1(%rcx)
 	// rcx clobbered
-	mov %rdx, 8*4(%rcx)
-	mov %rbx, 8*5(%rcx)
-	mov %rbp, 8*6(%rcx)
-	mov %rsi, 8*7(%rcx)
-	mov %rdi, 8*8(%rcx)
-	mov %r8,  8*9(%rcx)
-	mov %r9,  8*10(%rcx)
-	mov %r10, 8*11(%rcx)
+	mov %rdx, PROC_REGS+8*3(%rcx)
+	mov %rbx, PROC_REGS+8*4(%rcx)
+	mov %rbp, PROC_REGS+8*5(%rcx)
+	mov %rsi, PROC_REGS+8*6(%rcx)
+	mov %rdi, PROC_REGS+8*7(%rcx)
+	mov %r8,  PROC_REGS+8*8(%rcx)
+	mov %r9,  PROC_REGS+8*9(%rcx)
+	mov %r10, PROC_REGS+8*10(%rcx)
     rdfsbase %r11
-    mov %r11, 8*17(%rcx) // fs
+    mov %r11, PROC_REGS+8*16(%rcx) // fs
     // TODO: save SIMD registers?
 .endm
 
 .macro RESTORE_INVOKE_REGS
-	mov 8*18(%rdi), %r11
+	mov PROC_REGS+8*17(%rdi), %r11
 	wrgsbase %r11
-	mov 8*1(%rdi), %rsp
-	mov 8*1(%rdi), %rsp
-	mov 8*2(%rdi), %rax
-	mov 8*3(%rdi), %rcx
-	mov 8*4(%rdi), %rdx
-	mov 8*5(%rdi), %rbx
-	mov 8*6(%rdi), %rbp
-	mov 8*7(%rdi), %rsi
-	mov 8*9(%rdi), %r8
-	mov 8*10(%rdi), %r9
+	mov PROC_REGS+8*0(%rdi), %rsp
+	mov PROC_REGS+8*1(%rdi), %rax
+	mov PROC_REGS+8*2(%rdi), %rcx
+	mov PROC_REGS+8*3(%rdi), %rdx
+	mov PROC_REGS+8*4(%rdi), %rbx
+	mov PROC_REGS+8*5(%rdi), %rbp
+	mov PROC_REGS+8*6(%rdi), %rsi
+	mov PROC_REGS+8*8(%rdi), %r8
+	mov PROC_REGS+8*9(%rdi), %r9
 	// zero out other registers?
-	mov 8*15(%rdi), %r14
-	mov 8*16(%rdi), %r15
-	mov 8*17(%rdi), %r11
-	wrfsbase %r11
-	mov 8*8(%rdi), %rdi
+	mov PROC_REGS+8*14(%rdi), %r14
+	mov PROC_REGS+8*15(%rdi), %r15
+	mov PROC_REGS+8*7(%rdi), %rdi
 .endm
+
+// Puts the sandbox's thread pointer in %rax and clobbers %r11.
+.p2align 4
+.global lfi_get_tp
+lfi_get_tp:
+	mov %fs:lfi_myproc@tpoff, %rax
+	mov 8(%rax), %rax
+	pop %r11
+	// TODO: sandboxing sequence
+	jmp *%r11
 
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
@@ -78,7 +86,7 @@ lfi_proc_entry:
 	jmp lfi_restore_regs
 	int3
 
-// lfi_asm_proc_exit(uintptr kstackp, int code)
+// lfi_asm_proc_exit(void* kstackp, int code)
 .p2align 4
 .globl lfi_asm_proc_exit
 lfi_asm_proc_exit:
@@ -97,12 +105,10 @@ lfi_asm_proc_exit:
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
-	mov %gs:(N_RTCALLS*8+8), %rdi // load kernel fs
-	wrfsbase %rdi
-	mov %gs:(N_RTCALLS*8), %rdi // load Proc*
-	mov (%rdi), %rsp // load stack
+	// Proc* is now in %rcx
+	mov (%rcx), %rsp // load stack
 	call lfi_syscall_handler
-	mov %gs:(N_RTCALLS*8), %rdi
+	mov %fs:lfi_myproc@tpoff, %rdi
 	jmp lfi_restore_partial_regs
 	int3
 
@@ -110,43 +116,42 @@ lfi_syscall_entry:
 .p2align 4
 .globl lfi_restore_partial_regs
 lfi_restore_partial_regs:
-    mov 8*1(%rdi), %rsp
-	mov 8*2(%rdi), %rax
-	mov $0, %rcx // clobbered
-	mov 8*4(%rdi), %rdx
-	mov 8*5(%rdi), %rbx
-	mov 8*6(%rdi), %rbp
-	mov 8*7(%rdi), %rsi
-	mov 8*9(%rdi), %r8
-	mov 8*10(%rdi), %r9
-	mov 8*11(%rdi), %r10
-    mov 8*17(%rdi), %r11
-    wrfsbase %r11 // fs
+    mov  PROC_REGS+8*0(%rdi), %rsp
+	mov  PROC_REGS+8*1(%rdi), %rax
+	mov  $0, %rcx // clobbered
+	mov  PROC_REGS+8*3(%rdi), %rdx
+	mov  PROC_REGS+8*4(%rdi), %rbx
+	mov  PROC_REGS+8*5(%rdi), %rbp
+	mov  PROC_REGS+8*6(%rdi), %rsi
+	mov  PROC_REGS+8*8(%rdi), %r8
+	mov  PROC_REGS+8*9(%rdi), %r9
+	mov  PROC_REGS+8*10(%rdi), %r10
 	mov $0, %r11 // clobbered
-    mov 8*8(%rdi), %rdi
-	ret
+    mov  PROC_REGS+8*7(%rdi), %rdi
+	// since we are executing on the sandbox stack we have to use a safe return
+	popq %r11
+	// TODO: the exact sequence depends the selected sandboxing flavor
+	jmpq *%r11
 
 .p2align 4
 .globl lfi_restore_regs
 lfi_restore_regs:
-    mov 8*17(%rdi), %r11
-    wrfsbase %r11
     mov 8*18(%rdi), %r11
     wrgsbase %r11
-    mov 8*1(%rdi), %rsp
-    mov 8*2(%rdi), %rax
-    mov 8*3(%rdi), %rcx
-    mov 8*4(%rdi), %rdx
-    mov 8*5(%rdi), %rbx
-    mov 8*6(%rdi), %rbp
-    mov 8*7(%rdi), %rsi
-    mov 8*9(%rdi), %r8
-    mov 8*10(%rdi), %r9
-    mov 8*11(%rdi), %r10
-    mov 8*12(%rdi), %r11
-    mov 8*13(%rdi), %r12
-    mov 8*14(%rdi), %r13
-    mov 8*15(%rdi), %r14
-    mov 8*16(%rdi), %r15
-    mov 8*8(%rdi), %rdi
+    mov PROC_REGS+8*0(%rdi), %rsp
+    mov PROC_REGS+8*1(%rdi), %rax
+    mov PROC_REGS+8*2(%rdi), %rcx
+    mov PROC_REGS+8*3(%rdi), %rdx
+    mov PROC_REGS+8*4(%rdi), %rbx
+    mov PROC_REGS+8*5(%rdi), %rbp
+    mov PROC_REGS+8*6(%rdi), %rsi
+    mov PROC_REGS+8*8(%rdi), %r8
+    mov PROC_REGS+8*9(%rdi), %r9
+    mov PROC_REGS+8*10(%rdi), %r10
+    mov PROC_REGS+8*11(%rdi), %r11
+    mov PROC_REGS+8*12(%rdi), %r12
+    mov PROC_REGS+8*13(%rdi), %r13
+    mov PROC_REGS+8*14(%rdi), %r14
+    mov PROC_REGS+8*15(%rdi), %r15
+    mov PROC_REGS+8*7(%rdi), %rdi
     ret

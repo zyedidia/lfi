@@ -1,5 +1,4 @@
-#ifndef LFI_ELF_H
-#define LFI_ELF_H
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -37,7 +36,7 @@ enum {
     EV_CURRENT = 1,
 };
 
-struct elf_file_header {
+typedef struct {
     uint32_t magic;
     uint8_t width;
     uint8_t _elf[11];
@@ -54,9 +53,9 @@ struct elf_file_header {
     uint16_t shentsize;
     uint16_t shnum;
     uint16_t shstrndx;
-};
+} ElfFileHeader;
 
-struct elf_prog_header {
+typedef struct {
     uint32_t type;
     uint32_t flags;
     uint64_t offset;
@@ -65,6 +64,4 @@ struct elf_prog_header {
     uint64_t filesz;
     uint64_t memsz;
     uint64_t align;
-};
-
-#endif
+} ElfProgHeader;

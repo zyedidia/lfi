@@ -1,10 +1,11 @@
-#include <assert.h>
+#include <unistd.h>
 #include <sys/mman.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
-#include "lfi_internal.h"
+#include "align.h"
+#include "lfi.h"
+#include "engine.h"
+#include "proc.h"
+#include "err.h"
 #include "elf.h"
 
 #if defined(__aarch64__) || defined(_M_ARM64)
@@ -13,20 +14,26 @@
 #include "arch/amd64/amd64.h"
 #endif
 
-enum {
-    GUARD_SIZE = 80ULL * 1024,
-    CODE_MAX   = 1ULL * 1024 * 1024 * 1024,
-};
+extern uint64_t lfi_proc_entry(LFIProc* proc, void** kstackp) asm ("lfi_proc_entry");
+extern uint64_t lfi_asm_invoke(LFIProc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
+extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_exit");
+extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 
-static uintptr_t proc_addr(uintptr_t base, uintptr_t addr) {
+static uintptr_t
+procaddr(uintptr_t base, uintptr_t addr)
+{
     return base | ((uint32_t) addr);
 }
 
-static uint64_t mask(int size) {
+static uint64_t
+mask(int size)
+{
     return (~0ULL) >> (64 - size);
 }
 
-static void regs_validate(struct lfi_proc* proc) {
+static void
+proc_validate(LFIProc* proc)
+{
     uint64_t* r;
 
     // base
@@ -35,7 +42,7 @@ static void regs_validate(struct lfi_proc* proc) {
     // address registers
     int n = 0;
     while ((r = regs_addr(&proc->regs, n++)))
-        *r = proc_addr(proc->base, *r);
+        *r = procaddr(proc->base, *r);
 
     // sys register (if used for this arch)
     if ((r = regs_sys(&proc->regs)))
@@ -43,153 +50,319 @@ static void regs_validate(struct lfi_proc* proc) {
 
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
         /* *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size; */
-        *regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
+        *lfi_regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
 }
 
-static int elf_check(struct elf_file_header* ehdr) {
+bool
+lfi_proc_init(LFIProc* proc, uintptr_t entry, uintptr_t sp)
+{
+    regs_init(&proc->regs, entry, sp);
+    proc_validate(proc);
+    if (proc->lfi->opts.gas) {
+        uint64_t* r;
+        if ((r = lfi_regs_gas(&proc->regs))) {
+            *r = proc->lfi->opts.gas;
+        } else {
+            lfi_errno = LFI_ERR_INVALID_GAS;
+            return false;
+        }
+    }
+    return true;
+}
+
+__attribute__((visibility("hidden"))) _Thread_local LFIProc* lfi_myproc;
+
+LFIProc*
+lfi_proc()
+{
+    return lfi_myproc;
+}
+
+void
+lfi_proc_settp(LFIProc* p, void* tp)
+{
+    p->tp = tp;
+}
+
+uint64_t
+lfi_proc_start(LFIProc* proc)
+{
+    lfi_myproc = proc;
+    return lfi_proc_entry(proc, &proc->kstackp);
+}
+
+uint64_t
+lfi_proc_invoke(LFIProc* proc, void* fn, void* ret)
+{
+    lfi_myproc = proc;
+    // TODO: set return point to retfn in a cross-architecture way
+#if defined(__x86_64__) || defined(_M_X64)
+    *((void**) proc->regs.rsp) = ret;
+#endif
+    return lfi_asm_invoke(proc, fn, &proc->kstackp);
+}
+
+void
+lfi_proc_exit(LFIProc* proc, uint64_t code)
+{
+    lfi_myproc = NULL;
+    lfi_asm_proc_exit(proc->kstackp, code);
+}
+
+static bool
+elfcheck(ElfFileHeader* ehdr)
+{
     return ehdr->magic == ELF_MAGIC &&
         ehdr->width == ELFCLASS64 &&
         ehdr->version == EV_CURRENT &&
         (ehdr->type == ET_DYN || ehdr->type == ET_EXEC);
 }
 
-static int prot_exec(int flags) {
-    return (flags & PROT_EXEC) != 0;
-}
-
-static int prot_write(int flags) {
-    return (flags & PROT_WRITE) != 0;
-}
-
-static int prot_read(int flags) {
-    return (flags & PROT_READ) != 0;
-}
-
-static int pflags(int prot) {
+static int
+pflags(int prot)
+{
     return ((prot & PF_R) ? PROT_READ : 0) |
         ((prot & PF_W) ? PROT_WRITE : 0) |
         ((prot & PF_X) ? PROT_EXEC : 0);
 }
 
-static struct lfi_mem lfi_mem_map(uintptr_t base, size_t size, int prot) {
-    if (prot_exec(prot)) {
-        return (struct lfi_mem) {
-            .base = (uintptr_t) -1,
-        };
+static int
+mprotectverify(void* base, size_t size, int prot, LFIVerifier* verifier)
+{
+    if ((prot & PROT_EXEC) == 0 || verifier->verify == NULL)
+        return mprotect(base, size, prot);
+    if (!verifier->verify(base, size)) {
+        lfi_errno = LFI_ERR_VERIFY;
+        return -1;
     }
-    base = (uintptr_t) mmap((void*) base, size, prot, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-    return (struct lfi_mem) {
-        .base = (uintptr_t) base,
-        .size = size,
-        .prot = prot,
-    };
-}
-typedef void (*ErrFn)(char* msg, size_t sz);
-
-static void errfn(char* msg, size_t sz) {
-    puts(msg);
+    return mprotect(base, size, prot);
 }
 
-bool lfiv_verify_verbose_amd64(void*, size_t, uintptr_t, ErrFn);
-
-static int lfi_mem_protect(struct lfi_mem* mem, uintptr_t proc_base, int prot, int noverify, lfi_verifier verify) {
-    if (prot_exec(prot)) {
-        if (prot_write(prot)) {
-            return LFI_ERR_PROTECTION;
-        }
-        if (!noverify) {
-            if (mem->base + mem->size - proc_base >= CODE_MAX) {
-                return LFI_ERR_PROTECTION;
-            }
-            if (verify((void*) mem->base, mem->size) == 0) {
-                lfiv_verify_verbose_amd64((void*) mem->base, mem->size, 0, errfn);
-                return LFI_ERR_VERIFY;
-            }
-        }
+static void*
+mmapverify(void* base, size_t size, int prot, int flags, int fd, off_t offset, LFIVerifier* verifier)
+{
+    if ((prot & PROT_EXEC) == 0)
+        return mmap(base, size, prot, flags, fd, offset);
+    void* p = mmap(base, size, PROT_READ, flags, fd, offset);
+    if (p == (void*) -1) {
+        lfi_errno = LFI_ERR_CANNOT_MAP;
+        return p;
     }
-    if (mprotect((void*) mem->base, mem->size, prot) != 0) {
-        return LFI_ERR_PROTECTION;
+    if (mprotectverify(base, size, prot, verifier) < 0) {
+        munmap(base, size);
+        return (void*) -1;
     }
-    mem->prot = prot;
-    return 0;
+    return p;
 }
 
-int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot) {
-    struct lfi_mem mem = (struct lfi_mem) {
-        .base = ptr,
-        .size = size,
-        .prot = prot,
-    };
-    return lfi_mem_protect(&mem, p->base, prot, p->lfi->opts.noverify, p->lfi->opts.verifier);
-}
-
-static int lfi_mem_valid(struct lfi_mem* mem) {
-    return mem->base != (uintptr_t) -1;
-}
-
-static int lfi_mem_unmap(struct lfi_mem* mem) {
-    if (!lfi_mem_valid(mem)) {
-        return 0;
-    }
-    munmap((void*) mem->base, mem->size);
-    mem->base = (uintptr_t) -1;
-    return 0;
-}
-
-static struct lfi_mem lfi_mem_copy_to(struct lfi_mem* mem, uintptr_t newbase, lfi_verifier verify) {
-    // Force writable so that we can copy to into it.
-    int prot = mem->prot;
-    if (prot_read(prot)) {
-        prot |= PROT_WRITE;
-        prot &= ~PROT_EXEC;
-    }
-    struct lfi_mem copy = lfi_mem_map(proc_addr(newbase, mem->base), mem->size, prot);
-    if (!lfi_mem_valid(&copy)) {
-        return copy;
-    }
-    if (prot_read(mem->prot)) {
-        // Copy and reset permissions.
-        memcpy((void*) copy.base, (void*) mem->base, mem->size);
-        if (mem->prot != prot) {
-            // No verification necessary since we are copying from an existing
-            // region (already verified).
-            lfi_mem_protect(&copy, newbase, mem->prot, 1, verify);
-        }
-    }
-    return copy;
-}
-
-static int lfi_mem_append(struct lfi_mem** mem, struct lfi_mem add) {
-    struct lfi_mem* new = malloc(sizeof(struct lfi_mem));
-    if (!new) {
-        return LFI_ERR_NOMEM;
-    }
-    *new = add;
-    if (*mem) {
-        struct lfi_mem* m = *mem;
-        while (m->next) {
-            m = m->next;
-        }
-        m->next = new;
-    } else {
-        *mem = new;
-    }
-    return 0;
-}
-
-extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
-
-#ifdef DYNARMIC
-// Stub for dynarmic syscalls
-static uint32_t syshandler_stub[2] = {
-    0xd4000001, // svc #0
-    0xd65f03c0, // ret
-};
+static void
+sanitize(void* p, size_t sz, int prot)
+{
+    if ((prot & PROT_EXEC) == 0)
+        return;
+#if defined(__x86_64__) || defined(_M_X64)
+    const uint8_t SAFE_BYTE = 0xcc;
+    memset(p, SAFE_BYTE, sz);
 #endif
+}
 
-static struct lfi_sys* sys_alloc(uintptr_t base, int hidesys, size_t pagesize) {
-    struct lfi_sys* sys;
-    if (hidesys) {
+static bool
+preadcode(void* base, size_t size, int prot, size_t offset, ssize_t amt, int fd, LFIVerifier* verifier)
+{
+    sanitize(base, size, prot);
+    ssize_t n = pread(fd, base, amt, offset);
+    if (n != amt) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        return false;
+    }
+    if (mprotectverify(base, size, prot, verifier) < 0)
+        return false;
+    return true;
+}
+
+enum {
+    MAPANON = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
+    MAPFILE = MAP_PRIVATE | MAP_FIXED,
+};
+
+// mapelfseg maps an ELF segment from a file.
+//
+// start:    the page-aligned start of the segment.
+// offset:   the offset within the segment that the data begins at.
+// end:      the page-aligned end of the segment.
+// p_offset: the offset within the file that the data begins at.
+// filesz:   the amount of data in the file.
+// fd:       the file descriptor.
+// verifier: the LFI verifier.
+//
+// The caller is expected to munmap all regions in case of an error.
+static bool
+mapelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
+        size_t p_offset, size_t filesz, int prot, int fd,
+        size_t pagesize, LFIVerifier* verifier)
+{
+    // Map the first page, which we will copy into from the file.
+    void* pg1 = mmap((void*) start, pagesize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    if (pg1 == (void*) -1) {
+        lfi_errno = LFI_ERR_CANNOT_MAP;
+        return false;
+    }
+    // If we have any subsequent errors, it is expected that the caller will
+    // munmap all mapped regions.
+
+    ssize_t amt = pagesize < filesz ? pagesize : filesz;
+    if (!preadcode(pg1, pagesize, prot, p_offset, amt, fd, verifier))
+        return false;
+    if (filesz < pagesize)
+        return true;
+
+    // Page-aligned start of the final region of the segment.
+    uintptr_t laststart = truncp(start + offset + filesz, pagesize);
+    void* pgend = mmap((void*) laststart, end - laststart, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    if (pgend == (void*) -1) {
+        lfi_errno = LFI_ERR_CANNOT_MAP;
+        return false;
+    }
+    size_t lastfilestart = truncp(offset + filesz, pagesize);
+    if (!preadcode(pgend, end - laststart, prot, lastfilestart, offset + filesz - lastfilestart, fd, verifier))
+        return false;
+
+    // Map everything in the middle directly from the file.
+    uintptr_t midstart = start + pagesize;
+    if (midstart == 0)
+        return true;
+    void* middle = mmapverify((void*) midstart, laststart - midstart, prot, MAPFILE, fd, p_offset + amt, verifier);
+    if (middle == (void*) -1)
+        return false;
+
+    return true;
+}
+
+// Alternative to mapelfseg that copies data out of the ELF file instead of
+// directly mapping it. This may be desired because if we directly map the ELF
+// file any changes to the underlying file data could cause unspecified updates
+// in our mapping. The caller is expected to munmap all regions in case of an
+// error.
+static bool
+preadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
+        size_t p_offset, size_t filesz, int prot, int fd,
+        size_t pagesize, LFIVerifier* verifier)
+{
+    void* p = mmap((void*) start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    if (p == (void*) -1) {
+        lfi_errno = LFI_ERR_CANNOT_MAP;
+        return false;
+    }
+    // If we have any subsequent errors, it is expected that the caller will
+    // munmap all mapped regions.
+
+    sanitize(p, pagesize, prot);
+    sanitize((void*) (end - pagesize), pagesize, prot);
+    ssize_t n = pread(fd, (void*) (start + offset), filesz, p_offset);
+    if (n != (ssize_t) filesz) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        return false;
+    }
+    if (mprotectverify((void*) start, end - start, prot, verifier) < 0)
+        return false;
+    return true;
+}
+
+static bool
+load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
+{
+    uintptr_t last = 0;
+    size_t pagesize = proc->lfi->opts.pagesize;
+
+    ElfFileHeader ehdr;
+    ssize_t n = pread(fd, &ehdr, sizeof(ehdr), 0);
+    if (n != sizeof(ehdr)) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        return false;
+    }
+
+    if (!elfcheck(&ehdr)) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        return false;
+    }
+
+    ElfProgHeader* phdr = malloc(sizeof(ElfProgHeader) * ehdr.phnum);
+    if (!phdr) {
+        lfi_errno = LFI_ERR_NOMEM;
+        return false;
+    }
+
+    n = pread(fd, &phdr, sizeof(ElfProgHeader) * ehdr.phnum, ehdr.phoff);
+    if (n != sizeof(ElfProgHeader) * ehdr.phnum) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        goto err1;
+    }
+
+    if (ehdr.entry >= CODEMAX) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        goto err1;
+    }
+
+    // TODO: enforce filesz/memsz limit?
+
+    for (int i = 0; i < ehdr.phnum; i++) {
+        ElfProgHeader* p = &phdr[i];
+        if (p->type != PT_LOAD)
+            continue;
+
+        if (p->align % pagesize != 0) {
+            lfi_errno = LFI_ERR_INVALID_ELF;
+            goto err1;
+        }
+
+        uintptr_t start = truncp(p->vaddr, p->align);
+        uintptr_t end = ceilp(p->vaddr + p->memsz, p->align);
+        uintptr_t offset = p->vaddr - start;
+
+        if (ehdr.type == ET_EXEC) {
+            if (start < base) {
+                lfi_errno = LFI_ERR_INVALID_ELF;
+                goto err1;
+            }
+            start = start - (base - proc->base);
+            end = end - (base - proc->base);
+        }
+
+        if (p->memsz < p->filesz) {
+            lfi_errno = LFI_ERR_INVALID_ELF;
+            goto err1;
+        }
+        if (end <= start || start >= CODEMAX || end >= CODEMAX) {
+            lfi_errno = LFI_ERR_INVALID_ELF;
+            goto err1;
+        }
+
+        // TODO: use preadelfseg instead?
+        if (!mapelfseg(start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, &proc->lfi->opts.verifier))
+            goto err1;
+
+        if (base == 0) {
+            base = base + start;
+        }
+        if (base + end > last) {
+            last = base + end;
+        }
+    }
+
+    *plast = last;
+    *pentry = ehdr.type == ET_DYN ? base + ehdr.entry : proc->base + ehdr.entry;
+
+    return true;
+err1:
+    free(phdr);
+    return false;
+}
+
+static LFISys*
+sysalloc(uintptr_t base, int sysexternal, size_t pagesize)
+{
+    LFISys* sys;
+    if (sysexternal) {
         sys = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     } else {
         sys = mmap((void*) base, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
@@ -199,318 +372,103 @@ static struct lfi_sys* sys_alloc(uintptr_t base, int hidesys, size_t pagesize) {
     return sys;
 }
 
-static void sys_free(struct lfi_sys* sys, size_t pagesize) {
-    munmap(sys, pagesize);
-}
-
-static void sys_setup(struct lfi_sys* table, struct lfi_proc* proc) {
-#ifdef DYNARMIC
-    table->rtcalls[0] = (uintptr_t) &syshandler_stub[0];
-#else
+static void
+syssetup(LFISys* table, LFIProc* proc) {
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
-    // TODO: problem for multi-threading with thread locals
-    table->k_tpidr = r_tpidr();
-#endif
-    table->proc = proc;
     table->base = proc->base;
     mprotect(table, proc->lfi->opts.pagesize, PROT_READ);
 }
 
-static void lfi_proc_clear(struct lfi_mem** mems) {
-    struct lfi_mem* mem = *mems;
-    while (mem) {
-        lfi_mem_unmap(mem);
-        struct lfi_mem* next = mem->next;
-        free(mem);
-        mem = next;
-    }
-    *mems = NULL;
+static void
+procclear(LFIProc* proc)
+{
+    void* p = mmap((void*) proc->base, proc->size, PROT_NONE, MAPANON, -1, 0);
+    assert(p != (void*) -1);
 }
 
-static void lfi_proc_clear_regions(struct lfi_proc* proc) {
-    lfi_mem_unmap(&proc->guards[0]);
-    lfi_mem_unmap(&proc->guards[1]);
-    sys_free(proc->sys, proc->lfi->opts.pagesize);
-    lfi_mem_unmap(&proc->stack);
-    lfi_proc_clear(&proc->segments);
-}
+bool
+lfi_proc_load(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
+{
+    uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
+    uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
 
-static int load(struct lfi_proc* proc, uint8_t* prog, size_t size, uintptr_t base, uintptr_t* plast, uintptr_t* pentry) {
-    int err = LFI_ERR_INVALID_ELF;
+    void* g1 = mmap((void*) guard1, GUARD1SZ, PROT_NONE, MAPANON, -1, 0);
+    if (g1 == (void*) -1)
+        goto maperr;
+    void* g2 = mmap((void*) guard2, GUARD2SZ, PROT_NONE, MAPANON, -1, 0);
+    if (g2 == (void*) -1)
+        goto maperr;
 
-    uintptr_t last = 0;
+    size_t stacksize = proc->lfi->opts.stacksize;
+    void* stack = mmap((void*) ((uintptr_t) g2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    if (stack == (void*) -1)
+        goto maperr;
+    proc->stack = stack;
 
-    struct elf_file_header* ehdr = (struct elf_file_header*) prog;
+    proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
+    if (!proc->sys)
+        goto err;
+    syssetup(proc->sys, proc);
 
-    if (!elf_check(ehdr)) {
-        return LFI_ERR_INVALID_ELF;
-    }
-
-    if (ehdr->phoff >= size || ehdr->phoff + ehdr->phnum * sizeof(struct elf_prog_header) >= size) {
-        return LFI_ERR_INVALID_ELF;
-    }
-
-    struct elf_prog_header* phdr = (struct elf_prog_header*) &prog[ehdr->phoff];
-
-    if (ehdr->entry >= CODE_MAX) {
-        goto err1;
-    }
-
-    for (int i = 0; i < ehdr->phnum; i++) {
-        struct elf_prog_header* p = &phdr[i];
-        if (p->type != PT_LOAD) {
-            continue;
-        }
-
-        uintptr_t start = trunc_p(p->vaddr, p->align);
-        uintptr_t end = ceil_p(p->vaddr + p->memsz, p->align);
-        uintptr_t offset = p->vaddr - start;
-
-        if (ehdr->type == ET_EXEC) {
-            start = start - (base - proc->base);
-            end = end - (base - proc->base);
-        }
-
-        if (p->memsz < p->filesz) {
-            goto err1;
-        }
-        if (end <= start || start >= CODE_MAX || end >= CODE_MAX) {
-            goto err1;
-        }
-
-        struct lfi_mem seg = lfi_mem_map(base + start, end - start, PROT_READ | PROT_WRITE);
-        if (!lfi_mem_valid(&seg)) {
-            goto err1;
-        }
-
-#if defined(__x86_64__) || defined(_M_X64)
-        memset((void*) (seg.base), 0xcc, end - start);
-#endif
-
-        memcpy((void*) (seg.base + offset), &prog[p->offset], p->filesz);
-        memset((void*) (seg.base + offset + p->filesz), 0, p->memsz - p->filesz);
-
-        /* printf("load %lx %lx -> %lx (%ld %ld)\n", start, end, seg.base + offset, p->memsz, end - start); */
-
-        if ((err = lfi_mem_protect(&seg, proc->base, pflags(p->flags), proc->lfi->opts.noverify, proc->lfi->opts.verifier)) < 0) {
-            goto err1;
-        }
-
-        if ((err = lfi_mem_append(&proc->segments, seg)) < 0) {
-            goto err1;
-        }
-
-        if (base == 0) {
-            base = seg.base;
-        }
-        if (base + end > last) {
-            last = base + end;
-        }
-    }
-
-    *plast = last;
-    *pentry = ehdr->type == ET_DYN ? base + ehdr->entry : proc->base + ehdr->entry;
-
-    return 0;
-err1:
-    return err;
-}
-
-int lfi_proc_exec_dyn(struct lfi_proc* proc, uint8_t* prog, size_t size, uint8_t* interp, size_t interp_size, struct lfi_proc_info* info) {
-    if (proc->guards[0].base != 0) {
-        lfi_proc_clear_regions(proc);
-    }
-
-    int err = LFI_ERR_INVALID_ELF;
-
-    proc->guards[0] = lfi_mem_map(proc->base + proc->lfi->opts.pagesize, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[0]));
-    proc->guards[1] = lfi_mem_map(proc->base + LFI_PROC_SIZE - GUARD_SIZE, GUARD_SIZE, PROT_NONE);
-    assert(lfi_mem_valid(&proc->guards[1]));
-
-    size_t stack_size = proc->lfi->opts.stacksize;
-    proc->stack = lfi_mem_map(proc->guards[1].base - stack_size, stack_size, PROT_READ | PROT_WRITE);
-    if (!lfi_mem_valid(&proc->stack)) {
-        err = LFI_ERR_INVALID_STACK;
-        goto err1;
-    }
-
-    proc->sys = sys_alloc(proc->base, proc->lfi->opts.hidesys, proc->lfi->opts.pagesize);
-    if (!proc->sys) {
-        goto err1;
-    }
-    sys_setup(proc->sys, proc);
-
-    // load
-    uintptr_t base = proc->guards[0].base + proc->guards[0].size;
+    // Now we are ready to load.
+    uintptr_t base = (uintptr_t) g1 + GUARD1SZ;
     uintptr_t plast, pentry, ilast, ientry;
-    if ((err = load(proc, prog, size, base, &plast, &pentry)) < 0)
-        goto err1;
+    bool interp = interpfd >= 0;
+    if (!load(proc, elffd, base, &plast, &pentry))
+        goto err;
+    if (interp)
+        if (!load(proc, interpfd, plast, &ilast, &ientry))
+            goto err;
 
-    if (interp) {
-        if ((err = load(proc, interp, interp_size, plast, &ilast, &ientry)) < 0)
-            goto err1;
-    }
+    ElfFileHeader ehdr;
+    ssize_t n = pread(elffd, &ehdr, sizeof(ehdr), 0);
+    assert(n == sizeof(ehdr)); // must succeed since we just read it to load
 
-    struct elf_file_header* ehdr = (struct elf_file_header*) prog;
-
-    *info = (struct lfi_proc_info) {
-        .stack = (void*) proc->stack.base,
-        .stacksize = proc->stack.size,
+    *info = (LFIProcInfo) {
+        .stack = (void*) proc->stack,
+        .stacksize = stacksize,
         .lastva = interp ? ilast : plast,
         .elfentry = pentry,
         .ldentry = interp ? ientry : 0,
         .elfbase = base,
         .ldbase = interp ? plast : base,
-        .elfphoff = ehdr->phoff,
-        .elfphnum = ehdr->phnum,
-        .elfphentsize = ehdr->phentsize,
+        .elfphoff = ehdr.phoff,
+        .elfphnum = ehdr.phnum,
+        .elfphentsize = ehdr.phentsize,
     };
 
-    return 0;
+    return false;
 
-err1:
-    lfi_proc_clear_regions(proc);
-    return err;
+maperr:
+    lfi_errno = LFI_ERR_CANNOT_MAP;
+err:
+    procclear(proc);
+    return false;
 }
 
-int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info) {
-    return lfi_proc_exec_dyn(proc, prog, size, NULL, 0, info);
-}
-
-struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc) {
+LFIRegs*
+lfi_proc_regs(LFIProc* proc)
+{
     return &proc->regs;
 }
 
-int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* proc, void* new_ctxp) {
-    if (lfi_is_full(lfi)) {
-        return LFI_ERR_NOSLOT;
-    }
-    struct lfi_proc* child = lfi_new_proc();
-    if (!child) {
-        return LFI_ERR_NOMEM;
-    }
-    *child = (struct lfi_proc) {
-        .base = lfi_alloc_slot(lfi),
-        .lfi = lfi,
-        .ctxp = new_ctxp,
-        .regs = proc->regs,
-    };
-    struct lfi_sys* sys = sys_alloc(child->base, lfi->opts.hidesys, lfi->opts.pagesize);
-    if (!sys) {
-        lfi_delete_slot(lfi, child->base);
-        return LFI_ERR_NOMEM;
-    }
-    child->sys = sys;
-    *childp = child;
+void lfi_syscall_handler(LFIProc* proc) asm ("lfi_syscall_handler");
 
-    child->guards[0] = lfi_mem_copy_to(&proc->guards[0], child->base, lfi->opts.verifier);
-    child->guards[1] = lfi_mem_copy_to(&proc->guards[1], child->base, lfi->opts.verifier);
-    child->stack = lfi_mem_copy_to(&proc->stack, child->base, lfi->opts.verifier);
-    struct lfi_mem* segment = proc->segments;
-    while (segment) {
-        lfi_mem_append(&child->segments, lfi_mem_copy_to(segment, child->base, lfi->opts.verifier));
-        segment = segment->next;
-    }
-    sys_setup(child->sys, child);
-    regs_validate(child);
+void
+lfi_syscall_handler(LFIProc* proc)
+{
+    uint64_t sysno = *lfi_regs_sysno(&proc->regs);
 
-    return 0;
-}
-
-void lfi_proc_free(struct lfi_proc* proc) {
-    lfi_proc_clear_regions(proc);
-    free(proc);
-}
-
-void lfi_syscall_handler(struct lfi_proc* proc) asm ("lfi_syscall_handler");
-
-void lfi_syscall_handler(struct lfi_proc* proc) {
-    uint64_t sysno = *regs_sysno(&proc->regs);
-
-    uint64_t a0 = *regs_sysarg(&proc->regs, 0);
-    uint64_t a1 = *regs_sysarg(&proc->regs, 1);
-    uint64_t a2 = *regs_sysarg(&proc->regs, 2);
-    uint64_t a3 = *regs_sysarg(&proc->regs, 3);
-    uint64_t a4 = *regs_sysarg(&proc->regs, 4);
-    uint64_t a5 = *regs_sysarg(&proc->regs, 5);
+    uint64_t a0 = *lfi_regs_sysarg(&proc->regs, 0);
+    uint64_t a1 = *lfi_regs_sysarg(&proc->regs, 1);
+    uint64_t a2 = *lfi_regs_sysarg(&proc->regs, 2);
+    uint64_t a3 = *lfi_regs_sysarg(&proc->regs, 3);
+    uint64_t a4 = *lfi_regs_sysarg(&proc->regs, 4);
+    uint64_t a5 = *lfi_regs_sysarg(&proc->regs, 5);
 
     assert(proc->lfi->opts.syshandler);
 
     uint64_t ret = proc->lfi->opts.syshandler(proc->ctxp, sysno, a0, a1, a2, a3, a4, a5);
 
-    *regs_sysret(&proc->regs) = ret;
-}
-
-extern int lfi_proc_entry(struct lfi_proc*, void** kstackp) asm ("lfi_proc_entry");
-
-void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp) {
-    regs_init(&proc->regs, entry, sp);
-    regs_validate(proc);
-    if (proc->lfi->opts.gas != 0) {
-        uint64_t* r;
-        if ((r = regs_gas(&proc->regs)))
-            *r = proc->lfi->opts.gas;
-        else
-            fprintf(stderr, "warning: architecture does not support gas\n");
-    }
-}
-
-int lfi_proc_start(struct lfi_proc* proc) {
-#ifdef DYNARMIC
-    return lfi_proc_entry_dynarmic(proc);
-#else
-    return lfi_proc_entry(proc, &proc->kstackp);
-#endif
-}
-
-extern uint64_t lfi_asm_invoke(struct lfi_proc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
-
-uint64_t lfi_invoke(struct lfi_proc* proc, void* fn, void* ret) {
-#if defined(__x86_64__) || defined(_M_X64)
-    *((void**) proc->regs.rsp) = ret;
-#endif
-    return lfi_asm_invoke(proc, fn, &proc->kstackp);
-}
-
-extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_exit");
-
-void lfi_proc_exit(struct lfi_proc* proc, int code) {
-#ifdef DYNARMIC
-    // TODO: halt the JIT
-    fprintf(stderr, "EXITING\n");
-    exit(1);
-#else
-    lfi_asm_proc_exit(proc->kstackp, code);
-#endif
-}
-
-void lfi_proc_return(struct lfi_proc* proc, uint64_t val) {
-    lfi_asm_proc_exit(proc->kstackp, val);
-}
-
-uintptr_t lfi_proc_base(struct lfi_proc* proc) {
-    return proc->base;
-}
-
-uint64_t lfi_signal_start(uint64_t syspage) {
-#ifndef DYNARMIC
-    struct lfi_sys* sys = (struct lfi_sys*) syspage;
-    uint64_t saved = r_tpidr();
-    w_tpidr(sys->k_tpidr);
-    return saved;
-#else
-    return 0;
-#endif
-}
-
-void* lfi_sys_ctx(uint64_t syspage) {
-    struct lfi_sys* sys = (struct lfi_sys*) syspage;
-    return sys->proc->ctxp;
-}
-
-void lfi_signal_end(uint64_t saved) {
-#ifndef DYNARMIC
-    w_tpidr(saved);
-#endif
+    *lfi_regs_sysret(&proc->regs) = ret;
 }

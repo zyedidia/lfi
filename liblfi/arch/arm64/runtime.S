@@ -1,4 +1,5 @@
 #define N_RTCALLS 256
+#define PROC_REGS 16
 
 #ifdef SYSEXTERNAL
 #define SYSREG x25
@@ -8,58 +9,74 @@
 
 .text
 
+// Puts Proc* in x21.
+.macro GET_PROC
+	mrs	x21, tpidr_el0
+	add	x21, x21, #:tprel_hi12:var, lsl #12
+	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
+	ldr	x21, [x0]
+.endm
+
 // save registers, assuming sandbox syspage is x21
 .macro SAVE_REGS
-	ldr x21,      [SYSREG, #N_RTCALLS*8] // x21 now points to struct proc
-	stp x0, x1,   [x21, #8+16*0]
-	stp x2, x3,   [x21, #8+16*1]
-	stp x4, x5,   [x21, #8+16*2]
-	stp x6, x7,   [x21, #8+16*3]
-	stp x8, x9,   [x21, #8+16*4]
-	stp x18, x19, [x21, #8+16*9]
-	str x20,      [x21, #8+16*10]
-	stp x22, x23, [x21, #8+16*11]
-	str x24,      [x21, #8+16*12]
-	stp x26, x27, [x21, #8+16*13]
-	stp x28, x29, [x21, #8+16*14]
-	stp q8, q9,   [x21, #16*19+32*4]
-	stp q10, q11, [x21, #16*19+32*5]
-	stp q12, q13, [x21, #16*19+32*6]
-	stp q14, q15, [x21, #16*19+32*7]
+	GET_PROC
+	stp x0, x1,   [x21, PROC_REGS+16*0]
+	stp x2, x3,   [x21, PROC_REGS+16*1]
+	stp x4, x5,   [x21, PROC_REGS+16*2]
+	stp x6, x7,   [x21, PROC_REGS+16*3]
+	stp x8, x9,   [x21, PROC_REGS+16*4]
+	stp x18, x19, [x21, PROC_REGS+16*9]
+	str x20,      [x21, PROC_REGS+16*10]
+	stp x22, x23, [x21, PROC_REGS+16*11]
+	stp x24, x25, [x21, PROC_REGS+16*12]
+	stp x26, x27, [x21, PROC_REGS+16*13]
+	stp x28, x29, [x21, PROC_REGS+16*14]
+	stp q8, q9,   [x21, PROC_REGS+16*18+8*16]
+	stp q10, q11, [x21, PROC_REGS+16*18+10*16]
+	stp q12, q13, [x21, PROC_REGS+16*18+12*16]
+	stp q14, q15, [x21, PROC_REGS+16*18+14*16]
 	mov x1, sp
-	stp x30, x1,  [x21, #8+16*15]
+	stp x30, x1,  [x21, PROC_REGS+16*15]
 	mrs x1, nzcv
 	mrs x2, fpsr
-	stp x1, x2, [x21, #8+8*34]
-	mrs x1, tpidr_el0
-	str x1,     [x21, #8+8*36]
+	stp x1, x2, [x21, PROC_REGS+8*34]
 	// reset x21 by loading it back
-	ldr x21,    [x21, #8+16*10+8]
+	ldr x21,    [x21, PROC_REGS+16*10+8]
 .endm
 
 // save caller-saved registers, assuming sandbox syspage is x21
 .macro SAVE_PARTIAL_REGS
-	ldr x21,      [SYSREG, #N_RTCALLS*8] // x21 now points to struct proc
-	stp x0, x1,   [x21, #8+16*0]
-	stp x2, x3,   [x21, #8+16*1]
-	stp x4, x5,   [x21, #8+16*2]
-	stp x6, x7,   [x21, #8+16*3]
-	stp x8, x9,   [x21, #8+16*4]
-	stp x10, x11, [x21, #8+16*5]
-	stp x12, x13, [x21, #8+16*6]
-	stp x14, x15, [x21, #8+16*7]
-	stp x16, x17, [x21, #8+16*8]
-	str x18,      [x21, #8+16*9]
+	GET_PROC
+	stp x0, x1,   [x21, PROC_REGS+16*0]
+	stp x2, x3,   [x21, PROC_REGS+16*1]
+	stp x4, x5,   [x21, PROC_REGS+16*2]
+	stp x6, x7,   [x21, PROC_REGS+16*3]
+	stp x8, x9,   [x21, PROC_REGS+16*4]
+	stp x10, x11, [x21, PROC_REGS+16*5]
+	stp x12, x13, [x21, PROC_REGS+16*6]
+	stp x14, x15, [x21, PROC_REGS+16*7]
+	stp x16, x17, [x21, PROC_REGS+16*8]
+	str x18,      [x21, PROC_REGS+16*9]
 	mov x1, sp
-	stp x30, x1,  [x21, #8+16*15]
+	stp x30, x1,  [x21, PROC_REGS+16*15]
 	mrs x0, nzcv
 	mrs x1, fpsr
-	stp x0, x1, [x21, #8+8*34]
-	mrs x0, tpidr_el0
-	str x0,     [x21, #8+8*36]
+	stp x0, x1, [x21, PROC_REGS+8*34]
 	// reset x21 by loading it back
-	ldr x21,    [x21, #8+16*10+8]
+	ldr x21,    [x21, PROC_REGS+16*10+8]
 .endm
+
+// Puts the sandbox's thread pointer in x0.
+.p2align 4
+.global lfi_get_tp
+lfi_get_tp:
+	mrs	x0, tpidr_el0
+	add	x0, x0, #:tprel_hi12:var, lsl #12
+	add	x0, x0, #:tprel_lo12_nc:lfi_myproc
+	ldr	x0, [x0]
+	ldr x0, [x0, #8]
+	add x30, x21, w30, uxtw
+	ret
 
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
@@ -111,13 +128,12 @@ lfi_asm_proc_exit:
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
-	ldr x0, [SYSREG, #N_RTCALLS*8+8] // load kernel tpidr_el0
-	msr tpidr_el0, x0
-	ldr x0, [SYSREG, #N_RTCALLS*8]  // load Proc*
-	ldr x1, [x0]         // load stack
+	// x21 now contains Proc*
+	ldr x1, [x21]         // load stack
 	mov sp, x1
+	str x21, [sp, #-16]!
 	bl lfi_syscall_handler
-	ldr x0, [SYSREG, #N_RTCALLS*8]
+	ldr x0, [sp], 16
 	b  lfi_restore_partial_regs
 	brk #0
 
@@ -130,23 +146,22 @@ lfi_yield_entry:
 .p2align 4
 .globl lfi_restore_partial_regs
 lfi_restore_partial_regs:
-	ldp x1, x2, [x0, #8+8*34]
+	// TODO: I think we can skip saving/restoring nzcv/fpsr for syscalls
+	ldp x1, x2, [x0, PROC_REGS+8*34]
 	msr nzcv, x1
 	msr fpsr, x2
-	ldr x1,       [x0, #8+8*36]
-	msr tpidr_el0, x1
-	ldp x2, x3,   [x0, #8+16*1]
-	ldp x4, x5,   [x0, #8+16*2]
-	ldp x6, x7,   [x0, #8+16*3]
-	ldp x8, x9,   [x0, #8+16*4]
-	ldp x10, x11, [x0, #8+16*5]
-	ldp x12, x13, [x0, #8+16*6]
-	ldp x14, x15, [x0, #8+16*7]
-	ldp x16, x17, [x0, #8+16*8]
-	ldr x18,      [x0, #8+16*9]
-	ldp x30, x1,  [x0, #8+16*15]
+	ldp x2, x3,   [x0, PROC_REGS+16*1]
+	ldp x4, x5,   [x0, PROC_REGS+16*2]
+	ldp x6, x7,   [x0, PROC_REGS+16*3]
+	ldp x8, x9,   [x0, PROC_REGS+16*4]
+	ldp x10, x11, [x0, PROC_REGS+16*5]
+	ldp x12, x13, [x0, PROC_REGS+16*6]
+	ldp x14, x15, [x0, PROC_REGS+16*7]
+	ldp x16, x17, [x0, PROC_REGS+16*8]
+	ldr x18,      [x0, PROC_REGS+16*9]
+	ldp x30, x1,  [x0, PROC_REGS+16*15]
 	mov sp, x1
-	ldp x0, x1,   [x0, #8+16*0]
+	ldp x0, x1,   [x0, PROC_REGS+16*0]
 	add x30, x21, w30, uxtw
 	ret
 
@@ -156,26 +171,24 @@ lfi_restore_partial_regs:
 .p2align 4
 .globl lfi_restore_regs
 lfi_restore_regs:
-	ldp x1, x2, [x0, #8+8*34]
+	ldp x1, x2, [x0, PROC_REGS+8*34]
 	msr nzcv, x1
 	msr fpsr, x2
-	ldr x1,       [x0, #8+8*36]
-	msr tpidr_el0, x1
-	ldp x2, x3,   [x0, #8+16*1]
-	ldp x4, x5,   [x0, #8+16*2]
-	ldp x6, x7,   [x0, #8+16*3]
-	ldp x8, x9,   [x0, #8+16*4]
-	ldp x10, x11, [x0, #8+16*5]
-	ldp x12, x13, [x0, #8+16*6]
-	ldp x14, x15, [x0, #8+16*7]
-	ldp x16, x17, [x0, #8+16*8]
-	ldp x18, x19, [x0, #8+16*9]
-	ldp x20, x21, [x0, #8+16*10]
-	ldp x22, x23, [x0, #8+16*11]
-	ldp x24, x25, [x0, #8+16*12]
-	ldp x26, x27, [x0, #8+16*13]
-	ldp x28, x29, [x0, #8+16*14]
-	ldp x30, x1,  [x0, #8+16*15]
+	ldp x2, x3,   [x0, PROC_REGS+16*1]
+	ldp x4, x5,   [x0, PROC_REGS+16*2]
+	ldp x6, x7,   [x0, PROC_REGS+16*3]
+	ldp x8, x9,   [x0, PROC_REGS+16*4]
+	ldp x10, x11, [x0, PROC_REGS+16*5]
+	ldp x12, x13, [x0, PROC_REGS+16*6]
+	ldp x14, x15, [x0, PROC_REGS+16*7]
+	ldp x16, x17, [x0, PROC_REGS+16*8]
+	ldp x18, x19, [x0, PROC_REGS+16*9]
+	ldp x20, x21, [x0, PROC_REGS+16*10]
+	ldp x22, x23, [x0, PROC_REGS+16*11]
+	ldp x24, x25, [x0, PROC_REGS+16*12]
+	ldp x26, x27, [x0, PROC_REGS+16*13]
+	ldp x28, x29, [x0, PROC_REGS+16*14]
+	ldp x30, x1,  [x0, PROC_REGS+16*15]
 	// clobber caller-saved registers
 	movi v0.2D, #0
 	movi v1.2D, #0
@@ -185,10 +198,10 @@ lfi_restore_regs:
 	movi v5.2D, #0
 	movi v6.2D, #0
 	movi v7.2D, #0
-	ldp q8, q9,   [x0, #16*19+32*4]
-	ldp q10, q11, [x0, #16*19+32*5]
-	ldp q12, q13, [x0, #16*19+32*6]
-	ldp q14, q15, [x0, #16*19+32*7]
+	ldp q8, q9,   [x0, PROC_REGS+16*18+8*16]
+	ldp q10, q11, [x0, PROC_REGS+16*18+10*16]
+	ldp q12, q13, [x0, PROC_REGS+16*18+12*16]
+	ldp q14, q15, [x0, PROC_REGS+16*18+14*16]
 	movi v16.2D, #0
 	movi v17.2D, #0
 	movi v18.2D, #0
@@ -206,6 +219,6 @@ lfi_restore_regs:
 	movi v30.2D, #0
 	movi v31.2D, #0
 	mov sp, x1
-	ldp x0, x1,   [x0, #8+16*0]
+	ldp x0, x1,   [x0, PROC_REGS+16*0]
 	add x30, x21, w30, uxtw
 	ret

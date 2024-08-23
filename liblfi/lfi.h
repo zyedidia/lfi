@@ -1,58 +1,54 @@
-#ifndef LFI_H
-#define LFI_H
+#pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <stdbool.h>
-
-// see end of file
-struct lfi_regs;
 
 enum {
-    LFI_VASPACE_MAX = 16,
+    LFI_ERR_OK            = 0,
+    LFI_ERR_NOMEM         = 1,
+    LFI_ERR_NOSLOT        = 2,
+    LFI_ERR_CANNOT_MAP    = 3,
+    LFI_ERR_MAX_SPACE     = 4,
+    LFI_ERR_INVALID_ELF   = 5,
+    LFI_ERR_VERIFY        = 6,
+    LFI_ERR_PROTECTION    = 7,
+    LFI_ERR_INVALID_STACK = 8,
+    LFI_ERR_SYSTEM        = 9,
+    LFI_ERR_NOVERIFIER    = 10,
+    LFI_ERR_INVALID_GAS   = 11,
 };
 
-enum {
-    LFI_ERR_NOMEM         = -1,
-    LFI_ERR_NOSLOT        = -2,
-    LFI_ERR_CANNOT_MAP    = -3,
-    LFI_ERR_MAX_VASPACE   = -4,
-    LFI_ERR_INVALID_ELF   = -5,
-    LFI_ERR_VERIFY        = -6,
-    LFI_ERR_PROTECTION    = -7,
-    LFI_ERR_INVALID_STACK = -8,
-};
+typedef struct {
+    bool (*verify)(void* code, size_t size);
+} LFIVerifier;
 
-enum {
-    LFI_PROT_NONE  = 0,
-    LFI_PROT_READ  = 1,
-    LFI_PROT_WRITE = 2,
-    LFI_PROT_EXEC  = 4,
-};
+typedef uint64_t (*SysHandler)(void* ctxp, uint64_t sysno, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
-struct lfi;
-
-struct lfi_proc;
-
-typedef uint64_t (*lfi_syshandler)(void* ctxp, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
-
-typedef bool (*lfi_verifier)(void* code, size_t size);
-
-struct lfi_options {
-    int noverify;
-    int fastyield;
+typedef struct {
+    // Do not run verification.
+    bool noverify;
+    // Enable position-oblivious code. Arm64 only.
+    bool poc;
+    // Store the runtime call page outside the sandbox. Arm64 only.
+    bool sysexternal;
+    // Set the power-of-2 size of the sandbox (0 is equivalent to 32, meaning
+    // 4GiB sandboxes). x86-64 only.
+    uint16_t p2size;
+    // Set the pagesize.
     size_t pagesize;
+    // Set the stack size.
     size_t stacksize;
-    lfi_syshandler syshandler;
+    // Set the initial gas. Arm64 only.
     uint64_t gas;
-    int poc;
-    int hidesys;
-    int p2size;
-    lfi_verifier verifier;
-};
+    // User-provided verifier.
+    LFIVerifier verifier;
+    // User-provided runtime call handler.
+    SysHandler syshandler;
+} LFIOptions;
 
-struct lfi_proc_info {
+typedef struct {
     void* stack;
     size_t stacksize;
     uint64_t lastva;
@@ -64,95 +60,140 @@ struct lfi_proc_info {
     uint64_t elfphoff;
     uint16_t elfphnum;
     uint16_t elfphentsize;
-};
+} LFIProcInfo;
+
+typedef struct LFIEngine LFIEngine;
+
+typedef struct LFIProc LFIProc;
+
+typedef struct LFIRegs LFIRegs;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Create a new LFI engine with the following options. Returns the new object
-// or NULL if there was an error allocating.
-struct lfi* lfi_new(struct lfi_options options);
+// lfi_new creates a new LFI engine with the provided options.
+//
+// Returns null if the engine could not be created.
+LFIEngine* lfi_new(LFIOptions options);
 
-// Automatically try to 'size' bytes of virtual address space from the OS. If
-// 'size' is 0, this will reserve as much space as possible.
-int lfi_auto_add_vaspaces(struct lfi* lfi, size_t size);
+// lfi_reserve attempts to reserve 'size' bytes from the address space, in
+// possibly discontiguous regions.
+//
+// If size=0 then it tries to reserve as much space as possible.
+bool lfi_reserve(LFIEngine* lfi, size_t size);
 
-// Add a new region of virtual address space for allocating sandboxes. It must
-// be possible to mmap the given region. The number of VA regions cannot exceed
-// LFI_VASPACE_MAX. It is recommended to use `lfi_auto_add_vaspaces` unless you
-// want direct control over what virtual address regions are reserved.
-int lfi_add_vaspace(struct lfi* lfi, void* base, size_t size);
+// lfi_maxprocs returns the maximum number of processes supported by the
+// engine.
+uint64_t lfi_maxprocs(LFIEngine* lfi);
 
-// Return the maximum number of processes that can be allocated.
-uint64_t lfi_max_procs(struct lfi* lfi);
+// lfi_numprocs returns the number of currently active processes in the engine.
+uint64_t lfi_numprocs(LFIEngine* lfi);
 
-// Return the current number of processes that are currently allocated.
-uint64_t lfi_num_procs(struct lfi* lfi);
+// lfi_addproc creates a new process in the engine.
+//
+// The allocated process is placed in 'proc' and associated with the given
+// context pointer.
+bool lfi_addproc(LFIEngine* lfi, LFIProc** proc, void* ctxp);
 
-// Create a new LFI process in `proc`. The process is also associated with a
-// context pointer `ctxp` that is passed to the user callback when a runtime
-// call happens. The process will be runnable after calling lfi_proc_exec and
-// initializing the registers.
-int lfi_add_proc(struct lfi* lfi, struct lfi_proc** proc, void* ctxp);
+// lfi_rmproc removes a process and frees all associated data.
+void lfi_rmproc(LFIEngine* lfi, LFIProc* proc);
 
-// Remove a process from the LFI engine. This frees the sandbox slot used by
-// the given process and frees the process as well.
-void lfi_remove_proc(struct lfi* lfi, struct lfi_proc* proc);
+// lfi_copyproc creates a new process in 'childp' that is a duplicate of
+// 'proc'. This is used for implementing fork.
+bool lfi_copyproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* childctxp);
 
-// Delete the LFI engine and free all its resources.
-void lfi_delete(struct lfi* lfi);
+// lfi_delete destroys the engine and frees all processes and associated data.
+void lfi_delete(LFIEngine* lfi);
 
-// Initialize the process's registers.
-void lfi_proc_init_regs(struct lfi_proc* proc, uintptr_t entry, uintptr_t sp);
+// lfi_proc_init initializes a process with the given entrypoint and stack
+// pointer.
+bool lfi_proc_init(LFIProc* proc, uintptr_t entry, uintptr_t sp);
 
-// Start running a given process.
-int lfi_proc_start(struct lfi_proc* proc);
+// lfi_proc_start starts running a process.
+uint64_t lfi_proc_start(LFIProc* proc);
 
-// Exit a process. This causes execution to redirect to where lfi_proc_start
-// was called, as if that function has now returned. The error code is returned
-// from lfi_proc_start.
-void lfi_proc_exit(struct lfi_proc* proc, int code);
+// lfi_proc returns this thread's currently active proc, started with either
+// lfi_proc_start or lfi_proc_invoke.
+//
+// If no proc is currently active on this thread (e.g., after lfi_proc_exit),
+// this function returns NULL.
+LFIProc* lfi_proc();
 
-// Fetch the register file for the given process and put it in `regs`. The regs can then be
-// edited by modifying the returned pointer.
-struct lfi_regs* lfi_proc_get_regs(struct lfi_proc* proc);
+// lfi_proc_exit causes a process to exit.
+//
+// Control flow will return back to where lfi_proc_start was called, and the
+// 'code' value will be returned there.
+void lfi_proc_exit(LFIProc* proc, uint64_t code);
 
-// Copy an LFI process. This function creates a new process initialized with
-// the current state of `proc` in the `childp` pointer. It will be given a new
-// sandbox slot. This function can be used to implement a "fork" operation.
-int lfi_proc_copy(struct lfi* lfi, struct lfi_proc** childp, struct lfi_proc* proc, void* new_ctxp);
+// lfi_proc_load an ELF binary into the address space for 'proc'.
+//
+// 'progfd' should be a file descriptor for the ELF file to be loaded, and
+// 'interpfd' should be a file descriptor for the dynamic linker, or -1 if
+// there is no dynamic linker. Output information will be placed in 'o_info'.
+bool lfi_proc_loadelf(LFIProc* proc, int progfd, int interpfd, LFIProcInfo* o_info);
 
-// Reset a process's address space and load the given ELF file into its address
-// space. This can be used to implement an "execve" operation. The _dyn
-// version is used to load dynamically-linked libraries, and the user must
-// provide the ELF interpreter to use. Pass NULL for the interpeter for static
-// ELF files.
-int lfi_proc_exec_dyn(struct lfi_proc* proc, uint8_t* prog, size_t size, uint8_t* interp, size_t interp_size, struct lfi_proc_info* info);
+// lfi_proc_mmap maps a region of memory in a process's address space.
+//
+// If the mapping includes PROT_EXEC, it will be automatically verified.
+void* lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset);
 
-int lfi_proc_exec(struct lfi_proc* proc, uint8_t* prog, size_t size, struct lfi_proc_info* info);
+// lfi_proc_mprotect sets the protection for a region of a process's address space.
+//
+// If the protection includes PROT_EXEC, it will be automatically verified.
+int lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot);
 
-// Return the base address of the process.
-uintptr_t lfi_proc_base(struct lfi_proc* proc);
+// lfi_proc_munmap unmaps a region of a process's memory.
+int lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size);
 
-uint64_t lfi_invoke(struct lfi_proc* proc, void* fn, void* ret);
+// lfi_proc_invoke invokes 'fn' inside the given process.
+//
+// When the function returns it will call 'retfn', which must also be a
+// function inside the process's address space. The code that the process
+// exited with is returned.
+uint64_t lfi_proc_invoke(LFIProc* proc, void* fn, void* retfn);
 
-uint64_t lfi_signal_start(uint64_t syspage);
+// lfi_err returns the LFI error code.
+//
+// This function should be used to retrieve error information when a function
+// returns false or -1.
+int lfi_err();
 
-void lfi_signal_end(uint64_t saved);
+// lfi_strerror is similar to lfi_err but returns a string description instead
+// of an error code.
+char* lfi_strerror();
 
-void* lfi_sys_ctx(uint64_t syspage);
+// lfi_proc_regs returns a pointer to the process's registers.
+LFIRegs* lfi_proc_regs(LFIProc* proc);
 
-void lfi_proc_return(struct lfi_proc* proc, uint64_t val);
+// lfi_regs_arg returns a pointer to the register used for the nth argument
+// (0-5) in the calling convention.
+uint64_t* lfi_regs_arg(LFIRegs* regs, int n);
 
-int lfi_mprotect(struct lfi_proc* p, uintptr_t ptr, size_t size, int prot);
+// lfi_regs_ret returns the register used for return values in the calling
+// convention.
+uint64_t* lfi_regs_ret(LFIRegs* regs);
 
+// lfi_regs_sysno returns the register used for the system call number.
+uint64_t* lfi_regs_sysno(LFIRegs* regs);
+
+// lfi_regs_sysarg returns the nth system call argument (0-5).
+uint64_t* lfi_regs_sysarg(LFIRegs* regs, int n);
+
+// lfi_regs_sysret returns the register used for system call return values.
+uint64_t* lfi_regs_sysret(LFIRegs* regs);
+
+// lfi_regs_gas returns the register used to store gas.
+uint64_t* lfi_regs_gas(LFIRegs* regs);
+
+// lfi_regs_mask returns the register used to store the mask.
+uint64_t* lfi_regs_mask(LFIRegs* regs);
 #ifdef __cplusplus
 }
 #endif
 
 #if defined(__aarch64__) || defined(_M_ARM64)
-struct lfi_regs {
+typedef struct LFIRegs {
     uint64_t x0;
     uint64_t x1;
     uint64_t x2;
@@ -187,12 +228,13 @@ struct lfi_regs {
     uint64_t sp;
     uint64_t nzcv;
     uint64_t fpsr;
-    uint64_t tpidr;
+    uint64_t _pad;
     uint64_t vector[64];
-};
+} LFIRegs;
 
 #elif defined(__x86_64__) || defined(_M_X64)
-struct lfi_regs {
+
+typedef struct LFIRegs {
     uint64_t rsp;
     uint64_t rax;
     uint64_t rcx;
@@ -211,17 +253,5 @@ struct lfi_regs {
     uint64_t r15;
     uint64_t fs;
     uint64_t gs;
-};
-#endif
-
-uint64_t* regs_arg(struct lfi_regs* regs, int arg);
-
-uint64_t* regs_ret(struct lfi_regs* regs);
-
-uint64_t* regs_sysno(struct lfi_regs* regs);
-
-uint64_t* regs_sysarg(struct lfi_regs* regs, int arg);
-
-uint64_t* regs_sysret(struct lfi_regs* regs);
-
+} LFIRegs;
 #endif

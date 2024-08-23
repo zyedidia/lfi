@@ -1,8 +1,8 @@
 c_args = []
 
 srcs = [
-  'buddy.c',
-  'lfi.c',
+  'engine.c',
+  'err.c',
   'proc.c',
 ]
 

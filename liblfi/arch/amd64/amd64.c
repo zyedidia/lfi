@@ -2,7 +2,9 @@
 
 #include "lfi.h"
 
-uint64_t* regs_arg(struct lfi_regs* regs, int arg) {
+uint64_t*
+lfi_regs_arg(LFIRegs* regs, int arg)
+{
     switch (arg) {
     case 0:
         return &regs->rdi;
@@ -20,15 +22,21 @@ uint64_t* regs_arg(struct lfi_regs* regs, int arg) {
     assert(0);
 }
 
-uint64_t* regs_ret(struct lfi_regs* regs) {
+uint64_t*
+lfi_regs_ret(LFIRegs* regs)
+{
     return &regs->rax;
 }
 
-uint64_t* regs_sysno(struct lfi_regs* regs) {
+uint64_t*
+lfi_regs_sysno(LFIRegs* regs)
+{
     return &regs->rax;
 }
 
-uint64_t* regs_sysarg(struct lfi_regs* regs, int arg) {
+uint64_t*
+lfi_regs_sysarg(LFIRegs* regs, int arg)
+{
     switch (arg) {
     case 0:
         return &regs->rdi;
@@ -46,6 +54,21 @@ uint64_t* regs_sysarg(struct lfi_regs* regs, int arg) {
     assert(0);
 }
 
-uint64_t* regs_sysret(struct lfi_regs* regs) {
+uint64_t*
+lfi_regs_sysret(LFIRegs* regs)
+{
     return &regs->rax;
+}
+
+uint64_t*
+lfi_regs_mask(LFIRegs* regs)
+{
+    return &regs->r15;
+}
+
+uint64_t*
+lfi_regs_gas(LFIRegs* regs)
+{
+    (void) regs;
+    return NULL;
 }
