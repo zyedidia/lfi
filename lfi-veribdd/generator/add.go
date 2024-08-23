@@ -72,7 +72,7 @@ func writeC(nodes []Node, w io.Writer){
 func writeCv2(nodes []Node, maxRank int, w io.Writer){
 	fmt.Fprintln(w,"#include <stdint.h>")
 	fmt.Fprintln(w,"#include <stdbool.h>")
-	fmt.Fprintln(w,"int evaluate(__uint128_t input){")
+	fmt.Fprintln(w,"int evaluate(uint8_t *input){")
 	
 	entry := 0
 	for _, n := range nodes {
@@ -104,7 +104,7 @@ func writeCv2(nodes []Node, maxRank int, w io.Writer){
 		
 		
 		fmt.Fprintf(w, "node%d:\n", n.id)
-		fmt.Fprintf(w, "\tif((input>>%d) & 0x1)\n", n.v)
+		fmt.Fprintf(w, "\tif((input[%d]>>%d) & 0x1)\n", n.v/8, 7 - (n.v % 8))
 		if n.isTerminalhi {
 			fmt.Fprintf(w, "\t\treturn %d;\n", n.hi) 
 		} else {
@@ -184,10 +184,10 @@ func main() {
 		}
 
 		nodes = append(nodes, Node{
-			id: uint16(nodeId[id]),
+			id: uint16(id),		// uint16(nodeId[id]),
 			v:  uint8(v),
-			lo: uint16(nodeId[lo]),
-			hi: uint16(nodeId[hi]),
+			lo: uint16(lo),		// uint16(nodeId[lo]),
+			hi: uint16(hi),		// uint16(nodeId[hi]),
 			loOrig: uint32(lo),
 			hiOrig: uint32(hi),
 			isTerminal: false,
