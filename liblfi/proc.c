@@ -457,6 +457,7 @@ lfi_proc_regs(LFIProc* proc)
     return &proc->regs;
 }
 
+// This function will be called from assembly.
 void lfi_syscall_handler(LFIProc* proc) asm ("lfi_syscall_handler");
 
 void

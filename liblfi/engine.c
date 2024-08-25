@@ -33,6 +33,10 @@ lfi_new(LFIOptions options)
         lfi_errno = LFI_ERR_NOVERIFIER;
         return NULL;
     }
+    if (!options.syshandler) {
+        lfi_errno = LFI_ERR_NOSYSHANDLER;
+        return NULL;
+    }
     LFIEngine* engine = malloc(sizeof(LFIEngine));
     if (!engine) {
         lfi_errno = LFI_ERR_NOMEM;

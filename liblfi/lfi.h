@@ -18,6 +18,7 @@ enum {
     LFI_ERR_SYSTEM        = 9,
     LFI_ERR_NOVERIFIER    = 10,
     LFI_ERR_INVALID_GAS   = 11,
+    LFI_ERR_NOSYSHANDLER  = 12,
 };
 
 typedef struct {

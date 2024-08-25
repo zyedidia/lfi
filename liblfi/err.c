@@ -35,6 +35,8 @@ lfi_strerr()
         return "no verifier provided";
     case LFI_ERR_INVALID_GAS:
         return "gas is not available on this system";
+    case LFI_ERR_NOSYSHANDLER:
+        return "no runtime call handler provided";
     }
     return "unknown error";
 }
