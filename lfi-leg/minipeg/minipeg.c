@@ -507,6 +507,7 @@ static char *header=
 "#include <string.h>\n";
 
 static char *preamble= "\
+#ifndef __clang_analyzer__\n\
 #ifndef YY_MAYBE_UNUSED\n\
 #ifdef __GNUC__\n\
 #define YY_MAYBE_UNUSED __attribute__((unused))\n\
@@ -2753,6 +2754,7 @@ int main(int argc, char **argv)
       fprintf(output, "#line %i \"%s\"\n", trailerLine, fileName);
     fprintf(output, "%s\n", trailer);
   }
+  fprintf(output, "#endif\n"); // #ifndef __clang_analyzer__
 
   if (ferror(output)) {
     fprintf(stderr, "io error writing output\n");
