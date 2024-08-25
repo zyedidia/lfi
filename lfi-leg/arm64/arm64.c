@@ -85,7 +85,7 @@ arm64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = false;
         else if (passes[i].fn == &arm64_meterpass)
             passes[i].disabled = true;
-        if (args.notls && passes[i].fn == &arm64_tlspass)
+        if (args.allowtls && passes[i].fn == &arm64_tlspass)
             passes[i].disabled = true;
         else if (passes[i].fn == &arm64_tlspass)
             passes[i].disabled = false;

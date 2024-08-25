@@ -25,7 +25,7 @@ enum {
     ARG_bundlecall    = 0x8b,
     ARG_useret        = 0x8c,
     ARG_no_pext_elim  = 0x8d,
-    ARG_notls         = 0x8e,
+    ARG_allowtls         = 0x8e,
 };
 
 // options (TODO):
@@ -60,7 +60,7 @@ static struct argp_option options[] = {
     { "p2size",         ARG_p2size,        "TYPE", 0, "Set power-of-2 sandbox size (32,variable)" },
     { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
     { "use-ret",        ARG_useret,        0,      0, "Allow return instructions for x86-64 (unsafe)" },
-    { "no-hosted-tls",  ARG_notls,        0,      0, "Do not rewrite TLS accesses into host calls" },
+    { "allow-tls",      ARG_allowtls,      0,      0, "Do not rewrite TLS accesses into host calls" },
     { 0 },
 };
 
@@ -106,8 +106,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_no_guard_elim:
         args->noguardelim = true;
         break;
-    case ARG_notls:
-        args->notls = true;
+    case ARG_allowtls:
+        args->allowtls = true;
         break;
     case ARG_no_pext_elim:
         args->nopextelim = true;

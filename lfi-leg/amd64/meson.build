@@ -10,6 +10,7 @@ leg_inputs = [
   'special.leg',
   'decl.leg',
   'pextelim.leg',
+  'tls.leg',
 ]
 
 leg_addr_inputs = [

@@ -11,11 +11,16 @@
 }                                              \
 %}
 
-Syscall = (('syscall' -) | ('int' - '0x80' -)) {
-    if (!args.decl)
-        mkinsn("callq *(%%r14)");
-    else
+Syscall = 'syscall' - {
+    if (!args.decl) {
+        mkdirective(".bundle_lock");
+        mkinsn("leaq 1f(%%rip), %%r11");
+        mkinsn("jmpq *(%%r14)");
+        mklabel("1");
+        mkdirective(".bundle_unlock");
+    } else {
         mkinsn("syscall");
+    }
 }
 
 %%

@@ -28,6 +28,7 @@ tests = {
     'amd64/string.s',
     'amd64/syscall.s',
     'amd64/variable.s',
+    'amd64/tls.s',
   ],
   'riscv64': [
     'riscv64/arith.s',

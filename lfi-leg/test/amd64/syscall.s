@@ -1,4 +1,8 @@
 syscall
 >>>
 .bundle_align_mode 4
-callq *(%r14)
+.bundle_lock
+leaq 1f(%rip), %r11
+jmpq *(%r14)
+1:
+.bundle_unlock
