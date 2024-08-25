@@ -13,6 +13,7 @@ tests = {
     'arm64/storesonly.s',
     'arm64/syscall.s',
     'arm64/sysexternal.s',
+    'arm64/tls.s',
   ],
   'amd64': [
     'amd64/branch.s',

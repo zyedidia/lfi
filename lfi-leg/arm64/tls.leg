@@ -1,0 +1,59 @@
+%{
+#include "arm64/arm64.h"
+#include "op.h"
+#include "args.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = ReadTP_x0 | ReadTP_any | WriteTP_any !.
+
+ReadTP_any = 'mrs' SEP r:REG COMMA 'tpidr_el0' - {
+    mkinsn("stp x0, x30, [sp, #-16]!");
+    mkinsn("ldr x30, [%s, #8]", args.sysexternal ? "x25" : "x21");
+    mkinsn("blr x30");
+    mkinsn("mov %s, x0", r.val);
+    mkinsn("ldp x0, x22, [sp], 16");
+    mkinsn("add x30, x21, w22, uxtw");
+    rfree(r);
+}
+
+ReadTP_x0 = 'mrs' SEP 'x0' - COMMA 'tpidr_el0' - {
+    mkinsn("mov x22, x30");
+    mkinsn("ldr x30, [%s, #8]", args.sysexternal ? "x25" : "x21");
+    mkinsn("blr x30");
+    mkinsn("add x30, x21, w22, uxtw");
+}
+
+WriteTP_any = 'msr' SEP 'tpidr_el0' COMMA r:REG - {
+    mkinsn("stp x0, x30, [sp, #-16]!");
+    mkinsn("mov x0, %s", r.val);
+    mkinsn("ldr x30, [%s, #16]", args.sysexternal ? "x25" : "x21");
+    mkinsn("blr x30");
+    mkinsn("ldp x0, x22, [sp], 16");
+    mkinsn("add x30, x21, w22, uxtw");
+    rfree(r);
+}
+
+%%
+
+void
+arm64_tlspass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

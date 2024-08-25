@@ -49,6 +49,7 @@ struct arguments {
     int p2size; // 0 means variable (size stored in register)
     bool bundlecall;
     bool useret;
+    bool notls;
 };
 
 extern struct arguments args;

@@ -13,6 +13,7 @@ leg_inputs = [
   'special.leg',
   'meter.leg',
   'syscall.leg',
+  'tls.leg',
 ]
 
 leg_addr_inputs = [

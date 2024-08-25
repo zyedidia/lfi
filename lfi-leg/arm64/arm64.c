@@ -23,6 +23,7 @@ void arm64_loadspass(struct op*);
 void arm64_storespass(struct op*);
 void arm64_meterpass(struct op*);
 void arm64_syscallpass(struct op*);
+void arm64_tlspass(struct op*);
 
 void arm64_guardelim(struct op* ops);
 
@@ -33,6 +34,7 @@ static Pass passes[] = {
     (Pass) { .fn = &arm64_loadspass },
     (Pass) { .fn = &arm64_storespass },
     (Pass) { .fn = &arm64_meterpass, .disabled = true },
+    (Pass) { .fn = &arm64_tlspass },
     (Pass) { .fn = &arm64_syscallpass },
 };
 
@@ -83,6 +85,10 @@ arm64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = false;
         else if (passes[i].fn == &arm64_meterpass)
             passes[i].disabled = true;
+        if (args.notls && passes[i].fn == &arm64_tlspass)
+            passes[i].disabled = true;
+        else if (passes[i].fn == &arm64_tlspass)
+            passes[i].disabled = false;
     }
 
     for (size_t i = 0; i < npass; i++) {
