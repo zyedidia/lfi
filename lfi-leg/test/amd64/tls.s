@@ -27,3 +27,14 @@ leaq 1f(%rip), %r11
 jmpq *8(%r14)
 1:
 .bundle_unlock
+------
+callq *x@TLSCALL(%rax)
+>>>
+.bundle_align_mode 4
+movq %gs:(%eax), %r11
+.bundle_lock
+andl $0xfffffff0, %r11d
+orq %r14, %r11
+callq *%r11
+.bundle_unlock
+.p2align 4

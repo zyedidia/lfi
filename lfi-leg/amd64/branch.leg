@@ -16,7 +16,7 @@ Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe
 # has the correct size to align the call to the end of the bundle. In theory,
 # we could make two CallInds -- one for registers that require a REX prefix and
 # one for ones that don't.
-CallInd = 'call' 'q'? - '*' r:XREG {
+CallInd = 'call' 'q'? SEP '*' r:XREG {
     mkinsn("movq %s, %%r11", r.val);
     if (args.bundlecall)
         mkdirective(bundle_align());
@@ -29,7 +29,7 @@ CallInd = 'call' 'q'? - '*' r:XREG {
     rfree(r);
 }
 
-CallIndMem = 'call' 'q'? - '*' a:Addr {
+CallIndMem = 'call' 'q'? SEP '*' a:Addr {
     if (args.boxtype < BOX_FULL) {
         mkinsn("movq %s, %%r11", a.unmod);
     } else {
@@ -48,7 +48,7 @@ CallIndMem = 'call' 'q'? - '*' a:Addr {
     rfree(a);
 }
 
-CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
+CallIndMemSafe = 'call' 'q'? SEP '*' a:Addr {
     mkinsn("movq %s, %%r11", a.unmod);
     if (args.bundlecall)
         mkdirective(bundle_align());
@@ -59,12 +59,6 @@ CallIndMemSafe = 'call' 'q'? - '*' a:Addr {
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
     rfree(a);
-}
-
-# unused
-CallTls = 'call' 'q'? SEP '__tls_get_addr' - rest:REMAINDER {
-    mkinsn("callq __tls_get_addr%s", rest.val);
-    rfree(rest);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
