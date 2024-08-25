@@ -11,6 +11,8 @@ struct output {
 };
 
 static void outwritebuf(struct output* out, char* s, size_t len) {
+    if (!s)
+        return;
     if (len >= out->cap - out->n) {
         out->cap = out->cap * 2 + len;
         out->buf = realloc(out->buf, out->cap);
@@ -34,6 +36,8 @@ static void outsend(struct output* out, FILE* fout) {
 }
 
 static char* outstr(struct output* out) {
+    if (!out->buf)
+        return "(null)";
     char* buf = malloc(out->n + 1);
     memcpy(buf, out->buf, out->n);
     buf[out->n] = 0;

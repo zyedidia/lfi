@@ -50,7 +50,7 @@ arm64_display(struct output* out, struct op* ops)
     icount = 0;
     op = ops;
     while (op) {
-        if (!op->relocated && !op->insn && strncmp(op->text, ".tlsdesccall", strlen(".tlsdesccall")) == 0) {
+        if (!op->relocated && !op->insn && strncmp(op->text, ".tlsdesccall", strlen(".tlsdesccall")) == 0 && op->next) {
             // swap with the next instruction
             oplocate(op->next);
             struct op* n = op->next;

@@ -58,7 +58,7 @@ bundlefix(uint8_t* insns, size_t n, size_t bsz, size_t addr)
         }
         count += instr.length;
     }
-    if (count > bsz) {
+    if (count > bsz && bsz > 0) {
         memset(&insns[count - instr.length], 0x90, instr.length - (count - bsz));
     }
 }
@@ -84,6 +84,7 @@ callrewrite(uint8_t* insns, size_t bsz, size_t addr)
             ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
             status = ZydisDecoderDecodeOperands(&decoder, &context, &instr,
                     operands, instr.operand_count);
+            assert(!ZYAN_FAILED(status));
 
             if (operands[0].type == ZYDIS_OPERAND_TYPE_MEMORY && operands[0].mem.base == ZYDIS_REGISTER_R14) {
             } else {
@@ -243,6 +244,7 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
                 }
             }
             memcpy(curb, insn, instrs[j].length);
+            free(insn);
             count += instrs[j].length;
             curb += instrs[j].length;
         }
