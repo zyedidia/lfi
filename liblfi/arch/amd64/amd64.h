@@ -6,18 +6,6 @@
 
 #include "lfi.h"
 
-static uint64_t
-r_tpidr()
-{
-    return _readfsbase_u64();
-}
-
-static void
-w_tpidr(uint64_t val)
-{
-    _writefsbase_u64(val);
-}
-
 static void
 wr_regs_base(LFIRegs* regs, uint64_t val)
 {

@@ -40,15 +40,25 @@
 	mov PROC_REGS+8*7(%rdi), %rdi
 .endm
 
-// Puts the sandbox's thread pointer in %rax and clobbers %r11.
+// Puts the sandbox's thread pointer in %rax.
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
 	mov %fs:lfi_myproc@tpoff, %rax
 	mov 8(%rax), %rax
-	pop %r11
-	// TODO: sandboxing sequence
 	jmp *%r11
+	int3
+
+// Sets the sandbox's thread pointer to %rax and clobbers %rdx. This function
+// is not used on x86-64, since libc will set the thread pointer via an
+// archprctl system call rather than wrfsbase.
+.p2align 4
+.global lfi_set_tp
+lfi_set_tp:
+	mov %fs:lfi_myproc@tpoff, %rdx
+	mov %rax, 8(%rdx)
+	jmp *%r11
+	int3
 
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
@@ -129,9 +139,8 @@ lfi_restore_partial_regs:
 	mov $0, %r11 // clobbered
     mov  PROC_REGS+8*7(%rdi), %rdi
 	// since we are executing on the sandbox stack we have to use a safe return
-	popq %r11
-	// TODO: the exact sequence depends the selected sandboxing flavor
 	jmpq *%r11
+	int3
 
 .p2align 4
 .globl lfi_restore_regs

@@ -120,11 +120,11 @@ uint64_t lfi_proc_start(LFIProc* proc);
 // this function returns NULL.
 LFIProc* lfi_proc();
 
-// lfi_proc_exit causes a process to exit.
+// lfi_proc_exit causes the currently active process to exit.
 //
 // Control flow will return back to where lfi_proc_start was called, and the
 // 'code' value will be returned there.
-void lfi_proc_exit(LFIProc* proc, uint64_t code);
+void lfi_proc_exit(uint64_t code);
 
 // lfi_proc_load an ELF binary into the address space for 'proc'.
 //

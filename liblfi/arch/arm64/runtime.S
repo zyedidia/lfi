@@ -78,6 +78,18 @@ lfi_get_tp:
 	add x30, x21, w30, uxtw
 	ret
 
+// Sets the sandbox's thread pointer to x0 and clobbers x22.
+.p2align 4
+.global lfi_set_tp
+lfi_set_tp:
+	mrs	x22, tpidr_el0
+	add	x22, x22, #:tprel_hi12:var, lsl #12
+	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
+	ldr	x22, [x22]
+	str x0, [x22, #8]
+	add x30, x21, w30, uxtw
+	ret
+
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
 .globl lfi_asm_invoke
