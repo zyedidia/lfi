@@ -41,5 +41,8 @@ amd64_getflags(enum flags compiler)
     default:
         assert(0);
     }
+    if (!args.allowtls && compiler != FLAGS_POSTLINK) {
+        flags = xasprintf("%s -mno-tls-direct-seg-refs -mtls-dialect=gnu2", flags);
+    }
     return flags;
 }
