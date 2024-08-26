@@ -19,9 +19,9 @@ Top = ReadTP_rax | ReadTP_any !.
 ReadTP_any = 'mov' SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     mkinsn("pushq %%rax");
     mkdirective(".bundle_lock");
-    mkinsn("leaq 1f(%%rip), %%r11");
+    mkinsn("leaq 1000f(%%rip), %%r11");
     mkinsn("jmpq *8(%%r14)");
-    mklabel("1");
+    mklabel("1000");
     mkdirective(".bundle_unlock");
     mkinsn("movq %%rax, %s", r.val);
     mkinsn("popq %%rax");
@@ -30,9 +30,9 @@ ReadTP_any = 'mov' SEP '%fs:' '0x'? '0' - COMMA r:REG - {
 
 ReadTP_rax = 'mov' SEP '%fs:' '0x'? '0' - COMMA '%rax' - {
     mkdirective(".bundle_lock");
-    mkinsn("leaq 1f(%%rip), %%r11");
+    mkinsn("leaq 1000f(%%rip), %%r11");
     mkinsn("jmpq *8(%%r14)");
-    mklabel("1");
+    mklabel("1000");
     mkdirective(".bundle_unlock");
 }
 

@@ -17,6 +17,7 @@ local obj = {
         "arm64/special.leg",
         "arm64/meter.leg",
         "arm64/syscall.leg",
+        "arm64/tls.leg",
         -- amd64
         "amd64/parse.leg",
         "amd64/syscall.leg",
@@ -26,6 +27,7 @@ local obj = {
         "amd64/loads.leg",
         "amd64/decl.leg",
         "amd64/pextelim.leg",
+        "amd64/tls.leg",
         -- riscv
         "riscv64/loads.leg",
         "riscv64/stores.leg",

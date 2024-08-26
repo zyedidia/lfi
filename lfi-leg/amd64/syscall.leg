@@ -14,9 +14,9 @@
 Syscall = 'syscall' - {
     if (!args.decl) {
         mkdirective(".bundle_lock");
-        mkinsn("leaq 1f(%%rip), %%r11");
+        mkinsn("leaq 1000f(%%rip), %%r11");
         mkinsn("jmpq *(%%r14)");
-        mklabel("1");
+        mklabel("1000");
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("syscall");
