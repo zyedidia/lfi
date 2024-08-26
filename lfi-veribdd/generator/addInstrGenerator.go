@@ -140,7 +140,7 @@ func main() {
 	outputText := &bytes.Buffer{}
 
 	// Generate the specified number of instructions
-	for range NumInstr {
+	for i := 0; i < NumInstr; i++ {
 		// Pick a random terminal node
 		endIndex := rand.Int() % len(endNodes)
 		endTriple := endNodes[endIndex]
