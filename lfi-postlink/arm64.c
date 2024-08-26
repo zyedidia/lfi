@@ -13,6 +13,12 @@ enum {
     TBZ  = 0xb6f80057,
     BLR  = 0xd63f0320,
 
+    CNTD_X0   = 0x04e0e3e0,
+    BTI_C     = 0xd503245f,
+    AUTIB1716 = 0xd50321df,
+    AUTIA1716 = 0xd503219f,
+    XPACLRI   = 0xd50320ff,
+
     OP_SUB = (0b110100010UL << 23),
     OP_ADD = (0b100100010UL << 23),
 };
@@ -228,6 +234,27 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
     cs_close(&handle);
 }
 
+static void
+removeinvalid(uint8_t* buf, size_t sz)
+{
+    assert((uintptr_t) buf % 4 == 0 && sz % 4 == 0);
+    uint32_t* insns = (uint32_t*) buf;
+    for (size_t i = 0; i < sz / 4; i++) {
+        uint32_t insn = insns[i];
+        switch (insn) {
+        case CNTD_X0:
+        case BTI_C:
+        case AUTIB1716:
+        case AUTIA1716:
+        case XPACLRI:
+            insns[i] = NOP;
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 void
 arm64_postlink(uint8_t* buf, size_t sz)
 {
@@ -243,6 +270,7 @@ arm64_postlink(uint8_t* buf, size_t sz)
             continue;
         }
 
+        removeinvalid(&buf[p->offset], p->filesz);
         if (args.meter != METER_NONE)
             meteropt(&buf[p->offset], p->filesz, p->vaddr);
     }
