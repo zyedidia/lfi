@@ -1,6 +1,8 @@
 srcs = files(
-  'rt.c',
+  'lfix.c',
   'sys.c',
+  'file.c',
+  'fd.c',
 )
 
 mmap = subproject('libmmap').get_variable('mmap')

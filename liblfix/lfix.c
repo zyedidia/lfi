@@ -2,24 +2,24 @@
 #include <unistd.h>
 
 #include "lfi.h"
-#include "lfi_rt.h"
+#include "lfix.h"
 #include "sys.h"
 
 bool
-lfi_rt_init(LFIRuntime* lrt)
+lfix_init(LFIXEngine* lfix)
 {
     LFIOptions options = (LFIOptions) {
         .pagesize = getpagesize(),
         .stacksize = mb(2),
-        .syshandler = lfi_rt_syscall,
+        .syshandler = lfix_syscall,
     };
 
-    LFIEngine* engine = lfi_new(options);
-    if (!engine)
+    LFIEngine* lfi = lfi_new(options);
+    if (!lfi)
         return false;
 
-    if (!lfi_reserve(engine, gb(256))) {
-        lfi_delete(engine);
+    if (!lfi_reserve(lfi, gb(256))) {
+        lfi_delete(lfi);
         return false;
     }
 
