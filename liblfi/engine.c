@@ -23,7 +23,7 @@ tb(size_t x)
 static size_t
 procsize(LFIEngine* engine)
 {
-    return 1 << engine->opts.p2size;
+    return 1ULL << engine->opts.p2size;
 }
 
 LFIEngine*
@@ -146,6 +146,8 @@ lfi_reserve(LFIEngine* lfi, size_t size)
 {
     size_t total = size;
     size_t min = size;
+    size_t totalgot = 0;
+    size_t i_size = size;
 
     if (size == 0) {
         total = tb(256);
@@ -158,12 +160,15 @@ lfi_reserve(LFIEngine* lfi, size_t size)
         size_t got = reserve(size, min, &base);
         if (!got)
             break;
+        totalgot += got;
         total = total - got;
         size = total;
         if (!addspace(lfi, base, got))
             return false;
+        if (totalgot >= i_size)
+            break;
     }
-    if (i == 0) {
+    if (totalgot < i_size) {
         lfi_errno = LFI_ERR_CANNOT_MAP;
         return false;
     }

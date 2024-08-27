@@ -10,7 +10,7 @@ lfi_err()
 }
 
 char*
-lfi_strerr()
+lfi_strerror()
 {
     switch (lfi_errno) {
     case LFI_ERR_NOMEM:
