@@ -1,69 +1,34 @@
 #define N_RTCALLS 256
 #define PROC_REGS 16
 
-#ifdef SYSEXTERNAL
-#define SYSREG x25
-#else
-#define SYSREG x21
-#endif
-
 .text
 
-// Puts Proc* in x21.
+// Puts Proc* in x22.
 .macro GET_PROC
-	mrs	x21, tpidr_el0
-	add	x21, x21, #:tprel_hi12:var, lsl #12
-	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
-	ldr	x21, [x0]
+	mrs	x22, tpidr_el0
+	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
+	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
+	ldr	x22, [x22]
 .endm
 
-// save registers, assuming sandbox syspage is x21
-.macro SAVE_REGS
-	GET_PROC
-	stp x0, x1,   [x21, PROC_REGS+16*0]
-	stp x2, x3,   [x21, PROC_REGS+16*1]
-	stp x4, x5,   [x21, PROC_REGS+16*2]
-	stp x6, x7,   [x21, PROC_REGS+16*3]
-	stp x8, x9,   [x21, PROC_REGS+16*4]
-	stp x18, x19, [x21, PROC_REGS+16*9]
-	str x20,      [x21, PROC_REGS+16*10]
-	stp x22, x23, [x21, PROC_REGS+16*11]
-	stp x24, x25, [x21, PROC_REGS+16*12]
-	stp x26, x27, [x21, PROC_REGS+16*13]
-	stp x28, x29, [x21, PROC_REGS+16*14]
-	stp q8, q9,   [x21, PROC_REGS+16*18+8*16]
-	stp q10, q11, [x21, PROC_REGS+16*18+10*16]
-	stp q12, q13, [x21, PROC_REGS+16*18+12*16]
-	stp q14, q15, [x21, PROC_REGS+16*18+14*16]
-	mov x1, sp
-	stp x30, x1,  [x21, PROC_REGS+16*15]
-	mrs x1, nzcv
-	mrs x2, fpsr
-	stp x1, x2, [x21, PROC_REGS+8*34]
-	// reset x21 by loading it back
-	ldr x21,    [x21, PROC_REGS+16*10+8]
-.endm
-
-// save caller-saved registers, assuming sandbox syspage is x21
+// save caller-saved registers, assuming sandbox syspage is x22
 .macro SAVE_PARTIAL_REGS
 	GET_PROC
-	stp x0, x1,   [x21, PROC_REGS+16*0]
-	stp x2, x3,   [x21, PROC_REGS+16*1]
-	stp x4, x5,   [x21, PROC_REGS+16*2]
-	stp x6, x7,   [x21, PROC_REGS+16*3]
-	stp x8, x9,   [x21, PROC_REGS+16*4]
-	stp x10, x11, [x21, PROC_REGS+16*5]
-	stp x12, x13, [x21, PROC_REGS+16*6]
-	stp x14, x15, [x21, PROC_REGS+16*7]
-	stp x16, x17, [x21, PROC_REGS+16*8]
-	str x18,      [x21, PROC_REGS+16*9]
+	stp x0, x1,   [x22, PROC_REGS+16*0]
+	stp x2, x3,   [x22, PROC_REGS+16*1]
+	stp x4, x5,   [x22, PROC_REGS+16*2]
+	stp x6, x7,   [x22, PROC_REGS+16*3]
+	stp x8, x9,   [x22, PROC_REGS+16*4]
+	stp x10, x11, [x22, PROC_REGS+16*5]
+	stp x12, x13, [x22, PROC_REGS+16*6]
+	stp x14, x15, [x22, PROC_REGS+16*7]
+	stp x16, x17, [x22, PROC_REGS+16*8]
+	str x18,      [x22, PROC_REGS+16*9]
 	mov x1, sp
-	stp x30, x1,  [x21, PROC_REGS+16*15]
+	stp x30, x1,  [x22, PROC_REGS+16*15]
 	mrs x0, nzcv
 	mrs x1, fpsr
-	stp x0, x1, [x21, PROC_REGS+8*34]
-	// reset x21 by loading it back
-	ldr x21,    [x21, PROC_REGS+16*10+8]
+	stp x0, x1, [x22, PROC_REGS+8*34]
 .endm
 
 // Puts the sandbox's thread pointer in x0.
@@ -71,7 +36,7 @@
 .global lfi_get_tp
 lfi_get_tp:
 	mrs	x0, tpidr_el0
-	add	x0, x0, #:tprel_hi12:var, lsl #12
+	add	x0, x0, #:tprel_hi12:lfi_myproc, lsl #12
 	add	x0, x0, #:tprel_lo12_nc:lfi_myproc
 	ldr	x0, [x0]
 	ldr x0, [x0, #8]
@@ -83,7 +48,7 @@ lfi_get_tp:
 .global lfi_set_tp
 lfi_set_tp:
 	mrs	x22, tpidr_el0
-	add	x22, x22, #:tprel_hi12:var, lsl #12
+	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
 	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
 	ldr	x22, [x22]
 	str x0, [x22, #8]
@@ -97,7 +62,7 @@ lfi_asm_invoke:
 	// TODO
 	brk #0
 
-// lfi_proc_entry(Proc* p)
+// lfi_proc_entry(Proc* p, void** kstackp)
 .p2align 4
 .globl lfi_proc_entry
 lfi_proc_entry:
@@ -140,10 +105,11 @@ lfi_asm_proc_exit:
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
-	// x21 now contains Proc*
-	ldr x1, [x21]         // load stack
+	// x22 now contains Proc*
+	ldr x1, [x22]         // load stack
 	mov sp, x1
-	str x21, [sp, #-16]!
+	str x22, [sp, #-16]!
+	mov x0, x22
 	bl lfi_syscall_handler
 	ldr x0, [sp], 16
 	b  lfi_restore_partial_regs

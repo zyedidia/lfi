@@ -33,7 +33,7 @@ regs_sys(LFIRegs* regs)
 #endif
 }
 static void
-regs_init(struct lfi_regs* regs, uint64_t entry, uint64_t sp)
+regs_init(LFIRegs* regs, uint64_t entry, uint64_t sp)
 {
     regs->x30 = entry;
     regs->sp = sp;
