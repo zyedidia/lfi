@@ -355,6 +355,8 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
     *plast = last;
     *pentry = ehdr.type == ET_DYN ? base + ehdr.entry : proc->base + ehdr.entry;
 
+    free(phdr);
+
     return true;
 err1:
     free(phdr);
@@ -477,4 +479,37 @@ lfi_syscall_handler(LFIProc* proc)
     uint64_t ret = proc->lfi->opts.syshandler(proc->ctxp, sysno, a0, a1, a2, a3, a4, a5);
 
     *lfi_regs_sysret(&proc->regs) = ret;
+}
+
+void*
+lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset)
+{
+    assert(addr >= proc->base && addr < proc->base + proc->size);
+    assert(addr % proc->lfi->opts.pagesize == 0);
+    assert(size % proc->lfi->opts.pagesize == 0);
+    return mmapverify((void*) addr, size, prot, flags | MAP_FIXED, fd, offset, &proc->lfi->opts.verifier);
+}
+
+int
+lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
+{
+    assert(addr >= proc->base && addr < proc->base + proc->size);
+    return mprotectverify((void*) addr, size, prot, &proc->lfi->opts.verifier);
+}
+
+int
+lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
+{
+    assert(addr >= proc->base && addr < proc->base + proc->size);
+    void* p = mmap((void*) addr, size, PROT_NONE, MAPANON, -1, 0);
+    if (p == (void*) -1)
+        return -1;
+    return 0;
+}
+
+void
+lfi_proc_free(LFIProc* p)
+{
+    procclear(p);
+    free(p);
 }

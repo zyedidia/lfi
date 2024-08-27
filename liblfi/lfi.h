@@ -136,7 +136,10 @@ bool lfi_proc_loadelf(LFIProc* proc, int progfd, int interpfd, LFIProcInfo* o_in
 
 // lfi_proc_mmap maps a region of memory in a process's address space.
 //
-// If the mapping includes PROT_EXEC, it will be automatically verified.
+// If the mapping includes PROT_EXEC, it will be automatically verified. You
+// must include MAP_FIXED in the flags and provide a valid value for 'addr'
+// (one that is within the sandbox). The addr and size must both be a multiple
+// of pagesize, as defined in LFIOptions.
 void* lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset);
 
 // lfi_proc_mprotect sets the protection for a region of a process's address space.
