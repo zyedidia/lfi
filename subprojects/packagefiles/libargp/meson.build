@@ -66,6 +66,7 @@ if host_machine.system() != 'windows'
 		argp_source,
 		include_directories : '.',
 		version : meson.project_version(),
+        c_args: ['-w'],
 	)
 else
 	argp_library = static_library('argp',
