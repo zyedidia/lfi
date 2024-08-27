@@ -2,6 +2,7 @@
 #include "amd64/amd64.h"
 #include "op.h"
 #include "args.h"
+#include "util.h"
 
 #define YY_INPUT(ctx, buf, result, max_size)   \
 {                                              \
@@ -9,14 +10,17 @@
     ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
+
+static int count;
 %}
 
 Syscall = 'syscall' - {
     if (!args.decl) {
+        char* label = xasprintf(".LFI_SYS%d", count++);
         mkdirective(".bundle_lock");
-        mkinsn("leaq 1000f(%%rip), %%r11");
+        mkinsn("leaq %s(%%rip), %%r11", label);
         mkinsn("jmpq *(%%r14)");
-        mklabel("1000");
+        mklabel(label);
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("syscall");
