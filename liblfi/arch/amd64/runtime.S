@@ -117,7 +117,10 @@ lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
 	// Proc* is now in %rcx
 	mov (%rcx), %rsp // load stack
+	// syscall return address
+	pushq %r11
 	call lfi_syscall_handler
+	popq %r11
 	mov %fs:lfi_myproc@tpoff, %rdi
 	jmp lfi_restore_partial_regs
 	int3
@@ -138,7 +141,6 @@ lfi_restore_partial_regs:
 	mov  PROC_REGS+8*10(%rdi), %r10
 	mov $0, %r11 // clobbered
     mov  PROC_REGS+8*7(%rdi), %rdi
-	// since we are executing on the sandbox stack we have to use a safe return
 	jmpq *%r11
 	int3
 
