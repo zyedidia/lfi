@@ -8,6 +8,8 @@ project(
 
 add_project_arguments('-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64', language : 'c')
 
+argp = subproject('argp').get_variable('argp_dep')
+
 cpu = target_machine.cpu_family()
 lfi_gcc = find_program(cpu + '-lfi-linux-musl-gcc', required: false)
 

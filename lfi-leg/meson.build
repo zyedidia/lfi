@@ -16,7 +16,7 @@ subdir('riscv64')
 
 args = ['-Wno-unused-function', '-Wno-unused-parameter']
 
-lfi_leg = executable('lfi-leg', files('main.c'), srcs, leg_srcs, install: true, c_args: args)
+lfi_leg = executable('lfi-leg', files('main.c'), srcs, leg_srcs, install: true, c_args: args, dependencies: argp)
 liblfi_leg = static_library('lfileg', files('lib.c'), srcs, leg_srcs, install: true, c_args: args)
 
 install_headers('include/lfileg.h')

@@ -121,7 +121,7 @@ bundle_nop_indcall()
     // lfi-postlink will fix it up.
     if (!args.bundlecall) {
         if (args.decl)
-            mkinsn("cmpq %rax, %rax");
+            mkinsn("cmpq %%rax, %%rax");
         return;
     }
     switch (args.cfi) {
