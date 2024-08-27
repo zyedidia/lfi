@@ -14,6 +14,7 @@ cpu = target_machine.cpu_family()
 lfi_gcc = find_program(cpu + '-lfi-linux-musl-gcc', required: false)
 
 go = find_program('go')
+xxd = find_program('xxd', required: false)
 
 subdir('lfi-leg')
 subdir('lfi-verify')

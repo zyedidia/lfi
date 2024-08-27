@@ -295,7 +295,7 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
         return false;
     }
 
-    n = pread(fd, &phdr, sizeof(ElfProgHeader) * ehdr.phnum, ehdr.phoff);
+    n = pread(fd, phdr, sizeof(ElfProgHeader) * ehdr.phnum, ehdr.phoff);
     if (n != sizeof(ElfProgHeader) * ehdr.phnum) {
         lfi_errno = LFI_ERR_INVALID_ELF;
         goto err1;
@@ -311,6 +311,8 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
     for (int i = 0; i < ehdr.phnum; i++) {
         ElfProgHeader* p = &phdr[i];
         if (p->type != PT_LOAD)
+            continue;
+        if (p->memsz == 0)
             continue;
 
         if (p->align % pagesize != 0) {
@@ -341,7 +343,7 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
         }
 
         // TODO: use preadelfseg instead?
-        if (!mapelfseg(start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, &proc->lfi->opts.verifier))
+        if (!mapelfseg(base + start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, &proc->lfi->opts.verifier))
             goto err1;
 
         if (base == 0) {
@@ -394,7 +396,7 @@ procclear(LFIProc* proc)
 }
 
 bool
-lfi_proc_load(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
+lfi_proc_loadelf(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
 {
     uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
     uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
@@ -444,7 +446,7 @@ lfi_proc_load(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
         .elfphentsize = ehdr.phentsize,
     };
 
-    return false;
+    return true;
 
 maperr:
     lfi_errno = LFI_ERR_CANNOT_MAP;

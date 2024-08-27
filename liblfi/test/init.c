@@ -11,7 +11,7 @@ gb(size_t n)
 }
 
 static uint64_t
-dummy(void*, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t)
+sys(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5)
 {
     return -1;
 }
@@ -23,7 +23,7 @@ main()
         .stacksize = 2 * 1024 * 1024,
         .pagesize = getpagesize(),
         .noverify = true,
-        .syshandler = dummy,
+        .syshandler = sys,
     });
     if (!lfi) {
         fprintf(stderr, "error: %s\n", lfi_strerror());

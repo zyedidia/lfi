@@ -119,6 +119,7 @@ lfi_syscall_entry:
 	mov (%rcx), %rsp // load stack
 	// syscall return address
 	pushq %r11
+	mov %rcx, %rdi
 	call lfi_syscall_handler
 	popq %r11
 	mov %fs:lfi_myproc@tpoff, %rdi

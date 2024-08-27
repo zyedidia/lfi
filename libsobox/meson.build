@@ -3,8 +3,6 @@ arch = {
   'x86_64': true,
 }
 
-xxd = find_program('xxd', required: false)
-
 if not xxd.found()
   warning('xxd not found: cannot build libsobox')
   subdir_done()
