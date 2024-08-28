@@ -35,6 +35,55 @@ verr(Verifier* v, FdInstr* inst, const char* msg)
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
+static bool
+okmnem(FdInstr* instr)
+{
+    return true;
+/*     switch (FD_TYPE(instr)) { */
+/* #include "base.instrs" */
+/*     } */
+/*  */
+/*     return false; */
+}
+
+static void
+chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize)
+{
+    switch (FD_TYPE(instr)) {
+    case FDI_JA:
+    case FDI_JBE:
+    case FDI_JC:
+    case FDI_JCXZ:
+    case FDI_JG:
+    case FDI_JGE:
+    case FDI_JL:
+    case FDI_JLE:
+    case FDI_JMP:
+    case FDI_JNC:
+    case FDI_JNO:
+    case FDI_JNP:
+    case FDI_JNS:
+    case FDI_JNZ:
+    case FDI_JO:
+    case FDI_JP:
+    case FDI_JS:
+    case FDI_JZ:
+    case FDI_CALL:
+        if (FD_OP_TYPE(instr, 0) == FD_OT_OFF) {
+            int64_t imm = FD_OP_IMM(instr, 0);
+            uint64_t target = v->addr + FD_SIZE(instr) + imm;
+            if (target % bundlesize == 0) {
+                break;
+            } else {
+                verr(v, instr, "jump target is not bundle-aligned");
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 static void
 vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
 {
@@ -47,6 +96,11 @@ vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
             verrmin(v, "%lx: unknown instruction", v->addr);
             return;
         }
+
+        if (!okmnem(&instr))
+            verr(v, &instr, "illegal instruction");
+
+        chkbranch(v, &instr, bundlesize);
 
         if (count + ret > bundlesize) {
             verr(v, &instr, "instruction spans bundle boundary");
