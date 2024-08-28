@@ -32,7 +32,15 @@ typedef enum {
     CFI_BUNDLE32,
 } CFIType;
 
+typedef enum {
+    METER_BRANCH,
+    METER_FP,
+    METER_COUNT,
+} MeterType;
+
 typedef struct {
+    bool decl;
+    bool poc;
     BoxType box;
     size_t p2size;
     CFIType bundle;
@@ -44,6 +52,7 @@ typedef struct {
     bool abort;
     uintptr_t addr;
     ErrFn err;
+    VerifyOpts opts;
 } Verifier;
 
 #ifdef __cplusplus
