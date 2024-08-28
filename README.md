@@ -194,7 +194,7 @@ Hello from LFI
 And with GCC:
 
 ```
-$ aarch64_lfi-linux-musl-gcc hello.c -O2 -o hello
+$ aarch64_lfi-linux-musl-gcc hello.c -O2 -o hello -static-pie
 $ lfi-run hello
 Hello from LFI
 ```
