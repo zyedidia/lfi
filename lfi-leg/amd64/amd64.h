@@ -56,6 +56,14 @@ lop(char* op)
 }
 
 static char*
+stripdollar(char* op)
+{
+    if (op[0] == '$')
+        return op + 1;
+    return op;
+}
+
+static char*
 bundle_align_mode()
 {
     switch (args.cfi) {

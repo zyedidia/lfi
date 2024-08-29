@@ -106,3 +106,37 @@ pext %r15, %r11, %r11
 mov %rax, (%r14, %r11)
 .bundle_unlock
 cmovns %r11, %rdx
+------
+addq $8, %rsp
+>>>
+.bundle_align_mode 4
+.bundle_lock
+andq %r15, %rsp
+leaq 8(%rsp, %r14), %rsp
+.bundle_unlock
+------
+subq $8, %rsp
+>>>
+.bundle_align_mode 4
+.bundle_lock
+andq %r15, %rsp
+leaq -8(%rsp, %r14), %rsp
+.bundle_unlock
+------
+addq %rdi, %rsp
+>>>
+.bundle_align_mode 4
+.bundle_lock
+addq %rdi, %rsp
+andq %r15, %rsp
+orq %r14, %rsp
+.bundle_unlock
+------
+leaq 0x10(%rbp), %rsp
+>>>
+.bundle_align_mode 4
+.bundle_lock
+leaq 0x10(%rbp), %rsp
+andq %r15, %rsp
+orq %r14, %rsp
+.bundle_unlock

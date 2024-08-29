@@ -19,6 +19,7 @@ AddrBP = (
     (i:IMM_VAR LP r:XREG RP) {
         $$ = (Result) {
             .val = xasprintf("%s(%s)", i.val, lo(r.val)),
+            .unmod = xasprintf("%s(%s)", i.val, r.val),
         };
         rfree(i); rfree(r);
     }
@@ -26,6 +27,7 @@ AddrBP = (
     | (LP r:XREG RP) {
         $$ = (Result) {
             .val = xasprintf("(%s)", lo(r.val)),
+            .unmod = xasprintf("(%s)", r.val),
         };
         rfree(r);
     }
@@ -33,8 +35,14 @@ AddrBP = (
 
 ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
     mkdirective(".bundle_lock");
-    mkinsn("leal %s, %%esp", a.val);
-    mkinsn("orq %%r14, %%rsp");
+    if (args.p2size == 0) {
+        mkinsn("leaq %s, %%rsp", a.unmod);
+        mkinsn("andq %%r15, %%rsp");
+        mkinsn("orq %%r14, %%rsp");
+    } else {
+        mkinsn("leal %s, %%esp", a.val);
+        mkinsn("orq %%r14, %%rsp");
+    }
     mkdirective(".bundle_unlock");
     rfree(a);
 }
@@ -42,8 +50,22 @@ ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
 ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
     char* op = lop(m.val);
     mkdirective(".bundle_lock");
-    mkinsn("%s %s, %%esp", op, i.val);
-    mkinsn("orq %%r14, %%rsp");
+    if (args.p2size == 0) {
+        if (strncmp(m.val, "add", 3) == 0) {
+            mkinsn("andq %%r15, %%rsp");
+            mkinsn("leaq %s(%%rsp, %%r14), %%rsp", stripdollar(i.val));
+        } else if (strncmp(m.val, "sub", 3) == 0) {
+            mkinsn("andq %%r15, %%rsp");
+            mkinsn("leaq -%s(%%rsp, %%r14), %%rsp", stripdollar(i.val));
+        } else {
+            mkinsn("%s %s, %%rsp", m.val, i.val);
+            mkinsn("andq %%r15, %%rsp");
+            mkinsn("orq %%r14, %%rsp");
+        }
+    } else {
+        mkinsn("%s %s, %%esp", op, i.val);
+        mkinsn("orq %%r14, %%rsp");
+    }
     mkdirective(".bundle_unlock");
     rfree(m); rfree(i); free(op);
 }
@@ -51,8 +73,14 @@ ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
 ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
     char* op = lop(m.val);
     mkdirective(".bundle_lock");
-    mkinsn("%s %s, %%esp", op, lo(r.val));
-    mkinsn("orq %%r14, %%rsp");
+    if (args.p2size == 0) {
+        mkinsn("%s %s, %%rsp", m.val, r.val);
+        mkinsn("andq %%r15, %%rsp");
+        mkinsn("orq %%r14, %%rsp");
+    } else {
+        mkinsn("%s %s, %%esp", op, lo(r.val));
+        mkinsn("orq %%r14, %%rsp");
+    }
     mkdirective(".bundle_unlock");
     rfree(m); rfree(r); free(op);
 }
