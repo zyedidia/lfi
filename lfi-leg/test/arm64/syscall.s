@@ -1,9 +1,8 @@
 svc #0
 >>>
-str x30, [sp, #-16]!
+mov x22, x30
 ldr x30, [x21]
 blr x30
-ldr x22, [sp], 16
 add x30, x21, w22, uxtw
 ------
 ldr x21, [x0]
