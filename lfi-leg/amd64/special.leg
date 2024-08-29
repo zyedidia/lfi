@@ -37,11 +37,11 @@ ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
     mkdirective(".bundle_lock");
     if (args.p2size == 0) {
         mkinsn("leaq %s, %%rsp", a.unmod);
-        mkinsn("andq %%r15, %%rsp");
-        mkinsn("orq %%r14, %%rsp");
+        mkinsn("pext %%r15, %%rsp, %%rsp");
+        mkinsn("leaq (%%rsp, %%r14), %%rsp");
     } else {
         mkinsn("leal %s, %%esp", a.val);
-        mkinsn("orq %%r14, %%rsp");
+        mkinsn("leaq (%%rsp, %%r14), %%rsp");
     }
     mkdirective(".bundle_unlock");
     rfree(a);

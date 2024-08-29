@@ -137,6 +137,6 @@ leaq 0x10(%rbp), %rsp
 .bundle_align_mode 4
 .bundle_lock
 leaq 0x10(%rbp), %rsp
-andq %r15, %rsp
-orq %r14, %rsp
+pext %r15, %rsp, %rsp
+leaq (%rsp, %r14), %rsp
 .bundle_unlock
