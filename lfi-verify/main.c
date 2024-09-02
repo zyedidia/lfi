@@ -27,8 +27,6 @@ static struct argp_option options[] = {
     { 0 },
 };
 
-static VerifyVFn verify_fn;
-
 static error_t
 parse_opt(int key, char* arg, struct argp_state* state)
 {
@@ -80,7 +78,7 @@ errfn(char* msg, size_t sz)
 }
 
 static bool
-verify(const char* file)
+verify(LFIVerifier* v, const char* file)
 {
     FILE* f = fopen(file, "r+");
     if (!f) {
@@ -121,7 +119,7 @@ verify(const char* file)
                 continue;
             }
 
-            if (!verify_fn(&buf[p->offset], p->filesz, p->vaddr, errfn)) {
+            if (!lfiv_verify(v, &buf[p->offset], p->filesz, p->vaddr)) {
                 printf("verification failed\n");
                 return false;
             }
@@ -164,10 +162,16 @@ main(int argc, char** argv)
     if (args.n == 0)
         args.n = 1;
 
+    LFIVerifier v = (LFIVerifier) {
+        .opts = (LFIvOpts) {
+            .err = errfn,
+        },
+    };
+
     if (strcmp(args.arch, "amd64") == 0)
-        verify_fn = lfiv_verify_verbose_amd64;
+        v.verify = lfiv_verify_amd64;
     else if (strcmp(args.arch, "arm64") == 0)
-        verify_fn = lfiv_verify_verbose_arm64;
+        v.verify = lfiv_verify_arm64;
     else {
         fprintf(stderr, "verifier for %s does not exist\n", args.arch);
         return 1;
@@ -175,7 +179,7 @@ main(int argc, char** argv)
 
     bool failed = false;
     for (size_t i = 0; i < args.ninputs; i++) {
-        if (!verify(args.inputs[i]))
+        if (!verify(&v, args.inputs[i]))
             failed = true;
     }
     if (failed)

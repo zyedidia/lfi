@@ -10,7 +10,7 @@ mmap = subproject('libmmap').get_variable('mmap')
 liblfix = static_library(
   'lfix',
   srcs,
-  dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole()],
+  dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole(), liblfiv_dep],
   install: true,
 )
 

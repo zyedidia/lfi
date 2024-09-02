@@ -4,6 +4,7 @@
 
 #include "align.h"
 #include "lfi.h"
+#include "lfiv.h"
 #include "engine.h"
 #include "proc.h"
 #include "err.h"
@@ -133,9 +134,9 @@ pflags(int prot)
 static int
 mprotectverify(void* base, size_t size, int prot, LFIVerifier* verifier)
 {
-    if ((prot & PROT_EXEC) == 0 || verifier->verify == NULL)
+    if ((prot & PROT_EXEC) == 0 || !verifier)
         return mprotect(base, size, prot);
-    if (!verifier->verify(base, size)) {
+    if (!lfiv_verify(verifier, base, size, (uintptr_t) base)) {
         lfi_errno = LFI_ERR_VERIFY;
         return -1;
     }
@@ -344,7 +345,7 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
         }
 
         // TODO: use preadelfseg instead?
-        if (!mapelfseg(base + start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, &proc->lfi->opts.verifier))
+        if (!mapelfseg(base + start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, proc->lfi->opts.verifier))
             goto err1;
 
         if (base == 0) {
@@ -490,14 +491,14 @@ lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, i
     assert(addr >= proc->base && addr < proc->base + proc->size);
     assert(addr % proc->lfi->opts.pagesize == 0);
     assert(size % proc->lfi->opts.pagesize == 0);
-    return mmapverify((void*) addr, size, prot, flags | MAP_FIXED, fd, offset, &proc->lfi->opts.verifier);
+    return mmapverify((void*) addr, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
 }
 
 int
 lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 {
     assert(addr >= proc->base && addr < proc->base + proc->size);
-    return mprotectverify((void*) addr, size, prot, &proc->lfi->opts.verifier);
+    return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
 }
 
 int

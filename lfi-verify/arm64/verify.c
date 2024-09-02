@@ -7,14 +7,11 @@
 
 #include "lfiv.h"
 #include "disarm64.h"
+#include "verifier.h"
 
 enum {
-    INSN_SIZE = 4,
-
     ERRMAX = 128, // maximum size for error
 };
-
-#define INSN_NOP 0xd503201f
 
 static void
 verrmin(Verifier* v, const char* fmt, ...)
@@ -44,6 +41,18 @@ verr(Verifier* v, struct Da64Inst* inst, const char* msg)
 }
 
 enum {
+    INSN_SIZE = 4,
+};
+
+#define INSN_NOP 0xd503201f
+
+enum {
+    REG_ADDR = 18,
+    REG_BASE = 21,
+    REG_RET  = 30,
+};
+
+enum {
     SYS_tpidr_el0        = 0xde82,
     SYS_fpsr             = 0xda21,
     SYS_fpcr             = 0xda20,
@@ -57,25 +66,25 @@ enum {
 static bool
 cfreg(uint8_t reg)
 {
-    return reg == 18 || reg == 30;
+    return reg == REG_ADDR || reg == REG_RET;
 }
 
 static bool
 basereg(uint8_t reg)
 {
-    return reg == 21;
+    return reg == REG_BASE;
 }
 
 static bool
 retreg(uint8_t reg)
 {
-    return reg == 30;
+    return reg == REG_RET;
 }
 
 static bool
 fixedreg(uint8_t reg)
 {
-    return reg == 21;
+    return reg == REG_BASE;
 }
 
 static bool
@@ -227,6 +236,29 @@ chkmemops(Verifier* v, struct Da64Inst* dinst)
 }
 
 static bool
+okreadpoc(struct Da64Inst* dinst, struct Da64Op* op)
+{
+    bool sf = false;
+    bool sp = false;
+    switch (op->type) {
+    case DA_OP_REGSP:
+        sp = true;
+    case DA_OP_REGGP:
+        sf = op->reggp.sf;
+        break;
+    case DA_OP_REGGPEXT:
+        sf = op->reggpext.sf;
+        break;
+    default:
+        return true;
+    }
+
+    if ((fixedreg(op->reg) || addrreg(op->reg, sp)) && sf)
+        return false;
+    return true;
+}
+
+static bool
 okmod(struct Da64Inst* dinst, struct Da64Op* op)
 {
     if (op->type != DA_OP_REGGP &&
@@ -283,18 +315,16 @@ vchk(Verifier* v, uint32_t insn)
         if (!okmod(&dinst, &dinst.ops[i]))
             verr(v, &dinst, "illegal modification of reserved register");
     }
+    if (v->opts->poc) {
+        for (int i = n; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
+            if (!okreadpoc(&dinst, &dinst.ops[i]))
+                verr(v, &dinst, "illegal read of 64-bit address register");
+        }
+    }
 }
 
 bool
-lfiv_verify_insn_arm64(uint32_t insn)
-{
-    Verifier v = {0};
-    vchk(&v, insn);
-    return !v.failed;
-}
-
-bool
-lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err)
+lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
 {
     if (size % INSN_SIZE != 0)
         return false;
@@ -303,7 +333,8 @@ lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err)
 
     Verifier v = {
         .addr = addr,
-        .err = err,
+        .err = opts->err,
+        .opts = opts,
     };
 
     for (size_t i = 0; i < size / INSN_SIZE; i++) {
@@ -315,10 +346,4 @@ lfiv_verify_verbose_arm64(void* code, size_t size, uintptr_t addr, ErrFn err)
     }
 
     return !v.failed;
-}
-
-bool
-lfiv_verify_arm64(void* code, size_t size)
-{
-    return lfiv_verify_verbose_arm64(code, size, 0, NULL);
 }

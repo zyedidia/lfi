@@ -3,6 +3,7 @@
 
 #include "lfiv.h"
 #include "fadec.h"
+#include "verifier.h"
 
 enum {
     ERRMAX = 128,
@@ -114,13 +115,14 @@ vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
 }
 
 bool
-lfiv_verify_verbose_amd64(void* code, size_t size, uintptr_t addr, ErrFn err)
+lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
 {
     uint8_t* insns = (uint8_t*) code;
 
     Verifier v = {
         .addr = addr,
-        .err = err,
+        .err = opts->err,
+        .opts = opts,
     };
 
     size_t bundlesize = 16;
@@ -136,10 +138,4 @@ lfiv_verify_verbose_amd64(void* code, size_t size, uintptr_t addr, ErrFn err)
     }
 
     return !v.failed;
-}
-
-bool
-lfiv_verify_amd64(void* code, size_t size)
-{
-    return lfiv_verify_verbose_amd64(code, size, 0, NULL);
 }

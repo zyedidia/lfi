@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "lfiv.h"
+
 enum {
     LFI_ERR_OK            = 0,
     LFI_ERR_NOMEM         = 1,
@@ -20,10 +22,6 @@ enum {
     LFI_ERR_INVALID_GAS   = 11,
     LFI_ERR_NOSYSHANDLER  = 12,
 };
-
-typedef struct {
-    bool (*verify)(void* code, size_t size);
-} LFIVerifier;
 
 typedef uint64_t (*SysHandler)(void* ctxp, uint64_t sysno, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
@@ -44,7 +42,7 @@ typedef struct {
     // Set the initial gas. Arm64 only.
     uint64_t gas;
     // User-provided verifier.
-    LFIVerifier verifier;
+    LFIVerifier* verifier;
     // User-provided runtime call handler.
     SysHandler syshandler;
 } LFIOptions;

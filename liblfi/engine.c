@@ -29,7 +29,7 @@ procsize(LFIEngine* engine)
 LFIEngine*
 lfi_new(LFIOptions options)
 {
-    if (!options.verifier.verify && !options.noverify) {
+    if ((!options.verifier || !options.verifier->verify) && !options.noverify) {
         lfi_errno = LFI_ERR_NOVERIFIER;
         return NULL;
     }
@@ -45,7 +45,9 @@ lfi_new(LFIOptions options)
     if (options.p2size == 0)
         options.p2size = 32;
     if (options.noverify)
-        options.verifier.verify = NULL;
+        options.verifier = NULL;
+
+    assert(!options.verifier || options.verifier->verify);
 
     *engine = (LFIEngine) {
         .opts = options,

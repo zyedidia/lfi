@@ -34,7 +34,7 @@ endif
 
 subdir(archdir[cpu])
 
-liblfi = static_library('lfi', srcs, c_args: c_args, install: true)
+liblfi = static_library('lfi', srcs, c_args: c_args, install: true, dependencies: [liblfiv_dep])
 
 install_headers('lfi.h')
 

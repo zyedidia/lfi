@@ -59,3 +59,5 @@ ldadd x20, x21, [x18]
 caspl x20, x21, x0, x1, [x21]
 ---
 add x21, sp, #0xc20
+---
+ldr x0, [x21, 16]!

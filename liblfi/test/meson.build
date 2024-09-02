@@ -23,6 +23,6 @@ foreach t : tests
   test(t, executable(
     t + '.elf',
     t, testprog_inc,
-    dependencies: [liblfi_dep],
+    dependencies: [liblfi_dep, liblfiv_dep],
   ), suite: ['liblfi'])
 endforeach
