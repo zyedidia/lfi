@@ -20,6 +20,9 @@ var gccTemplate string
 //go:embed clang
 var clangTemplate string
 
+//go:embed clang++
+var clangxxTemplate string
+
 //go:embed nolib-clang
 var nolibClangTemplate string
 
@@ -95,7 +98,11 @@ func main() {
 	case "gcc":
 		data = gccTemplate
 	case "clang":
-		data = clangTemplate
+		if *compiler == "clang++" {
+			data = clangxxTemplate
+		} else {
+			data = clangTemplate
+		}
 	case "nolib-clang":
 		data = nolibClangTemplate
 		legToolchain = "clang"

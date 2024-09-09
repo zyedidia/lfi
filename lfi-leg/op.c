@@ -97,6 +97,11 @@ tbzextra()
 {
     if (args.meter == METER_NONE)
         return "";
+    else if (args.meter == METER_TIMER)
+        return ".bundle_unlock\n"
+            ".bundle_lock\n"
+            "nop\n";
+
     return ".bundle_unlock\n"
         ".bundle_lock\n"
         "nop\nnop\nnop\n";

@@ -62,3 +62,13 @@ adrp x18, underflow
 add x3, x3, #0x38
 add x18, x21, w1, uxtw
 stp x2, x2, [x18, #32]
+------
+stur x0, [x1, #16]
+ldp x0, x1, [sp]
+stur x0, [x1, #16]
+>>>
+add x18, x21, w1, uxtw
+stur x0, [x18, #16]
+ldp x0, x1, [sp]
+add x18, x21, w1, uxtw
+stur x0, [x18, #16]

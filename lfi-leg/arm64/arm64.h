@@ -19,11 +19,11 @@ num(const char* reg)
 static bool
 isfixed(const char* reg)
 {
-    if (strncmp(reg, "x18", 3) == 0)
+    if (strcmp(reg, "x18") == 0)
         return true;
-    if (strncmp(reg, "x21", 3) == 0)
+    if (strcmp(reg, "x21") == 0)
         return true;
-    if (args.sysexternal && strncmp(reg, "x25", 3) == 0)
+    if (args.sysexternal && strcmp(reg, "x25") == 0)
         return true;
     return false;
 }

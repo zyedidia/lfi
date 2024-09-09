@@ -62,10 +62,9 @@ if conf_data.get('HAVE_MEMPCPY') == 0
 endif
 
 if host_machine.system() != 'windows'
-	argp_library = library('argp',
+	argp_library = static_library('argp',
 		argp_source,
 		include_directories : '.',
-		version : meson.project_version(),
         c_args: ['-w'],
 	)
 else

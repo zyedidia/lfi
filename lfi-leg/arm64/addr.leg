@@ -95,10 +95,8 @@ AddrNoOpt = (
       (LB (!'x18' r:XREG) COMMA i:IMM RB EXCLAM) {
         $$ = (Result) {
             .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
-            .val = xasprintf("[x18, %s]!", i.val),
-            .post = args.poc ?
-                xasprintf("mov w%s, w18", num(r.val)) :
-                xasprintf("mov %s, x18", r.val),
+            .val = xasprintf("[x18, %s]", i.val),
+            .post = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
         };
         rfree(r); rfree(i);
     }
@@ -123,10 +121,8 @@ AddrNoOpt = (
     | (LB (!'x18' r:XREG) RB COMMA i:IMM) {
         $$ = (Result) {
             .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
-            .val = xasprintf("[x18], %s", i.val),
-            .post = args.poc ?
-                xasprintf("mov w%s, w18", num(r.val)) :
-                xasprintf("mov %s, x18", r.val),
+            .val = xasprintf("[x18]"),
+            .post = xasprintf("add %s, %s, %s", r.val, r.val, i.val),
         };
         rfree(r); rfree(i);
     }

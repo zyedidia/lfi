@@ -45,14 +45,14 @@ stur x8, [x18, #-8]
 stp xzr, xzr, [x8], #32
 >>>
 add x18, x21, w8, uxtw
-stp xzr, xzr, [x18], #32
-mov x8, x18
+stp xzr, xzr, [x18]
+add x8, x8, #32
 ------
 stp xzr, xzr, [x8, #32]!
 >>>
 add x18, x21, w8, uxtw
-stp xzr, xzr, [x18, #32]!
-mov x8, x18
+stp xzr, xzr, [x18, #32]
+add x8, x8, #32
 ------
 ldp x29, x30, [sp], 16
 >>>

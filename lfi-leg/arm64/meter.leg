@@ -66,7 +66,7 @@ IndBranch = b:INDBRANCH SEP r:XREG {
     rfree(b); rfree(r);
 }
 
-Ret = 'ret' !. {
+Ret = 'ret' - 'x30'? - !. {
     mkinsn("bic x24, x30, %s", bundle_bicmask());
     meter(true, false);
     mkinsn("ret x24");
@@ -98,7 +98,7 @@ CbzBranch = b:CBZ r:REG COMMA name:NAME {
 
 TBZ = < ('tbz' | 'tbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 CBZ = < ('cbz' | 'cbnz') > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
-NAME = < ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+NAME = < [0-9\\]* ID > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Branch = b:DIRBRANCH SEP name:NAME {
     meter(false, false);

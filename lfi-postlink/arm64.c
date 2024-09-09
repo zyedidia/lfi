@@ -193,8 +193,8 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         int64_t imm = idx - cur_leader + 1;
 
         if (args.meter == METER_TIMER) {
-            if (!issub(insns[idx - 1]) || !isnop(insns[idx - 1])) {
-                fprintf(stderr, "%lx: error: expected gas subtraction relocation\n", addr + idx * 4);
+            if (!issub(insns[idx - 1]) && !isnop(insns[idx - 1])) {
+                fprintf(stderr, "%lx: error: expected gas subtraction relocation, got %x\n", addr + idx * 4, insns[idx - 1]);
             } else {
                 insns[idx - 1] = subx23(imm);
             }

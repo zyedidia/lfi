@@ -47,12 +47,6 @@ br x24
 .bundle_align_mode 4
 .p2align 4
 ------
-.type foo, %function
->>>
-.bundle_align_mode 4
-.type foo, %function
-.p2align 4
-------
 ret
 >>>
 .bundle_align_mode 4

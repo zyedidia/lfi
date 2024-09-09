@@ -34,7 +34,7 @@ BundleDirective = < '.bundle_align' - > {
 
 FnDirective = < '.type' - ([^,])* ',' - [@%] 'function' - > {
     mkdirective(xasprintf("%s", yytext));
-    mkdirective(bundle_align());
+    // mkdirective(bundle_align());
 }
 
 Directive = < '.' (!EOL .)* > - {

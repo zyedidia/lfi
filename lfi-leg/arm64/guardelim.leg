@@ -13,7 +13,7 @@ static char* guardsrc;
 static bool redundant;
 %}
 
-Top = Guard | Branch | Mod
+Top = Guard | Branch | ModMulti | Mod
 
 Guard = 'add' SEP 'x18' - COMMA 'x21' - COMMA w:WREG COMMA 'uxtw' - {
     if (guardsrc && strcmp(num(guardsrc), num(w.val)) == 0) {
@@ -24,10 +24,22 @@ Guard = 'add' SEP 'x18' - COMMA 'x21' - COMMA w:WREG COMMA 'uxtw' - {
     }
 }
 
+# Assumes maximum number of registers that an instruction can modify is 2. This
+# could also be smarter by only covering the particular instructions that
+# modify their first two operands, rather than conservatively assuming all
+# instructions do.
+ModMulti = (!NoMod ID) SEP r1:REG COMMA r2:REG rest:REMAINDER {
+    if (guardsrc && (strcmp(num(guardsrc), num(r1.val)) == 0 || strcmp(num(guardsrc), num(r2.val)) == 0 || strcmp(num(r1.val), "18") == 0)) {
+        guardsrc = NULL;
+    }
+    rfree(r1); rfree(r2); rfree(rest);
+}
+
 Mod = (!NoMod ID) SEP r:REG rest:REMAINDER {
     if (guardsrc && (strcmp(num(guardsrc), num(r.val)) == 0 || strcmp(num(r.val), "18") == 0)) {
         guardsrc = NULL;
     }
+    rfree(r); rfree(rest);
 }
 
 NoMod = (

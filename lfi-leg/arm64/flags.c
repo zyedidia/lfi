@@ -8,7 +8,7 @@ flagalign(enum flags compiler, int amt)
 {
     switch (compiler) {
     case FLAGS_CLANG:
-        return xasprintf("-mllvm -align-labels=%d", amt);
+        return xasprintf("-mllvm -align-labels=%d -falign-functions=%d", amt, amt);
     case FLAGS_GCC:
         return xasprintf("-falign-labels=%d -falign-functions=%d", amt, amt);
     default:
@@ -58,7 +58,6 @@ arm64_getflags(enum flags compiler)
     default:
         break;
     }
-    if (args.sysexternal)
-        flags = xasprintf("%s -ffixed-x25", flags);
+    flags = xasprintf("%s -ffixed-x25", flags);
     return flags;
 }
