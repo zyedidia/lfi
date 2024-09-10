@@ -58,6 +58,7 @@ arm64_getflags(enum flags compiler)
     default:
         break;
     }
-    flags = xasprintf("%s -ffixed-x25", flags);
+    if (args.sysexternal)
+        flags = xasprintf("%s -ffixed-x25", flags);
     return flags;
 }
