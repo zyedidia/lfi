@@ -11,11 +11,11 @@
 -	    = (h)->temp + (char *) (h)->chunk)				\
 -   : ((obstack_free) ((h), (h)->temp + (char *) (h)->chunk), 0)))
 +# define obstack_free(h, obj) \
-+    ((h)->temp = (void *) (obj), \
-+     (((h)->temp > (void *) (h)->chunk \
-+       && (h)->temp < (void *) (h)->chunk_limit) \
++    ((h)->temp = (long) (obj), \
++     (((h)->temp > (long) (h)->chunk \
++       && (h)->temp < (long) (h)->chunk_limit) \
 +       ? (void) ((h)->next_free = (h)->object_base = (char *) (h)->temp) \
-+       : _obstack_free ((h), (h)->temp)))
++       : _obstack_free ((h), (void *) (h)->temp)))
  #else
  # define obstack_free(h,obj)						\
  ( (h)->temp = (char *) (obj) - (char *) (h)->chunk,			\
