@@ -21,11 +21,31 @@ enum {
     SYS_fstat           = 5,
 };
 
+enum {
+    ARCH_SET_FS = 0x1002,
+};
+
+static int
+sysarchprctl(LFIXProc* p, int code, uintptr_t addr)
+{
+    switch (code) {
+    case ARCH_SET_FS:
+        addr = procaddr(p, addr);
+        lfi_proc_tpset(p->l_proc, addr);
+        return 0;
+    default:
+        return -EINVAL;
+    }
+}
+SYSWRAP_2(sysarchprctl, int, uintptr_t)
+
 SyscallFn syscalls[] = {
-    [SYS_read]   = sysread_,
-    [SYS_write]  = syswrite_,
-    [SYS_readv]  = sysreadv_,
-    [SYS_writev] = syswritev_,
+    [SYS_read]            = sysread_,
+    [SYS_write]           = syswrite_,
+    [SYS_readv]           = sysreadv_,
+    [SYS_writev]          = syswritev_,
+    [SYS_archprctl]       = sysarchprctl_,
+    [SYS_set_tid_address] = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max);

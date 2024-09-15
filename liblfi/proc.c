@@ -344,8 +344,8 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
             goto err1;
         }
 
-        // TODO: use preadelfseg instead?
-        if (!mapelfseg(base + start, offset, end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, proc->lfi->opts.verifier))
+        // TODO: preadelfseg vs mapelfseg?
+        if (!preadelfseg(base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, proc->lfi->opts.verifier))
             goto err1;
 
         if (base == 0) {
@@ -528,4 +528,10 @@ size_t
 lfi_proc_size(LFIProc* p)
 {
     return p->size;
+}
+
+void
+lfi_proc_tpset(LFIProc* p, uintptr_t tp)
+{
+    p->tp = (void*) tp;
 }

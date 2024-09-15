@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -19,6 +20,7 @@ lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
 
 nosys:
     fprintf(stderr, "unknown syscall: %ld\n", sysno);
+    assert(!"ENOSYS");
     return -ENOSYS;
 }
 

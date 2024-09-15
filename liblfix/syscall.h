@@ -122,3 +122,10 @@ syswritev(LFIXProc* p, int fd, uintptr_t iovp, ssize_t iovcnt)
     return total;
 }
 SYSWRAP_3(syswritev, int, uintptr_t, ssize_t)
+
+static int
+sysignore(LFIXProc* p)
+{
+    return 0;
+}
+SYSWRAP_0(sysignore)

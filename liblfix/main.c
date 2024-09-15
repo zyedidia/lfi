@@ -32,5 +32,8 @@ main(int argc, char** argv)
 
     fclose(f);
 
+    uint64_t r = lfi_proc_start(p->l_proc);
+    printf("returned: %ld\n", r);
+
     return 0;
 }

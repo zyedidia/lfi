@@ -115,6 +115,9 @@ uintptr_t lfi_proc_base(LFIProc* proc);
 // lfi_proc_size returns the size of this process's sandbox.
 size_t lfi_proc_size(LFIProc* proc);
 
+// lfi_proc_tpset sets this process's thread pointer.
+void lfi_proc_tpset(LFIProc* proc, uintptr_t tp);
+
 // lfi_proc_start starts running a process.
 uint64_t lfi_proc_start(LFIProc* proc);
 

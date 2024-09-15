@@ -17,6 +17,8 @@ liblfix = static_library(
   install: true,
 )
 
+install_headers('lfix.h')
+
 liblfix_dep = declare_dependency(link_with: liblfix, include_directories: include_directories('.'))
 
 lfi_run_srcs = files(

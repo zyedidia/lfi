@@ -17,13 +17,11 @@
 	mov %r8,  PROC_REGS+8*8(%rcx)
 	mov %r9,  PROC_REGS+8*9(%rcx)
 	mov %r10, PROC_REGS+8*10(%rcx)
-    rdfsbase %r11
-    mov %r11, PROC_REGS+8*16(%rcx) // fs
     // TODO: save SIMD registers?
 .endm
 
 .macro RESTORE_INVOKE_REGS
-	mov PROC_REGS+8*17(%rdi), %r11
+	mov PROC_REGS+8*18(%rdi), %r11
 	wrgsbase %r11
 	mov PROC_REGS+8*0(%rdi), %rsp
 	mov PROC_REGS+8*1(%rdi), %rax
@@ -73,7 +71,6 @@ lfi_asm_invoke:
 	pushq %rbp
 
 	movq %rsi, %r12
-	subq $8, %rsp
 	movq %rsp, (%rdx)
 	RESTORE_INVOKE_REGS
 	jmpq *%r12
@@ -90,7 +87,6 @@ lfi_proc_entry:
 	pushq %r12
 	pushq %rbx
 	pushq %rbp
-	sub $8, %rsp
 	// save stack to kstackp
 	mov %rsp, (%rsi)
 	jmp lfi_restore_regs
@@ -140,7 +136,6 @@ lfi_restore_partial_regs:
 	mov  PROC_REGS+8*8(%rdi), %r8
 	mov  PROC_REGS+8*9(%rdi), %r9
 	mov  PROC_REGS+8*10(%rdi), %r10
-	mov $0, %r11 // clobbered
     mov  PROC_REGS+8*7(%rdi), %rdi
 	jmpq *%r11
 	int3
@@ -148,7 +143,7 @@ lfi_restore_partial_regs:
 .p2align 4
 .globl lfi_restore_regs
 lfi_restore_regs:
-    mov 8*18(%rdi), %r11
+    mov PROC_REGS+8*18(%rdi), %r11
     wrgsbase %r11
     mov PROC_REGS+8*0(%rdi), %rsp
     mov PROC_REGS+8*1(%rdi), %rax
