@@ -6,11 +6,7 @@
 
 #include "lfix.h"
 #include "elf.h"
-
-enum {
-    MB = 1024 * 1024,
-    BRKMAXSIZE = 512ULL * MB,
-};
+#include "proc.h"
 
 static bool procsetup(LFIXProc* p, int progfd, int interpfd, int argc, const char** argv);
 static bool procfile(LFIXProc* p, int fd, int argc, const char** argv);

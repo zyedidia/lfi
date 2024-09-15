@@ -1,5 +1,8 @@
-#include "sys.h"
+// For mremap
+#define _GNU_SOURCE
+
 #include "syscall.h"
+#include "sys.h"
 
 enum {
     SYS_ioctl           = 16,
@@ -19,6 +22,8 @@ enum {
     SYS_open            = 2,
     SYS_close           = 3,
     SYS_fstat           = 5,
+    SYS_exit_group      = 231,
+    SYS_exit            = 60,
 };
 
 enum {
@@ -37,7 +42,7 @@ sysarchprctl(LFIXProc* p, int code, uintptr_t addr)
         return -EINVAL;
     }
 }
-SYSWRAP_2(sysarchprctl, int, uintptr_t)
+SYSWRAP_2(sysarchprctl, int, uintptr_t);
 
 SyscallFn syscalls[] = {
     [SYS_read]            = sysread_,
@@ -46,6 +51,10 @@ SyscallFn syscalls[] = {
     [SYS_writev]          = syswritev_,
     [SYS_archprctl]       = sysarchprctl_,
     [SYS_set_tid_address] = sysignore_,
+    [SYS_brk]             = sysbrk_,
+    [SYS_ioctl]           = sysignore_,
+    [SYS_exit_group]      = sysexit_,
+    [SYS_exit]            = sysexit_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max);

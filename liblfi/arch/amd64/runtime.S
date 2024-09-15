@@ -71,6 +71,7 @@ lfi_asm_invoke:
 	pushq %rbp
 
 	movq %rsi, %r12
+	subq $16, %rsp
 	movq %rsp, (%rdx)
 	RESTORE_INVOKE_REGS
 	jmpq *%r12
@@ -87,6 +88,7 @@ lfi_proc_entry:
 	pushq %r12
 	pushq %rbx
 	pushq %rbp
+	subq $16, %rsp
 	// save stack to kstackp
 	mov %rsp, (%rsi)
 	jmp lfi_restore_regs
@@ -96,9 +98,9 @@ lfi_proc_entry:
 .p2align 4
 .globl lfi_asm_proc_exit
 lfi_asm_proc_exit:
-	mov %rdi, %rsp
-	mov %rsi, %rax
-	add $8, %rsp
+	movq %rdi, %rsp
+	movq %rsi, %rax
+	addq $16, %rsp
 	popq %rbp
 	popq %rbx
 	popq %r12
