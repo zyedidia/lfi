@@ -517,3 +517,15 @@ lfi_proc_free(LFIProc* p)
     procclear(p);
     free(p);
 }
+
+uintptr_t
+lfi_proc_base(LFIProc* p)
+{
+    return p->base;
+}
+
+size_t
+lfi_proc_size(LFIProc* p)
+{
+    return p->size;
+}

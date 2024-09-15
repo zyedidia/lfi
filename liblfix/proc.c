@@ -1,9 +1,19 @@
+#include <assert.h>
+#include <errno.h>
+#include <unistd.h>
+
+#include <sys/mman.h>
+
 #include "lfix.h"
 #include "elf.h"
-#include "proc.h"
 
-static bool procsetup(LFIXProc* p, uint8_t* buf, size_t bufsize, int argc, const char** argv);
-static bool procfile(LFIXProc* p, int argc, const char** argv);
+enum {
+    MB = 1024 * 1024,
+    BRKMAXSIZE = 512ULL * MB,
+};
+
+static bool procsetup(LFIXProc* p, int progfd, int interpfd, int argc, const char** argv);
+static bool procfile(LFIXProc* p, int fd, int argc, const char** argv);
 static void procfree(LFIXProc*);
 
 uintptr_t
@@ -29,20 +39,21 @@ procnewempty()
 }
 
 static LFIXProc*
-procnewfile(LFIXEngine* lfix, int argc, const char** argv)
+procnewfile(LFIXEngine* lfix, int fd, int argc, const char** argv)
 {
     LFIXProc* p = procnewempty();
     if (!p)
         return NULL;
     p->lfix = lfix;
-    int err = lfi_add_proc(lfix->lfimgr, &p->proc, p);
+    int err = lfi_addproc(lfix->l_engine, &p->l_proc, p);
     if (err < 0)
         goto err;
-    p->base = lfi_proc_base(p->proc);
+    p->base = lfi_proc_base(p->l_proc);
+    p->size = lfi_proc_size(p->l_proc);
 
-    if (!procfile(p, argc, argv))
+    if (!procfile(p, fd, argc, argv))
         return NULL;
-    fdinit(&p->fdtable);
+    lfix_fdinit(&p->fdtable);
     return p;
 err:
     procfree(p);
@@ -50,19 +61,16 @@ err:
 }
 
 static bool
-procfile(LFIXProc* p, int argc, const char** argv)
+procfile(LFIXProc* p, int fd, int argc, const char** argv)
 {
-    uint8_t* buf = libsobox_stub_stub;
-    size_t bufsize = libsobox_stub_stub_len;
-
-    if (!procsetup(p, buf, bufsize, argc, argv))
+    if (!procsetup(p, fd, -1, argc, argv))
         return false;
 
     return true;
 }
 
 static bool
-stacksetup(LFIXProc* p, int argc, const char** argv, struct lfi_proc_info* info, uintptr_t* newsp)
+stacksetup(LFIXProc* p, int argc, const char** argv, LFIProcInfo* info, uintptr_t* newsp)
 {
     // TODO: do we actually want to support argc/argv? Technically not
     // necessary for procraries since they are not used by the stub.
@@ -109,27 +117,11 @@ procmapsetup(LFIXProc* p, uintptr_t mapstart, uintptr_t mapend)
 }
 
 static bool
-procsetup(LFIXProc* p, uint8_t* buf, size_t bufsize, int argc, const char** argv)
+procsetup(LFIXProc* p, int progfd, int interpfd, int argc, const char** argv)
 {
-    struct lfi_proc_info info;
-
-    int r;
-    char* ldfile = elfinterp(buf);
-    if (ldfile) {
-        // TODO: fix this
-        ldfile = DYNLINKER;
-        size_t ldsize;
-        assert(p->lfix->readfile);
-        uint8_t* ld = p->lfix->readfile(ldfile, &ldsize);
-        if (!ld)
-            return false;
-        r = lfi_proc_exec_dyn(p->proc, (uint8_t*) buf, bufsize, (uint8_t*) ld, ldsize, &info);
-        free(ld);
-    } else {
-        return false;
-    }
-
-    if (r < 0)
+    LFIProcInfo info = {0};
+    bool b = lfi_proc_loadelf(p->l_proc, progfd, interpfd, &info);
+    if (!b)
         return false;
 
     uintptr_t sp;
@@ -137,10 +129,10 @@ procsetup(LFIXProc* p, uint8_t* buf, size_t bufsize, int argc, const char** argv
         return false;
 
     uintptr_t entry = info.elfentry;
-    if (ldfile)
+    if (interpfd >= 0)
         entry = info.ldentry;
 
-    lfi_proc_init_regs(p->proc, entry, sp);
+    lfi_proc_init(p->l_proc, entry, sp);
 
     p->brkbase = info.lastva;
     p->brksize = 0;
@@ -155,7 +147,7 @@ static int
 procmap(LFIXProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
 {
     if (fd >= 0) {
-        FDFile* f = fdget(&p->fdtable, fd);
+        FDFile* f = lfix_fdget(&p->fdtable, fd);
         if (!f)
             return -EBADF;
         if (!f->mapfd)
@@ -216,5 +208,11 @@ static void
 procfree(LFIXProc* proc)
 {
     (void) proc;
-    // TODO
+    // TODO: free l_proc and MMAddrSpace
+}
+
+LFIXProc*
+lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, const char** argv)
+{
+    return procnewfile(lfix, fd, argc, argv);
 }

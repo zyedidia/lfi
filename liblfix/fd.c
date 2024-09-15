@@ -33,7 +33,7 @@ lfix_fdget(FDTable* t, int fd)
 }
 
 void
-lfix_fdrelease(FDFile* f, LFIXProc* p)
+lfix_fdrelease(FDFile* f, struct LFIXProc* p)
 {
     f->refs--;
     if (f->refs == 0) {
@@ -44,7 +44,7 @@ lfix_fdrelease(FDFile* f, LFIXProc* p)
 }
 
 bool
-lfix_fdremove(FDTable* t, int fd, LFIXProc* p)
+lfix_fdremove(FDTable* t, int fd, struct LFIXProc* p)
 {
     if (lfix_fdhas(t, fd)) {
         lfix_fdrelease(t->files[fd], p);
@@ -61,7 +61,7 @@ lfix_fdhas(FDTable* t, int fd)
 }
 
 void
-lfix_fdclear(FDTable* t, LFIXProc* p)
+lfix_fdclear(FDTable* t, struct LFIXProc* p)
 {
     for (int fd = 0; fd < NOFILE; fd++) {
         lfix_fdremove(t, fd, p);

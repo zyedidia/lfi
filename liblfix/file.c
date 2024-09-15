@@ -23,35 +23,35 @@ filefd(void* dev)
 }
 
 static ssize_t
-fileread(void* dev, LFIXProc* p, uint8_t* buf, size_t buflen)
+fileread(void* dev, struct LFIXProc* p, uint8_t* buf, size_t buflen)
 {
     (void) p;
     return syserr(read(filefd(dev), buf, buflen));
 }
 
 static ssize_t
-filewrite(void* dev, LFIXProc* p, uint8_t* buf, size_t buflen)
+filewrite(void* dev, struct LFIXProc* p, uint8_t* buf, size_t buflen)
 {
     (void) p;
     return syserr(write(filefd(dev), buf, buflen));
 }
 
 static ssize_t
-filelseek(void* dev, LFIXProc* p, off_t off, int whence)
+filelseek(void* dev, struct LFIXProc* p, off_t off, int whence)
 {
     (void) p;
     return syserr(lseek(filefd(dev), off, whence));
 }
 
 static int
-fileclose(void* dev, LFIXProc* p)
+fileclose(void* dev, struct LFIXProc* p)
 {
     (void) p;
     return syserr(close(filefd(dev)));
 }
 
 static int
-filestat(void* dev, LFIXProc* p, struct stat* statbuf)
+filestat(void* dev, struct LFIXProc* p, struct stat* statbuf)
 {
     (void) p;
     return syserr(fstatat(filefd(dev), "", statbuf, AT_EMPTY_PATH));

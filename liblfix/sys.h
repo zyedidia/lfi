@@ -4,6 +4,17 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "lfix.h"
+
+enum {
+    SYS_max = 300,
+};
+
+typedef uintptr_t (*SyscallFn)(LFIXProc* p, uintptr_t a0, uintptr_t a1,
+        uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5);
+
+extern SyscallFn syscalls[];
+
 static inline size_t
 mb(size_t n)
 {
@@ -23,6 +34,3 @@ syserr(int val)
         return -errno;
     return val;
 }
-
-uint64_t lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
-        uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5);

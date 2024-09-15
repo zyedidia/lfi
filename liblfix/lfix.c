@@ -5,6 +5,23 @@
 #include "lfix.h"
 #include "sys.h"
 
+static uint64_t
+lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
+        uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5)
+{
+    if (sysno >= SYS_max)
+        goto nosys;
+    SyscallFn fn = syscalls[sysno];
+    if (!fn)
+        goto nosys;
+    LFIXProc* p = (LFIXProc*) ctxp;
+    return fn(p, a0, a1, a2, a3, a4, a5);
+
+nosys:
+    fprintf(stderr, "unknown syscall: %ld\n", sysno);
+    return -ENOSYS;
+}
+
 bool
 lfix_init(LFIXEngine* lfix)
 {
@@ -12,7 +29,12 @@ lfix_init(LFIXEngine* lfix)
         .pagesize = getpagesize(),
         .stacksize = mb(2),
         .syshandler = lfix_syscall,
+        .noverify = true,
     };
+
+    if (options.noverify) {
+        fprintf(stderr, "warning: verification disabled\n");
+    }
 
     LFIEngine* lfi = lfi_new(options);
     if (!lfi)
@@ -22,6 +44,8 @@ lfix_init(LFIXEngine* lfix)
         lfi_delete(lfi);
         return false;
     }
+
+    lfix->l_engine = lfi;
 
     return true;
 }

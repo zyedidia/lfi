@@ -109,6 +109,12 @@ void lfi_delete(LFIEngine* lfi);
 // pointer.
 bool lfi_proc_init(LFIProc* proc, uintptr_t entry, uintptr_t sp);
 
+// lfi_proc_base returns the base address of this process.
+uintptr_t lfi_proc_base(LFIProc* proc);
+
+// lfi_proc_size returns the size of this process's sandbox.
+size_t lfi_proc_size(LFIProc* proc);
+
 // lfi_proc_start starts running a process.
 uint64_t lfi_proc_start(LFIProc* proc);
 

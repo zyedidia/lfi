@@ -1,16 +1,19 @@
 srcs = files(
   'lfix.c',
-  'sys.c',
   'file.c',
   'fd.c',
+  'proc.c',
 )
 
 mmap = subproject('libmmap').get_variable('mmap')
+
+subdir('arch/amd64')
 
 liblfix = static_library(
   'lfix',
   srcs,
   dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole(), liblfiv_dep],
+  c_args: c_args_hardened,
   install: true,
 )
 
@@ -23,6 +26,6 @@ lfi_run_srcs = files(
 lfi_run = executable(
   'lfi-run',
   lfi_run_srcs,
-  dependencies: [liblfix_dep],
+  dependencies: [liblfix_dep, mmap, liblfi_dep, liblfiv_dep],
   install: true,
 )

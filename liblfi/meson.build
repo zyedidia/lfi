@@ -1,18 +1,3 @@
-# Enable various hardening flags.
-c_args = [
-  '-fno-strict-aliasing',
-  '-fno-delete-null-pointer-checks',
-  '-fno-strict-overflow',
-  '-Werror=implicit',
-  '-Werror=incompatible-pointer-types',
-  '-Werror=int-conversion',
-]
-
-has_auto_var_init = meson.get_compiler('c').has_argument('-ftrivial-auto-var-init=zero')
-if has_auto_var_init
-  c_args += '-ftrivial-auto-var-init=zero'
-endif
-
 srcs = [
   'engine.c',
   'err.c',
@@ -34,7 +19,7 @@ endif
 
 subdir(archdir[cpu])
 
-liblfi = static_library('lfi', srcs, c_args: c_args, install: true, dependencies: [liblfiv_dep])
+liblfi = static_library('lfi', srcs, c_args: c_args_hardened, install: true, dependencies: [liblfiv_dep])
 
 install_headers('lfi.h')
 
