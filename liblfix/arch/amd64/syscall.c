@@ -57,4 +57,4 @@ SyscallFn syscalls[] = {
     [SYS_exit]            = sysexit_,
 };
 
-_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max);
+_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
