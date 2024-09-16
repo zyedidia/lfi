@@ -199,7 +199,10 @@ mkguards(Result r)
     for (size_t i = 0; i < sizeof(r.premulti) / sizeof(*r.premulti); i++) {
         if (r.premulti[i]) {
             if (r.premulti[i][0] == '.')
-                mkdirective(r.premulti[i]);
+                if (r.premulti[i][1] == 'L')
+                    mklabel(r.premulti[i]);
+                else
+                    mkdirective(r.premulti[i]);
             else
                 mkinsn("%s", r.premulti[i]);
         }

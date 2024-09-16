@@ -14,10 +14,11 @@
 static int count;
 %}
 
-# We are assuming the code is compiled with -mno-tls-direct-seg-refs
-# so that all TLS accesses are written as mov %fs:0, %reg
+# We are assuming the code is compiled with -mno-tls-direct-seg-refs so that
+# all TLS accesses are written as using %fs:0. This pass is an optimization for
+# accesses written in the form mov %fs:0, %reg
 
-Top = ReadTP_rax | ReadTP_any !.
+Top = (ReadTP_rax | ReadTP_any | OpTP_any) !.
 
 ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     char* label = xasprintf(".LFI_TLS%d", count++);
@@ -30,6 +31,20 @@ ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     mkinsn("movq %%rax, %s", r.val);
     mkinsn("popq %%rax");
     rfree(r);
+}
+
+OpTP_any = m:NAME '%fs:' '0x'? '0' - COMMA rest:REMAINDER - {
+    char* label = xasprintf(".LFI_TLS%d", count++);
+    mkinsn("pushq %%rax");
+    mkdirective(".bundle_lock");
+    mkinsn("leaq %s(%%rip), %%r11", label);
+    mkinsn("jmpq *8(%%r14)");
+    mklabel(label);
+    mkdirective(".bundle_unlock");
+    mkinsn("movq %%rax, %%r11");
+    mkinsn("popq %%rax");
+    mkinsn("%s %%r11, %s", m.val, rest.val);
+    rfree(rest); rfree(m);
 }
 
 ReadTP_rax = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA '%rax' - {
