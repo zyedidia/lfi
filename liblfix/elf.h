@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 enum {
     PT_NULL    = 0,
@@ -72,7 +73,50 @@ typedef struct {
     uint64_t a_val;
 } Auxv;
 
+enum {
+    // Maximum size of interp string.
+    INTERP_MAX = 1024,
+    // Maximum phnum.
+    PHNUM_MAX  = 64,
+};
+
+// The return value is dynamically allocated and must be freed by
+// the caller.
 static char*
+elfinterpfd(int fd)
+{
+    FileHeader ehdr;
+    ssize_t n = pread(fd, &ehdr, sizeof(ehdr), 0);
+    if (n != sizeof(ehdr))
+        return NULL;
+
+    if (ehdr.phnum >= PHNUM_MAX)
+        return NULL;
+
+    ProgHeader phdr[ehdr.phnum];
+    n = pread(fd, phdr, sizeof(ProgHeader) * ehdr.phnum, ehdr.phoff);
+    if (n != sizeof(ProgHeader) * ehdr.phnum)
+        return NULL;
+
+    for (int x = 0; x < ehdr.phnum; x++) {
+        if (phdr[x].type == PT_INTERP) {
+            if (phdr[x].filesz >= INTERP_MAX)
+                return NULL;
+            char* interp = malloc(phdr[x].filesz);
+            if (!interp)
+                return NULL;
+            ssize_t n = pread(fd, interp, phdr[x].filesz, phdr[x].offset);
+            if (n != (ssize_t)phdr[x].filesz) {
+                free(interp);
+                return NULL;
+            }
+            return interp;
+        }
+    }
+    return NULL;
+}
+
+static inline char*
 elfinterp(uint8_t* buf)
 {
     FileHeader* hdr = (FileHeader*) buf;
@@ -80,6 +124,7 @@ elfinterp(uint8_t* buf)
 
     for (int x = 0; x < hdr->phnum; x++) {
         if (phdr[x].type == PT_INTERP) {
+            // TODO: bounds check
             return (char*) buf + phdr[x].offset;
         }
     }

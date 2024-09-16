@@ -57,6 +57,12 @@ SyscallFn syscalls[] = {
     [SYS_ioctl]           = sysignore_,
     [SYS_exit_group]      = sysexit_,
     [SYS_exit]            = sysexit_,
+    [SYS_openat]          = sysopenat_,
+    [SYS_close]           = sysclose_,
+    [SYS_newfstatat]      = sysfstatat_,
+    [SYS_mmap]            = sysmmap_,
+    [SYS_munmap]          = sysmunmap_,
+    [SYS_mprotect]        = sysmprotect_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

@@ -15,8 +15,12 @@ lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
     SyscallFn fn = syscalls[sysno];
     if (!fn)
         goto nosys;
+
     LFIXProc* p = (LFIXProc*) ctxp;
-    return fn(p, a0, a1, a2, a3, a4, a5);
+    uintptr_t ret = fn(p, a0, a1, a2, a3, a4, a5);
+
+    /* printf("syscall: %ld = %lx\n", sysno, ret); */
+    return ret;
 
 nosys:
     fprintf(stderr, "unknown syscall: %ld\n", sysno);

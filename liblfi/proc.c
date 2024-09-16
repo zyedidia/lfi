@@ -344,6 +344,8 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
             goto err1;
         }
 
+        /* printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags)); */
+
         // TODO: preadelfseg vs mapelfseg?
         if (!preadelfseg(base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, proc->lfi->opts.verifier))
             goto err1;

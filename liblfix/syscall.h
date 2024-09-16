@@ -4,12 +4,15 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdalign.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/mman.h>
 
 #include "sys.h"
 #include "lfix.h"
 #include "proc.h"
 #include "fd.h"
+#include "file.h"
 
 #include "syswrap.h"
 
@@ -44,6 +47,23 @@ procbuf(LFIXProc* p, uintptr_t buf, size_t size)
     if (size >= p->size || buf + size >= p->base + p->size)
         return NULL;
     return (uint8_t*) buf;
+}
+
+enum {
+    PATH_MAX = 4096,
+};
+
+static const char*
+procpath(LFIXProc* p, uintptr_t path)
+{
+    path = procaddr(p, path);
+    const char* str = (const char*) path;
+    size_t len = strnlen(str, PATH_MAX);
+    if (path + len >= p->base + p->size)
+        return NULL;
+    if (str[len] != 0)
+        return NULL;
+    return str;
 }
 
 static int
@@ -181,3 +201,135 @@ sysexit(LFIXProc* p, int code)
     assert(!"unreachable");
 }
 SYSWRAP_1(sysexit, int);
+
+static int
+sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    FDFile* f = lfix_filenew(AT_FDCWD, path, flags, mode);
+    if (!f)
+        return -ENOENT;
+    int fd = lfix_fdalloc(&p->fdtable);
+    if (fd < 0) {
+        lfix_fdrelease(f, p);
+        return -EMFILE;
+    }
+    lfix_fdassign(&p->fdtable, fd, f);
+    return fd;
+}
+SYSWRAP_4(sysopenat, int, uintptr_t, int, int);
+
+static int
+sysopen(LFIXProc* p, uintptr_t pathp, int flags, int mode)
+{
+    return sysopenat(p, AT_FDCWD, pathp, flags, mode);
+}
+SYSWRAP_3(sysopen, uintptr_t, int, int);
+
+static uintptr_t
+sysclose(LFIXProc* p, int fd)
+{
+    bool ok = lfix_fdremove(&p->fdtable, fd, p);
+    if (!ok)
+        return -EBADF;
+    return 0;
+}
+SYSWRAP_1(sysclose, int);
+
+static int
+sysfstatat(LFIXProc* p, int dirfd, uintptr_t pathp, uintptr_t statbuf, int flags)
+{
+    uint8_t* statb = procbufalign(p, statbuf, sizeof(struct stat), alignof(struct stat));
+    if (!statb)
+        return -EFAULT;
+    struct stat* stat = (struct stat*) statb;
+    if ((flags & AT_EMPTY_PATH) == 0) {
+        const char* path = procpath(p, pathp);
+        if (!path)
+            return -EFAULT;
+        if (dirfd != AT_FDCWD)
+            return -EBADF;
+        return syserr(fstatat(AT_FDCWD, path, stat, flags));
+    }
+    FDFile* f = lfix_fdget(&p->fdtable, dirfd);
+    if (!f)
+        return -EBADF;
+    if (!f->stat)
+        return -EACCES;
+    return f->stat(f->dev, p, stat);
+}
+SYSWRAP_4(sysfstatat, int, uintptr_t, uintptr_t, int);
+
+static int
+sysfstat(LFIXProc* p, int fd, uintptr_t statbuf)
+{
+    return sysfstatat(p, fd, 0, statbuf, AT_EMPTY_PATH);
+}
+SYSWRAP_2(sysfstat, int, uintptr_t);
+
+static uintptr_t
+sysmmap(LFIXProc* p, uintptr_t addrp, size_t length, int prot, int flags, int fd, off_t offset)
+{
+    if (length == 0)
+        return -EINVAL;
+
+    // The flags listed are the only allowed flags.
+    const int illegal_mask = ~MAP_ANONYMOUS &
+        ~MAP_PRIVATE &
+        ~MAP_HUGETLB &
+        ~MAP_FIXED &
+        ~MAP_NORESERVE &
+        ~MAP_DENYWRITE;
+    if ((flags & illegal_mask) != 0) {
+        return -EPERM;
+    }
+
+    int r;
+    if (addrp == 0) {
+        // Runtime can pick any location.
+        r = procmapany(p, length, prot, flags, fd, offset, &addrp);
+    } else {
+        addrp = truncp(addrp, getpagesize());
+        if (addrp != procaddr(p, addrp))
+            return -EINVAL;
+        addrp = procaddr(p, addrp);
+
+        if (procinbrk(p, addrp, length)) {
+            // TODO: handle brk region properly with mmap
+            return procuseraddr(p, addrp);
+        }
+        r = procmapat(p, addrp, length, prot, flags, fd, offset);
+    }
+    if (r < 0)
+        return r;
+    fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld) = %lx\n", addrp, length, prot, flags, fd, offset, addrp);
+    return procuseraddr(p, addrp);
+}
+SYSWRAP_6(sysmmap, uintptr_t, size_t, int, int, int, off_t);
+
+static int
+sysmunmap(LFIXProc* p, uintptr_t addrp, size_t length)
+{
+    return 0;
+}
+SYSWRAP_2(sysmunmap, uintptr_t, size_t);
+
+static int
+sysmprotect(LFIXProc* p, uintptr_t addrp, size_t length, int prot)
+{
+    addrp = procaddr(p, addrp);
+    // int r = mm_protect(&p->mm, procaddr(p, addrp), length, prot);
+    // printf("mprotect(%lx, %lx): %d\n", addrp, length, r);
+    // if (r < 0)
+    //     return r;
+    // We are relying on Linux mmap behavior being the same as mm_protect with
+    // respect to addrp and length, since we have not truncated/page-aligned
+    // them here.
+    // TODO: if this fails (verification), we should undo the mm_protect
+    return lfi_proc_mprotect(p->l_proc, addrp, length, prot);
+}
+SYSWRAP_3(sysmprotect, uintptr_t, size_t, int);

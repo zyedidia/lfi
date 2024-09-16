@@ -59,10 +59,28 @@ err:
 static bool
 procfile(LFIXProc* p, int fd, int argc, const char** argv)
 {
-    if (!procsetup(p, fd, -1, argc, argv))
-        return false;
+    int interpfd = -1;
+    char* interp = elfinterpfd(fd);
+    if (interp) {
+        FILE* f = fopen(interp, "rb");
+        if (f) {
+            interpfd = fileno(f);
+        } else {
+            fprintf(stderr, "error opening dynamic linker %s: %s\n", interp, strerror(errno));
+            free(interp);
+            return false;
+        }
+        free(interp);
+    }
 
-    return true;
+    bool success = true;
+    if (!procsetup(p, fd, interpfd, argc, argv))
+        success = false;
+
+    if (interpfd >= 0)
+        close(interpfd);
+
+    return success;
 }
 
 static bool
@@ -73,7 +91,7 @@ stacksetup(LFIXProc* p, int argc, const char** argv, LFIProcInfo* info, uintptr_
     argc = 1;
 
     void* stack_top = info->stack + info->stacksize;
-    memcpy(stack_top - 1024, "stub", strlen("stub") + 1);
+    memcpy(stack_top - 1024, "a.out", strlen("a.out") + 1);
     long* p_argc = (long*) (stack_top - 4096);
     *newsp = (uintptr_t) p_argc;
     *p_argc++ = argc;
