@@ -104,6 +104,7 @@ SyscallFn syscalls[] = {
     [SYS_sched_getaffinity] = syssched_getaffinity_,
     [SYS_getpid]            = sysgetpid_,
     [SYS_mremap]            = sysmremap_,
+    [SYS_madvise]           = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

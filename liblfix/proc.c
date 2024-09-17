@@ -83,22 +83,47 @@ procfile(LFIXProc* p, int fd, int argc, const char** argv)
     return success;
 }
 
+enum {
+    ARGC_MAX = 1024,
+    ARGV_MAX = 1024,
+
+    ARG_BLOCK = 4096,
+};
+
 static bool
 stacksetup(LFIXProc* p, int argc, const char** argv, LFIProcInfo* info, uintptr_t* newsp)
 {
-    // TODO: do we actually want to support argc/argv? Technically not
-    // necessary for procraries since they are not used by the stub.
-    argc = 1;
+    char* argv_ptrs[ARGC_MAX];
+    char* stack_top = (char*) info->stack + info->stacksize;
+    char* p_argv = (char*) stack_top - ARG_BLOCK;
 
-    void* stack_top = info->stack + info->stacksize;
-    memcpy(stack_top - 1024, "a.out", strlen("a.out") + 1);
-    long* p_argc = (long*) (stack_top - 4096);
+    // Write argv string values to the stack.
+    for (int i = 0; i < argc; i++) {
+        size_t len = strnlen(argv[i], ARGV_MAX) + 1;
+
+        if (p_argv + len >= stack_top) {
+            return false;
+        }
+
+        memcpy(p_argv, argv[i], len);
+        p_argv[len - 1] = 0;
+        argv_ptrs[i] = p_argv;
+        p_argv += len;
+    }
+
+    // Write argc and argv pointers to the stack.
+    long* p_argc = (long*) (stack_top - 2 * ARG_BLOCK);
     *newsp = (uintptr_t) p_argc;
     *p_argc++ = argc;
     char** p_argvp = (char**) p_argc;
-    p_argvp[0] = stack_top - 1024;
-    p_argvp[1] = NULL;
-
+    for (int i = 0; i < argc; i++) {
+        if ((uintptr_t) p_argvp >= (uintptr_t) stack_top - ARG_BLOCK) {
+            return false;
+        }
+        p_argvp[i] = (char*) procuseraddr(p, (uintptr_t) argv_ptrs[i]);
+    }
+    p_argvp[argc] = NULL;
+    // Empty envp.
     char** p_envp = (char**) &p_argvp[argc + 1];
     *p_envp++ = NULL;
 

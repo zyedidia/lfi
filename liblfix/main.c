@@ -4,7 +4,7 @@
 #include "lfix.h"
 
 int
-main(int argc, char** argv)
+main(int argc, const char** argv)
 {
     LFIXEngine engine;
     bool b = lfix_init(&engine);
@@ -24,7 +24,7 @@ main(int argc, char** argv)
         return 1;
     }
 
-    LFIXProc* p = lfix_proc_newfile(&engine, fileno(f), 0, NULL);
+    LFIXProc* p = lfix_proc_newfile(&engine, fileno(f), argc - 1, &argv[1]);
     if (!p) {
         fprintf(stderr, "error creating process: %s\n", lfi_strerror());
         return 1;
