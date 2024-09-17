@@ -23,6 +23,7 @@ Top = (ReadTP_rax | ReadTP_any | OpTP_any) !.
 ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     char* label = xasprintf(".LFI_TLS%d", count++);
     mkinsn("pushq %%rax");
+    mkinsn("xor %%eax, %%eax");
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
     mkinsn("jmpq *8(%%r14)");
@@ -33,9 +34,10 @@ ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     rfree(r);
 }
 
-OpTP_any = m:NAME '%fs:' '0x'? '0' - COMMA rest:REMAINDER - {
+OpTP_any = m:NAME '%fs:' n:NUM - COMMA rest:REMAINDER - {
     char* label = xasprintf(".LFI_TLS%d", count++);
     mkinsn("pushq %%rax");
+    mkinsn("movq $%s, %%rax", n.val);
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
     mkinsn("jmpq *8(%%r14)");
@@ -44,11 +46,12 @@ OpTP_any = m:NAME '%fs:' '0x'? '0' - COMMA rest:REMAINDER - {
     mkinsn("movq %%rax, %%r11");
     mkinsn("popq %%rax");
     mkinsn("%s %%r11, %s", m.val, rest.val);
-    rfree(rest); rfree(m);
+    rfree(rest); rfree(m); rfree(n)
 }
 
 ReadTP_rax = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA '%rax' - {
     char* label = xasprintf(".LFI_TLS%d", count++);
+    mkinsn("xor %%eax, %%eax");
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
     mkinsn("jmpq *8(%%r14)");

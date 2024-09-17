@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/mman.h>
+#include <sys/random.h>
+#include <sched.h>
 
 #include "sys.h"
 #include "lfix.h"
@@ -336,7 +338,7 @@ sysmprotect(LFIXProc* p, uintptr_t addrp, size_t length, int prot)
 }
 SYSWRAP_3(sysmprotect, uintptr_t, size_t, int);
 
-int
+static int
 sysclock_gettime(LFIXProc* p, clockid_t clockid, uintptr_t tp) {
     if (clockid != CLOCK_REALTIME && clockid != CLOCK_MONOTONIC)
         return -EINVAL;
@@ -347,3 +349,40 @@ sysclock_gettime(LFIXProc* p, clockid_t clockid, uintptr_t tp) {
     return syserr(clock_gettime(clockid, t));
 }
 SYSWRAP_2(sysclock_gettime, clockid_t, uintptr_t);
+
+static ssize_t
+sysgetrandom(LFIXProc* p, uintptr_t bufp, size_t buflen, unsigned int flags)
+{
+    uint8_t* buf = procbuf(p, bufp, buflen);
+    if (!buf)
+        return -EINVAL;
+    return getrandom(buf, buflen, flags);
+}
+SYSWRAP_3(sysgetrandom, uintptr_t, size_t, unsigned int);
+
+// Dummy syscalls below, not necessarily safe
+
+static int
+syssched_getaffinity(LFIXProc* p, pid_t pid, size_t cpusetsize, uintptr_t maskp)
+{
+    cpu_set_t* mask = (cpu_set_t*) procbufalign(p, maskp, sizeof(cpu_set_t), alignof(cpu_set_t));
+    if (!mask)
+        return -EINVAL;
+    return sched_getaffinity(pid, cpusetsize, mask);
+}
+SYSWRAP_3(syssched_getaffinity, pid_t, size_t, uintptr_t);
+
+static pid_t
+sysgetpid(LFIXProc* p)
+{
+    (void) p;
+    return getpid();
+}
+SYSWRAP_0(sysgetpid);
+
+static uintptr_t
+sysmremap(LFIXProc* p)
+{
+    return -1;
+}
+SYSWRAP_0(sysmremap);

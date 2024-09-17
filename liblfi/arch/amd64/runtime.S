@@ -38,12 +38,21 @@
 	mov PROC_REGS+8*7(%rdi), %rdi
 .endm
 
-// Puts the sandbox's thread pointer in %rax.
+// Adds %rax to the sandbox's thread pointer, loads the result, and puts it in
+// %rax.
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
-	mov %fs:lfi_myproc@tpoff, %rax
-	mov 8(%rax), %rax
+	pushq %rdi
+	// %rdi = myproc
+	movq %fs:lfi_myproc@tpoff, %rdi
+	// clamp %rax to a signed 32-bit value
+	movslq %eax, %rax
+	// %rax = %rax + tp
+	addq 8(%rdi), %rax
+	// %rax = (%rax)
+	movq (%rax), %rax
+	popq %rdi
 	jmp *%r11
 	int3
 
