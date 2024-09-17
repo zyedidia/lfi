@@ -55,6 +55,7 @@ enum {
     SYS_madvise         = 28,
     SYS_mprotect        = 10,
     SYS_poll            = 7,
+    SYS_membarrier      = 324,
 };
 
 enum {
@@ -94,6 +95,10 @@ SyscallFn syscalls[] = {
     [SYS_mmap]            = sysmmap_,
     [SYS_munmap]          = sysmunmap_,
     [SYS_mprotect]        = sysmprotect_,
+    [SYS_fcntl]           = sysignore_,
+    [SYS_clock_gettime]   = sysclock_gettime_,
+    [SYS_rt_sigprocmask]  = sysignore_,
+    [SYS_membarrier]      = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

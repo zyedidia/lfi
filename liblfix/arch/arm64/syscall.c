@@ -63,6 +63,8 @@ SyscallFn syscalls[] = {
     [SYS_mmap]            = sysmmap_,
     [SYS_munmap]          = sysmunmap_,
     [SYS_mprotect]        = sysmprotect_,
+    [SYS_fcntl]           = sysignore_,
+    [SYS_clock_gettime]   = sysclock_gettime_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

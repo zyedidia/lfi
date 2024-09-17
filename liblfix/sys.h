@@ -7,7 +7,7 @@
 #include "lfix.h"
 
 enum {
-    SYS_max = 300,
+    SYS_max = 500,
 };
 
 typedef uintptr_t (*SyscallFn)(LFIXProc* p, uintptr_t a0, uintptr_t a1,

@@ -6,6 +6,7 @@
 #include <stdalign.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/mman.h>
 
 #include "sys.h"
@@ -210,6 +211,7 @@ sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
+    // printf("openat %s\n", path);
     FDFile* f = lfix_filenew(AT_FDCWD, path, flags, mode);
     if (!f)
         return -ENOENT;
@@ -306,7 +308,7 @@ sysmmap(LFIXProc* p, uintptr_t addrp, size_t length, int prot, int flags, int fd
     }
     if (r < 0)
         return r;
-    fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld) = %lx\n", addrp, length, prot, flags, fd, offset, addrp);
+    // fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld) = %lx\n", addrp, length, prot, flags, fd, offset, addrp);
     return procuseraddr(p, addrp);
 }
 SYSWRAP_6(sysmmap, uintptr_t, size_t, int, int, int, off_t);
@@ -333,3 +335,15 @@ sysmprotect(LFIXProc* p, uintptr_t addrp, size_t length, int prot)
     return lfi_proc_mprotect(p->l_proc, addrp, length, prot);
 }
 SYSWRAP_3(sysmprotect, uintptr_t, size_t, int);
+
+int
+sysclock_gettime(LFIXProc* p, clockid_t clockid, uintptr_t tp) {
+    if (clockid != CLOCK_REALTIME && clockid != CLOCK_MONOTONIC)
+        return -EINVAL;
+    uint8_t* tb = procbufalign(p, tp, sizeof(struct timespec), alignof(struct timespec));
+    if (!tb)
+        return -EFAULT;
+    struct timespec* t = (struct timespec*) tb;
+    return syserr(clock_gettime(clockid, t));
+}
+SYSWRAP_2(sysclock_gettime, clockid_t, uintptr_t);
