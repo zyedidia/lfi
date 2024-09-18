@@ -23,6 +23,6 @@ typedef struct LFIXProc {
 
 bool lfix_init(LFIXEngine* lfi);
 
-LFIXProc* lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, const char** argv);
+LFIXProc* lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, char** argv);
 
 void lfix_schedule(LFIXEngine* engine);

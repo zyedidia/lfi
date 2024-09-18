@@ -28,6 +28,6 @@ lfi_run_srcs = files(
 lfi_run = executable(
   'lfi-run',
   lfi_run_srcs,
-  dependencies: [liblfix_dep, mmap, liblfi_dep, liblfiv_dep],
+  dependencies: [liblfix_dep, mmap, liblfi_dep, liblfiv_dep, argp],
   install: true,
 )

@@ -8,8 +8,8 @@
 #include "elf.h"
 #include "proc.h"
 
-static bool procsetup(LFIXProc* p, int progfd, int interpfd, int argc, const char** argv);
-static bool procfile(LFIXProc* p, int fd, int argc, const char** argv);
+static bool procsetup(LFIXProc* p, int progfd, int interpfd, int argc, char** argv);
+static bool procfile(LFIXProc* p, int fd, int argc, char** argv);
 static void procfree(LFIXProc*);
 
 uintptr_t
@@ -35,7 +35,7 @@ procnewempty()
 }
 
 static LFIXProc*
-procnewfile(LFIXEngine* lfix, int fd, int argc, const char** argv)
+procnewfile(LFIXEngine* lfix, int fd, int argc, char** argv)
 {
     LFIXProc* p = procnewempty();
     if (!p)
@@ -57,7 +57,7 @@ err:
 }
 
 static bool
-procfile(LFIXProc* p, int fd, int argc, const char** argv)
+procfile(LFIXProc* p, int fd, int argc, char** argv)
 {
     int interpfd = -1;
     char* interp = elfinterpfd(fd);
@@ -91,7 +91,7 @@ enum {
 };
 
 static bool
-stacksetup(LFIXProc* p, int argc, const char** argv, LFIProcInfo* info, uintptr_t* newsp)
+stacksetup(LFIXProc* p, int argc, char** argv, LFIProcInfo* info, uintptr_t* newsp)
 {
     char* argv_ptrs[ARGC_MAX];
     char* stack_top = (char*) info->stack + info->stacksize;
@@ -156,7 +156,7 @@ procmapsetup(LFIXProc* p, uintptr_t mapstart, uintptr_t mapend)
 }
 
 static bool
-procsetup(LFIXProc* p, int progfd, int interpfd, int argc, const char** argv)
+procsetup(LFIXProc* p, int progfd, int interpfd, int argc, char** argv)
 {
     LFIProcInfo info = {0};
     bool b = lfi_proc_loadelf(p->l_proc, progfd, interpfd, &info);
@@ -251,7 +251,7 @@ procfree(LFIXProc* proc)
 }
 
 LFIXProc*
-lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, const char** argv)
+lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, char** argv)
 {
     return procnewfile(lfix, fd, argc, argv);
 }
