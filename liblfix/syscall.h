@@ -292,11 +292,10 @@ sysmmap(LFIXProc* p, uintptr_t addrp, size_t length, int prot, int flags, int fd
         return -EPERM;
     }
 
+    // uintptr_t i_addrp = addrp;
+
     int r;
-    if (addrp == 0) {
-        // Runtime can pick any location.
-        r = procmapany(p, length, prot, flags, fd, offset, &addrp);
-    } else {
+    if ((flags & MAP_FIXED) != 0) {
         addrp = truncp(addrp, getpagesize());
         if (addrp != procaddr(p, addrp))
             return -EINVAL;
@@ -307,10 +306,15 @@ sysmmap(LFIXProc* p, uintptr_t addrp, size_t length, int prot, int flags, int fd
             return procuseraddr(p, addrp);
         }
         r = procmapat(p, addrp, length, prot, flags, fd, offset);
+    } else {
+        // Runtime can pick any location (technically addrp is a hint that the
+        // user wants it near that address but we don't care).
+        r = procmapany(p, length, prot, flags, fd, offset, &addrp);
     }
-    if (r < 0)
+    if (r < 0) {
         return r;
-    // fprintf(stderr, "sysmmap(%lx, %ld, %d, %d, %d, %ld) = %lx\n", addrp, length, prot, flags, fd, offset, addrp);
+    }
+    // fprintf(stderr, "sysmmap(%lx (%lx), %ld, %d, %d, %d, %ld) = %lx\n", addrp, i_addrp, length, prot, flags, fd, offset, addrp);
     return procuseraddr(p, addrp);
 }
 SYSWRAP_6(sysmmap, uintptr_t, size_t, int, int, int, off_t);
@@ -318,7 +322,7 @@ SYSWRAP_6(sysmmap, uintptr_t, size_t, int, int, int, off_t);
 static int
 sysmunmap(LFIXProc* p, uintptr_t addrp, size_t length)
 {
-    return 0;
+    return procunmap(p, procaddr(p, addrp), length);
 }
 SYSWRAP_2(sysmunmap, uintptr_t, size_t);
 
@@ -359,6 +363,16 @@ sysgetrandom(LFIXProc* p, uintptr_t bufp, size_t buflen, unsigned int flags)
     return getrandom(buf, buflen, flags);
 }
 SYSWRAP_3(sysgetrandom, uintptr_t, size_t, unsigned int);
+
+static uintptr_t
+sysgetcwd(LFIXProc* p, uintptr_t bufp, size_t size)
+{
+    uint8_t* buf = procbuf(p, bufp, size);
+    if (!buf)
+        return -EINVAL;
+    return (uintptr_t) getcwd((char*) buf, size);
+}
+SYSWRAP_2(sysgetcwd, uintptr_t, size_t);
 
 // Dummy syscalls below, not necessarily safe
 

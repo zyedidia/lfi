@@ -219,8 +219,8 @@ cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
 {
     (void) udata;
     (void) info;
-    int r = munmap((void*) start, len);
-    assert(r == 0);
+    void* p = mmap((void*) start, len, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+    assert(p == (void*) start);
 }
 
 int
