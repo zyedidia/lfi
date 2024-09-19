@@ -39,7 +39,7 @@ lfix_init(LFIXEngine* lfix)
     };
 
     if (options.noverify) {
-        fprintf(stderr, "warning: verification disabled\n");
+        /* fprintf(stderr, "warning: verification disabled\n"); */
     }
 
     LFIEngine* lfi = lfi_new(options);

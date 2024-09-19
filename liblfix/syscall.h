@@ -69,12 +69,17 @@ procpath(LFIXProc* p, uintptr_t path)
     return str;
 }
 
-static int
-sysignore(LFIXProc* p)
+static off_t
+syslseek(LFIXProc* p, int fd, off_t offset, int whence)
 {
-    return 0;
+    FDFile* f = lfix_fdget(&p->fdtable, fd);
+    if (!f)
+        return -EBADF;
+    if (!f->lseek)
+        return -EPERM;
+    return f->lseek(f->dev, p, offset, whence);
 }
-SYSWRAP_0(sysignore);
+SYSWRAP_3(syslseek, int, off_t, int);
 
 static ssize_t
 sysread(LFIXProc* p, int fd, uintptr_t bufp, size_t size)
@@ -394,9 +399,16 @@ sysgetpid(LFIXProc* p)
 }
 SYSWRAP_0(sysgetpid);
 
-static uintptr_t
-sysmremap(LFIXProc* p)
+static int
+sysignore(LFIXProc* p)
+{
+    return 0;
+}
+SYSWRAP_0(sysignore);
+
+static int
+syserror(LFIXProc* p)
 {
     return -1;
 }
-SYSWRAP_0(sysmremap);
+SYSWRAP_0(syserror);

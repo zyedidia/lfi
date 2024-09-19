@@ -89,7 +89,7 @@ main(int argc, char** argv)
     fclose(f);
 
     uint64_t r = lfi_proc_start(p->l_proc);
-    printf("exited: %ld\n", r);
+    /* printf("exited: %ld\n", r); */
 
-    return 0;
+    return r;
 }

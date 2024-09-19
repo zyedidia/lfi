@@ -58,6 +58,7 @@ enum {
     SYS_membarrier        = 324,
     SYS_sched_getaffinity = 204,
     SYS_getrusage         = 98,
+    SYS_prctl             = 157,
 };
 
 enum {
@@ -86,7 +87,7 @@ SyscallFn syscalls[] = {
     [SYS_archprctl]         = sysarchprctl_,
     [SYS_set_tid_address]   = sysignore_,
     [SYS_brk]               = sysbrk_,
-    [SYS_ioctl]             = sysignore_,
+    [SYS_ioctl]             = syserror_,
     [SYS_exit_group]        = sysexit_,
     [SYS_exit]              = sysexit_,
     [SYS_close]             = sysclose_,
@@ -104,10 +105,12 @@ SyscallFn syscalls[] = {
     [SYS_getrandom]         = sysgetrandom_,
     [SYS_sched_getaffinity] = syssched_getaffinity_,
     [SYS_getpid]            = sysgetpid_,
-    [SYS_mremap]            = sysmremap_,
+    [SYS_mremap]            = syserror_,
     [SYS_madvise]           = sysignore_,
     [SYS_getrusage]         = sysignore_,
     [SYS_getcwd]            = sysgetcwd_,
+    [SYS_lseek]             = syslseek_,
+    [SYS_prctl]             = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
