@@ -25,25 +25,6 @@ Addr = (
         $$.unmod = xasprintf("(%s)", r.val);
         rfree(r);
     }
-    # ...@TLSCALL(%rax) -- we strip the TLSCALL away
-    | (ID '@TLSCALL' LP r:XREG_NOSP RP) {
-        $$ = (Result) {};
-        if (args.p2size == 0) {
-            $$.premulti[0] = strdup(".bundle_lock");
-            $$.premulti[1] = xasprintf("pext %%r15, %s, %%r11", r.val);
-            $$.val         = xasprintf("(%%r14, %%r11)");
-            $$.post        = strdup(".bundle_unlock");
-        } else if (args.nosegue) {
-            $$.premulti[0] = strdup(".bundle_lock");
-            $$.premulti[1] = xasprintf("movl %s, %%r11d", lo(r.val));
-            $$.val         = xasprintf("(%%r14, %%r11)");
-            $$.post        = strdup(".bundle_unlock");
-        } else {
-            $$.val = xasprintf("%%gs:(%s)", lo(r.val));
-        }
-        $$.unmod = xasprintf("(%s)", r.val);
-        rfree(r);
-    }
     # imm(%rxx)
     | (i:IMM_VAR LP r:XREG_NOSP RP) {
         $$ = (Result) {};

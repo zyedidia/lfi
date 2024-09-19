@@ -10,7 +10,7 @@
 }                                              \
 %}
 
-Top = Branch | BranchMem | BranchMemSafe | CallInd | CallIndMem | CallIndMemSafe | Call | Ret
+Top = Branch | BranchMem | BranchMemSafe | CallTLS | CallInd | CallIndMem | CallIndMemSafe | Call | Ret
 
 # we use r11 here so that we get consistent instruction sizes, so that the nop
 # has the correct size to align the call to the end of the bundle. In theory,
@@ -27,6 +27,14 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
     rfree(r);
+}
+
+CallTLS = 'call' 'q'? SEP '*' n:NAME '@TLSCALL' LP x:XREG_NOSP RP {
+    // TODO: support bundlecall
+    mkinsn(".nops 13");
+    mkinsn("callq *%s@TLSCALL(%s)", n.val, x.val);
+    mkdirective(bundle_align());
+    rfree(n); rfree(x);
 }
 
 CallIndMem = 'call' 'q'? SEP '*' a:Addr {
