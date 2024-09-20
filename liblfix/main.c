@@ -12,6 +12,10 @@ static char args_doc[] = "INPUT...";
 
 enum {
     ARG_max_procs = 0x80,
+    ARG_poc       = 0x81,
+    ARG_p2size    = 0x82,
+    ARG_gas       = 0x83,
+    ARG_no_verify = 0x84,
 };
 
 // Future options:
@@ -23,6 +27,10 @@ enum {
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "max-procs",      ARG_max_procs,     0,      0, "show the maximum number of processes", -1 },
+    { "poc",            ARG_poc,           0,      0, "enable position-oblivious code", -1 },
+    { "p2size",         ARG_p2size,        "SIZE", 0, "set the sandbox size to a power of 2", -1 },
+    { "gas",            ARG_gas,           "GAS",  0, "enable gas, and set the gas limit", -1 },
+    { "no-verify",      ARG_no_verify,     0,      0, "disable verification (unsafe)", -1 },
     { 0 },
 };
 

@@ -468,6 +468,18 @@ sysgetdents64(LFIXProc* p, int fd, uintptr_t dirp, size_t count)
 }
 SYSWRAP_3(sysgetdents64, int, uintptr_t, size_t);
 
+static int
+sysunlinkat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    return syserr(unlinkat(AT_FDCWD, path, 0));
+}
+SYSWRAP_3(sysunlinkat, int, uintptr_t, int);
+
 // Dummy syscalls below, not necessarily safe
 
 static int
