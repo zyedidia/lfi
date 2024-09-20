@@ -79,6 +79,20 @@ sysarchprctl(LFIXProc* p, int code, uintptr_t addr)
 }
 SYSWRAP_2(sysarchprctl, int, uintptr_t);
 
+static int
+sysrename(LFIXProc* p, uintptr_t oldp, uintptr_t newp)
+{
+    return sysrenameat2(p, AT_FDCWD, oldp, AT_FDCWD, newp, 0);
+}
+SYSWRAP_2(sysrename, uintptr_t, uintptr_t);
+
+static int
+sysrenameat(LFIXProc* p, int oldfd, uintptr_t oldp, int newfd, uintptr_t newp)
+{
+    return sysrenameat2(p, oldfd, oldp, newfd, newp, 0);
+}
+SYSWRAP_4(sysrenameat, int, uintptr_t, int, uintptr_t);
+
 SyscallFn syscalls[] = {
     [SYS_read]              = sysread_,
     [SYS_write]             = syswrite_,
@@ -111,6 +125,13 @@ SyscallFn syscalls[] = {
     [SYS_getcwd]            = sysgetcwd_,
     [SYS_lseek]             = syslseek_,
     [SYS_prctl]             = sysignore_,
+    [SYS_readlinkat]        = sysreadlinkat_,
+    [SYS_faccessat]         = sysfaccessat_,
+    [SYS_renameat]          = sysrenameat_,
+    [SYS_sysinfo]           = syssysinfo_,
+    [SYS_dup]               = sysdup_,
+    [SYS_rename]            = sysrename_,
+    [SYS_getdents64]        = sysgetdents64_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

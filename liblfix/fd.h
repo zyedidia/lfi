@@ -19,6 +19,7 @@ typedef struct {
     ssize_t (*lseek)(void*, struct LFIXProc*, off_t, int);
     int (*close)(void*, struct LFIXProc*);
     int (*stat)(void*, struct LFIXProc*, struct stat*);
+    ssize_t (*getdents)(void*, struct LFIXProc*, void*, size_t);
     int (*mapfd)(void*);
 } FDFile;
 

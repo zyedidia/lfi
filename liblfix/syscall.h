@@ -9,6 +9,7 @@
 #include <time.h>
 #include <sys/mman.h>
 #include <sys/random.h>
+#include <sys/sysinfo.h>
 #include <sched.h>
 
 #include "sys.h"
@@ -365,7 +366,7 @@ sysgetrandom(LFIXProc* p, uintptr_t bufp, size_t buflen, unsigned int flags)
     uint8_t* buf = procbuf(p, bufp, buflen);
     if (!buf)
         return -EINVAL;
-    return getrandom(buf, buflen, flags);
+    return syserr(getrandom(buf, buflen, flags));
 }
 SYSWRAP_3(sysgetrandom, uintptr_t, size_t, unsigned int);
 
@@ -378,6 +379,94 @@ sysgetcwd(LFIXProc* p, uintptr_t bufp, size_t size)
     return (uintptr_t) getcwd((char*) buf, size);
 }
 SYSWRAP_2(sysgetcwd, uintptr_t, size_t);
+
+static int
+sysfaccessat(LFIXProc* p, int dirfd, uintptr_t pathp, int mode, int flags)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    return syserr(faccessat(AT_FDCWD, path, mode, flags));
+}
+SYSWRAP_4(sysfaccessat, int, uintptr_t, int, int);
+
+static ssize_t
+sysreadlinkat(LFIXProc* p, int dirfd, uintptr_t pathp, uintptr_t bufp, size_t size)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    uint8_t* buf = procbuf(p, bufp, size);
+    if (!path || !buf)
+        return -EFAULT;
+    return syserr(readlinkat(AT_FDCWD, path, (char*) buf, size));
+}
+SYSWRAP_4(sysreadlinkat, int, uintptr_t, uintptr_t, size_t);
+
+static int
+sysrenameat2(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t newpathp, int flags)
+{
+    if (oldfd != AT_FDCWD || newfd != AT_FDCWD)
+        return -EBADF;
+    const char* oldpath = procpath(p, oldpathp);
+    const char* newpath = procpath(p, newpathp);
+    if (!oldpath || !newpath)
+        return -EFAULT;
+    return syserr(renameat2(AT_FDCWD, oldpath, AT_FDCWD, newpath, flags));
+}
+SYSWRAP_5(sysrenameat2, int, uintptr_t, int, uintptr_t, int);
+
+static int
+syssysinfo(LFIXProc* p, uintptr_t infop)
+{
+    struct sysinfo* info = (struct sysinfo*) procbufalign(p, infop, sizeof(struct sysinfo), alignof(struct sysinfo));
+    if (!info)
+        return -EFAULT;
+    return syserr(sysinfo(info));
+}
+SYSWRAP_1(syssysinfo, uintptr_t);
+
+static int
+sysmkdirat(LFIXProc* p, int dirfd, uintptr_t pathp, mode_t mode)
+{
+    if (dirfd != AT_FDCWD)
+        return -EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    return syserr(mkdirat(AT_FDCWD, path, mode));
+}
+SYSWRAP_3(sysmkdirat, int, uintptr_t, mode_t);
+
+static int
+sysdup(LFIXProc* p, int oldfd)
+{
+    FDFile* f = lfix_fdget(&p->fdtable, oldfd);
+    if (!f)
+        return -EBADF;
+    int newfd = lfix_fdalloc(&p->fdtable);
+    if (newfd < 0)
+        return -EMFILE;
+    return newfd;
+}
+SYSWRAP_1(sysdup, int);
+
+static ssize_t
+sysgetdents64(LFIXProc* p, int fd, uintptr_t dirp, size_t count)
+{
+    FDFile* f = lfix_fdget(&p->fdtable, fd);
+    if (!f)
+        return -EBADF;
+    if (!f->getdents)
+        return -EPERM;
+    uint8_t* buf = procbuf(p, dirp, count);
+    if (!buf)
+        return -EFAULT;
+    return f->getdents(f->dev, p, buf, count);
+}
+SYSWRAP_3(sysgetdents64, int, uintptr_t, size_t);
 
 // Dummy syscalls below, not necessarily safe
 

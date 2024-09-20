@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 
 #include "file.h"
 #include "sys.h"
@@ -57,6 +58,12 @@ filestat(void* dev, struct LFIXProc* p, struct stat* statbuf)
     return syserr(fstatat(filefd(dev), "", statbuf, AT_EMPTY_PATH));
 }
 
+static ssize_t
+filegetdents(void* dev, struct LFIXProc* p, void* dirp, size_t count)
+{
+    return syserr(getdents64(filefd(dev), dirp, count));
+}
+
 static int
 filemapfd(void* dev)
 {
@@ -77,6 +84,7 @@ lfix_filefdnew(int kfd)
         .lseek = filelseek,
         .close = fileclose,
         .stat = filestat,
+        .getdents = filegetdents,
         .mapfd = filemapfd,
     };
     return ff;
