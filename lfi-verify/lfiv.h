@@ -15,6 +15,8 @@ typedef enum {
 } LFIBoxType;
 
 typedef enum {
+    LFI_BUNDLE_NONE,
+    LFI_BUNDLE8,
     LFI_BUNDLE16,
     LFI_BUNDLE32,
 } LFIBundleType;

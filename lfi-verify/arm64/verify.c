@@ -47,9 +47,12 @@ enum {
 #define INSN_NOP 0xd503201f
 
 enum {
-    REG_ADDR = 18,
-    REG_BASE = 21,
-    REG_RET  = 30,
+    REG_ADDR    = 18,
+    REG_BASE    = 21,
+    REG_GAS     = 23,
+    REG_BUNDLE  = 24,
+    REG_SYS     = 25,
+    REG_RET     = 30,
 };
 
 enum {
@@ -64,9 +67,12 @@ enum {
 };
 
 static bool
-cfreg(uint8_t reg)
+cfreg(Verifier* v, uint8_t reg)
 {
-    return reg == REG_ADDR || reg == REG_RET;
+    if (v->opts->bundle == LFI_BUNDLE_NONE) {
+        return reg == REG_ADDR || reg == REG_RET;
+    }
+    return reg == REG_BUNDLE;
 }
 
 static bool
@@ -82,17 +88,27 @@ retreg(uint8_t reg)
 }
 
 static bool
-fixedreg(uint8_t reg)
+fixedreg(Verifier* v, uint8_t reg)
 {
-    return reg == REG_BASE;
+    if (reg == REG_BASE)
+        return true;
+    if (v->opts->decl && reg == REG_SYS)
+        return true;
+    if (v->opts->meter != LFI_METER_NONE && reg == REG_GAS)
+        return true;
+    return false;
 }
 
 static bool
-addrreg(uint8_t reg, bool sp)
+addrreg(Verifier* v, uint8_t reg, bool sp)
 {
-    if (sp)
-        return reg == 31 || cfreg(reg);
-    return cfreg(reg);
+    if (sp && reg == 31)
+        return true;
+    if (cfreg(v, reg))
+        return true;
+    if (reg == REG_ADDR || reg == REG_RET)
+        return true;
+    return false;
 }
 
 static bool
@@ -163,13 +179,48 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
     case DA64I_BR:
     case DA64I_RET:
         assert(dinst->ops[0].type == DA_OP_REGGP);
-        if (!cfreg(dinst->ops[0].reg)) {
+        if (!cfreg(v, dinst->ops[0].reg)) {
             verr(v, dinst, "indirect branch using illegal register");
         }
         break;
     default:
         assert(DA64_GROUP(dinst->mnem) != DA64G_BRANCHREG);
         break;
+    }
+
+    if (v->opts->bundle == LFI_BUNDLE_NONE)
+        return;
+
+    uint64_t target = 0;
+    switch (dinst->mnem) {
+    case DA64I_BCOND:
+    case DA64I_B:
+    case DA64I_BL:
+        target = dinst->ops[0].simm16;
+        break;
+    case DA64I_CBZ:
+    case DA64I_CBNZ:
+        target = dinst->ops[1].simm16;
+        break;
+    case DA64I_TBZ:
+    case DA64I_TBNZ:
+        target = dinst->ops[2].simm16;
+        break;
+    default:
+        return;
+    }
+    
+    uint64_t bundle;
+    switch (v->opts->bundle) {
+    case LFI_BUNDLE8:
+        bundle = 8;
+    case LFI_BUNDLE16:
+        bundle = 16;
+    default:
+        assert(!"invalid bundle type");
+    }
+    if (target % bundle != 0) {
+        verr(v, dinst, "direct branch target is not bundle-aligned");
     }
 }
 
@@ -191,17 +242,23 @@ chksys(Verifier* v, struct Da64Inst* dinst)
 }
 
 static bool
-okmnem(struct Da64Inst* dinst)
+okmnem(Verifier* v, struct Da64Inst* dinst)
 {
-    switch (dinst->mnem) {
+    if (v->opts->decl) {
+        switch (dinst->mnem) {
+#include "decl.instrs"
+        }
+    } else {
+        switch (dinst->mnem) {
 #include "base.instrs"
+        }
     }
 
     return false;
 }
 
 static bool
-okmemop(struct Da64Op* op)
+okmemop(Verifier* v, struct Da64Op* op)
 {
     switch (op->type) {
     case DA_OP_MEMUOFF:
@@ -209,10 +266,10 @@ okmemop(struct Da64Op* op)
         // runtime call
         if (basereg(op->reg) && op->simm16 == 0)
             return true;
-        return addrreg(op->reg, true);
+        return addrreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
-        return addrreg(op->reg, true);
+        return addrreg(v, op->reg, true);
     case DA_OP_MEMREG:
         return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW &&
             op->memreg.sc == 0;
@@ -230,13 +287,13 @@ static void
 chkmemops(Verifier* v, struct Da64Inst* dinst)
 {
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
-        if (!okmemop(&dinst->ops[i]))
+        if (!okmemop(v, &dinst->ops[i]))
             verr(v, dinst, "illegal memory operand");
     }
 }
 
 static bool
-okreadpoc(struct Da64Inst* dinst, struct Da64Op* op)
+okreadpoc(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 {
     bool sf = false;
     bool sp = false;
@@ -253,13 +310,13 @@ okreadpoc(struct Da64Inst* dinst, struct Da64Op* op)
         return true;
     }
 
-    if ((fixedreg(op->reg) || addrreg(op->reg, sp)) && sf)
+    if ((fixedreg(v, op->reg) || addrreg(v, op->reg, sp)) && sf)
         return false;
     return true;
 }
 
 static bool
-okmod(struct Da64Inst* dinst, struct Da64Op* op)
+okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 {
     if (op->type != DA_OP_REGGP &&
         op->type != DA_OP_REGGPINC &&
@@ -267,14 +324,14 @@ okmod(struct Da64Inst* dinst, struct Da64Op* op)
         op->type != DA_OP_REGSP)
         return true;
 
-    if (fixedreg(op->reg))
+    if (fixedreg(v, op->reg))
         return false;
-    if (!addrreg(op->reg, op->type == DA_OP_REGSP))
+    if (!addrreg(v, op->reg, op->type == DA_OP_REGSP))
         return true;
 
     if (dinst->mnem == DA64I_ADD_EXT) {
         // 'add addrreg, base, lo, uxtw' is allowed.
-        if (addrreg(dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
+        if (addrreg(v, dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
                 dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
                 dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
             return true;
@@ -303,7 +360,7 @@ vchk(Verifier* v, uint32_t insn)
     if (insn == INSN_NOP)
         return;
 
-    if (!okmnem(&dinst))
+    if (!okmnem(v, &dinst))
         verr(v, &dinst, "illegal instruction");
 
     chkbranch(v, &dinst);
@@ -312,12 +369,12 @@ vchk(Verifier* v, uint32_t insn)
 
     int n = nmod(&dinst);
     for (int i = 0; i < n; i++) {
-        if (!okmod(&dinst, &dinst.ops[i]))
+        if (!okmod(v, &dinst, &dinst.ops[i]))
             verr(v, &dinst, "illegal modification of reserved register");
     }
     if (v->opts->poc) {
         for (int i = n; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
-            if (!okreadpoc(&dinst, &dinst.ops[i]))
+            if (!okreadpoc(v, &dinst, &dinst.ops[i]))
                 verr(v, &dinst, "illegal read of 64-bit address register");
         }
     }

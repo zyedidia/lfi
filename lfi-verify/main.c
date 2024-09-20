@@ -17,13 +17,16 @@ static char doc[] = "lfiv: LFI verifier";
 static char args_doc[] = "INPUT...";
 
 enum {
-    ARG_n = 0x80,
+    ARG_poc  = 0x80,
+    ARG_decl = 0x81,
 };
 
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "arch",           'a',               "ARCH", 0, "run on architecture (amd64,arm64)" },
     { "n",              'n',               "NUM",  0, "run the verifier n times (for benchmarking)" },
+    { "poc",            ARG_poc,           0,      0, "require position-oblivious code" },
+    { "decl",           ARG_decl,          0,      0, "require deterministic instructions" },
     { 0 },
 };
 
@@ -45,6 +48,12 @@ parse_opt(int key, char* arg, struct argp_state* state)
             return ARGP_ERR_UNKNOWN;
         }
         args->arch = arg;
+        break;
+    case ARG_poc:
+        args->poc = true;
+        break;
+    case ARG_decl:
+        args->decl = true;
         break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)

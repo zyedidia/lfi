@@ -21,7 +21,6 @@ svc #12
 .long 0b01001010000000001000000000000000 // undefined eor encoding
 ---
 .long 0b10011011110000000111100000000000 // umulh with incorrect SBO
-mov x21, x0 // TODO: test disabled
 ---
 ldr x30, [sp]
 ---
