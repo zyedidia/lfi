@@ -171,18 +171,23 @@ sanitize(void* p, size_t sz, int prot)
 #endif
 }
 
-static bool
-preadcode(void* base, size_t size, int prot, size_t offset, ssize_t amt, int fd, LFIVerifier* verifier)
+typedef struct {
+    uint8_t* data;
+    size_t size;
+} FileBuf;
+
+// read 'count' bytes from 'buf' into 'to', starting at 'offset'.
+static size_t
+bufread(FileBuf buf, void* to, size_t count, off_t offset)
 {
-    sanitize(base, size, prot);
-    ssize_t n = pread(fd, base, amt, offset);
-    if (n != amt) {
-        lfi_errno = LFI_ERR_INVALID_ELF;
-        return false;
+    size_t i;
+    char* toc = (char*) to;
+    for (i = 0; i < count; i++) {
+        if (offset + i >= buf.size)
+            break;
+        toc[i] = buf.data[offset + i];
     }
-    if (mprotectverify(base, size, prot, verifier) < 0)
-        return false;
-    return true;
+    return i;
 }
 
 enum {
@@ -190,67 +195,9 @@ enum {
     MAPFILE = MAP_PRIVATE | MAP_FIXED,
 };
 
-// mapelfseg maps an ELF segment from a file.
-//
-// start:    the page-aligned start of the segment.
-// offset:   the offset within the segment that the data begins at.
-// end:      the page-aligned end of the segment.
-// p_offset: the offset within the file that the data begins at.
-// filesz:   the amount of data in the file.
-// fd:       the file descriptor.
-// verifier: the LFI verifier.
-//
-// The caller is expected to munmap all regions in case of an error.
 static bool
-mapelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
-        size_t p_offset, size_t filesz, int prot, int fd,
-        size_t pagesize, LFIVerifier* verifier)
-{
-    // Map the first page, which we will copy into from the file.
-    void* pg1 = mmap((void*) start, pagesize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
-    if (pg1 == (void*) -1) {
-        lfi_errno = LFI_ERR_CANNOT_MAP;
-        return false;
-    }
-    // If we have any subsequent errors, it is expected that the caller will
-    // munmap all mapped regions.
-
-    ssize_t amt = pagesize < filesz ? pagesize : filesz;
-    if (!preadcode(pg1, pagesize, prot, p_offset, amt, fd, verifier))
-        return false;
-    if (filesz < pagesize)
-        return true;
-
-    // Page-aligned start of the final region of the segment.
-    uintptr_t laststart = truncp(start + offset + filesz, pagesize);
-    void* pgend = mmap((void*) laststart, end - laststart, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
-    if (pgend == (void*) -1) {
-        lfi_errno = LFI_ERR_CANNOT_MAP;
-        return false;
-    }
-    size_t lastfilestart = truncp(offset + filesz, pagesize);
-    if (!preadcode(pgend, end - laststart, prot, lastfilestart, offset + filesz - lastfilestart, fd, verifier))
-        return false;
-
-    // Map everything in the middle directly from the file.
-    uintptr_t midstart = start + pagesize;
-    if (midstart == 0)
-        return true;
-    void* middle = mmapverify((void*) midstart, laststart - midstart, prot, MAPFILE, fd, p_offset + amt, verifier);
-    if (middle == (void*) -1)
-        return false;
-
-    return true;
-}
-
-// Alternative to mapelfseg that copies data out of the ELF file instead of
-// directly mapping it. This may be desired because if we directly map the ELF
-// file any changes to the underlying file data could cause unspecified updates
-// in our mapping. The caller is expected to munmap all regions in case of an
-// error.
-static bool
-preadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
-        size_t p_offset, size_t filesz, int prot, int fd,
+bufreadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
+        size_t p_offset, size_t filesz, int prot, FileBuf buf,
         size_t pagesize, LFIVerifier* verifier)
 {
     void* p = mmap((void*) start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
@@ -259,11 +206,11 @@ preadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
         return false;
     }
     // If we have any subsequent errors, it is expected that the caller will
-    // munmap all mapped regions.
+    // unmap all mapped regions.
 
     sanitize(p, pagesize, prot);
     sanitize((void*) (end - pagesize), pagesize, prot);
-    ssize_t n = pread(fd, (void*) (start + offset), filesz, p_offset);
+    ssize_t n = bufread(buf, (void*) (start + offset), filesz, p_offset);
     if (n != (ssize_t) filesz) {
         lfi_errno = LFI_ERR_INVALID_ELF;
         return false;
@@ -274,13 +221,13 @@ preadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
 }
 
 static bool
-load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
+load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
 {
     uintptr_t last = 0;
     size_t pagesize = proc->lfi->opts.pagesize;
 
     ElfFileHeader ehdr;
-    ssize_t n = pread(fd, &ehdr, sizeof(ehdr), 0);
+    ssize_t n = bufread(buf, &ehdr, sizeof(ehdr), 0);
     if (n != sizeof(ehdr)) {
         lfi_errno = LFI_ERR_INVALID_ELF;
         return false;
@@ -297,7 +244,7 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
         return false;
     }
 
-    n = pread(fd, phdr, sizeof(ElfProgHeader) * ehdr.phnum, ehdr.phoff);
+    n = bufread(buf, phdr, sizeof(ElfProgHeader) * ehdr.phnum, ehdr.phoff);
     if (n != sizeof(ElfProgHeader) * ehdr.phnum) {
         lfi_errno = LFI_ERR_INVALID_ELF;
         goto err1;
@@ -346,8 +293,7 @@ load(LFIProc* proc, int fd, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
 
         /* printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags)); */
 
-        // TODO: preadelfseg vs mapelfseg?
-        if (!preadelfseg(base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), fd, pagesize, proc->lfi->opts.verifier))
+        if (!bufreadelfseg(base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize, proc->lfi->opts.verifier))
             goto err1;
 
         if (base == 0) {
@@ -400,8 +346,17 @@ procclear(LFIProc* proc)
 }
 
 bool
-lfi_proc_loadelf(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
+lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, LFIProcInfo* info)
 {
+    FileBuf prog = (FileBuf) {
+        .data = progdat,
+        .size = progsz,
+    };
+    FileBuf interp = (FileBuf) {
+        .data = interpdat,
+        .size = interpsz,
+    };
+
     uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
     uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
 
@@ -426,25 +381,25 @@ lfi_proc_loadelf(LFIProc* proc, int elffd, int interpfd, LFIProcInfo* info)
     // Now we are ready to load.
     uintptr_t base = (uintptr_t) g1 + GUARD1SZ;
     uintptr_t plast, pentry, ilast, ientry;
-    bool interp = interpfd >= 0;
-    if (!load(proc, elffd, base, &plast, &pentry))
+    bool hasinterp = interp.data != NULL;
+    if (!load(proc, prog, base, &plast, &pentry))
         goto err;
-    if (interp)
-        if (!load(proc, interpfd, plast, &ilast, &ientry))
+    if (hasinterp)
+        if (!load(proc, interp, plast, &ilast, &ientry))
             goto err;
 
     ElfFileHeader ehdr;
-    ssize_t n = pread(elffd, &ehdr, sizeof(ehdr), 0);
+    ssize_t n = bufread(prog, &ehdr, sizeof(ehdr), 0);
     assert(n == sizeof(ehdr)); // must succeed since we just read it to load
 
     *info = (LFIProcInfo) {
         .stack = (void*) proc->stack,
         .stacksize = stacksize,
-        .lastva = interp ? ilast : plast,
+        .lastva = hasinterp ? ilast : plast,
         .elfentry = pentry,
-        .ldentry = interp ? ientry : 0,
+        .ldentry = hasinterp ? ientry : 0,
         .elfbase = base,
-        .ldbase = interp ? plast : base,
+        .ldbase = hasinterp ? plast : base,
         .elfphoff = ehdr.phoff,
         .elfphnum = ehdr.phnum,
         .elfphentsize = ehdr.phentsize,

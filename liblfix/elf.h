@@ -80,13 +80,26 @@ enum {
     PHNUM_MAX  = 64,
 };
 
+static size_t
+bufread(uint8_t* buf, size_t bufsz, void* to, size_t count, off_t offset)
+{
+    size_t i;
+    char* toc = (char*) to;
+    for (i = 0; i < count; i++) {
+        if (offset + i >= bufsz)
+            break;
+        toc[i] = buf[offset + i];
+    }
+    return i;
+}
+
 // The return value is dynamically allocated and must be freed by
 // the caller.
 static char*
-elfinterpfd(int fd)
+elfinterp(uint8_t* prog, size_t progsz)
 {
     FileHeader ehdr;
-    ssize_t n = pread(fd, &ehdr, sizeof(ehdr), 0);
+    size_t n = bufread(prog, progsz, &ehdr, sizeof(ehdr), 0);
     if (n != sizeof(ehdr))
         return NULL;
 
@@ -94,7 +107,7 @@ elfinterpfd(int fd)
         return NULL;
 
     ProgHeader phdr[ehdr.phnum];
-    n = pread(fd, phdr, sizeof(ProgHeader) * ehdr.phnum, ehdr.phoff);
+    n = bufread(prog, progsz, phdr, sizeof(ProgHeader) * ehdr.phnum, ehdr.phoff);
     if (n != sizeof(ProgHeader) * ehdr.phnum)
         return NULL;
 
@@ -105,27 +118,12 @@ elfinterpfd(int fd)
             char* interp = malloc(phdr[x].filesz);
             if (!interp)
                 return NULL;
-            ssize_t n = pread(fd, interp, phdr[x].filesz, phdr[x].offset);
-            if (n != (ssize_t)phdr[x].filesz) {
+            size_t n = bufread(prog, progsz, interp, phdr[x].filesz, phdr[x].offset);
+            if (n != phdr[x].filesz) {
                 free(interp);
                 return NULL;
             }
             return interp;
-        }
-    }
-    return NULL;
-}
-
-static inline char*
-elfinterp(uint8_t* buf)
-{
-    FileHeader* hdr = (FileHeader*) buf;
-    ProgHeader* phdr = (ProgHeader*) (buf + hdr->phoff);
-
-    for (int x = 0; x < hdr->phnum; x++) {
-        if (phdr[x].type == PT_INTERP) {
-            // TODO: bounds check
-            return (char*) buf + phdr[x].offset;
         }
     }
     return NULL;

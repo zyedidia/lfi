@@ -53,14 +53,8 @@ main()
         return 1;
     }
 
-    int fd = memfd_create("lfitest", 0);
-    assert(fd >= 0);
-
-    ssize_t s = write(fd, liblfi_test_testprog, liblfi_test_testprog_len);
-    assert(s == liblfi_test_testprog_len);
-
     LFIProcInfo info;
-    b = lfi_proc_loadelf(proc, fd, -1, &info);
+    b = lfi_proc_loadelf(proc, liblfi_test_testprog, liblfi_test_testprog_len, NULL, 0, &info);
     if (!b) {
         fprintf(stderr, "error: %s\n", lfi_strerror());
         return 1;

@@ -4,6 +4,7 @@
 
 #include "args.h"
 #include "lfix.h"
+#include "io.h"
 
 static char doc[] = "lfi-run: LFI runner";
 
@@ -74,19 +75,17 @@ main(int argc, char** argv)
         return 1;
     }
 
-    FILE* f = fopen(args.inputs[0], "rb");
-    if (!f) {
+    Buf f = bufreadfile(args.inputs[0]);
+    if (!f.data) {
         fprintf(stderr, "error opening %s: %s\n", args.inputs[0], strerror(errno));
         return 1;
     }
 
-    LFIXProc* p = lfix_proc_newfile(&engine, fileno(f), args.ninputs, &args.inputs[0]);
+    LFIXProc* p = lfix_proc_newfile(&engine, f.data, f.size, args.ninputs, &args.inputs[0]);
     if (!p) {
         fprintf(stderr, "error creating process: %s\n", lfi_strerror());
         return 1;
     }
-
-    fclose(f);
 
     uint64_t r = lfi_proc_start(p->l_proc);
     /* printf("exited: %ld\n", r); */

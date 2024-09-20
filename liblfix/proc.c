@@ -7,9 +7,10 @@
 #include "lfix.h"
 #include "elf.h"
 #include "proc.h"
+#include "io.h"
 
-static bool procsetup(LFIXProc* p, int progfd, int interpfd, int argc, char** argv);
-static bool procfile(LFIXProc* p, int fd, int argc, char** argv);
+static bool procsetup(LFIXProc* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, int argc, char** argv);
+static bool procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv);
 static void procfree(LFIXProc*);
 
 uintptr_t
@@ -35,7 +36,7 @@ procnewempty()
 }
 
 static LFIXProc*
-procnewfile(LFIXEngine* lfix, int fd, int argc, char** argv)
+procnewfile(LFIXEngine* lfix, uint8_t* prog, size_t progsz, int argc, char** argv)
 {
     LFIXProc* p = procnewempty();
     if (!p)
@@ -47,7 +48,7 @@ procnewfile(LFIXEngine* lfix, int fd, int argc, char** argv)
     p->base = lfi_proc_base(p->l_proc);
     p->size = lfi_proc_size(p->l_proc);
 
-    if (!procfile(p, fd, argc, argv))
+    if (!procfile(p, prog, progsz, argc, argv))
         return NULL;
     lfix_fdinit(&p->fdtable);
     return p;
@@ -57,24 +58,23 @@ err:
 }
 
 static bool
-procfile(LFIXProc* p, int fd, int argc, char** argv)
+procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv)
 {
     int interpfd = -1;
-    char* interp = elfinterpfd(fd);
-    if (interp) {
-        FILE* f = fopen(interp, "rb");
-        if (f) {
-            interpfd = fileno(f);
-        } else {
-            fprintf(stderr, "error opening dynamic linker %s: %s\n", interp, strerror(errno));
-            free(interp);
+    char* interppath = elfinterp(prog, progsz);
+    Buf interp = (Buf){NULL, 0};
+    if (interppath) {
+        interp = bufreadfile(interppath);
+        if (!interp.data) {
+            fprintf(stderr, "error opening dynamic linker %s: %s\n", interppath, strerror(errno));
+            free(interppath);
             return false;
         }
-        free(interp);
+        free(interppath);
     }
 
     bool success = true;
-    if (!procsetup(p, fd, interpfd, argc, argv))
+    if (!procsetup(p, prog, progsz, interp.data, interp.size, argc, argv))
         success = false;
 
     if (interpfd >= 0)
@@ -156,10 +156,10 @@ procmapsetup(LFIXProc* p, uintptr_t mapstart, uintptr_t mapend)
 }
 
 static bool
-procsetup(LFIXProc* p, int progfd, int interpfd, int argc, char** argv)
+procsetup(LFIXProc* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, int argc, char** argv)
 {
     LFIProcInfo info = {0};
-    bool b = lfi_proc_loadelf(p->l_proc, progfd, interpfd, &info);
+    bool b = lfi_proc_loadelf(p->l_proc, prog, progsz, interp, interpsz, &info);
     if (!b)
         return false;
 
@@ -168,7 +168,7 @@ procsetup(LFIXProc* p, int progfd, int interpfd, int argc, char** argv)
         return false;
 
     uintptr_t entry = info.elfentry;
-    if (interpfd >= 0)
+    if (interp != NULL)
         entry = info.ldentry;
 
     lfi_proc_init(p->l_proc, entry, sp);
@@ -251,7 +251,7 @@ procfree(LFIXProc* proc)
 }
 
 LFIXProc*
-lfix_proc_newfile(LFIXEngine* lfix, int fd, int argc, char** argv)
+lfix_proc_newfile(LFIXEngine* lfix, uint8_t* prog, size_t progsz, int argc, char** argv)
 {
-    return procnewfile(lfix, fd, argc, argv);
+    return procnewfile(lfix, prog, progsz, argc, argv);
 }
