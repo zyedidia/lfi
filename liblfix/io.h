@@ -21,7 +21,7 @@ bufreadfile(const char* filename)
 
     size_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    void* p = mmap(NULL, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, fileno(f), 0);
+    void* p = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fileno(f), 0);
     if (p == (void*) -1)
         goto err;
 
