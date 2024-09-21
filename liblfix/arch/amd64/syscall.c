@@ -132,6 +132,7 @@ SyscallFn syscalls[] = {
     [SYS_dup]               = sysdup_,
     [SYS_rename]            = sysrename_,
     [SYS_getdents64]        = sysgetdents64_,
+    [SYS_prlimit64]         = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
