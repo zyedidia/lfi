@@ -22,8 +22,6 @@ ldr x0, [sp, 16]!
 ---
 add sp, x21, w0, uxtw
 ---
-msr tpidr_el0, x0
----
 nop
 ---
 ldr x0, [x18, #4096]

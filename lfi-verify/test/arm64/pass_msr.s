@@ -1,4 +1,3 @@
-mrs x0, tpidr_el0
 mrs x0, fpsr
 mrs x0, fpcr
 mrs x0, id_aa64pfr0_el1

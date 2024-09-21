@@ -60,3 +60,7 @@ caspl x20, x21, x0, x1, [x21]
 add x21, sp, #0xc20
 ---
 ldr x0, [x21, 16]!
+---
+mrs x0, tpidr_el0
+---
+msr tpidr_el0, x0
