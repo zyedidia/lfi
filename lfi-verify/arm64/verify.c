@@ -114,8 +114,7 @@ addrreg(Verifier* v, uint8_t reg, bool sp)
 static bool
 sysreg(uint16_t sysreg)
 {
-    return sysreg == SYS_tpidr_el0 ||
-        sysreg == SYS_fpsr ||
+    return sysreg == SYS_fpsr ||
         sysreg == SYS_fpcr ||
         sysreg == SYS_id_aa64pfr0_el1 ||
         sysreg == SYS_id_aa64pfr1_el1 ||
