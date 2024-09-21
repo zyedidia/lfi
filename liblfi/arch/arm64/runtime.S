@@ -5,30 +5,30 @@
 
 // Puts Proc* in x22.
 .macro GET_PROC
-	mrs	x22, tpidr_el0
-	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
-	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
-	ldr	x22, [x22]
+	mrs	x21, tpidr_el0
+	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12
+	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
+	ldr	x21, [x21]
 .endm
 
-// save caller-saved registers, assuming sandbox syspage is x22
+// save caller-saved registers, assuming sandbox syspage is x21
 .macro SAVE_PARTIAL_REGS
 	GET_PROC
-	stp x0, x1,   [x22, PROC_REGS+16*0]
-	stp x2, x3,   [x22, PROC_REGS+16*1]
-	stp x4, x5,   [x22, PROC_REGS+16*2]
-	stp x6, x7,   [x22, PROC_REGS+16*3]
-	stp x8, x9,   [x22, PROC_REGS+16*4]
-	stp x10, x11, [x22, PROC_REGS+16*5]
-	stp x12, x13, [x22, PROC_REGS+16*6]
-	stp x14, x15, [x22, PROC_REGS+16*7]
-	stp x16, x17, [x22, PROC_REGS+16*8]
-	str x18,      [x22, PROC_REGS+16*9]
+	stp x0, x1,   [x21, PROC_REGS+16*0]
+	stp x2, x3,   [x21, PROC_REGS+16*1]
+	stp x4, x5,   [x21, PROC_REGS+16*2]
+	stp x6, x7,   [x21, PROC_REGS+16*3]
+	stp x8, x9,   [x21, PROC_REGS+16*4]
+	stp x10, x11, [x21, PROC_REGS+16*5]
+	stp x12, x13, [x21, PROC_REGS+16*6]
+	stp x14, x15, [x21, PROC_REGS+16*7]
+	stp x16, x17, [x21, PROC_REGS+16*8]
+	str x18,      [x21, PROC_REGS+16*9]
 	mov x1, sp
-	stp x30, x1,  [x22, PROC_REGS+16*15]
+	stp x30, x1,  [x21, PROC_REGS+16*15]
 	mrs x0, nzcv
 	mrs x1, fpsr
-	stp x0, x1, [x22, PROC_REGS+8*34]
+	stp x0, x1, [x21, PROC_REGS+8*34]
 .endm
 
 // Puts the sandbox's thread pointer in x0.
@@ -105,11 +105,11 @@ lfi_asm_proc_exit:
 .globl lfi_syscall_entry
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
-	// x22 now contains Proc*
-	ldr x1, [x22]         // load stack
+	// x21 now contains Proc*
+	ldr x1, [x21]         // load stack
 	mov sp, x1
-	str x22, [sp, #-16]!
-	mov x0, x22
+	str x21, [sp, #-16]!
+	mov x0, x21
 	bl lfi_syscall_handler
 	ldr x0, [sp], 16
 	b  lfi_restore_partial_regs
@@ -137,6 +137,7 @@ lfi_restore_partial_regs:
 	ldp x14, x15, [x0, PROC_REGS+16*7]
 	ldp x16, x17, [x0, PROC_REGS+16*8]
 	ldr x18,      [x0, PROC_REGS+16*9]
+	ldr x21,      [x0, PROC_REGS+16*10+8]
 	ldp x30, x1,  [x0, PROC_REGS+16*15]
 	mov sp, x1
 	ldp x0, x1,   [x0, PROC_REGS+16*0]
