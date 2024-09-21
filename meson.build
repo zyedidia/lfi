@@ -28,6 +28,18 @@ argp = subproject('argp').get_variable('argp_dep')
 cpu = target_machine.cpu_family()
 lfi_gcc = find_program(cpu + '-lfi-linux-musl-gcc', required: false)
 
+archmap = {
+  'aarch64': 'arm64',
+  'x86_64': 'amd64',
+}
+
+if not archmap.has_key(cpu)
+  warning('unsupported architecture: ' + cpu)
+  subdir_done()
+endif
+
+cpuarch = archmap[cpu]
+
 go = find_program('go')
 xxd = find_program('xxd', required: false)
 

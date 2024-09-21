@@ -7,7 +7,7 @@ srcs = files(
 
 mmap = subproject('libmmap').get_variable('mmap')
 
-subdir('arch/amd64')
+subdir('arch/' + cpuarch)
 
 liblfix = static_library(
   'lfix',
