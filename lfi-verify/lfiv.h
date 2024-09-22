@@ -25,7 +25,7 @@ typedef enum {
     LFI_METER_NONE,
     LFI_METER_BRANCH,
     LFI_METER_FP,
-    LFI_METER_COUNT,
+    LFI_METER_TIMER,
 } LFIMeterType;
 
 typedef struct {

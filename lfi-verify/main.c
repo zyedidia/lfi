@@ -16,9 +16,12 @@ static char doc[] = "lfiv: LFI verifier";
 
 static char args_doc[] = "INPUT...";
 
+static LFIvOpts opts;
+
 enum {
-    ARG_poc  = 0x80,
-    ARG_decl = 0x81,
+    ARG_poc   = 0x80,
+    ARG_decl  = 0x81,
+    ARG_meter = 0x82,
 };
 
 static struct argp_option options[] = {
@@ -27,6 +30,7 @@ static struct argp_option options[] = {
     { "n",              'n',               "NUM",  0, "run the verifier n times (for benchmarking)" },
     { "poc",            ARG_poc,           0,      0, "require position-oblivious code" },
     { "decl",           ARG_decl,          0,      0, "require deterministic instructions" },
+    { "meter",          ARG_meter,         "TYPE", 0, "require metering instructions" },
     { 0 },
 };
 
@@ -50,10 +54,23 @@ parse_opt(int key, char* arg, struct argp_state* state)
         args->arch = arg;
         break;
     case ARG_poc:
-        args->poc = true;
+        opts.poc = true;
         break;
     case ARG_decl:
-        args->decl = true;
+        opts.decl = true;
+        break;
+    case ARG_meter:
+        opts.meter = LFI_METER_NONE;
+        if (strcmp(arg, "branch") == 0) {
+            opts.meter = LFI_METER_BRANCH;
+            opts.bundle = LFI_BUNDLE16;
+        } else if (strcmp(arg, "timer") == 0) {
+            opts.meter = LFI_METER_TIMER;
+            opts.bundle = LFI_BUNDLE8;
+        } else {
+            fprintf(stderr, "unsupported metering type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
         break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)
@@ -171,10 +188,9 @@ main(int argc, char** argv)
     if (args.n == 0)
         args.n = 1;
 
+    opts.err = errfn;
     LFIVerifier v = (LFIVerifier) {
-        .opts = (LFIvOpts) {
-            .err = errfn,
-        },
+        .opts = opts,
     };
 
     if (strcmp(args.arch, "amd64") == 0)
@@ -184,6 +200,11 @@ main(int argc, char** argv)
     else {
         fprintf(stderr, "verifier for %s does not exist\n", args.arch);
         return 1;
+    }
+
+    if (args.ninputs <= 0) {
+        fprintf(stderr, "no input\n");
+        return 0;
     }
 
     bool failed = false;

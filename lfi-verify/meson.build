@@ -19,7 +19,7 @@ lfiv = executable(
   files('main.c'),
   link_with: [liblfiv],
   include_directories: include_directories('.'),
-  c_args: '-Wno-missing-field-initialiazers',
+  c_args: '-Wno-missing-field-initializers',
   dependencies: [argp],
   install: true
 )

@@ -19,7 +19,7 @@ func fatal(err ...interface{}) {
 }
 
 var compilers = map[string]string{
-	"arm64": "aarch64-linux-gnu-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
+	"arm64": "aarch64-none-elf-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
 	"amd64": "x86_64-linux-gnu-gcc -nostdlib -z separate-code %s -o %s",
 }
 
@@ -34,6 +34,17 @@ func run(command string, flags ...string) (string, error) {
 	cmd.Stdin = os.Stdin
 	err := cmd.Run()
 	return buf.String(), err
+}
+
+func getflags(test string) string {
+	lines := strings.Split(test, "\n")
+	for _, l := range lines {
+		_, after, found := strings.Cut(l, "// flags:")
+		if found {
+			return after
+		}
+	}
+	return ""
 }
 
 func main() {
@@ -82,7 +93,8 @@ func main() {
 			if err != nil {
 				log.Fatal("error compiling:", out)
 			}
-			out, err = run(lfiverify, "-a", *arch, bin)
+			flags := getflags(t)
+			out, err = run("sh", "-c", fmt.Sprintf("%s -a %s %s %s", lfiverify, *arch, flags, bin))
 			var success bool
 			if strings.Contains(input, "fail") {
 				success = err != nil
