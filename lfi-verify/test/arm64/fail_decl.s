@@ -21,3 +21,12 @@ ldr x18, [sp]
 ---
 // flags: --meter=timer
 br x18
+---
+// flags: --meter=timer
+ret
+---
+// flags: --meter=timer
+bic x24, x18, 0x1
+---
+// flags: --meter=timer
+bic x24, xzr, 0x7

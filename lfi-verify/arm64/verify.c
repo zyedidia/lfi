@@ -342,6 +342,16 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
             return true;
     }
 
+    if (v->opts->bundle != LFI_BUNDLE_NONE && dinst->mnem == DA64I_AND_IMM) {
+        // 'bic x24, x18, 0x[f7]' is allowed
+        if (cfreg(v, dinst->ops[0].reg) && addrreg(v, dinst->ops[1].reg, false) && dinst->ops[2].type == DA_OP_IMMLARGE) {
+            if (v->opts->bundle == LFI_BUNDLE8 && dinst->imm64 == 0xfffffffffffffff8)
+                return true;
+            if (v->opts->bundle == LFI_BUNDLE16 && dinst->imm64 == 0xfffffffffffffff0)
+                return true;
+        }
+    }
+
     return false;
 }
 
