@@ -30,3 +30,11 @@ bic x24, x18, 0x1
 ---
 // flags: --meter=timer
 bic x24, xzr, 0x7
+---
+// flags: --poc
+adr x0, .L0
+.L0:
+---
+// flags: --poc
+adrp x0, .L0
+.L0:
