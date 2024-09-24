@@ -296,7 +296,7 @@ okmemop(Verifier* v, struct Da64Op* op)
     case DA_OP_MEMUOFF:
     case DA_OP_MEMSOFF:
         // runtime call
-        if (rtsysreg(v, op->reg) && op->simm16 == 0)
+        if (rtsysreg(v, op->reg) && (op->simm16 == 0 || op->simm16 == 0x8 || op->simm16 == 0x10))
             return true;
         return addrreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
@@ -588,7 +588,7 @@ vchkmeter(Verifier* v, uint32_t* insns, size_t n)
 
         // Branch target is a leader.
         if (!indirect)
-            leaders[target / INSN_SIZE] = true;
+            leaders[(target - addr) / INSN_SIZE] = true;
         // Instruction immediately following a branch is a leader.
         if (i + 1 < n)
             leaders[i + 1] = true;
