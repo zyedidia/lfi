@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "lfiv.h"
 #include "disarm64.h"
@@ -38,6 +39,19 @@ verr(Verifier* v, struct Da64Inst* inst, const char* msg)
     char fmtbuf[128];
     da64_format(inst, fmtbuf);
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
+}
+
+static size_t
+bundlesize(Verifier* v)
+{
+    switch (v->opts->bundle) {
+    case LFI_BUNDLE8:
+        return 8;
+    case LFI_BUNDLE16:
+        return 16;
+    default:
+        assert(!"invalid bundle size");
+    }
 }
 
 enum {
@@ -88,13 +102,17 @@ retreg(uint8_t reg)
 }
 
 static bool
+gasreg(uint8_t reg)
+{
+    return reg == REG_GAS;
+}
+
+static bool
 fixedreg(Verifier* v, uint8_t reg)
 {
     if (reg == REG_BASE)
         return true;
     if (v->opts->decl && reg == REG_SYS)
-        return true;
-    if (v->opts->meter != LFI_METER_NONE && reg == REG_GAS)
         return true;
     return false;
 }
@@ -328,6 +346,19 @@ chkadr(Verifier* v, struct Da64Inst* dinst)
 }
 
 static bool
+okgasmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
+{
+    if (op->type != DA_OP_REGGP &&
+        op->type != DA_OP_REGGPINC &&
+        op->type != DA_OP_REGGPEXT &&
+        op->type != DA_OP_REGSP)
+        return true;
+    if (!gasreg(op->reg))
+        return true;
+    return false;
+}
+
+static bool
 okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 {
     if (op->type != DA_OP_REGGP &&
@@ -405,6 +436,151 @@ vchk(Verifier* v, uint32_t insn)
     }
 }
 
+static bool
+branchinfo(struct Da64Inst* dinst, int64_t* target, bool* indirect)
+{
+    bool branch = true;
+    switch (dinst->mnem) {
+    case DA64I_BLR:
+    case DA64I_BR:
+    case DA64I_RET:
+        *indirect = true;
+        break;
+    case DA64I_BCOND:
+    case DA64I_B:
+    case DA64I_BL:
+        *target = dinst->ops[0].simm16;
+        break;
+    case DA64I_CBZ:
+    case DA64I_CBNZ:
+        *target = dinst->ops[1].simm16;
+        break;
+    case DA64I_TBZ:
+    case DA64I_TBNZ:
+        *target = dinst->ops[2].simm16;
+        break;
+    default:
+        branch = false;
+        break;
+    }
+    return branch;
+}
+
+static uint32_t
+ceilimm(uint32_t imm, uint32_t align)
+{
+    uint32_t mask = align - 1;
+    return (imm + mask) & ~mask;
+}
+
+static uint32_t
+subx23(int64_t imm)
+{
+    const uint32_t OP_SUB = 0b110100010UL << 23;
+    if (imm < 4096) {
+        return OP_SUB | (imm << 10) | (23 << 5) | (23);
+    }
+    if (imm % 4096 != 0) {
+        imm = ceilimm(imm, 4096);
+    }
+    return OP_SUB | (1 << 22) | ((imm >> 12) << 10) | (23 << 5) | (23);
+}
+
+static void
+vchkmeter(Verifier* v, uint32_t* insns, size_t n)
+{
+    bool* leaders = calloc(sizeof(bool) * n, 1);
+    if (!leaders) {
+        verrmin(v, "cannot allocate: out of memory");
+        return;
+    }
+
+    bool* updates = calloc(sizeof(bool) * n, 1);
+    if (!updates) {
+        free(leaders);
+        verrmin(v, "cannot allocate: out of memory");
+        return;
+    }
+
+    struct Da64Inst* insts = calloc(sizeof(struct Da64Inst) * n, 1);
+    if (!insts) {
+        free(leaders);
+        free(updates);
+        verrmin(v, "cannot allocate: out of memory");
+        return;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        da64_decode(insns[i], &insts[i]);
+        assert(insts[i].mnem != DA64I_UNKNOWN);
+    }
+
+    leaders[0] = true;
+
+    // Calculate basic blocks by identifying leaders.
+    for (size_t i = 0; i < n; i++) {
+        struct Da64Inst dinst = insts[i];
+
+        int64_t target;
+        bool indirect;
+        if (!branchinfo(&dinst, &target, &indirect))
+            continue;
+
+        // Branch target is a leader.
+        if (!indirect)
+            leaders[target / 4] = true;
+        // Instruction immediately following a branch is a leader.
+        if (i + 1 < n)
+            leaders[i + 1] = true;
+    }
+
+    size_t curleader = 0;
+    for (size_t i = 0; i < n; i++) {
+        struct Da64Inst dinst = insts[i];
+
+        if (leaders[i])
+            curleader = i;
+
+        int64_t target;
+        bool indirect;
+        bool branch = branchinfo(&dinst, &target, &indirect);
+        if (!branch)
+            continue;
+
+        size_t ibundlesize = bundlesize(v) / INSN_SIZE;
+        if (i % ibundlesize != ibundlesize - 1) {
+            verr(v, &dinst, "branch must occur at the end of a bundle");
+            continue;
+        }
+
+        int64_t bbsize = i - curleader + 1;
+        if (i == 0) {
+            verr(v, &dinst, "branch not preceded by metering sequence");
+            continue;
+        }
+        if (insns[i - 1] != subx23(bbsize)) {
+            verr(v, &dinst, "branch not preceded by correct metering sequence");
+            continue;
+        }
+        updates[i - 1] = true;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        struct Da64Inst dinst = insts[i];
+        if (updates[i])
+            continue;
+        int n = nmod(&dinst);
+        for (int i = 0; i < n; i++) {
+            if (!okgasmod(v, &dinst, &dinst.ops[i]))
+                verr(v, &dinst, "illegal modification of gas register");
+        }
+    }
+
+    free(leaders);
+    free(updates);
+    free(insts);
+}
+
 bool
 lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
 {
@@ -425,6 +601,10 @@ lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
         // Exit early if there is no error reporter.
         if (v.failed && v.err == NULL)
             return false;
+    }
+
+    if (opts->meter != LFI_METER_NONE) {
+        vchkmeter(&v, insns, size / INSN_SIZE);
     }
 
     return !v.failed;

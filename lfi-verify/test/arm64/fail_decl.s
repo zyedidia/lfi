@@ -38,3 +38,36 @@ adr x0, .L0
 // flags: --poc
 adrp x0, .L0
 .L0:
+---
+// flags: --meter=timer
+mov x23, x0
+---
+// flags: --meter=timer
+ldr x23, [sp]
+---
+// flags: --meter=timer
+nop
+nop
+sub x23, x23, #1
+ret x24
+---
+// flags: --meter=timer
+nop
+sub x23, x23, #2
+ret x24
+---
+// flags: --meter=timer
+b foo
+foo:
+---
+// flags: --meter=timer
+mov x23, x0
+sub  x23, x23, #3
+cbnz x0, foo
+foo:
+---
+// flags: --meter=timer
+sub x23, x23, #2
+b foo
+nop
+foo:
