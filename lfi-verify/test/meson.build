@@ -12,7 +12,7 @@ tests_amd64 = [
 ]
 
 amd64_lfi_gcc = find_program('x86_64-linux-gnu-gcc', required: false)
-arm64_lfi_gcc = find_program('aarch64-none-elf-gcc', required: false)
+arm64_lfi_gcc = find_program('aarch64-linux-gnu-gcc', required: false)
 
 if arm64_lfi_gcc.found()
   foreach t : tests_arm64

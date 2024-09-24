@@ -23,3 +23,25 @@ nop
 nop
 sub x23, x23, #4
 ret x24
+---
+// flags: --poc
+adr x18, 0
+---
+// flags: --poc
+adrp x18, foo
+foo:
+---
+// flags: --poc
+ret
+---
+// flags: --poc
+add x18, x21, w22, uxtw
+---
+// flags: --poc
+br x18
+---
+// flags: --poc
+ldr x30, [x25]
+---
+// flags: --meter=timer --poc
+blr x25

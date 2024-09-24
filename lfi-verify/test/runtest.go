@@ -19,7 +19,7 @@ func fatal(err ...interface{}) {
 }
 
 var compilers = map[string]string{
-	"arm64": "aarch64-none-elf-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
+	"arm64": "aarch64-linux-gnu-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
 	"amd64": "x86_64-linux-gnu-gcc -nostdlib -z separate-code %s -o %s",
 }
 

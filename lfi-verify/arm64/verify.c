@@ -90,6 +90,14 @@ cfreg(Verifier* v, uint8_t reg)
 }
 
 static bool
+rtsysreg(Verifier* v, uint8_t reg)
+{
+    if (v->opts->poc)
+        return reg == REG_SYS;
+    return reg == REG_BASE;
+}
+
+static bool
 basereg(uint8_t reg)
 {
     return reg == REG_BASE;
@@ -112,7 +120,7 @@ fixedreg(Verifier* v, uint8_t reg)
 {
     if (reg == REG_BASE)
         return true;
-    if (v->opts->decl && reg == REG_SYS)
+    if (v->opts->poc && reg == REG_SYS)
         return true;
     return false;
 }
@@ -193,6 +201,9 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
 {
     switch (dinst->mnem) {
     case DA64I_BLR:
+        if (rtsysreg(v, dinst->ops[0].reg))
+            return;
+        // fallthrough
     case DA64I_BR:
     case DA64I_RET:
         assert(dinst->ops[0].type == DA_OP_REGGP);
@@ -213,15 +224,15 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
     case DA64I_BCOND:
     case DA64I_B:
     case DA64I_BL:
-        target = dinst->ops[0].simm16;
+        target = v->addr + dinst->imm64;
         break;
     case DA64I_CBZ:
     case DA64I_CBNZ:
-        target = dinst->ops[1].simm16;
+        target = v->addr + dinst->imm64;
         break;
     case DA64I_TBZ:
     case DA64I_TBNZ:
-        target = dinst->ops[2].simm16;
+        target = v->addr + dinst->imm64;
         break;
     default:
         return;
@@ -231,10 +242,14 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
     switch (v->opts->bundle) {
     case LFI_BUNDLE8:
         bundle = 8;
+        break;
     case LFI_BUNDLE16:
         bundle = 16;
+        break;
     default:
+        printf("%d\n", v->opts->bundle);
         assert(!"invalid bundle type");
+        break;
     }
     if (target % bundle != 0) {
         verr(v, dinst, "direct branch target is not bundle-aligned");
@@ -281,7 +296,7 @@ okmemop(Verifier* v, struct Da64Op* op)
     case DA_OP_MEMUOFF:
     case DA_OP_MEMSOFF:
         // runtime call
-        if (basereg(op->reg) && op->simm16 == 0)
+        if (rtsysreg(v, op->reg) && op->simm16 == 0)
             return true;
         return addrreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
@@ -325,6 +340,32 @@ okreadpoc(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
         break;
     default:
         return true;
+    }
+
+    if (dinst->mnem == DA64I_ADD_EXT) {
+        // 'add addrreg, base, lo, uxtw' is allowed.
+        if (addrreg(v, dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
+                dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
+                dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
+            return true;
+    }
+
+    if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
+        // 'ldr x30, [rtsysreg]' is allowed.
+        if (dinst->ops[1].type == DA_OP_MEMUOFF && dinst->ops[1].uimm16 == 0 &&
+                rtsysreg(v, dinst->ops[1].reg))
+            return true;
+    }
+
+    if (v->opts->bundle != LFI_BUNDLE_NONE && dinst->mnem == DA64I_AND_IMM) {
+        // 'bic x24, x18, 0x[f7]' is allowed
+        if (cfreg(v, dinst->ops[0].reg) && addrreg(v, dinst->ops[1].reg, false) &&
+                dinst->ops[2].type == DA_OP_IMMLARGE) {
+            if (v->opts->bundle == LFI_BUNDLE8 && dinst->imm64 == 0xfffffffffffffff8)
+                return true;
+            else if (v->opts->bundle == LFI_BUNDLE16 && dinst->imm64 == 0xfffffffffffffff0)
+                return true;
+        }
     }
 
     if ((fixedreg(v, op->reg) || addrreg(v, op->reg, sp)) && sf)
@@ -372,6 +413,9 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
     if (!addrreg(v, op->reg, op->type == DA_OP_REGSP))
         return true;
 
+    if (v->opts->poc && (dinst->mnem == DA64I_ADR || dinst->mnem == DA64I_ADRP))
+        return true;
+
     if (dinst->mnem == DA64I_ADD_EXT) {
         // 'add addrreg, base, lo, uxtw' is allowed.
         if (addrreg(v, dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
@@ -381,9 +425,9 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
     }
 
     if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
-        // 'ldr x30, [basereg]' is allowed.
+        // 'ldr x30, [rtsysreg]' is allowed.
         if (dinst->ops[1].type == DA_OP_MEMUOFF && dinst->ops[1].uimm16 == 0 &&
-                basereg(dinst->ops[1].reg))
+                rtsysreg(v, dinst->ops[1].reg))
             return true;
     }
 
@@ -429,6 +473,12 @@ vchk(Verifier* v, uint32_t insn)
             verr(v, &dinst, "illegal modification of reserved register");
     }
     if (v->opts->poc) {
+        switch (dinst.mnem) {
+        case DA64I_RET:
+        case DA64I_BR:
+        case DA64I_BLR:
+            return;
+        }
         for (int i = n; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
             if (!okreadpoc(v, &dinst, &dinst.ops[i]))
                 verr(v, &dinst, "illegal read of 64-bit address register");
@@ -437,8 +487,15 @@ vchk(Verifier* v, uint32_t insn)
 }
 
 static bool
-branchinfo(struct Da64Inst* dinst, int64_t* target, bool* indirect)
+branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect)
 {
+    *target = 0;
+    *indirect = false;
+
+    // Don't count runtime calls as branches.
+    if (dinst->mnem == DA64I_BLR && rtsysreg(v, dinst->ops[0].reg))
+        return false;
+
     bool branch = true;
     switch (dinst->mnem) {
     case DA64I_BLR:
@@ -449,15 +506,15 @@ branchinfo(struct Da64Inst* dinst, int64_t* target, bool* indirect)
     case DA64I_BCOND:
     case DA64I_B:
     case DA64I_BL:
-        *target = dinst->ops[0].simm16;
+        *target = v->addr + dinst->imm64;
         break;
     case DA64I_CBZ:
     case DA64I_CBNZ:
-        *target = dinst->ops[1].simm16;
+        *target = v->addr + dinst->imm64;
         break;
     case DA64I_TBZ:
     case DA64I_TBNZ:
-        *target = dinst->ops[2].simm16;
+        *target = v->addr + dinst->imm64;
         break;
     default:
         branch = false;
@@ -517,18 +574,21 @@ vchkmeter(Verifier* v, uint32_t* insns, size_t n)
 
     leaders[0] = true;
 
+    uintptr_t addr = v->addr;
+
     // Calculate basic blocks by identifying leaders.
     for (size_t i = 0; i < n; i++) {
         struct Da64Inst dinst = insts[i];
+        v->addr = addr + i * INSN_SIZE;
 
         int64_t target;
         bool indirect;
-        if (!branchinfo(&dinst, &target, &indirect))
+        if (!branchinfo(v, &dinst, &target, &indirect))
             continue;
 
         // Branch target is a leader.
         if (!indirect)
-            leaders[target / 4] = true;
+            leaders[target / INSN_SIZE] = true;
         // Instruction immediately following a branch is a leader.
         if (i + 1 < n)
             leaders[i + 1] = true;
@@ -537,13 +597,14 @@ vchkmeter(Verifier* v, uint32_t* insns, size_t n)
     size_t curleader = 0;
     for (size_t i = 0; i < n; i++) {
         struct Da64Inst dinst = insts[i];
+        v->addr = addr + i * INSN_SIZE;
 
         if (leaders[i])
             curleader = i;
 
         int64_t target;
         bool indirect;
-        bool branch = branchinfo(&dinst, &target, &indirect);
+        bool branch = branchinfo(v, &dinst, &target, &indirect);
         if (!branch)
             continue;
 
@@ -560,6 +621,7 @@ vchkmeter(Verifier* v, uint32_t* insns, size_t n)
         }
         if (insns[i - 1] != subx23(bbsize)) {
             verr(v, &dinst, "branch not preceded by correct metering sequence");
+            printf("should be %ld %x %x\n", bbsize, subx23(bbsize), insns[i - 1]);
             continue;
         }
         updates[i - 1] = true;
@@ -567,6 +629,8 @@ vchkmeter(Verifier* v, uint32_t* insns, size_t n)
 
     for (size_t i = 0; i < n; i++) {
         struct Da64Inst dinst = insts[i];
+        v->addr = addr + i * INSN_SIZE;
+
         if (updates[i])
             continue;
         int n = nmod(&dinst);
@@ -604,6 +668,7 @@ lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
     }
 
     if (opts->meter != LFI_METER_NONE) {
+        v.addr = addr;
         vchkmeter(&v, insns, size / INSN_SIZE);
     }
 

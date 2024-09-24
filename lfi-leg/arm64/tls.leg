@@ -13,29 +13,31 @@
 
 Top = ReadTP_x0 | ReadTP_any | WriteTP_any !.
 
-ReadTP_any = 'mrs' SEP r:REG COMMA 'tpidr_el0' - {
-    mkinsn("stp x0, x30, [sp, #-16]!");
+ReadTP_any = 'mrs' SEP r:REG COMMA ('tpidr_el0' | 'TPIDR_EL0') - {
+    mkinsn("str x0, [sp, #-16]!");
+    mkinsn("mov w22, w30");
     mkinsn("ldr x30, [%s, #8]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
     mkinsn("mov %s, x0", r.val);
-    mkinsn("ldp x0, x22, [sp], 16");
+    mkinsn("ldr x0, [sp], 16");
     mkinsn("add x30, x21, w22, uxtw");
     rfree(r);
 }
 
-ReadTP_x0 = 'mrs' SEP 'x0' - COMMA 'tpidr_el0' - {
-    mkinsn("mov x22, x30");
+ReadTP_x0 = 'mrs' SEP 'x0' - COMMA ('tpidr_el0' | 'TPIDR_EL0') - {
+    mkinsn("mov w22, w30");
     mkinsn("ldr x30, [%s, #8]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
     mkinsn("add x30, x21, w22, uxtw");
 }
 
-WriteTP_any = 'msr' SEP 'tpidr_el0' COMMA r:REG - {
-    mkinsn("stp x0, x30, [sp, #-16]!");
+WriteTP_any = 'msr' SEP ('tpidr_el0' | 'TPIDR_EL0') COMMA r:REG - {
+    mkinsn("str x0, [sp, #-16]!");
+    mkinsn("mov w22, w30");
     mkinsn("mov x0, %s", r.val);
     mkinsn("ldr x30, [%s, #16]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
-    mkinsn("ldp x0, x22, [sp], 16");
+    mkinsn("ldr x0, [sp], 16");
     mkinsn("add x30, x21, w22, uxtw");
     rfree(r);
 }
