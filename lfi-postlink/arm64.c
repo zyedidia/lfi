@@ -78,18 +78,18 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         if (count != 1)
             continue;
 
-        // target of a branch is a leader
         int64_t target = 0;
+        bool branch = false;
         switch (csi->id) {
         case ARM64_INS_B:
         case ARM64_INS_BL:
             target = csi->detail->arm64.operands[0].imm;
-            leaders[target / 4] = true;
+            branch = true;
             break;
         case ARM64_INS_CBZ:
         case ARM64_INS_CBNZ:
             target = csi->detail->arm64.operands[1].imm;
-            leaders[target / 4] = true;
+            branch = true;
             break;
         case ARM64_INS_TBZ:
         case ARM64_INS_TBNZ:
@@ -98,12 +98,12 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
                 continue;
             }
             target = csi->detail->arm64.operands[2].imm;
-            leaders[target / 4] = true;
+            branch = true;
             break;
         case ARM64_INS_BLR:
         case ARM64_INS_BR:
         case ARM64_INS_RET:
-            if (csi->id == ARM64_INS_BLR && csi->detail->arm64.operands[0].reg == ARM64_REG_X25) {
+            if (csi->id == ARM64_INS_BLR && (csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30)) {
                 cs_free(csi, 1);
                 continue;
             }
@@ -112,6 +112,11 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
             cs_free(csi, 1);
             continue;
         }
+
+        // target of a branch is a leader (in precise mode only)
+        if (args.precise && branch)
+            leaders[target / 4] = true;
+
         // instruction immediately following a branch is a leader
         if (i + 1 < n) {
             leaders[i + 1] = true;

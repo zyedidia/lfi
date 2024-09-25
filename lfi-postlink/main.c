@@ -18,6 +18,7 @@ enum {
     ARG_bundle    = 0x80,
     ARG_meter     = 0x81,
     ARG_noprefix  = 0x82,
+    ARG_precise   = 0x83,
 };
 
 static struct argp_option options[] = {
@@ -25,6 +26,7 @@ static struct argp_option options[] = {
     { "arch",           'a',               "ARCH", 0, "set the target architecture (arm64,amd64)" },
     { "bundle",         ARG_bundle,        "SIZE", 0, "set the bundle size" },
     { "meter",          ARG_meter,         "TYPE", 0, "set the metering type (branch,fp,timer)" },
+    { "precise",        ARG_precise,       0,      0, "enable precise metering" },
     { "no-prefix-pad",  ARG_noprefix,      0,      0, "disable prefix padding" },
     { 0 },
 };
@@ -57,6 +59,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->meter = METER_FP;
         else if (strcmp(arg, "timer") == 0)
             args->meter = METER_TIMER;
+        break;
+    case ARG_precise:
+        args->precise = true;
         break;
     case ARG_noprefix:
         args->noprefix = true;

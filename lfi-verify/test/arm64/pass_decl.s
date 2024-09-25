@@ -45,3 +45,27 @@ ldr x30, [x25]
 ---
 // flags: --meter=timer --poc
 blr x25
+---
+// flags: --meter=timer
+nop
+nop
+foo:
+nop
+nop
+sub x23, x23, #6
+ret x24
+sub x23, x23, #2
+b foo
+---
+// flags: --meter=timer
+nop
+nop
+nop
+sub x23, x23, #4
+foo:
+nop
+nop
+sub x23, x23, #4
+ret x24
+sub x23, x23, #2
+b foo

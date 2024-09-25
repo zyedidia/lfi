@@ -71,3 +71,14 @@ sub x23, x23, #2
 b foo
 nop
 foo:
+---
+// flags: --meter=timer
+nop
+nop
+foo:
+nop
+nop
+sub x23, x23, #4
+ret x24
+sub x23, x23, #2
+b foo

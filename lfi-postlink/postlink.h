@@ -17,6 +17,7 @@ struct arguments {
     int bundle;
     enum meter meter;
     bool noprefix;
+    bool precise;
 };
 
 extern struct arguments args;
