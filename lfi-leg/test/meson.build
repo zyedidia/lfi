@@ -42,6 +42,6 @@ tests = {
 
 foreach arch, atests : tests
   foreach t : atests
-    test(t, go, args: ['run', 'runtest.go', '-arch', arch, lfi_leg, t], workdir: meson.current_source_dir(), suite: ['lfi-leg', arch])
+    test(t, go, args: ['run', 'runtest.go', '-arch', arch, lfi_leg, t], workdir: meson.current_source_dir(), suite: ['lfi-leg', arch], protocol: 'tap')
   endforeach
 endforeach

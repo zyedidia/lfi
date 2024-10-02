@@ -55,49 +55,44 @@ func main() {
 	}
 
 	lfigen := args[0]
-	inputs := args[1:]
+	input := args[1]
 
 	failed := 0
 	passed := 0
 	ntest := 0
-	for _, input := range inputs {
-		data, err := os.ReadFile(input)
+	data, err := os.ReadFile(input)
+	if err != nil {
+		fatal(err)
+	}
+
+	all := string(data)
+	tests := strings.Split(all, "------")
+
+	flags := testflags[filepath.Base(input)]
+	flags = append(flags, "-a", *arch)
+
+	fmt.Printf("1..%d\n", len(tests))
+
+	for _, t := range tests {
+		parts := strings.Split(t, ">>>")
+		parts[1] = strings.TrimSpace(parts[1])
+		out, err := run(lfigen, flags, parts[0])
 		if err != nil {
-			fatal(err)
+			fmt.Printf("not ok %d\n", ntest+1)
+			failed++
+			continue
 		}
-
-		all := string(data)
-		tests := strings.Split(all, "------")
-
-		flags := testflags[filepath.Base(input)]
-		flags = append(flags, "-a", *arch)
-		for _, t := range tests {
-			parts := strings.Split(t, ">>>")
-			parts[1] = strings.TrimSpace(parts[1])
-			out, err := run(lfigen, flags, parts[0])
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "TEST %d (%s) FAIL:\n", ntest, input)
-				fmt.Println(parts[0])
-				failed++
-				continue
-			}
-			out = strings.TrimSpace(out)
-			if out != parts[1] {
-				fmt.Fprintf(os.Stderr, "TEST %d (%s) FAIL:\n", ntest, input)
-				fmt.Println(parts[0])
-				fmt.Fprintln(os.Stderr, "GOT:")
-				fmt.Fprintln(os.Stderr, out)
-				failed++
-			} else {
-				passed++
-			}
-			ntest++
+		out = strings.TrimSpace(out)
+		if out != parts[1] {
+			fmt.Printf("not ok %d\n", ntest+1)
+			fmt.Fprintf(os.Stderr, "%s", parts[0])
+			fmt.Fprintf(os.Stderr, ">>>\n%s\n", out)
+			fmt.Fprintf(os.Stderr, ">>> (expected)\n%s", parts[1])
+			failed++
+		} else {
+			fmt.Printf("ok %d\n", ntest+1)
+			passed++
 		}
+		ntest++
 	}
-
-	if failed > 0 {
-		fmt.Fprintf(os.Stderr, "%s: FAILED: %d\n", *arch, failed)
-		os.Exit(1)
-	}
-	fmt.Fprintf(os.Stderr, "%s: PASSED %d test cases\n", *arch, passed)
 }
