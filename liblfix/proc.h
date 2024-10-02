@@ -15,3 +15,5 @@ int procmapat(LFIXProc* p, uintptr_t start, size_t size, int prot, int flags, in
 int procunmap(LFIXProc* p, uintptr_t start, size_t size);
 
 int procmapany(LFIXProc* p, size_t size, int prot, int flags, int fd, off_t offset, uintptr_t* o_mapstart);
+
+int procchdir(LFIXProc* p, const char* path);

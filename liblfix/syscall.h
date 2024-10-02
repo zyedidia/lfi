@@ -480,6 +480,16 @@ sysunlinkat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags)
 }
 SYSWRAP_3(sysunlinkat, int, uintptr_t, int);
 
+static int
+syschdir(LFIXProc* p, uintptr_t pathp)
+{
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -EFAULT;
+    return syserr(procchdir(p, path));
+}
+SYSWRAP_1(syschdir, uintptr_t);
+
 // Dummy syscalls below, not necessarily safe
 
 static int

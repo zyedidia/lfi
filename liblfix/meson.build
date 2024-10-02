@@ -3,6 +3,7 @@ srcs = files(
   'file.c',
   'fd.c',
   'proc.c',
+  'cwalk/cwalk.c',
 )
 
 mmap = subproject('libmmap').get_variable('mmap')

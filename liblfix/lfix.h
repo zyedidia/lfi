@@ -4,9 +4,18 @@
 #include "fd.h"
 #include "mmap.h"
 
+enum {
+    LFI_PATH_MAX = 4096,
+};
+
 typedef struct {
     LFIEngine* l_engine;
 } LFIXEngine;
+
+typedef struct {
+    char name[LFI_PATH_MAX];
+    int fd;
+} Cwd;
 
 typedef struct LFIXProc {
     LFIProc* l_proc;
@@ -15,6 +24,7 @@ typedef struct LFIXProc {
     LFIXEngine* lfix;
 
     FDTable fdtable;
+    Cwd cwd;
 
     uintptr_t brkbase;
     size_t brksize;

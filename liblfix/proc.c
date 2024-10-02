@@ -1,6 +1,11 @@
+// for O_PATH
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 #include <sys/mman.h>
 
@@ -8,6 +13,8 @@
 #include "elf.h"
 #include "proc.h"
 #include "io.h"
+
+#include "cwalk/cwalk.h"
 
 static bool procsetup(LFIXProc* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, int argc, char** argv);
 static bool procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv);
@@ -23,6 +30,18 @@ uintptr_t
 procuseraddr(LFIXProc* proc, uintptr_t addr)
 {
     return procaddr(proc, addr);
+}
+
+// unused for now
+static inline bool
+cwdcopy(Cwd* cwd, Cwd* to)
+{
+    int fd = open(cwd->name, O_DIRECTORY | O_PATH);
+    if (fd < 0)
+        return false;
+    memcpy(to->name, cwd->name, LFI_PATH_MAX);
+    to->fd = fd;
+    return true;
 }
 
 static LFIXProc*
@@ -254,4 +273,23 @@ LFIXProc*
 lfix_proc_newfile(LFIXEngine* lfix, uint8_t* prog, size_t progsz, int argc, char** argv)
 {
     return procnewfile(lfix, prog, progsz, argc, argv);
+}
+
+int
+procchdir(LFIXProc* p, const char* path)
+{
+    int fd = openat(p->cwd.fd, path, O_DIRECTORY | O_PATH);
+    if (fd < 0)
+        return fd;
+    if (p->cwd.fd >= 0)
+        close(p->cwd.fd);
+
+    if (!cwk_path_is_absolute(path)) {
+        char buffer[LFI_PATH_MAX];
+        cwk_path_join(p->cwd.name, path, buffer, LFI_PATH_MAX);
+        path = buffer;
+    }
+    memcpy(p->cwd.name, path, LFI_PATH_MAX);
+    p->cwd.fd = fd;
+    return 0;
 }
