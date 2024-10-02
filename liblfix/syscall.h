@@ -373,10 +373,14 @@ SYSWRAP_3(sysgetrandom, uintptr_t, size_t, unsigned int);
 static uintptr_t
 sysgetcwd(LFIXProc* p, uintptr_t bufp, size_t size)
 {
+    if (size == 0)
+        return 0;
     uint8_t* buf = procbuf(p, bufp, size);
     if (!buf)
         return -EINVAL;
-    return (uintptr_t) getcwd((char*) buf, size);
+    memcpy(buf, p->cwd.name, size < LFI_PATH_MAX ? size : LFI_PATH_MAX);
+    buf[size - 1] = 0;
+    return (uintptr_t) buf;
 }
 SYSWRAP_2(sysgetcwd, uintptr_t, size_t);
 

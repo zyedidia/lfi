@@ -51,6 +51,12 @@ procnewempty()
     if (!p)
         return NULL;
     *p = (LFIXProc){0};
+    p->cwd.fd = AT_FDCWD;
+    char* cwd = getcwd(p->cwd.name, LFI_PATH_MAX);
+    if (!cwd) {
+        free(p);
+        return NULL;
+    }
     return p;
 }
 
@@ -284,8 +290,8 @@ procchdir(LFIXProc* p, const char* path)
     if (p->cwd.fd >= 0)
         close(p->cwd.fd);
 
+    char buffer[LFI_PATH_MAX];
     if (!cwk_path_is_absolute(path)) {
-        char buffer[LFI_PATH_MAX];
         cwk_path_join(p->cwd.name, path, buffer, LFI_PATH_MAX);
         path = buffer;
     }
