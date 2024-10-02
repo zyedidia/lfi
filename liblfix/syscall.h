@@ -220,7 +220,7 @@ sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
     if (!path)
         return -EFAULT;
     // printf("openat %s\n", path);
-    FDFile* f = lfix_filenew(AT_FDCWD, path, flags, mode);
+    FDFile* f = lfix_filenew(p->cwd.fd, path, flags, mode);
     if (!f)
         return -ENOENT;
     int fd = lfix_fdalloc(&p->fdtable);
@@ -263,7 +263,7 @@ sysfstatat(LFIXProc* p, int dirfd, uintptr_t pathp, uintptr_t statbuf, int flags
             return -EFAULT;
         if (dirfd != AT_FDCWD)
             return -EBADF;
-        return syserr(fstatat(AT_FDCWD, path, stat, flags));
+        return syserr(fstatat(p->cwd.fd, path, stat, flags));
     }
     FDFile* f = lfix_fdget(&p->fdtable, dirfd);
     if (!f)
@@ -388,7 +388,7 @@ sysfaccessat(LFIXProc* p, int dirfd, uintptr_t pathp, int mode, int flags)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
-    return syserr(faccessat(AT_FDCWD, path, mode, flags));
+    return syserr(faccessat(p->cwd.fd, path, mode, flags));
 }
 SYSWRAP_4(sysfaccessat, int, uintptr_t, int, int);
 
@@ -401,7 +401,7 @@ sysreadlinkat(LFIXProc* p, int dirfd, uintptr_t pathp, uintptr_t bufp, size_t si
     uint8_t* buf = procbuf(p, bufp, size);
     if (!path || !buf)
         return -EFAULT;
-    return syserr(readlinkat(AT_FDCWD, path, (char*) buf, size));
+    return syserr(readlinkat(p->cwd.fd, path, (char*) buf, size));
 }
 SYSWRAP_4(sysreadlinkat, int, uintptr_t, uintptr_t, size_t);
 
@@ -414,7 +414,7 @@ sysrenameat2(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t ne
     const char* newpath = procpath(p, newpathp);
     if (!oldpath || !newpath)
         return -EFAULT;
-    return syserr(renameat2(AT_FDCWD, oldpath, AT_FDCWD, newpath, flags));
+    return syserr(renameat2(p->cwd.fd, oldpath, p->cwd.fd, newpath, flags));
 }
 SYSWRAP_5(sysrenameat2, int, uintptr_t, int, uintptr_t, int);
 
@@ -436,7 +436,7 @@ sysmkdirat(LFIXProc* p, int dirfd, uintptr_t pathp, mode_t mode)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
-    return syserr(mkdirat(AT_FDCWD, path, mode));
+    return syserr(mkdirat(p->cwd.fd, path, mode));
 }
 SYSWRAP_3(sysmkdirat, int, uintptr_t, mode_t);
 
@@ -476,7 +476,7 @@ sysunlinkat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
-    return syserr(unlinkat(AT_FDCWD, path, 0));
+    return syserr(unlinkat(p->cwd.fd, path, 0));
 }
 SYSWRAP_3(sysunlinkat, int, uintptr_t, int);
 
