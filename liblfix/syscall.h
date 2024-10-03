@@ -7,10 +7,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <sched.h>
 #include <sys/mman.h>
 #include <sys/random.h>
 #include <sys/sysinfo.h>
-#include <sched.h>
+#include <sys/syscall.h>
+#include <linux/futex.h>
 
 #include "sys.h"
 #include "lfix.h"
@@ -33,7 +35,7 @@ procinbrk(LFIXProc* p, uintptr_t addr, size_t size)
     return addr >= p->brkbase && addr + size <= p->brkbase + p->brksize;
 }
 
-static uint8_t*
+static void*
 procbufalign(LFIXProc* p, uintptr_t buf, size_t size, size_t align)
 {
     buf = procaddr(p, buf);
@@ -41,7 +43,7 @@ procbufalign(LFIXProc* p, uintptr_t buf, size_t size, size_t align)
         return NULL;
     if (size >= p->size || buf + size >= p->base + p->size)
         return NULL;
-    return (uint8_t*) buf;
+    return (void*) buf;
 }
 
 static uint8_t*
@@ -493,6 +495,17 @@ syschdir(LFIXProc* p, uintptr_t pathp)
     return syserr(procchdir(p, path));
 }
 SYSWRAP_1(syschdir, uintptr_t);
+
+static long
+sysfutex(LFIXProc* p, int futex_op, uint32_t val, uintptr_t timeoutp, uintptr_t uaddr2p, uint32_t val3)
+{
+    const struct timespec* timeout = procbufalign(p, timeoutp, sizeof(struct timespec), alignof(struct timespec));
+    uint32_t* uaddr2 = procbufalign(p, uaddr2p, sizeof(uint32_t), alignof(uint32_t));
+    if (!timeout || !uaddr2)
+        return -EINVAL;
+    return syserr(syscall(SYS_futex, futex_op, val, timeout, uaddr2, val3));
+}
+SYSWRAP_5(sysfutex, int, uint32_t, uintptr_t, uintptr_t, uint32_t);
 
 // Dummy syscalls below, not necessarily safe
 
