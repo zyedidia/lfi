@@ -371,7 +371,6 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     void* stack = mmap((void*) ((uintptr_t) g2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
     if (stack == (void*) -1)
         goto maperr;
-    proc->stack = stack;
 
     proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
     if (!proc->sys)
@@ -393,7 +392,7 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     assert(n == sizeof(ehdr)); // must succeed since we just read it to load
 
     *info = (LFIProcInfo) {
-        .stack = (void*) proc->stack,
+        .stack = stack,
         .stacksize = stacksize,
         .lastva = hasinterp ? ilast : plast,
         .elfentry = pentry,

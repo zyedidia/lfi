@@ -31,7 +31,6 @@ typedef struct LFIProc {
     size_t size;
 
     LFISys* sys;
-    void* stack;
 
     LFIEngine* lfi;
     void* ctxp;
