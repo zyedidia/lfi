@@ -116,8 +116,14 @@ bool lfi_adduproc(LFIEngine* lfi, LFIProc** proc, void* ctxp, uintptr_t
 void lfi_rmproc(LFIEngine* lfi, LFIProc* proc);
 
 // lfi_copyproc creates a new process in 'childp' that is a duplicate of
-// 'proc'. This is used for implementing fork.
+// 'proc'. A new sandbox virtual address space is allocated for the new
+// process.
 bool lfi_copyproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* childctxp);
+
+// lfi_cloneproc clones a new process in 'childp'. This is similar to copyproc
+// but a new virtual address space is not created. This is useful for
+// implementing sandbox threads.
+bool lfi_cloneproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* stack, void* childctxp);
 
 // lfi_delete destroys the engine and frees all processes and associated data.
 void lfi_delete(LFIEngine* lfi);

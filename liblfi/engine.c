@@ -8,6 +8,12 @@
 #include "err.h"
 #include "proc.h"
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+#include "arch/arm64/arm64.h"
+#elif defined(__x86_64__) || defined(_M_X64)
+#include "arch/amd64/amd64.h"
+#endif
+
 static size_t
 gb(size_t x)
 {
@@ -276,4 +282,23 @@ lfi_rmproc(LFIEngine* lfi, LFIProc* proc)
 {
     deleteslot(lfi, proc->base);
     lfi_proc_free(proc);
+}
+
+bool
+lfi_cloneproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* stack, void* childctxp)
+{
+    (void) lfi;
+
+    LFIProc* child = malloc(sizeof(LFIProc));
+    if (!child) {
+        lfi_errno = LFI_ERR_NOMEM;
+        return false;
+    }
+
+    *child = *proc;
+    child->ctxp = childctxp;
+    *regs_sp(&child->regs) = (uintptr_t) stack;
+    *childp = child;
+
+    return true;
 }

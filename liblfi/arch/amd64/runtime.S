@@ -18,6 +18,7 @@
 	mov %r8,  PROC_REGS+8*8(%rcx)
 	mov %r9,  PROC_REGS+8*9(%rcx)
 	mov %r10, PROC_REGS+8*10(%rcx)
+	mov %r11, PROC_REGS+8*11(%rcx)
     // TODO: save SIMD registers?
 .endm
 
@@ -193,4 +194,4 @@ lfi_restore_regs:
     mov PROC_REGS+8*14(%rdi), %r14
     mov PROC_REGS+8*15(%rdi), %r15
     mov PROC_REGS+8*7(%rdi), %rdi
-    ret
+    jmpq *%r11

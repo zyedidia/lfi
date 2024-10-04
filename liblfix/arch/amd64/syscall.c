@@ -1,6 +1,9 @@
 // For mremap
 #define _GNU_SOURCE
 
+#include <stdlib.h>
+#include <pthread.h>
+
 #include "syscall.h"
 #include "sys.h"
 
@@ -122,6 +125,42 @@ sysunlink(LFIXProc* p, uintptr_t pathp)
 }
 SYSWRAP_1(sysunlink, uintptr_t);
 
+static void*
+clonestart(void* arg)
+{
+    LFIProc* proc = (LFIProc*) arg;
+    LFIRegs* regs = lfi_proc_regs(proc);
+    regs->rax = 0;
+    printf("clonestart return to %lx\n", regs->r11);
+    lfi_proc_start(proc);
+    assert(!"thread exited");
+}
+
+static long
+sysclone(LFIXProc* p, unsigned long flags, void* stack, int* parent_tid, int* child_tid, unsigned long tls)
+{
+    // TODO: sanitize arguments
+
+    // 1. allocate new LFIXProc, cloned from p, with 'tls'
+    // 2. allocate a new kernel stack
+    // 3. call clone with new kernel stack, to an entry point in the kernel
+    LFIProc* child;
+    bool ok = lfi_cloneproc(p->lfix->l_engine, &child, p->l_proc, stack, p);
+    assert(ok);
+
+    lfi_proc_tpset(child, tls);
+    *parent_tid = 1024;
+    *child_tid = 1024;
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, clonestart, (void*) child);
+    pthread_join(thread, NULL);
+    printf("hello\n");
+
+    return 1024;
+}
+SYSWRAP_5(sysclone, unsigned long, void*, int*, int*, unsigned long);
+
 SyscallFn syscalls[] = {
     [LSYS_read]              = sysread_,
     [LSYS_write]             = syswrite_,
@@ -169,6 +208,7 @@ SyscallFn syscalls[] = {
     [LSYS_readlink]          = sysreadlink_,
     [LSYS_access]            = sysaccess_,
     [LSYS_unlink]            = sysunlink_,
+    [LSYS_clone]             = sysclone_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
