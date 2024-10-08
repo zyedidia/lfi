@@ -30,8 +30,10 @@ typedef struct LFIProc {
     uintptr_t base;
     size_t size;
 
+    uintptr_t g1start, g1end;
+    uintptr_t g2start, g2end;
+
     LFISys* sys;
-    void* stack;
 
     LFIEngine* lfi;
     void* ctxp;

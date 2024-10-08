@@ -196,11 +196,10 @@ enum {
 };
 
 static bool
-bufreadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
-        size_t p_offset, size_t filesz, int prot, FileBuf buf,
-        size_t pagesize, LFIVerifier* verifier)
+bufreadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
+        size_t p_offset, size_t filesz, int prot, FileBuf buf, size_t pagesize)
 {
-    void* p = mmap((void*) start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    void* p = lfi_proc_mmap(proc, start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
     if (p == (void*) -1) {
         lfi_errno = LFI_ERR_CANNOT_MAP;
         return false;
@@ -215,7 +214,7 @@ bufreadelfseg(uintptr_t start, uintptr_t offset, uintptr_t end,
         lfi_errno = LFI_ERR_INVALID_ELF;
         return false;
     }
-    if (mprotectverify((void*) start, end - start, prot, verifier) < 0)
+    if (lfi_proc_mprotect(proc, start, end - start, prot) < 0)
         return false;
     return true;
 }
@@ -293,7 +292,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
 
         /* printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags)); */
 
-        if (!bufreadelfseg(base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize, proc->lfi->opts.verifier))
+        if (!bufreadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
             goto err1;
 
         if (base == 0) {
@@ -367,11 +366,15 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     if (g2 == (void*) -1)
         goto maperr;
 
+    proc->g1start = proc->base; // includes first page, which may be the syspage
+    proc->g1end = guard1 + GUARD1SZ;
+    proc->g2start = guard2;
+    proc->g2end = guard2 + GUARD2SZ;
+
     size_t stacksize = proc->lfi->opts.stacksize;
     void* stack = mmap((void*) ((uintptr_t) g2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
     if (stack == (void*) -1)
         goto maperr;
-    proc->stack = stack;
 
     proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
     if (!proc->sys)
@@ -393,7 +396,7 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     assert(n == sizeof(ehdr)); // must succeed since we just read it to load
 
     *info = (LFIProcInfo) {
-        .stack = (void*) proc->stack,
+        .stack = stack,
         .stacksize = stacksize,
         .lastva = hasinterp ? ilast : plast,
         .elfentry = pentry,
@@ -442,9 +445,19 @@ lfi_syscall_handler(LFIProc* proc)
     *lfi_regs_sysret(&proc->regs) = ret;
 }
 
+static bool
+overlaps(uintptr_t start1, uintptr_t end1, uintptr_t start2, uintptr_t end2)
+{
+    return start1 < end2 && end1 > start2;
+}
+
 void*
 lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset)
 {
+    // Cannot overlap guard pages.
+    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
+        return NULL;
+
     assert(addr >= proc->base && addr < proc->base + proc->size);
     assert(addr % proc->lfi->opts.pagesize == 0);
     assert(size % proc->lfi->opts.pagesize == 0);
@@ -454,6 +467,10 @@ lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, i
 int
 lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 {
+    // Cannot overlap guard pages.
+    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
+        return -1;
+
     assert(addr >= proc->base && addr < proc->base + proc->size);
     return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
 }
@@ -461,6 +478,10 @@ lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 int
 lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
 {
+    // Cannot overlap guard pages.
+    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
+        return -1;
+
     assert(addr >= proc->base && addr < proc->base + proc->size);
     void* p = mmap((void*) addr, size, PROT_NONE, MAPANON, -1, 0);
     if (p == (void*) -1)

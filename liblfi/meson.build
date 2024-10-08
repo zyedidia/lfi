@@ -5,9 +5,11 @@ srcs = [
   'buddy.c',
 ]
 
+mmap = subproject('libmmap').get_variable('mmap')
+
 subdir('arch/' + cpuarch)
 
-liblfi = static_library('lfi', srcs, c_args: c_args_hardened, install: true, dependencies: [liblfiv_dep])
+liblfi = static_library('lfi', srcs, c_args: c_args_hardened, install: true, dependencies: [liblfiv_dep, mmap.as_link_whole()])
 
 install_headers('lfi.h')
 
