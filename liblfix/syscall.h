@@ -13,6 +13,7 @@
 #include <sys/sysinfo.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
+#include <linux/unistd.h>
 
 #include "sys.h"
 #include "lfix.h"
@@ -508,15 +509,26 @@ syschdir(LFIXProc* p, uintptr_t pathp)
 SYSWRAP_1(syschdir, uintptr_t);
 
 static long
-sysfutex(LFIXProc* p, int futex_op, uint32_t val, uintptr_t timeoutp, uintptr_t uaddr2p, uint32_t val3)
+sysfutex(LFIXProc* p, uintptr_t uaddrp, int futex_op, uint32_t val, uintptr_t timeoutp, uintptr_t uaddr2p, uint32_t val3)
 {
     const struct timespec* timeout = procbufalign(p, timeoutp, sizeof(struct timespec), alignof(struct timespec));
-    uint32_t* uaddr2 = procbufalign(p, uaddr2p, sizeof(uint32_t), alignof(uint32_t));
-    if (!timeout || !uaddr2)
+    uint32_t* uaddr = procbufalign(p, uaddrp, sizeof(uint32_t), alignof(uint32_t));
+    // uint32_t* uaddr2 = procbufalign(p, uaddr2p, sizeof(uint32_t), alignof(uint32_t));
+    if (!uaddr)
         return -EINVAL;
-    return syserr(syscall(SYS_futex, futex_op, val, timeout, uaddr2, val3));
+    return syserr(syscall(SYS_futex, uaddr, futex_op, val, 0, 0, 0));
 }
-SYSWRAP_5(sysfutex, int, uint32_t, uintptr_t, uintptr_t, uint32_t);
+SYSWRAP_6(sysfutex, uintptr_t, int, uint32_t, uintptr_t, uintptr_t, uint32_t);
+
+static pid_t
+sysset_tid_address(LFIXProc* p, uintptr_t tidp)
+{
+    int* tid = (int*) procbufalign(p, tidp, sizeof(int), alignof(int));
+    if (!tid)
+        return -EINVAL;
+    return syserr(syscall(SYS_set_tid_address, tid));
+}
+SYSWRAP_1(sysset_tid_address, uintptr_t);
 
 // Dummy syscalls below, not necessarily safe
 

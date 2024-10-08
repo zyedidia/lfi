@@ -125,15 +125,26 @@ sysunlink(LFIXProc* p, uintptr_t pathp)
 }
 SYSWRAP_1(sysunlink, uintptr_t);
 
+struct CloneArgs {
+    int* child_tid;
+    int* parent_tid;
+    LFIProc* proc;
+    pthread_mutex_t mutex;
+};
+
 static void*
 clonestart(void* arg)
 {
-    LFIProc* proc = (LFIProc*) arg;
+    struct CloneArgs* args = (struct CloneArgs*) arg;
+    LFIProc* proc = args->proc;
+    *args->parent_tid = gettid();
+    int* child_tid = args->child_tid;
+    pthread_mutex_unlock(&args->mutex);
     LFIRegs* regs = lfi_proc_regs(proc);
     regs->rax = 0;
-    printf("clonestart return to %lx\n", regs->r11);
     lfi_proc_start(proc);
-    assert(!"thread exited");
+    *child_tid = 0;
+    return NULL;
 }
 
 static long
@@ -149,15 +160,21 @@ sysclone(LFIXProc* p, unsigned long flags, void* stack, int* parent_tid, int* ch
     assert(ok);
 
     lfi_proc_tpset(child, tls);
-    *parent_tid = 1024;
-    *child_tid = 1024;
+
+    struct CloneArgs args = (struct CloneArgs) {
+        .parent_tid = parent_tid,
+        .child_tid = child_tid,
+        .proc = child,
+    };
+    pthread_mutex_lock(&args.mutex);
 
     pthread_t thread;
-    pthread_create(&thread, NULL, clonestart, (void*) child);
-    pthread_join(thread, NULL);
-    printf("hello\n");
+    pthread_create(&thread, NULL, clonestart, &args);
+    pthread_mutex_lock(&args.mutex);
+    pthread_mutex_unlock(&args.mutex);
+    /* pthread_join(thread, NULL); */
 
-    return 1024;
+    return *parent_tid;
 }
 SYSWRAP_5(sysclone, unsigned long, void*, int*, int*, unsigned long);
 
@@ -167,7 +184,7 @@ SyscallFn syscalls[] = {
     [LSYS_readv]             = sysreadv_,
     [LSYS_writev]            = syswritev_,
     [LSYS_archprctl]         = sysarchprctl_,
-    [LSYS_set_tid_address]   = sysignore_,
+    [LSYS_set_tid_address]   = sysset_tid_address_,
     [LSYS_brk]               = sysbrk_,
     [LSYS_ioctl]             = sysignore_,
     [LSYS_exit_group]        = sysexit_,
@@ -209,6 +226,7 @@ SyscallFn syscalls[] = {
     [LSYS_access]            = sysaccess_,
     [LSYS_unlink]            = sysunlink_,
     [LSYS_clone]             = sysclone_,
+    [LSYS_readlink]          = sysreadlink_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");

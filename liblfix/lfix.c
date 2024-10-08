@@ -20,7 +20,7 @@ lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
     LFIXProc* p = (LFIXProc*) ctxp;
     uintptr_t ret = fn(p, a0, a1, a2, a3, a4, a5);
 
-    printf("syscall: %ld = %lx\n", sysno, ret);
+    /* printf("syscall: %ld = %lx\n", sysno, ret); */
     return ret;
 
 nosys:
