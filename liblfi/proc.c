@@ -176,18 +176,19 @@ typedef struct {
     size_t size;
 } FileBuf;
 
+static size_t
+min(size_t a, size_t b)
+{
+    return a < b ? a : b;
+}
+
 // read 'count' bytes from 'buf' into 'to', starting at 'offset'.
 static size_t
 bufread(FileBuf buf, void* to, size_t count, off_t offset)
 {
-    size_t i;
-    char* toc = (char*) to;
-    for (i = 0; i < count; i++) {
-        if (offset + i >= buf.size)
-            break;
-        toc[i] = buf.data[offset + i];
-    }
-    return i;
+    size_t n = min(count, buf.size - offset);
+    memcpy(to, &buf.data[offset], n);
+    return n;
 }
 
 enum {

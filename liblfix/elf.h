@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 enum {
     PT_NULL    = 0,
@@ -81,16 +82,17 @@ enum {
 };
 
 static size_t
+min(size_t a, size_t b)
+{
+    return a < b ? a : b;
+}
+
+static size_t
 bufread(uint8_t* buf, size_t bufsz, void* to, size_t count, off_t offset)
 {
-    size_t i;
-    char* toc = (char*) to;
-    for (i = 0; i < count; i++) {
-        if (offset + i >= bufsz)
-            break;
-        toc[i] = buf[offset + i];
-    }
-    return i;
+    size_t n = min(count, bufsz - offset);
+    memcpy(to, &buf[offset], n);
+    return n;
 }
 
 // The return value is dynamically allocated and must be freed by

@@ -30,5 +30,6 @@ lfi_run = executable(
   'lfi-run',
   lfi_run_srcs,
   dependencies: [liblfix_dep, mmap, liblfi_dep, liblfiv_dep, argp],
+  link_args: ['-static'],
   install: true,
 )
