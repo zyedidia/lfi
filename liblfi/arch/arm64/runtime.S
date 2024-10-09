@@ -3,7 +3,7 @@
 
 .text
 
-// Puts Proc* in x22.
+// Puts Proc* in x21.
 .macro GET_PROC
 	mrs	x21, tpidr_el0
 	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12

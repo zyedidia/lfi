@@ -140,3 +140,9 @@ ldp x25, x30, [sp, #30]
 >>>
 ldp x25, x22, [sp, #30]
 add x30, x21, w22, uxtw
+------
+adrp x0, :got:x;ldr x0, [x0, :got_lo12:x]
+>>>
+adrp x0, :got:x
+add x18, x21, w0, uxtw
+ldr x0, [x18, :got_lo12:x]

@@ -20,7 +20,7 @@ Insn = - Label? (
     | Directive Comment?
     | Comment
     | Any
-) EOL+
+) (EOL | ';')+
 
 Comment = '//' (!EOL .)*
 
@@ -41,7 +41,7 @@ Directive = < '.' (!EOL .)* > - {
     mkdirective(strndup(yytext, yyleng));
 }
 
-Any = < (!EOL .)* > {
+Any = < (!(EOL | ';') .)* > {
     if (yyleng > 0)
         mkinsn("%s", yytext);
 }

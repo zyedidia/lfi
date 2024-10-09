@@ -17,10 +17,10 @@ add x30, x21, w22, uxtw
 ------
 msr tpidr_el0, x1
 >>>
-str x0, [sp, #-16]!
 mov w22, w30
+stp x0, x22, [sp, #-16]!
 mov x0, x1
 ldr x30, [x21, #16]
 blr x30
-ldr x0, [sp], 16
+ldp x0, x22, [sp], 16
 add x30, x21, w22, uxtw
