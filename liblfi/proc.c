@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/mman.h>
 
 #include "align.h"
@@ -55,6 +56,18 @@ proc_validate(LFIProc* proc)
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
         /* *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size; */
         *lfi_regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
+}
+
+bool
+lfi_proc_meminit(LFIProc* proc)
+{
+    uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
+
+    if (!mm_init(&proc->mm, guard1 + GUARD1SZ, proc->size - GUARD2SZ, proc->lfi->opts.pagesize)) {
+        lfi_errno = LFI_ERR_NOMEM;
+        return false;
+    }
+    return true;
 }
 
 bool
@@ -199,7 +212,7 @@ static bool
 bufreadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
         size_t p_offset, size_t filesz, int prot, FileBuf buf, size_t pagesize)
 {
-    void* p = lfi_proc_mmap(proc, start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    void* p = lfi_proc_mapat(proc, start, end - start, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
     if (p == (void*) -1) {
         lfi_errno = LFI_ERR_CANNOT_MAP;
         return false;
@@ -451,24 +464,64 @@ overlaps(uintptr_t start1, uintptr_t end1, uintptr_t start2, uintptr_t end2)
     return start1 < end2 && end1 > start2;
 }
 
-void*
-lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset)
+static int
+procmap(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
 {
-    // Cannot overlap guard pages.
-    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
-        return NULL;
+    assert(!overlaps(start, start+size, proc->g1start, proc->g1end) &&
+           !overlaps(start, start+size, proc->g2start, proc->g2end));
 
-    assert(addr >= proc->base && addr < proc->base + proc->size);
-    assert(addr % proc->lfi->opts.pagesize == 0);
+    assert(start >= proc->base && start < proc->base + proc->size);
+    assert(start % proc->lfi->opts.pagesize == 0);
     assert(size % proc->lfi->opts.pagesize == 0);
-    return mmapverify((void*) addr, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+
+    void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+    if (mem == (void*) -1)
+        return -errno;
+    return 0;
+}
+
+void*
+lfi_proc_mapany(LFIProc* proc, size_t size, int prot, int flags, int fd, off_t offset)
+{
+    uintptr_t addr = mm_mapany(&proc->mm, size, prot, flags, fd, offset);
+    if (addr == (uint64_t) -1)
+        return NULL;
+    int r = procmap(proc, addr, size, prot, flags, fd, offset);
+    if (r < 0) {
+        mm_unmap(&proc->mm, addr, size);
+        return (void*) -1;
+    }
+    return (void*) addr;
+}
+
+static void
+cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
+{
+    (void) udata, (void) info;
+    void* p = mmap((void*) start, len, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+    assert(p == (void*) start);
+}
+
+void*
+lfi_proc_mapat(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
+{
+    uintptr_t addr = mm_mapat_cb(&proc->mm, start, size, prot, flags, fd, offset, cbunmap, NULL);
+    if (addr == (uint64_t) -1)
+        return (void*) -1;
+    int r = procmap(proc, addr, size, prot, flags, fd, offset);
+    if (r < 0) {
+        mm_unmap(&proc->mm, addr, size);
+        return (void*) -1;
+    }
+    return (void*) addr;
 }
 
 int
 lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 {
     // Cannot overlap guard pages.
-    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
+    if (overlaps(addr, size, proc->g1start, proc->g1end) ||
+        overlaps(addr, size, proc->g2start, proc->g2end))
         return -1;
 
     assert(addr >= proc->base && addr < proc->base + proc->size);
@@ -479,14 +532,11 @@ int
 lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
 {
     // Cannot overlap guard pages.
-    if (overlaps(addr, size, proc->g1start, proc->g1end) || overlaps(addr, size, proc->g2start, proc->g2end))
+    if (overlaps(addr, size, proc->g1start, proc->g1end) ||
+        overlaps(addr, size, proc->g2start, proc->g2end))
         return -1;
 
-    assert(addr >= proc->base && addr < proc->base + proc->size);
-    void* p = mmap((void*) addr, size, PROT_NONE, MAPANON, -1, 0);
-    if (p == (void*) -1)
-        return -1;
-    return 0;
+    return mm_unmap_cb(&proc->mm, addr, size, cbunmap, NULL);
 }
 
 void

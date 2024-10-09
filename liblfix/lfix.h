@@ -2,7 +2,6 @@
 
 #include "lfi.h"
 #include "fd.h"
-#include "mmap.h"
 
 enum {
     LFI_PATH_MAX = 4096,
@@ -28,7 +27,6 @@ typedef struct LFIXProc {
 
     uintptr_t brkbase;
     size_t brksize;
-    MMAddrSpace mm;
 } LFIXProc;
 
 bool lfix_init(LFIXEngine* lfi);

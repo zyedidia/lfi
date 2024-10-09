@@ -241,6 +241,10 @@ lfi_addproc(LFIEngine* lfi, LFIProc** proc, void* ctxp)
         .lfi = lfi,
         .ctxp = ctxp,
     };
+    if (!lfi_proc_meminit(p)) {
+        free(p);
+        return false;
+    }
 
     *proc = p;
 

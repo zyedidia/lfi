@@ -175,12 +175,6 @@ stacksetup(LFIXProc* p, int argc, char** argv, LFIProcInfo* info, uintptr_t* new
 }
 
 static bool
-procmapsetup(LFIXProc* p, uintptr_t mapstart, uintptr_t mapend)
-{
-    return mm_init(&p->mm, mapstart, mapend - mapstart, getpagesize());
-}
-
-static bool
 procsetup(LFIXProc* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, int argc, char** argv)
 {
     LFIProcInfo info = {0};
@@ -201,14 +195,17 @@ procsetup(LFIXProc* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t int
     p->brkbase = info.lastva;
     p->brksize = 0;
 
-    if (!procmapsetup(p, p->brkbase + BRKMAXSIZE, (uintptr_t) info.stack - getpagesize()))
+    // Reserve the brk region.
+    const int mapflags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED;
+    void* brkregion = lfi_proc_mapat(p->l_proc, p->brkbase, BRKMAXSIZE, PROT_NONE, mapflags, -1, 0);
+    if (brkregion == (void*) -1)
         return false;
 
     return true;
 }
 
-static int
-procmap(LFIXProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
+int
+procmapany(LFIXProc* p, size_t size, int prot, int flags, int fd, off_t offset, uintptr_t* o_mapstart)
 {
     if (fd >= 0) {
         FDFile* f = lfix_fdget(&p->fdtable, fd);
@@ -218,61 +215,41 @@ procmap(LFIXProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, 
             return -EACCES;
         fd = f->mapfd(f->dev);
     }
-    void* mem = mmap((void*) start, size, prot, flags | MAP_FIXED, fd, offset);
-    if (mem == (void*) -1)
-        return -errno;
-    return 0;
-}
-
-int
-procmapany(LFIXProc* p, size_t size, int prot, int flags, int fd, off_t offset, uintptr_t* o_mapstart)
-{
-    uintptr_t addr = mm_mapany(&p->mm, size, prot, flags, fd, offset);
-    if (addr == (uint64_t) -1)
+    void* addr = lfi_proc_mapany(p->l_proc, size, prot, flags, fd, offset);
+    if (addr == (void*) -1)
         return -EINVAL;
-    int r = procmap(p, addr, size, prot, flags, fd, offset);
-    if (r < 0) {
-        mm_unmap(&p->mm, addr, size);
-        return r;
-    }
-    *o_mapstart = addr;
+    *o_mapstart = (uintptr_t) addr;
     return 0;
-}
-
-static void
-cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
-{
-    (void) udata;
-    (void) info;
-    void* p = mmap((void*) start, len, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-    assert(p == (void*) start);
 }
 
 int
 procmapat(LFIXProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
 {
-    uintptr_t addr = mm_mapat_cb(&p->mm, start, size, prot, flags, fd, offset, cbunmap, NULL);
-    if (addr == (uint64_t) -1)
-        return -EINVAL;
-    int r = procmap(p, addr, size, prot, flags, fd, offset);
-    if (r < 0) {
-        mm_unmap(&p->mm, addr, size);
-        return r;
+    if (fd >= 0) {
+        FDFile* f = lfix_fdget(&p->fdtable, fd);
+        if (!f)
+            return -EBADF;
+        if (!f->mapfd)
+            return -EACCES;
+        fd = f->mapfd(f->dev);
     }
+    void* addr = lfi_proc_mapat(p->l_proc, start, size, prot, flags, fd, offset);
+    if (addr == (void*) -1)
+        return -EINVAL;
     return 0;
 }
 
 int
 procunmap(LFIXProc* p, uintptr_t start, size_t size)
 {
-    return mm_unmap_cb(&p->mm, start, size, cbunmap, NULL);
+    return lfi_proc_munmap(p->l_proc, start, size);
 }
 
 static void
 procfree(LFIXProc* proc)
 {
     (void) proc;
-    // TODO: free l_proc and MMAddrSpace
+    // TODO: free l_proc
 }
 
 LFIXProc*

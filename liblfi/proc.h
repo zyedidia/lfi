@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lfi.h"
+#include "mmap.h"
 
 enum {
     CODEMAX = 1ULL * 1024 * 1024 * 1024,
@@ -32,6 +33,7 @@ typedef struct LFIProc {
 
     uintptr_t g1start, g1end;
     uintptr_t g2start, g2end;
+    MMAddrSpace mm;
 
     LFISys* sys;
 
@@ -40,3 +42,5 @@ typedef struct LFIProc {
 } LFIProc;
 
 void lfi_proc_free(LFIProc* proc);
+
+bool lfi_proc_meminit(LFIProc* proc);

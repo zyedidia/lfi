@@ -141,13 +141,19 @@ void lfi_proc_exit(uint64_t code);
 // dynamic linker. Output information will be placed in 'o_info'.
 bool lfi_proc_loadelf(LFIProc* proc, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, LFIProcInfo* o_info);
 
-// lfi_proc_mmap maps a region of memory in a process's address space.
+// lfi_proc_mapat maps a specific region of memory in a process's address space.
 //
-// If the mapping includes PROT_EXEC, it will be automatically verified. You
-// must include MAP_FIXED in the flags and provide a valid value for 'addr'
-// (one that is within the sandbox). The addr and size must both be a multiple
-// of pagesize, as defined in LFIOptions.
-void* lfi_proc_mmap(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset);
+// If the mapping includes PROT_EXEC, it will be automatically verified. This
+// will map at the given address 'addr' and fail otherwise (forced MAP_FIXED).
+// The size and address must be a multiple of the pagesize as defined in the
+// LFI options.
+void* lfi_proc_mapat(LFIProc* proc, uintptr_t addr, size_t size, int prot, int flags, int fd, off_t offset);
+
+// lfi_proc_mapany maps a new unmapped region of memory in a process's address
+// space.
+//
+// This is similar to mmap without MAP_FIXED.
+void* lfi_proc_mapany(LFIProc* proc, size_t size, int prot, int flags, int fd, off_t offset);
 
 // lfi_proc_mprotect sets the protection for a region of a process's address space.
 //
