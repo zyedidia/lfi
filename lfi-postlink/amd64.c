@@ -41,6 +41,81 @@ isjmp(ZydisMnemonic mnemonic)
     }
 }
 
+static uint8_t nops[12][12] = {
+    [1]  = {0x90},
+    [2]  = {0x66, 0x90},
+    [3]  = {0xf, 0x1f, 0x00},
+    [4]  = {0x0f, 0x1f, 0x40, 0x00},
+    [5]  = {0x0f, 0x1f, 0x44, 0x00, 0x00},
+    [6]  = {0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00},
+    [7]  = {0x0f, 0x1f, 0x80, 0x00, 0x00, 0x00, 0x00},
+    [8]  = {0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+    [9]  = {0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+    [10] = {0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+    [11] = {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00},
+};
+
+static void
+makenop(uint8_t* buf, size_t size)
+{
+    assert(size <= 11);
+    memcpy(buf, nops[size], size);
+}
+
+// Creates a nop chunk of size 'size' where no nops cross bundle boundaries.
+static void
+nopbundle(uintptr_t addr, uint8_t* buf, size_t size, size_t bsz)
+{
+    size_t nextnop = 0;
+    size_t lastnop = 0;
+    for (size_t i = 0; i < size; i++) {
+        if (addr % bsz == 0 || nextnop >= 11) {
+            if (nextnop > 0) {
+                makenop(&buf[lastnop], nextnop);
+            }
+            lastnop = i;
+            nextnop = 0;
+        }
+
+        addr++;
+        nextnop++;
+    }
+    if (nextnop > 0)
+        makenop(&buf[lastnop], nextnop);
+}
+
+static void
+nopfix(uint8_t* insns, size_t n, size_t bsz, size_t addr)
+{
+    ZydisDecoder decoder;
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+
+    ZydisDecoderContext context;
+    ZydisDecodedInstruction instr;
+    size_t count = 0;
+    size_t nopchunk = 0;
+    size_t nopstart;
+    while (count < n) {
+        ZyanStatus status = ZydisDecoderDecodeInstruction(&decoder, &context, &insns[count], n-count, &instr);
+        if (ZYAN_FAILED(status)) {
+            fprintf(stderr, "nopfix failed %lx\n", addr);
+            return;
+        }
+        if (instr.mnemonic == ZYDIS_MNEMONIC_NOP) {
+            if (nopchunk == 0)
+                nopstart = count;
+            nopchunk += instr.length;
+        } else {
+            if (nopchunk > 0)
+                nopbundle(addr + nopstart, &insns[nopstart], nopchunk, bsz);
+            nopchunk = 0;
+        }
+        count += instr.length;
+    }
+    if (nopchunk > 0)
+        nopbundle(addr + nopstart, &insns[nopstart], nopchunk, bsz);
+}
+
 static void
 bundlefix(uint8_t* insns, size_t n, size_t bsz, size_t addr)
 {
@@ -53,7 +128,7 @@ bundlefix(uint8_t* insns, size_t n, size_t bsz, size_t addr)
     while (count < bsz) {
         ZyanStatus status = ZydisDecoderDecodeInstruction(&decoder, &context, &insns[count], n-count, &instr);
         if (ZYAN_FAILED(status)) {
-            // fprintf(stderr, "call rewrite failed %lx\n", addr);
+            fprintf(stderr, "bundlefix failed %lx\n", addr);
             return;
         }
         count += instr.length;
@@ -271,8 +346,9 @@ amd64_postlink(uint8_t* buf, size_t sz)
 
         uint8_t* code = &buf[p->offset];
         size_t count = 0;
+        nopfix(code, p->filesz, args.bundle, p->vaddr);
         while (count + args.bundle <= p->filesz) {
-            /* bundlefix(&code[count], p->filesz, args.bundle, p->vaddr + count); */
+            bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count);
             if (!args.noprefix && false)
                 padrewrite(&code[count], args.bundle, p->vaddr + count);
             callrewrite(&code[count], args.bundle, p->vaddr + count);
