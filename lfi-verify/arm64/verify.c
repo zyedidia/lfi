@@ -425,8 +425,8 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
     }
 
     if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
-        // 'ldr x30, [rtsysreg]' is allowed.
-        if (dinst->ops[1].type == DA_OP_MEMUOFF && dinst->ops[1].uimm16 == 0 &&
+        // 'ldr x30, [rtsysreg, #n]' is allowed.
+        if (dinst->ops[1].type == DA_OP_MEMUOFF &&
                 rtsysreg(v, dinst->ops[1].reg))
             return true;
     }

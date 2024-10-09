@@ -64,3 +64,5 @@ ldr x0, [x21, 16]!
 mrs x0, tpidr_el0
 ---
 msr tpidr_el0, x0
+---
+ldr x30, [x21, 24]
