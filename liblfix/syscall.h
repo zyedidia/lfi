@@ -29,6 +29,13 @@ truncp(uintptr_t addr, size_t align)
     return addr & ~align_mask;
 }
 
+static uintptr_t
+ceilp(uintptr_t addr, size_t align)
+{
+    size_t align_mask = align - 1;
+    return (addr + align_mask) & ~align_mask;
+}
+
 static bool
 procinbrk(LFIXProc* p, uintptr_t addr, size_t size)
 {
@@ -221,7 +228,6 @@ sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
-    // printf("openat %s\n", path);
     FDFile* f = lfix_filenew(p->cwd.fd, path, flags, mode);
     if (!f)
         return -ENOENT;
@@ -288,6 +294,7 @@ sysmmap(LFIXProc* p, uintptr_t addrp, size_t length, int prot, int flags, int fd
 {
     if (length == 0)
         return -EINVAL;
+    length = ceilp(length, getpagesize());
 
     // The flags listed are the only allowed flags.
     const int illegal_mask = ~MAP_ANONYMOUS &

@@ -94,6 +94,34 @@ sysrenameat(LFIXProc* p, int oldfd, uintptr_t oldp, int newfd, uintptr_t newp)
 }
 SYSWRAP_4(sysrenameat, int, uintptr_t, int, uintptr_t);
 
+static int
+sysstat(LFIXProc* p, uintptr_t pathp, uintptr_t statbufp)
+{
+    return sysfstatat(p, AT_FDCWD, pathp, statbufp, 0);
+}
+SYSWRAP_2(sysstat, uintptr_t, uintptr_t);
+
+static ssize_t
+sysreadlink(LFIXProc* p, uintptr_t pathp, uintptr_t bufp, size_t bufsiz)
+{
+    return sysreadlinkat(p, AT_FDCWD, pathp, bufp, bufsiz);
+}
+SYSWRAP_3(sysreadlink, uintptr_t, uintptr_t, size_t);
+
+static int
+sysaccess(LFIXProc* p, uintptr_t pathp, int mode)
+{
+    return sysfaccessat(p, AT_FDCWD, pathp, mode, 0);
+}
+SYSWRAP_2(sysaccess, uintptr_t, int);
+
+static int
+sysunlink(LFIXProc* p, uintptr_t pathp)
+{
+    return sysunlinkat(p, AT_FDCWD, pathp, 0);
+}
+SYSWRAP_1(sysunlink, uintptr_t);
+
 SyscallFn syscalls[] = {
     [LSYS_read]              = sysread_,
     [LSYS_write]             = syswrite_,
@@ -137,6 +165,10 @@ SyscallFn syscalls[] = {
     [LSYS_chdir]             = syschdir_,
     [LSYS_unlinkat]          = sysunlinkat_,
     [LSYS_futex]             = sysfutex_,
+    [LSYS_stat]              = sysstat_,
+    [LSYS_readlink]          = sysreadlink_,
+    [LSYS_access]            = sysaccess_,
+    [LSYS_unlink]            = sysunlink_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
