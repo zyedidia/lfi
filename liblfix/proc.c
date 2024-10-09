@@ -272,7 +272,7 @@ procchdir(LFIXProc* p, const char* path)
         cwk_path_join(p->cwd.name, path, buffer, LFI_PATH_MAX);
         path = buffer;
     }
-    memcpy(p->cwd.name, path, LFI_PATH_MAX);
+    strncpy(p->cwd.name, path, LFI_PATH_MAX);
     p->cwd.fd = fd;
     return 0;
 }
