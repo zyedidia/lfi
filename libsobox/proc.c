@@ -6,10 +6,11 @@
 #include "sobox.h"
 #include "proc.h"
 #include "elf.h"
+#include "io.h"
 
 #include "stub/stub.inc"
 
-static bool procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, int argc, const char** argv);
+static bool procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, uint8_t* interp, size_t interpsz, int argc, const char** argv);
 static bool procfile(SoboxProc* p, int argc, const char** argv);
 static void procfree(SoboxProc*);
 
@@ -42,7 +43,7 @@ procnewfile(Sobox* sbx, int argc, const char** argv)
     if (!p)
         return NULL;
     p->sbx = sbx;
-    int err = lfi_add_proc(sbx->lfimgr, &p->proc, p);
+    int err = lfi_addproc(sbx->lfimgr, &p->proc, p);
     if (err < 0)
         goto err;
     p->base = lfi_proc_base(p->proc);
@@ -59,17 +60,34 @@ err:
 static bool
 procfile(SoboxProc* p, int argc, const char** argv)
 {
-    uint8_t* buf = libsobox_stub_stub;
-    size_t bufsize = libsobox_stub_stub_len;
+    uint8_t* prog = libsobox_stub_stub;
+    size_t progsz = libsobox_stub_stub_len;
 
-    if (!procsetup(p, buf, bufsize, argc, argv))
-        return false;
+    int interpfd = -1;
+    char* interppath = elfinterp(prog, progsz);
+    Buf interp = (Buf){NULL, 0};
+    if (interppath) {
+        interp = bufreadfile(interppath);
+        if (!interp.data) {
+            fprintf(stderr, "error opening dynamic linker %s: %s\n", interppath, strerror(errno));
+            free(interppath);
+            return false;
+        }
+        free(interppath);
+    }
 
-    return true;
+    bool success = true;
+    if (!procsetup(p, prog, progsz, interp.data, interp.size, argc, argv))
+        success = false;
+
+    if (interpfd >= 0)
+        close(interpfd);
+
+    return success;
 }
 
 static bool
-stacksetup(SoboxProc* p, int argc, const char** argv, struct lfi_proc_info* info, uintptr_t* newsp)
+stacksetup(SoboxProc* p, int argc, const char** argv, LFIProcInfo* info, uintptr_t* newsp)
 {
     // TODO: do we actually want to support argc/argv? Technically not
     // necessary for procraries since they are not used by the stub.
@@ -110,33 +128,11 @@ stacksetup(SoboxProc* p, int argc, const char** argv, struct lfi_proc_info* info
 }
 
 static bool
-procmapsetup(SoboxProc* p, uintptr_t mapstart, uintptr_t mapend)
+procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, uint8_t* interp, size_t interpsz, int argc, const char** argv)
 {
-    return mm_init(&p->mm, mapstart, mapend - mapstart, getpagesize());
-}
-
-static bool
-procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, int argc, const char** argv)
-{
-    struct lfi_proc_info info;
-
-    int r;
-    char* ldfile = elfinterp(buf);
-    if (ldfile) {
-        // TODO: fix this
-        ldfile = DYNLINKER;
-        size_t ldsize;
-        assert(p->sbx->readfile);
-        uint8_t* ld = p->sbx->readfile(ldfile, &ldsize);
-        if (!ld)
-            return false;
-        r = lfi_proc_exec_dyn(p->proc, (uint8_t*) buf, bufsize, (uint8_t*) ld, ldsize, &info);
-        free(ld);
-    } else {
-        return false;
-    }
-
-    if (r < 0)
+    LFIProcInfo info = {0};
+    bool b = lfi_proc_loadelf(p->proc, buf, bufsize, interp, interpsz, &info);
+    if (!b)
         return false;
 
     uintptr_t sp;
@@ -144,22 +140,25 @@ procsetup(SoboxProc* p, uint8_t* buf, size_t bufsize, int argc, const char** arg
         return false;
 
     uintptr_t entry = info.elfentry;
-    if (ldfile)
+    if (interp != NULL)
         entry = info.ldentry;
 
-    lfi_proc_init_regs(p->proc, entry, sp);
+    lfi_proc_init(p->proc, entry, sp);
 
     p->brkbase = info.lastva;
     p->brksize = 0;
 
-    if (!procmapsetup(p, p->brkbase + BRKMAXSIZE, (uintptr_t) info.stack - getpagesize()))
+    // Reserve the brk region.
+    const int mapflags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED;
+    void* brkregion = lfi_proc_mapat(p->proc, p->brkbase, BRKMAXSIZE, PROT_NONE, mapflags, -1, 0);
+    if (brkregion == (void*) -1)
         return false;
 
     return true;
 }
 
-static int
-procmap(SoboxProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
+int
+procmapany(SoboxProc* p, size_t size, int prot, int flags, int fd, off_t offset, uintptr_t* o_mapstart)
 {
     if (fd >= 0) {
         FDFile* f = fdget(&p->fdtable, fd);
@@ -169,54 +168,34 @@ procmap(SoboxProc* p, uintptr_t start, size_t size, int prot, int flags, int fd,
             return -EACCES;
         fd = f->mapfd(f->dev);
     }
-    void* mem = mmap((void*) start, size, prot, flags | MAP_FIXED, fd, offset);
-    if (mem == (void*) -1)
-        return -errno;
-    return 0;
-}
-
-int
-procmapany(SoboxProc* p, size_t size, int prot, int flags, int fd, off_t offset, uintptr_t* o_mapstart)
-{
-    uintptr_t addr = mm_mapany(&p->mm, size, prot, flags, fd, offset);
-    if (addr == (uint64_t) -1)
+    void* addr = lfi_proc_mapany(p->proc, size, prot, flags, fd, offset);
+    if (addr == (void*) -1)
         return -EINVAL;
-    int r = procmap(p, addr, size, prot, flags, fd, offset);
-    if (r < 0) {
-        mm_unmap(&p->mm, addr, size);
-        return r;
-    }
-    *o_mapstart = addr;
+    *o_mapstart = (uintptr_t) addr;
     return 0;
-}
-
-static void
-cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
-{
-    (void) udata;
-    (void) info;
-    int r = munmap((void*) start, len);
-    assert(r == 0);
 }
 
 int
 procmapat(SoboxProc* p, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
 {
-    uintptr_t addr = mm_mapat_cb(&p->mm, start, size, prot, flags, fd, offset, cbunmap, NULL);
-    if (addr == (uint64_t) -1)
-        return -EINVAL;
-    int r = procmap(p, addr, size, prot, flags, fd, offset);
-    if (r < 0) {
-        mm_unmap(&p->mm, addr, size);
-        return r;
+    if (fd >= 0) {
+        FDFile* f = fdget(&p->fdtable, fd);
+        if (!f)
+            return -EBADF;
+        if (!f->mapfd)
+            return -EACCES;
+        fd = f->mapfd(f->dev);
     }
+    void* addr = lfi_proc_mapat(p->proc, start, size, prot, flags, fd, offset);
+    if (addr == (void*) -1)
+        return -EINVAL;
     return 0;
 }
 
 int
 procunmap(SoboxProc* p, uintptr_t start, size_t size)
 {
-    return mm_unmap_cb(&p->mm, start, size, cbunmap, NULL);
+    return lfi_proc_munmap(p->proc, start, size);
 }
 
 static void
@@ -238,19 +217,19 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
 
     // allocate the filename in the sandbox
     size_t namelen = strlen(filename);
-    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    *regs_arg(regs, 0) = namelen + 1;
-    uint64_t s_filename = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    LFIRegs* regs = lfi_proc_regs(proc->proc);
+    *lfi_regs_arg(regs, 0) = namelen + 1;
+    uint64_t s_filename = lfi_proc_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
     memcpy((void*) s_filename, filename, namelen);
 
     // call dlopen in the sandbox
-    *regs_arg(regs, 0) = s_filename;
-    *regs_arg(regs, 1) = 0;
-    uint64_t handle = lfi_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
+    *lfi_regs_arg(regs, 0) = s_filename;
+    *lfi_regs_arg(regs, 1) = 0;
+    uint64_t handle = lfi_proc_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
     proc->libhandle = (void*) handle;
 
-    *regs_arg(regs, 0) = s_filename;
-    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
+    *lfi_regs_arg(regs, 0) = s_filename;
+    lfi_proc_invoke(proc->proc, proc->fns->free, proc->fns->ret);
     return proc;
 }
 
@@ -262,18 +241,18 @@ sbx_dlsymfn(void* handle, const char* symbol, const char* ty)
 
     // allocate the filename in the sandbox
     size_t symlen = strlen(symbol);
-    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    *regs_arg(regs, 0) = symlen + 1;
+    LFIRegs* regs = lfi_proc_regs(proc->proc);
+    *lfi_regs_arg(regs, 0) = symlen + 1;
 
-    uint64_t s_symbol = lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    uint64_t s_symbol = lfi_proc_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
     memcpy((void*) s_symbol, symbol, symlen);
 
-    *regs_arg(regs, 0) = (uint64_t) proc->libhandle;
-    *regs_arg(regs, 1) = s_symbol;
-    void* sym = (void*) lfi_invoke(proc->proc, proc->fns->dlsym, proc->fns->ret);
+    *lfi_regs_arg(regs, 0) = (uint64_t) proc->libhandle;
+    *lfi_regs_arg(regs, 1) = s_symbol;
+    void* sym = (void*) lfi_proc_invoke(proc->proc, proc->fns->dlsym, proc->fns->ret);
 
-    *regs_arg(regs, 0) = s_symbol;
-    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
+    *lfi_regs_arg(regs, 0) = s_symbol;
+    lfi_proc_invoke(proc->proc, proc->fns->free, proc->fns->ret);
 
     return sym;
 }
@@ -282,18 +261,18 @@ void*
 sbx_malloc(void* handle, size_t size)
 {
     SoboxProc* proc = (SoboxProc*) handle;
-    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    *regs_arg(regs, 0) = size;
-    return (void*) lfi_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
+    LFIRegs* regs = lfi_proc_regs(proc->proc);
+    *lfi_regs_arg(regs, 0) = size;
+    return (void*) lfi_proc_invoke(proc->proc, proc->fns->malloc, proc->fns->ret);
 }
 
 void
 sbx_free(void* handle, void* ptr)
 {
     SoboxProc* proc = (SoboxProc*) handle;
-    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    *regs_arg(regs, 0) = (uint64_t) ptr;
-    lfi_invoke(proc->proc, proc->fns->free, proc->fns->ret);
+    LFIRegs* regs = lfi_proc_regs(proc->proc);
+    *lfi_regs_arg(regs, 0) = (uint64_t) ptr;
+    lfi_proc_invoke(proc->proc, proc->fns->free, proc->fns->ret);
 }
 
 // this function is temporary and will be removed in a future version
@@ -301,8 +280,8 @@ uint64_t
 sbx_dlinvoke(void* handle, void* symbol, uint64_t a0, uint64_t a1)
 {
     SoboxProc* proc = (SoboxProc*) handle;
-    struct lfi_regs* regs = lfi_proc_get_regs(proc->proc);
-    *regs_arg(regs, 0) = a0;
-    *regs_arg(regs, 1) = a1;
-    return lfi_invoke(proc->proc, symbol, proc->fns->ret);
+    LFIRegs* regs = lfi_proc_regs(proc->proc);
+    *lfi_regs_arg(regs, 0) = a0;
+    *lfi_regs_arg(regs, 1) = a1;
+    return lfi_proc_invoke(proc->proc, symbol, proc->fns->ret);
 }

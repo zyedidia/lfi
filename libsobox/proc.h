@@ -15,7 +15,7 @@ enum {
 
 typedef struct SoboxProc {
     Sobox* sbx;
-    struct lfi_proc* proc;
+    LFIProc* proc;
     uintptr_t base;
 
     uintptr_t brkbase;

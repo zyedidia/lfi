@@ -96,7 +96,7 @@ sysarchprctl(SoboxProc* p, int code, uintptr_t addr)
 #if defined(__x86_64__) || defined(_M_X64)
     case ARCH_SET_FS:
         addr = procaddr(p, addr);
-        lfi_proc_get_regs(p->proc)->fs = addr;
+        lfi_proc_tpset(p->proc, addr);
         return 0;
 #endif
     default:
@@ -201,7 +201,7 @@ sysmprotect(SoboxProc* p, uintptr_t addrp, size_t length, int prot)
     // We are relying on Linux mmap behavior being the same as mm_protect with
     // respect to addrp and length, since we have not truncated/page-aligned
     // them here.
-    return lfi_mprotect(p->proc, addrp, length, prot);
+    return lfi_proc_mprotect(p->proc, addrp, length, prot);
 }
  
 static ssize_t
@@ -340,14 +340,14 @@ syssbxdl(SoboxProc* p, uintptr_t fns)
     if (fns % alignof(SoboxFns) != 0)
         return -EINVAL;
     p->fns = (SoboxFns*) procaddr(p, fns);
-    lfi_proc_exit(p->proc, 0);
+    lfi_proc_exit(0);
     assert(!"unreachable");
 }
 
 static uintptr_t
 syssbxret(SoboxProc* p, uintptr_t val)
 {
-    lfi_proc_return(p->proc, val);
+    lfi_proc_exit(val);
     assert(!"unreachable");
 }
 

@@ -72,15 +72,57 @@ typedef struct {
     uint64_t a_val;
 } Auxv;
 
-static char*
-elfinterp(uint8_t* buf)
-{
-    FileHeader* hdr = (FileHeader*) buf;
-    ProgHeader* phdr = (ProgHeader*) (buf + hdr->phoff);
+enum {
+    // Maximum size of interp string.
+    INTERP_MAX = 1024,
+    // Maximum phnum.
+    PHNUM_MAX  = 64,
+};
 
-    for (int x = 0; x < hdr->phnum; x++) {
+static size_t
+bufread(uint8_t* buf, size_t bufsz, void* to, size_t count, off_t offset)
+{
+    size_t i;
+    char* toc = (char*) to;
+    for (i = 0; i < count; i++) {
+        if (offset + i >= bufsz)
+            break;
+        toc[i] = buf[offset + i];
+    }
+    return i;
+}
+
+// The return value is dynamically allocated and must be freed by
+// the caller.
+static char*
+elfinterp(uint8_t* prog, size_t progsz)
+{
+    FileHeader ehdr;
+    size_t n = bufread(prog, progsz, &ehdr, sizeof(ehdr), 0);
+    if (n != sizeof(ehdr))
+        return NULL;
+
+    if (ehdr.phnum >= PHNUM_MAX)
+        return NULL;
+
+    ProgHeader phdr[ehdr.phnum];
+    n = bufread(prog, progsz, phdr, sizeof(ProgHeader) * ehdr.phnum, ehdr.phoff);
+    if (n != sizeof(ProgHeader) * ehdr.phnum)
+        return NULL;
+
+    for (int x = 0; x < ehdr.phnum; x++) {
         if (phdr[x].type == PT_INTERP) {
-            return (char*) buf + phdr[x].offset;
+            if (phdr[x].filesz >= INTERP_MAX)
+                return NULL;
+            char* interp = malloc(phdr[x].filesz);
+            if (!interp)
+                return NULL;
+            size_t n = bufread(prog, progsz, interp, phdr[x].filesz, phdr[x].offset);
+            if (n != phdr[x].filesz) {
+                free(interp);
+                return NULL;
+            }
+            return interp;
         }
     }
     return NULL;

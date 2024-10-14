@@ -42,11 +42,11 @@ libsobox = static_library(
   srcs,
   sbxstub_inc,
   c_args: '-DDYNLINKER="' + dynlinker.full_path() + '"',
-  dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole()],
+  dependencies: [liblfiv_dep, mmap.as_link_whole(), liblfi_dep.as_link_whole()],
   install: true,
 )
 
-sobox = declare_dependency(link_with: [libsobox, liblfiv_arm64, liblfiv_amd64], include_directories: include_directories('.'))
+sobox = declare_dependency(link_with: [libsobox], include_directories: include_directories('.'))
 
 install_headers('sobox.h')
 

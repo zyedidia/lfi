@@ -6,7 +6,7 @@ project(
   version: run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
 )
 
-add_project_arguments('-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64', language : 'c')
+add_project_arguments('-D_LARGEFILE64_SOURCE', '-D_FILE_OFFSET_BITS=64', '-Werror=implicit-function-declaration', language : 'c')
 
 # Enable various hardening flags (used by liblfi and liblfix).
 c_args_hardened = [
@@ -50,7 +50,7 @@ subdir('lfi-compile')
 subdir('liblfi')
 subdir('liblfix')
 # subdir('lfi-run')
-# subdir('libsobox')
+subdir('libsobox')
 # subdir('lfi-veribdd')
 subdir('specinvoke')
 subdir('toolchain')

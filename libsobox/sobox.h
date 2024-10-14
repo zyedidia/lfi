@@ -5,8 +5,7 @@
 #include "lfi.h"
 
 typedef struct {
-    struct lfi* lfimgr;
-    uint8_t* (*readfile)(const char* filename, size_t* size);
+    LFIEngine* lfimgr;
 } Sobox;
 
 // sbx_init initializes the Sobox library manager.
@@ -14,7 +13,7 @@ typedef struct {
 // Multiple libraries can be loaded with this manager, and they will each be
 // placed into a separate sandbox. Returns false if an error occurred (out of
 // memory).
-bool sbx_init(Sobox* sbx, uint8_t* (*readfile)(const char* filename, size_t* size));
+bool sbx_init(Sobox* sbx);
 
 // sbx_dlopen opens and loads a new sandboxed shared library.
 void* sbx_dlopen(Sobox* sbx, const char* filename, int flags);
