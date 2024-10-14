@@ -113,7 +113,9 @@ lfi_proc_invoke(LFIProc* proc, void* fn, void* ret)
 {
     lfi_myproc = proc;
     // TODO: set return point to retfn in a cross-architecture way
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(__aarch64__) || defined(_M_ARM64)
+    proc->regs.x30 = (uintptr_t) ret;
+#elif defined(__x86_64__) || defined(_M_X64)
     proc->regs.rsp -= 8;
     *((void**) proc->regs.rsp) = ret;
 #endif

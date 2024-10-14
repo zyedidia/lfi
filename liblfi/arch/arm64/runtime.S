@@ -31,6 +31,22 @@
 	stp x0, x1, [x21, PROC_REGS+8*34]
 .endm
 
+.macro RESTORE_INVOKE_REGS
+	ldp x2, x3,   [x0, PROC_REGS+16*1]
+	ldp x4, x5,   [x0, PROC_REGS+16*2]
+	ldp x6, x7,   [x0, PROC_REGS+16*3]
+	ldp x8, x9,   [x0, PROC_REGS+16*4]
+	ldp x10, x11, [x0, PROC_REGS+16*5]
+	ldp x12, x13, [x0, PROC_REGS+16*6]
+	ldp x14, x15, [x0, PROC_REGS+16*7]
+	ldp x16, x17, [x0, PROC_REGS+16*8]
+	ldr x18,      [x0, PROC_REGS+16*9]
+	ldr x21,      [x0, PROC_REGS+16*10+8]
+	ldp x30, x1,  [x0, PROC_REGS+16*15]
+	mov sp, x1
+	ldp x0, x1,   [x0, PROC_REGS+16*0]
+.endm
+
 // Puts the sandbox's thread pointer in x0.
 .p2align 4
 .global lfi_get_tp
@@ -59,7 +75,23 @@ lfi_set_tp:
 .p2align 4
 .globl lfi_asm_invoke
 lfi_asm_invoke:
-	// TODO
+	// save callee-saved registers to stack
+	stp d8, d9,   [sp, #-16]!
+	stp d10, d11, [sp, #-16]!
+	stp d12, d13, [sp, #-16]!
+	stp d14, d15, [sp, #-16]!
+	stp x19, x20, [sp, #-16]!
+	stp x21, x22, [sp, #-16]!
+	stp x23, x24, [sp, #-16]!
+	stp x25, x26, [sp, #-16]!
+	stp x27, x28, [sp, #-16]!
+	stp x29, x30, [sp, #-16]!
+	// save stack to kstackp
+	mov x22, x1
+	mov x3, sp
+	str x3, [x2]
+	RESTORE_INVOKE_REGS
+	br x22
 	brk #0
 
 // lfi_proc_entry(Proc* p, void** kstackp)

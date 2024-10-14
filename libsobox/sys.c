@@ -16,6 +16,24 @@
 #include "stub/stub.h"
 
 enum {
+#if defined(__aarch64__) || defined(_M_ARM64)
+    SYS_ioctl           = 29,
+    SYS_fcntl           = 25,
+    SYS_openat          = 56,
+    SYS_mmap            = 222,
+    SYS_munmap          = 215,
+    SYS_mremap          = 216,
+    SYS_mprotect        = 226,
+    SYS_set_tid_address = 96,
+    SYS_brk             = 214,
+    SYS_read            = 63,
+    SYS_write           = 64,
+    SYS_readv           = 65,
+    SYS_writev          = 66,
+    SYS_close           = 57,
+    SYS_fstat           = 80,
+    SYS_newfstatat      = 79,
+#elif defined(__x86_64__) || defined(_M_X64)
     SYS_ioctl           = 16,
     SYS_archprctl       = 158,
     SYS_fcntl           = 72,
@@ -33,6 +51,8 @@ enum {
     SYS_open            = 2,
     SYS_close           = 3,
     SYS_fstat           = 5,
+    SYS_newfstatat      = 262,
+#endif
 };
 
 enum {
@@ -89,20 +109,20 @@ procpath(SoboxProc* p, uintptr_t path)
     return str;
 }
 
+#if defined(__x86_64__) || defined(_M_X64)
 static int
 sysarchprctl(SoboxProc* p, int code, uintptr_t addr)
 {
     switch (code) {
-#if defined(__x86_64__) || defined(_M_X64)
     case ARCH_SET_FS:
         addr = procaddr(p, addr);
         lfi_proc_tpset(p->proc, addr);
         return 0;
-#endif
     default:
         return -EINVAL;
     }
 }
+#endif
 
 static uintptr_t
 sysbrk(SoboxProc* p, uintptr_t addr)
@@ -358,9 +378,11 @@ syshandler(void* ctxp, uint64_t sysno,
     SoboxProc* p = (SoboxProc*) ctxp;
     uint64_t ret;
     switch (sysno) {
+#if defined(__x86_64__) || defined(_M_X64)
     case SYS_archprctl:
         ret = sysarchprctl(p, a0, a1);
         break;
+#endif
     case SYS_brk:
         ret = sysbrk(p, a0);
         break;
@@ -385,9 +407,17 @@ syshandler(void* ctxp, uint64_t sysno,
     case SYS_writev:
         ret = syswritev(p, a0, a1, a2);
         break;
+    case SYS_openat:
+        ret = sysopenat(p, a0, a1, a2, a3);
+        break;
+    case SYS_newfstatat:
+        ret = sysfstatat(p, a0, a1, a2, a3);
+        break;
+#if defined(__x86_64__) || defined(_M_X64)
     case SYS_open:
         ret = sysopenat(p, AT_FDCWD, a0, a1, a2);
         break;
+#endif
     case SYS_close:
         ret = sysclose(p, a0);
         break;
