@@ -44,11 +44,17 @@ typedef struct {
     bool (*verify)(void* code, size_t size, uintptr_t addr, LFIvOpts* opts);
 } LFIVerifier;
 
-bool lfiv_verify(LFIVerifier* v, void* code, size_t size, uintptr_t addr);
-
 bool lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts);
 
 bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts);
+
+static inline bool
+lfiv_verify(LFIVerifier* v, void* code, size_t size, uintptr_t addr)
+{
+    if (!v->verify)
+        return false;
+    return v->verify(code, size, addr, &v->opts);
+}
 
 #ifdef __cplusplus
 }

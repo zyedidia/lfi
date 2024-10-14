@@ -6,7 +6,7 @@ fadec = subproject('fadec').get_variable('fadec')
 
 liblfiv = static_library(
   'lfiv',
-  files('lfiv.c', 'arm64/verify.c', 'amd64/verify.c'),
+  files('arm64/verify.c', 'amd64/verify.c'),
   dependencies: [disarm.as_link_whole(), fadec.as_link_whole()],
   install: true,
   include_directories: include_directories('.'),
