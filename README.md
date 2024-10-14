@@ -110,9 +110,9 @@ When you download a prebuilt toolchain, you will see the following directories:
 * `bin/`: contains the LFI rewriter, verifier, and runtime. Put this on your
   `PATH`.
 * `gcc/`: contains a complete LFI GCC toolchain. The C and C++ compilers can be
-  found in `gcc/aarch64_lfi-linux-musl/bin/` as `aarch64_lfi-linux-musl-gcc`
-  and `aarch64_lfi-linux-musl-g++`. You may want to put this directory on your
-  `PATH` (`gcc/aarch64_lfi-linux-musl/bin/`).
+  found in `gcc/aarch64-lfi-linux-musl/bin/` as `aarch64-lfi-linux-musl-gcc`
+  and `aarch64-lfi-linux-musl-g++`. You may want to put this directory on your
+  `PATH` (`gcc/aarch64-lfi-linux-musl/bin/`).
 * `clang/`: contains a Clang-compatible LFI sysroot and runtime libraries,
   plus wrapper scripts. You can run the `lfi-clang` and `lfi-clang++` scripts
   in `clang/bin/` to invoke your system Clang with the LFI sysroot. You may
@@ -141,7 +141,7 @@ be alerted of any missing dependencies.
 To perform a complete build of all tools and of both a GCC and Clang toolchain run
 
 ```
-./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64_lfi or x86-64
+./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64 or x86-64
 ```
 
 Note: if you get an error about `asm/types.h` not found while building LLVM
@@ -194,7 +194,7 @@ Hello from LFI
 And with GCC:
 
 ```
-$ aarch64_lfi-linux-musl-gcc hello.c -O2 -o hello -static-pie
+$ aarch64-lfi-linux-musl-gcc hello.c -O2 -o hello -static-pie
 $ lfi-run hello
 Hello from LFI
 ```
