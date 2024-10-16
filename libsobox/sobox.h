@@ -4,6 +4,10 @@
 
 #include "lfi.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     LFIEngine* lfimgr;
 } Sobox;
@@ -53,3 +57,7 @@ void sbx_deinit(Sobox* sbx);
 
 // this function is temporary and will be removed in a future version
 uint64_t sbx_dlinvoke(void* handle, void* symbol, uint64_t a0, uint64_t a1);
+
+#ifdef __cplusplus
+}
+#endif

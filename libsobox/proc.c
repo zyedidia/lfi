@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "elf.h"
 #include "io.h"
+#include "trampoline.h"
 
 #include "stub/stub.inc"
 
@@ -228,6 +229,8 @@ sbx_dlopen(Sobox* sbx, const char* filename, int flags)
     uint64_t handle = lfi_proc_invoke(proc->proc, proc->fns->dlopen, proc->fns->ret);
     proc->libhandle = (void*) handle;
 
+    fprintf(stderr, "libsobox: handle for %s = %lx\n", filename, handle);
+
     *lfi_regs_arg(regs, 0) = s_filename;
     lfi_proc_invoke(proc->proc, proc->fns->free, proc->fns->ret);
     return proc;
@@ -254,7 +257,12 @@ sbx_dlsymfn(void* handle, const char* symbol, const char* ty)
     *lfi_regs_arg(regs, 0) = s_symbol;
     lfi_proc_invoke(proc->proc, proc->fns->free, proc->fns->ret);
 
-    return sym;
+    if (!sym)
+        return NULL;
+
+    fprintf(stderr, "libsobox: symbol %s = %p\n", symbol, sym);
+
+    return sbx_trampoline_gen(proc, sym);
 }
 
 void*

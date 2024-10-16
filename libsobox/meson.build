@@ -33,6 +33,7 @@ srcs = files(
   'file.c',
   'fd.c',
   'sys.c',
+  'trampoline.c',
 )
 
 subdir('stub')

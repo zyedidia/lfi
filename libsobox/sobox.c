@@ -25,6 +25,7 @@ sbx_init(Sobox* sbx)
     sbx->lfimgr = engine;
     if (!lfi_reserve(engine, gb(256)))
         return false;
+    fprintf(stderr, "libsobox: initialized\n");
     return true;
 }
 

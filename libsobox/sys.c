@@ -317,6 +317,7 @@ sysopenat(SoboxProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
         fdrelease(f, p);
         return -EMFILE;
     }
+    printf("libsobox: open(\"%s\")\n", path);
     fdassign(&p->fdtable, fd, f);
     return fd;
 }
@@ -430,6 +431,8 @@ syshandler(void* ctxp, uint64_t sysno,
     case SYS_SBX_ret:
         ret = syssbxret(p, a0);
         break;
+    case 14:
+    case 324:
     case SYS_set_tid_address:
     case SYS_ioctl:
     case SYS_fcntl:

@@ -3,6 +3,8 @@
 
 #include "sobox.h"
 
+typedef int (*AddFn)(int, int);
+
 int
 main()
 {
@@ -19,6 +21,6 @@ main()
     printf("add symbol: %p\n", symbol);
     assert(symbol != NULL);
 
-    int result = sbx_dlinvoke(lib, symbol, 12, 30);
+    int result = ((AddFn) symbol)(12, 30);
     printf("result: %d\n", result);
 }

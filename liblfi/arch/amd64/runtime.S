@@ -5,7 +5,12 @@
 
 // save caller-saved registers, assuming sandbox syspage is at %gs
 .macro SAVE_PARTIAL_REGS
-	mov %fs:lfi_myproc@tpoff, %rcx
+	pushq %rax
+	leaq lfi_myproc@TLSDESC(%rip), %rax
+	call *lfi_myproc@TLSCALL(%rax)
+	movq %fs:(%rax), %rcx
+	popq %rax
+
 	mov %rsp, PROC_REGS+8*0(%rcx)
 	mov %rax, PROC_REGS+8*1(%rcx)
 	// rcx clobbered
@@ -45,7 +50,11 @@
 lfi_get_tp:
 	pushq %rdi
 	// %rdi = myproc
-	movq %fs:lfi_myproc@tpoff, %rdi
+	pushq %rax
+	leaq lfi_myproc@TLSDESC(%rip), %rax
+	call *lfi_myproc@TLSCALL(%rax)
+	movq %fs:(%rax), %rdi
+	popq %rax
 	// clamp %rax to a signed 32-bit value
 	movslq %eax, %rax
 	// %rax = %rax + tp
@@ -62,7 +71,12 @@ lfi_get_tp:
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
-	mov %fs:lfi_myproc@tpoff, %rdx
+	pushq %rax
+	leaq lfi_myproc@TLSDESC(%rip), %rax
+	call *lfi_myproc@TLSCALL(%rax)
+	movq %fs:(%rax), %rdx
+	popq %rax
+
 	mov %rax, 8(%rdx)
 	jmp *%r11
 	int3
@@ -128,8 +142,10 @@ lfi_syscall_entry:
 	pushq %r11
 	mov %rcx, %rdi
 	call lfi_syscall_handler
+	leaq lfi_myproc@TLSDESC(%rip), %rax
+	call *lfi_myproc@TLSCALL(%rax)
+	movq %fs:(%rax), %rdi
 	popq %r11
-	mov %fs:lfi_myproc@tpoff, %rdi
 	jmp lfi_restore_partial_regs
 	int3
 

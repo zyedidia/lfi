@@ -126,7 +126,7 @@ void
 lfi_proc_exit(uint64_t code)
 {
     LFIProc* p = lfi_myproc;
-    lfi_myproc = NULL;
+    /* lfi_myproc = NULL; */
     lfi_asm_proc_exit(p->kstackp, code);
 }
 
@@ -486,6 +486,7 @@ procmap(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd
 void*
 lfi_proc_mapany(LFIProc* proc, size_t size, int prot, int flags, int fd, off_t offset)
 {
+    fprintf(stderr, "liblfi: mmap(NULL, %ld, %d, %d, %d, %ld)\n", size, prot, flags, fd, offset);
     uintptr_t addr = mm_mapany(&proc->mm, size, prot, flags, fd, offset);
     if (addr == (uint64_t) -1)
         return NULL;
@@ -508,6 +509,7 @@ cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
 void*
 lfi_proc_mapat(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd, off_t offset)
 {
+    fprintf(stderr, "liblfi: mmap(%lx, %ld, %d, %d, %d, %ld)\n", start, size, prot, flags, fd, offset);
     uintptr_t addr = mm_mapat_cb(&proc->mm, start, size, prot, flags, fd, offset, cbunmap, NULL);
     if (addr == (uint64_t) -1)
         return (void*) -1;
