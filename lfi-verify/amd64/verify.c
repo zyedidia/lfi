@@ -9,9 +9,7 @@ enum {
     ERRMAX = 128,
 };
 
-static void
-verrmin(Verifier* v, const char* fmt, ...)
-{
+static void verrmin(Verifier* v, const char* fmt, ...) {
     v->failed = true;
 
     if (!v->err)
@@ -28,17 +26,13 @@ verrmin(Verifier* v, const char* fmt, ...)
     v->err(errbuf, strlen(errbuf));
 }
 
-static void
-verr(Verifier* v, FdInstr* inst, const char* msg)
-{
+static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     char fmtbuf[64];
     fd_format(inst, fmtbuf, sizeof(fmtbuf));
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static bool
-okmnem(FdInstr* instr)
-{
+static bool okmnem(FdInstr* instr) {
     return true;
 /*     switch (FD_TYPE(instr)) { */
 /* #include "base.instrs" */
@@ -47,9 +41,7 @@ okmnem(FdInstr* instr)
 /*     return false; */
 }
 
-static void
-chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize)
-{
+static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     switch (FD_TYPE(instr)) {
     case FDI_JA:
     case FDI_JBE:
@@ -85,9 +77,7 @@ chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize)
     }
 }
 
-static void
-vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
-{
+static void vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize) {
     size_t count = 0;
 
     while (count < bundlesize && count < size) {
@@ -114,9 +104,7 @@ vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize)
     }
 }
 
-bool
-lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
-{
+bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) {
     uint8_t* insns = (uint8_t*) code;
 
     Verifier v = {

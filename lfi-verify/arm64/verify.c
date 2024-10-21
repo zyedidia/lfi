@@ -14,9 +14,7 @@ enum {
     ERRMAX = 128, // maximum size for error
 };
 
-static void
-verrmin(Verifier* v, const char* fmt, ...)
-{
+static void verrmin(Verifier* v, const char* fmt, ...) {
     v->failed = true;
 
     if (!v->err)
@@ -33,17 +31,13 @@ verrmin(Verifier* v, const char* fmt, ...)
     v->err(errbuf, strlen(errbuf));
 }
 
-static void
-verr(Verifier* v, struct Da64Inst* inst, const char* msg)
-{
+static void verr(Verifier* v, struct Da64Inst* inst, const char* msg) {
     char fmtbuf[128];
     da64_format(inst, fmtbuf);
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static size_t
-bundlesize(Verifier* v)
-{
+static size_t bundlesize(Verifier* v) {
     switch (v->opts->bundle) {
     case LFI_BUNDLE8:
         return 8;
@@ -80,44 +74,32 @@ enum {
     SYS_id_aa64isar1_el1 = 0xc031,
 };
 
-static bool
-cfreg(Verifier* v, uint8_t reg)
-{
+static bool cfreg(Verifier* v, uint8_t reg) {
     if (v->opts->bundle == LFI_BUNDLE_NONE) {
         return reg == REG_ADDR || reg == REG_RET;
     }
     return reg == REG_BUNDLE;
 }
 
-static bool
-rtsysreg(Verifier* v, uint8_t reg)
-{
+static bool rtsysreg(Verifier* v, uint8_t reg) {
     if (v->opts->poc)
         return reg == REG_SYS;
     return reg == REG_BASE;
 }
 
-static bool
-basereg(uint8_t reg)
-{
+static bool basereg(uint8_t reg) {
     return reg == REG_BASE;
 }
 
-static bool
-retreg(uint8_t reg)
-{
+static bool retreg(uint8_t reg) {
     return reg == REG_RET;
 }
 
-static bool
-gasreg(uint8_t reg)
-{
+static bool gasreg(uint8_t reg) {
     return reg == REG_GAS;
 }
 
-static bool
-fixedreg(Verifier* v, uint8_t reg)
-{
+static bool fixedreg(Verifier* v, uint8_t reg) {
     if (reg == REG_BASE)
         return true;
     if (v->opts->poc && reg == REG_SYS)
@@ -125,9 +107,7 @@ fixedreg(Verifier* v, uint8_t reg)
     return false;
 }
 
-static bool
-ldstreg(Verifier* v, uint8_t reg, bool sp)
-{
+static bool ldstreg(Verifier* v, uint8_t reg, bool sp) {
     if (sp && reg == 31)
         return true;
     if (reg == REG_ADDR)
@@ -135,9 +115,7 @@ ldstreg(Verifier* v, uint8_t reg, bool sp)
     return false;
 }
 
-static bool
-addrreg(Verifier* v, uint8_t reg, bool sp)
-{
+static bool addrreg(Verifier* v, uint8_t reg, bool sp) {
     if (sp && reg == 31)
         return true;
     if (cfreg(v, reg))
@@ -147,9 +125,7 @@ addrreg(Verifier* v, uint8_t reg, bool sp)
     return false;
 }
 
-static bool
-sysreg(uint16_t sysreg)
-{
+static bool sysreg(uint16_t sysreg) {
     return sysreg == SYS_fpsr ||
         sysreg == SYS_fpcr ||
         sysreg == SYS_id_aa64pfr0_el1 ||
@@ -159,9 +135,7 @@ sysreg(uint16_t sysreg)
         sysreg == SYS_id_aa64isar1_el1;
 }
 
-static int
-nmod(struct Da64Inst* dinst)
-{
+static int nmod(struct Da64Inst* dinst) {
     switch (DA64_GROUP(dinst->mnem)) {
     case DA64G_BRANCH:
     case DA64G_BCOND:
@@ -221,9 +195,7 @@ nmod(struct Da64Inst* dinst)
     return 1;
 }
 
-static bool
-branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect)
-{
+static bool branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect) {
     *target = 0;
     *indirect = false;
 
@@ -258,9 +230,7 @@ branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect)
     return branch;
 }
 
-static void
-chkbranch(Verifier* v, struct Da64Inst* dinst)
-{
+static void chkbranch(Verifier* v, struct Da64Inst* dinst) {
     if (v->opts->nobranches) {
         int64_t target;
         bool indirect;
@@ -325,9 +295,7 @@ chkbranch(Verifier* v, struct Da64Inst* dinst)
     }
 }
 
-static void
-chksys(Verifier* v, struct Da64Inst* dinst)
-{
+static void chksys(Verifier* v, struct Da64Inst* dinst) {
     switch (dinst->mnem) {
     case DA64I_MSR:
         assert(dinst->ops[0].type == DA_OP_SYSREG);
@@ -342,9 +310,7 @@ chksys(Verifier* v, struct Da64Inst* dinst)
     }
 }
 
-static bool
-okmnem(Verifier* v, struct Da64Inst* dinst)
-{
+static bool okmnem(Verifier* v, struct Da64Inst* dinst) {
     if (v->opts->noundefined && dinst->mnem == DA64I_UDF)
         return false;
 
@@ -361,9 +327,7 @@ okmnem(Verifier* v, struct Da64Inst* dinst)
     return false;
 }
 
-static bool
-okmemop(Verifier* v, struct Da64Op* op)
-{
+static bool okmemop(Verifier* v, struct Da64Op* op) {
     switch (op->type) {
     case DA_OP_MEMUOFF:
     case DA_OP_MEMSOFF:
@@ -387,93 +351,16 @@ okmemop(Verifier* v, struct Da64Op* op)
     }
 }
 
-static void
-chkmemops(Verifier* v, struct Da64Inst* dinst)
-{
+static void chkmemops(Verifier* v, struct Da64Inst* dinst) {
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         if (!okmemop(v, &dinst->ops[i]))
             verr(v, dinst, "illegal memory operand");
     }
 }
 
-static bool
-okreadpoc(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
-{
-    bool sf = false;
-    bool sp = false;
-    switch (op->type) {
-    case DA_OP_REGSP:
-        sp = true;
-    case DA_OP_REGGP:
-        sf = op->reggp.sf;
-        break;
-    case DA_OP_REGGPEXT:
-        sf = op->reggpext.sf;
-        break;
-    default:
-        return true;
-    }
+#include "poc.c"
 
-    if (dinst->mnem == DA64I_ADD_EXT) {
-        // 'add addrreg, base, lo, uxtw' is allowed.
-        if (addrreg(v, dinst->ops[0].reg, true) && dinst->ops[0].reggp.sf == 1 && basereg(dinst->ops[1].reg) &&
-                dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
-                dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
-            return true;
-    }
-
-    if (retreg(op->reg) && dinst->mnem == DA64I_LDR_IMM) {
-        // 'ldr x30, [rtsysreg]' is allowed.
-        if (dinst->ops[1].type == DA_OP_MEMUOFF && dinst->ops[1].uimm16 == 0 &&
-                rtsysreg(v, dinst->ops[1].reg))
-            return true;
-    }
-
-    if (v->opts->bundle != LFI_BUNDLE_NONE && dinst->mnem == DA64I_AND_IMM) {
-        // 'bic x24, x18, 0x[f7]' is allowed
-        if (cfreg(v, dinst->ops[0].reg) && addrreg(v, dinst->ops[1].reg, false) &&
-                dinst->ops[2].type == DA_OP_IMMLARGE) {
-            if (v->opts->bundle == LFI_BUNDLE8 && dinst->imm64 == 0xfffffffffffffff8)
-                return true;
-            else if (v->opts->bundle == LFI_BUNDLE16 && dinst->imm64 == 0xfffffffffffffff0)
-                return true;
-        }
-    }
-
-    if ((fixedreg(v, op->reg) || addrreg(v, op->reg, sp)) && sf)
-        return false;
-    return true;
-}
-
-static void
-chkadr(Verifier* v, struct Da64Inst* dinst)
-{
-    if (!v->opts->poc)
-        return;
-    if (dinst->mnem == DA64I_ADR || dinst->mnem == DA64I_ADRP) {
-        assert(dinst->ops[0].type == DA_OP_REGGP);
-        if (!addrreg(v, dinst->ops[0].reg, false)) {
-            verr(v, dinst, "adr/adrp must target address register");
-        }
-    }
-}
-
-static bool
-gasmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
-{
-    if (op->type != DA_OP_REGGP &&
-        op->type != DA_OP_REGGPINC &&
-        op->type != DA_OP_REGGPEXT &&
-        op->type != DA_OP_REGSP)
-        return false;
-    if (!gasreg(op->reg))
-        return false;
-    return true;
-}
-
-static bool
-okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
-{
+static bool okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op) {
     if (op->type != DA_OP_REGGP &&
         op->type != DA_OP_REGGPINC &&
         op->type != DA_OP_REGGPEXT &&
@@ -517,9 +404,7 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
     return false;
 }
 
-static void
-chkwriteback(Verifier* v, struct Da64Inst* dinst)
-{
+static void chkwriteback(Verifier* v, struct Da64Inst* dinst) {
     uint8_t memreg;
     bool prepost = false;
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
@@ -544,9 +429,7 @@ chkwriteback(Verifier* v, struct Da64Inst* dinst)
     }
 }
 
-static void
-vchk(Verifier* v, uint32_t insn)
-{
+static void vchk(Verifier* v, uint32_t insn) {
     struct Da64Inst dinst;
     da64_decode(insn, &dinst);
 
@@ -592,145 +475,9 @@ vchk(Verifier* v, uint32_t insn)
     }
 }
 
-static uint32_t
-ceilimm(uint32_t imm, uint32_t align)
-{
-    uint32_t mask = align - 1;
-    return (imm + mask) & ~mask;
-}
+#include "meter.c"
 
-static uint32_t
-subx23(int64_t imm)
-{
-    const uint32_t OP_SUB = 0b110100010UL << 23;
-    if (imm < 4096) {
-        return OP_SUB | (imm << 10) | (23 << 5) | (23);
-    }
-    if (imm % 4096 != 0) {
-        imm = ceilimm(imm, 4096);
-    }
-    return OP_SUB | (1 << 22) | ((imm >> 12) << 10) | (23 << 5) | (23);
-}
-
-static bool
-gasupdate(Verifier* v, struct Da64Inst* dinst)
-{
-    int n = nmod(dinst);
-    for (int i = 0; i < n; i++) {
-        if (gasmod(v, dinst, &dinst->ops[i]))
-            return true;
-    }
-    return false;
-}
-
-static ssize_t
-max(ssize_t a, ssize_t b)
-{
-    return a > b ? a : b;
-}
-
-static void
-vchkmeter(Verifier* v, uint32_t* insns, size_t n)
-{
-    bool* branches = calloc(sizeof(bool) * n, 1);
-    if (!branches) {
-        verrmin(v, "cannot allocate: out of memory");
-        return;
-    }
-
-    bool* updates = calloc(sizeof(bool) * n, 1);
-    if (!updates) {
-        free(branches);
-        verrmin(v, "cannot allocate: out of memory");
-        return;
-    }
-
-    struct Da64Inst* insts = calloc(sizeof(struct Da64Inst) * n, 1);
-    if (!insts) {
-        free(branches);
-        free(updates);
-        verrmin(v, "cannot allocate: out of memory");
-        return;
-    }
-
-    uintptr_t addr = v->addr;
-
-    for (size_t i = 0; i < n; i++) {
-        da64_decode(insns[i], &insts[i]);
-        assert(insts[i].mnem != DA64I_UNKNOWN);
-        struct Da64Inst dinst = insts[i];
-        if (gasupdate(v, &dinst))
-            updates[i] = true;
-        int64_t target;
-        bool indirect;
-        if (branchinfo(v, &insts[i], &target, &indirect))
-            branches[i] = true;
-    }
-
-    ssize_t lastbranch = -1;
-    ssize_t lastupdate = -1;
-    for (size_t i = 0; i < n; i++) {
-        struct Da64Inst dinst = insts[i];
-        v->addr = addr + i * INSN_SIZE;
-
-        if (branches[i]) {
-            if (i == 0) {
-                verr(v, &dinst, "branch not preceded by metering sequence");
-                continue;
-            }
-            int64_t bbsize = i - max(lastbranch, lastupdate);
-            if (insns[i - 1] != subx23(bbsize)) {
-                verr(v, &dinst, "branch not preceded by correct metering sequence");
-                continue;
-            }
-            lastbranch = i;
-            printf("lastbranch: %ld\n", i);
-        }
-
-        if (updates[i]) {
-            // not followed by a branch
-            if (i + 1 >= n || !branches[i + 1]) {
-                int64_t bbsize = i - max(lastbranch, lastupdate);
-                if (insns[i] != subx23(bbsize)) {
-                    verr(v, &dinst, "incorrect gas update");
-                    continue;
-                }
-                lastupdate = i;
-            }
-        }
-
-        // Make sure that branches only occur at the end of a bundle.
-        int64_t target;
-        bool indirect;
-        bool branch = branchinfo(v, &dinst, &target, &indirect);
-        if (!branch)
-            continue;
-
-        size_t ibundlesize = bundlesize(v) / INSN_SIZE;
-        if (i % ibundlesize != ibundlesize - 1) {
-            verr(v, &dinst, "branch must occur at the end of a bundle");
-            continue;
-        }
-    }
-
-    for (size_t i = 0; i < n; i++) {
-        struct Da64Inst dinst = insts[i];
-        v->addr = addr + i * INSN_SIZE;
-
-        if (updates[i])
-            continue;
-        if (gasupdate(v, &dinst))
-            verr(v, &dinst, "illegal modification of gas register");
-    }
-
-    free(branches);
-    free(updates);
-    free(insts);
-}
-
-bool
-lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
-{
+bool lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) {
     if (size % INSN_SIZE != 0)
         return false;
 
@@ -758,9 +505,7 @@ lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
     return !v.failed;
 }
 
-bool
-lfiv_verify_insn_arm64(uint32_t insn, LFIvOpts* opts)
-{
+bool lfiv_verify_insn_arm64(uint32_t insn, LFIvOpts* opts) {
     Verifier v = {
         .err = opts->err,
         .opts = opts,
