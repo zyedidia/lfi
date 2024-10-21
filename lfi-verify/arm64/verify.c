@@ -200,6 +200,18 @@ nmod(struct Da64Inst* dinst)
     case DA64I_STR_REG:
     case DA64I_STRX_PRE:
     case DA64I_STRX_POST:
+    case DA64I_STRB_IMM:
+    case DA64I_STRB_REG:
+    case DA64I_STRB_PRE:
+    case DA64I_STRB_POST:
+    case DA64I_STRH_IMM:
+    case DA64I_STRH_REG:
+    case DA64I_STRH_PRE:
+    case DA64I_STRH_POST:
+    case DA64I_STRW_IMM:
+    case DA64I_STRW_REG:
+    case DA64I_STRW_PRE:
+    case DA64I_STRW_POST:
     case DA64I_STPX_POST:
     case DA64I_STPX:
     case DA64I_STPX_PRE:
@@ -319,12 +331,12 @@ chksys(Verifier* v, struct Da64Inst* dinst)
     switch (dinst->mnem) {
     case DA64I_MSR:
         assert(dinst->ops[0].type == DA_OP_SYSREG);
-        if (!sysreg(dinst->ops[0].sysreg))
+        if (v->opts->noundefined || !sysreg(dinst->ops[0].sysreg))
             verr(v, dinst, "write to illegal sysreg");
         break;
     case DA64I_MRS:
         assert(dinst->ops[1].type == DA_OP_SYSREG);
-        if (!sysreg(dinst->ops[1].sysreg))
+        if (v->opts->noundefined || !sysreg(dinst->ops[1].sysreg))
             verr(v, dinst, "read from illegal sysreg");
         break;
     }
@@ -333,6 +345,9 @@ chksys(Verifier* v, struct Da64Inst* dinst)
 static bool
 okmnem(Verifier* v, struct Da64Inst* dinst)
 {
+    if (v->opts->noundefined && dinst->mnem == DA64I_UDF)
+        return false;
+
     if (v->opts->decl) {
         switch (dinst->mnem) {
 #include "decl.instrs"
@@ -503,6 +518,33 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 }
 
 static void
+chkwriteback(Verifier* v, struct Da64Inst* dinst)
+{
+    uint8_t memreg;
+    bool prepost = false;
+    for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
+        struct Da64Op* op = &dinst->ops[i];
+        switch (op->type) {
+        case DA_OP_MEMSOFFPRE:
+        case DA_OP_MEMSOFFPOST:
+        case DA_OP_MEMREGPOST:
+            memreg = op->reg;
+            prepost = true;
+            break;
+        }
+    }
+    if (!prepost)
+        return;
+    for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
+        struct Da64Op* op = &dinst->ops[i];
+        if (op->type == DA_OP_REGGP && op->reg == memreg) {
+            verr(v, dinst, "unpredictable writeback to register");
+            break;
+        }
+    }
+}
+
+static void
 vchk(Verifier* v, uint32_t insn)
 {
     struct Da64Inst dinst;
@@ -533,6 +575,8 @@ vchk(Verifier* v, uint32_t insn)
     assert(n <= 2);
     if (n == 2 && dinst.ops[0].reg == dinst.ops[1].reg)
         verr(v, &dinst, "simultaneous modification of the same register is unpredictable");
+
+    chkwriteback(v, &dinst);
 
     if (v->opts->poc) {
         switch (dinst.mnem) {

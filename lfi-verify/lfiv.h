@@ -36,6 +36,7 @@ typedef struct {
     LFIBundleType bundle;
     LFIMeterType meter;
     bool nobranches;
+    bool noundefined;
 
     void (*err)(char* msg, size_t sz);
 } LFIvOpts;

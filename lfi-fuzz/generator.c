@@ -6,6 +6,7 @@
 
 static LFIvOpts vopts = (LFIvOpts) {
     .nobranches = true,
+    .noundefined = true,
     .decl = true,
     .poc = false,
 };
@@ -81,6 +82,10 @@ bbgen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
     }
 }
 
+enum {
+    NOP = 0xd503201f,
+};
+
 size_t
 codegen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
 {
@@ -91,6 +96,10 @@ codegen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
             break;
         bbgen(&insnbuf[i], bbsize, opts);
         i += bbsize;
+    }
+    while (i < nbuf) {
+        insnbuf[i] = NOP;
+        i++;
     }
     return i;
 }
