@@ -66,3 +66,9 @@ mrs x0, tpidr_el0
 msr tpidr_el0, x0
 ---
 ldr x30, [x21, 24]
+---
+ldp x0, x0, [x18]
+---
+ldp x0, x18, [x18]
+---
+add w18, w21, w7, uxtw #0

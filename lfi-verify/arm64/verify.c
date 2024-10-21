@@ -126,6 +126,16 @@ fixedreg(Verifier* v, uint8_t reg)
 }
 
 static bool
+ldstreg(Verifier* v, uint8_t reg, bool sp)
+{
+    if (sp && reg == 31)
+        return true;
+    if (reg == REG_ADDR)
+        return true;
+    return false;
+}
+
+static bool
 addrreg(Verifier* v, uint8_t reg, bool sp)
 {
     if (sp && reg == 31)
@@ -181,6 +191,9 @@ nmod(struct Da64Inst* dinst)
     case DA64I_LDXPX:
     case DA64I_LDAXPW:
     case DA64I_LDAXPX:
+    case DA64I_LDP_FP_POST:
+    case DA64I_LDP_FP:
+    case DA64I_LDP_FP_PRE:
         return 2;
     // stores
     case DA64I_STR_IMM:
@@ -196,9 +209,53 @@ nmod(struct Da64Inst* dinst)
     return 1;
 }
 
+static bool
+branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect)
+{
+    *target = 0;
+    *indirect = false;
+
+    // Don't count runtime calls as branches.
+    if (dinst->mnem == DA64I_BLR && rtsysreg(v, dinst->ops[0].reg))
+        return false;
+
+    bool branch = true;
+    switch (dinst->mnem) {
+    case DA64I_BLR:
+    case DA64I_BR:
+    case DA64I_RET:
+        *indirect = true;
+        break;
+    case DA64I_BCOND:
+    case DA64I_B:
+    case DA64I_BL:
+        *target = v->addr + dinst->imm64;
+        break;
+    case DA64I_CBZ:
+    case DA64I_CBNZ:
+        *target = v->addr + dinst->imm64;
+        break;
+    case DA64I_TBZ:
+    case DA64I_TBNZ:
+        *target = v->addr + dinst->imm64;
+        break;
+    default:
+        branch = false;
+        break;
+    }
+    return branch;
+}
+
 static void
 chkbranch(Verifier* v, struct Da64Inst* dinst)
 {
+    if (v->opts->nobranches) {
+        int64_t target;
+        bool indirect;
+        if (branchinfo(v, dinst, &target, &indirect))
+            verr(v, dinst, "branches are disallowed");
+    }
+
     switch (dinst->mnem) {
     case DA64I_BLR:
         if (rtsysreg(v, dinst->ops[0].reg))
@@ -298,10 +355,10 @@ okmemop(Verifier* v, struct Da64Op* op)
         // runtime call
         if (rtsysreg(v, op->reg) && (op->simm16 == 0 || op->simm16 == 0x8 || op->simm16 == 0x10))
             return true;
-        return addrreg(v, op->reg, true);
+        return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
-        return addrreg(v, op->reg, true);
+        return ldstreg(v, op->reg, true);
     case DA_OP_MEMREG:
         return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW &&
             op->memreg.sc == 0;
@@ -344,7 +401,7 @@ okreadpoc(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 
     if (dinst->mnem == DA64I_ADD_EXT) {
         // 'add addrreg, base, lo, uxtw' is allowed.
-        if (addrreg(v, dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
+        if (addrreg(v, dinst->ops[0].reg, true) && dinst->ops[0].reggp.sf == 1 && basereg(dinst->ops[1].reg) &&
                 dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
                 dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
             return true;
@@ -418,7 +475,7 @@ okmod(Verifier* v, struct Da64Inst* dinst, struct Da64Op* op)
 
     if (dinst->mnem == DA64I_ADD_EXT) {
         // 'add addrreg, base, lo, uxtw' is allowed.
-        if (addrreg(v, dinst->ops[0].reg, true) && basereg(dinst->ops[1].reg) &&
+        if (addrreg(v, dinst->ops[0].reg, true) && dinst->ops[0].reggp.sf == 1 && basereg(dinst->ops[1].reg) &&
                 dinst->ops[2].reggpext.ext == DA_EXT_UXTW &&
                 dinst->ops[2].reggpext.sf == 0 && dinst->ops[2].reggpext.shift == 0)
             return true;
@@ -472,6 +529,11 @@ vchk(Verifier* v, uint32_t insn)
         if (!okmod(v, &dinst, &dinst.ops[i]))
             verr(v, &dinst, "illegal modification of reserved register");
     }
+
+    assert(n <= 2);
+    if (n == 2 && dinst.ops[0].reg == dinst.ops[1].reg)
+        verr(v, &dinst, "simultaneous modification of the same register is unpredictable");
+
     if (v->opts->poc) {
         switch (dinst.mnem) {
         case DA64I_RET:
@@ -484,43 +546,6 @@ vchk(Verifier* v, uint32_t insn)
                 verr(v, &dinst, "illegal read of 64-bit address register");
         }
     }
-}
-
-static bool
-branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect)
-{
-    *target = 0;
-    *indirect = false;
-
-    // Don't count runtime calls as branches.
-    if (dinst->mnem == DA64I_BLR && rtsysreg(v, dinst->ops[0].reg))
-        return false;
-
-    bool branch = true;
-    switch (dinst->mnem) {
-    case DA64I_BLR:
-    case DA64I_BR:
-    case DA64I_RET:
-        *indirect = true;
-        break;
-    case DA64I_BCOND:
-    case DA64I_B:
-    case DA64I_BL:
-        *target = v->addr + dinst->imm64;
-        break;
-    case DA64I_CBZ:
-    case DA64I_CBNZ:
-        *target = v->addr + dinst->imm64;
-        break;
-    case DA64I_TBZ:
-    case DA64I_TBNZ:
-        *target = v->addr + dinst->imm64;
-        break;
-    default:
-        branch = false;
-        break;
-    }
-    return branch;
 }
 
 static uint32_t
@@ -686,5 +711,16 @@ lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts)
         vchkmeter(&v, insns, size / INSN_SIZE);
     }
 
+    return !v.failed;
+}
+
+bool
+lfiv_verify_insn_arm64(uint32_t insn, LFIvOpts* opts)
+{
+    Verifier v = {
+        .err = opts->err,
+        .opts = opts,
+    };
+    vchk(&v, insn);
     return !v.failed;
 }

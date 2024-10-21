@@ -35,6 +35,7 @@ typedef struct {
     size_t p2size;
     LFIBundleType bundle;
     LFIMeterType meter;
+    bool nobranches;
 
     void (*err)(char* msg, size_t sz);
 } LFIvOpts;
@@ -47,6 +48,8 @@ typedef struct {
 bool lfiv_verify_arm64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts);
 
 bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts);
+
+bool lfiv_verify_insn_arm64(uint32_t insn, LFIvOpts* opts);
 
 static inline bool
 lfiv_verify(LFIVerifier* v, void* code, size_t size, uintptr_t addr)
