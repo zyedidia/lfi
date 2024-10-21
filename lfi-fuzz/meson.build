@@ -1,5 +1,9 @@
 disarm = subproject('disarm').get_variable('disarm64')
 
+if cpu != 'aarch64'
+  subdir_done()
+endif
+
 srcs = files(
   'main.c',
   'generator.c',

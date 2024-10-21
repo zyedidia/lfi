@@ -85,7 +85,7 @@ main(int argc, char** argv)
             struct Da64Inst inst;
             da64_decode(buf[i], &inst);
             da64_format(&inst, fmtbuf);
-            printf("%lx: %x: %s\n", i * sizeof(uint32_t), buf[i], fmtbuf);
+            printf("%lx: %08x: %s\n", i * sizeof(uint32_t), buf[i], fmtbuf);
         }
     } else if (args.dump) {
         fwrite(buf, sizeof(uint32_t), ninsn, stdout);
