@@ -24,6 +24,8 @@ cs_files = [
 
 capstone_includes = [include_directories('include'), include_directories('include/capstone')]
 
+has_no_stringop_overflow = meson.get_compiler('c').has_argument('-Wno-stringop-overflow')
+
 libcapstone_c_args = [
   '-DCAPSTONE_X86_ATT_DISABLE_NO',
   '-DCAPSTONE_X86_REDUCE_NO',
@@ -31,8 +33,11 @@ libcapstone_c_args = [
   '-DCAPSTONE_DIET_NO',
   '-DCAPSTONE_HAS_ARM64',
   '-DCAPSTONE_HAS_X86',
-  '-Wno-stringop-overflow',
 ]
+
+if has_no_stringop_overflow
+  libcapstone_c_args += '-Wno-stringop-overflow'
+endif
 
 libcapstone = library('capstone', cs_files,
   c_args: libcapstone_c_args,

@@ -1,8 +1,6 @@
 disarm = subproject('disarm').get_variable('disarm64')
 fadec = subproject('fadec').get_variable('fadec')
 
-disarm_fuzz = subproject('disarm').get_variable('disarm64_fuzz')
-
 srcs = files(
   'arm64/verify.c',
   'amd64/verify.c',
@@ -16,16 +14,18 @@ liblfiv = static_library(
   include_directories: include_directories('.'),
 )
 
+liblfiv_dep = declare_dependency(link_with: liblfiv, include_directories: include_directories('.'))
+
 if has_fuzzer
+  disarm_fuzz = subproject('disarm').get_variable('disarm64_fuzz')
   liblfiv_fuzz = static_library(
     'lfiv-fuzzinst',
     srcs,
     dependencies: [disarm_fuzz.as_link_whole(), fadec.as_link_whole()],
     c_args: ['-fsanitize=fuzzer'],
   )
+  liblfiv_fuzz_dep = declare_dependency(link_with: liblfiv_fuzz, include_directories: include_directories('.'))
 endif
-
-liblfiv_dep = declare_dependency(link_with: liblfiv, include_directories: include_directories('.'))
 
 lfiv = executable(
   'lfi-verify',

@@ -4,6 +4,8 @@ if cpu != 'aarch64'
   subdir_done()
 endif
 
+subdir('llvm-fuzz')
+
 srcs = files(
   'main.c',
   'generator.c',
