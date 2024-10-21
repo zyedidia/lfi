@@ -22,6 +22,7 @@ has_auto_var_init = meson.get_compiler('c').has_argument('-ftrivial-auto-var-ini
 if has_auto_var_init
   c_args_hardened += '-ftrivial-auto-var-init=zero'
 endif
+has_fuzzer = meson.get_compiler('c').has_argument('-fsanitize=fuzzer')
 
 argp = subproject('argp').get_variable('argp_dep')
 
