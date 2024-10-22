@@ -9,6 +9,7 @@ tests_arm64 = [
 tests_amd64 = [
   'amd64/pass.s',
   'amd64/fail.s',
+  'amd64/fail_decl.s',
 ]
 
 amd64_lfi_gcc = find_program('x86_64-linux-gnu-gcc', required: false)

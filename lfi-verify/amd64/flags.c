@@ -1,11 +1,7 @@
-#include "flags.h"
-
-#include "fadec.h"
-
 // See Intel manual Table A-2
 
 // Flags read by instructions. This table must be complete.
-enum flags flagread[FDI_XTEST + 1] = {
+static flagset_t flagread[FDI_XTEST + 1] = {
     [FDI_AAA] = F_AF,
     [FDI_AAS] = F_AF,
     [FDI_ADC] = F_CF,
@@ -94,11 +90,14 @@ enum flags flagread[FDI_XTEST + 1] = {
     [FDI_SETG]  = CC_G,
 
     [FDI_STOS] = F_DF,
+
+    [FDI_PUSHF] = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF | F_DF,
+    [FDI_LAHF]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF | F_DF,
 };
 
 // Flags assigned by instruction. This table can be incomplete. For each
 // mnemonic, 1 indicates flag defined, 0 indicates flag undefined.
-enum flags flagassign[FDI_XTEST + 1] = {
+static flagset_t flagmodify[FDI_XTEST + 1] = {
     [FDI_ADD]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
     [FDI_AND]  = F_OF | F_SF | F_ZF |        F_PF | F_CF,
     [FDI_CMP]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
@@ -112,3 +111,130 @@ enum flags flagassign[FDI_XTEST + 1] = {
     [FDI_TEST] = F_OF | F_SF | F_ZF |        F_PF | F_CF,
     [FDI_XOR]  = F_OF | F_SF | F_ZF |        F_PF | F_CF,
 };
+
+// Flags placed in an undefined state by instruction. This table must be
+// complete. This is essentially a table of every '-' in A-2.
+static flagset_t flagundef[FDI_XTEST + 1] = {
+    [FDI_AAA]  = F_OF | F_SF | F_ZF |        F_PF       ,
+    [FDI_AAD]  = F_OF |               F_AF |        F_CF,
+    [FDI_AAM]  = F_OF |               F_AF |        F_CF,
+    [FDI_AAS]  = F_OF | F_SF | F_ZF |        F_PF       ,
+    [FDI_AND]  =                      F_AF              ,
+    [FDI_BSR]  = F_OF | F_SF |        F_AF | F_PF | F_CF,
+    [FDI_BSF]  = F_OF | F_SF |        F_AF | F_PF | F_CF,
+    [FDI_BT]   = F_OF | F_SF |        F_AF | F_PF       ,
+    [FDI_BTS]  = F_OF | F_SF |        F_AF | F_PF       ,
+    [FDI_BTR]  = F_OF | F_SF |        F_AF | F_PF       ,
+    [FDI_BTC]  = F_OF | F_SF |        F_AF | F_PF       ,
+    [FDI_DIV]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_IDIV] = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_IMUL] =        F_SF | F_ZF | F_AF | F_PF       ,
+    [FDI_MUL]  =        F_SF | F_ZF | F_AF | F_PF       ,
+    [FDI_OR]   =                      F_AF              ,
+    [FDI_RCL]  = F_OF                                   , // conservative
+    [FDI_RCR]  = F_OF                                   , // conservative
+    [FDI_ROL]  = F_OF                                   , // conservative
+    [FDI_ROR]  = F_OF                                   , // conservative
+    [FDI_SAR]  = F_OF |               F_AF              , // conservative
+    [FDI_SHL]  = F_OF |               F_AF              , // conservative
+    [FDI_SHR]  = F_OF |               F_AF              , // conservative
+    [FDI_SHLD] = F_OF |               F_AF              ,
+    [FDI_SHRD] = F_OF |               F_AF              ,
+    [FDI_TEST] =                      F_AF              ,
+    [FDI_XOR]  =                      F_AF              ,
+
+    // MOV control, debug, test puts all flags in an undefined state. I believe
+    // this is a system instruction and the variants should already be disabled
+
+    // restoration is tracked as undefined
+    [FDI_POPF] = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF | F_DF,
+    [FDI_SAHF] =        F_SF | F_ZF | F_AF | F_PF | F_CF | F_DF,
+};
+
+// All instructions that do not modify the flags or put them in an undefined
+// state as defined by the tables above are defined to have no effect on the
+// flags.
+//
+// Note: pushf/popf should be generally disallowed in DeCl-mode, but we have
+// them in the tables for completeness.
+
+// Analyzes a block of instructions. Given a flagset of undefined flags,
+// returns the new flagset after all the instructions in the block execute.
+// Reports an error if an undefined flag is read.
+static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        FdInstr* instr = &instrs[i];
+
+        flagset_t undef = flagundef[FD_TYPE(instr)];
+        flagset_t modify = flagmodify[FD_TYPE(instr)];
+        flagset_t read = flagread[FD_TYPE(instr)];
+
+        // Undef and modify cannot overlap.
+        assert((undef & modify) == 0);
+
+        if ((in & read) != 0) {
+            verr(v, instr, "instruction reads a possibly undefined flag");
+        }
+
+        // New flags that are undefined.
+        in |= undef;
+        // New flags that are defined.
+        in &= ~modify;
+        v->addr += instr->size;
+    }
+    return in;
+}
+
+static ssize_t findinstr(FdInstr* instrs, size_t n, size_t addr) {
+    size_t count = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (count == addr)
+            return i;
+        count += instrs[i].size;
+    }
+    return -1;
+}
+
+static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
+    bool* leaders = calloc(n * sizeof(bool), 1);
+    if (!leaders) {
+        verrmin(v, "cannot allocate: out of memory");
+        return;
+    }
+    leaders[0] = true;
+
+    for (size_t i = 0; i < n; i++) {
+        FdInstr* instr = &instrs[i];
+        int64_t target;
+        bool indirect;
+        bool branch = branchinfo(v, instr, &target, &indirect);
+        // We don't consider indirect branches in our CFG analysis because
+        // their correct usage is enforced by a different mechanism.
+        branch = branch && !indirect;
+        if (branch && i + 1 < n) {
+            // Instruction after a branch is a leader.
+            leaders[i + 1] = true;
+        }
+        // Target is a leader.
+        size_t i = findinstr(instrs, n, target - v->addr);
+        leaders[i] = true;
+    }
+
+    // All flags in an undefined state except F_DF.
+    flagset_t undef = F_CF | F_OF | F_SF | F_ZF | F_PF | F_AF;
+    size_t lastleader = 0;
+    size_t lastloc = addr;
+    size_t loc = addr;
+    for (size_t i = 0; i < n; i++) {
+        if (leaders[i] && lastleader > 0) {
+            v->addr = lastloc;
+            analyzeblock(v, undef, &instrs[lastleader], i - lastleader);
+            lastleader = i;
+            lastloc = loc;
+        }
+        loc += instrs[i].size;
+    }
+    // final basic block
+    v->addr = lastloc;
+    analyzeblock(v, undef, &instrs[lastleader], n - lastleader);
+}

@@ -1,6 +1,10 @@
 #pragma once
 
-enum flags {
+#include <stdint.h>
+
+typedef uint8_t flagset_t;
+
+enum Flags {
     F_CF = 1 << 0,
     F_OF = 1 << 1,
     F_SF = 1 << 2,
@@ -45,4 +49,13 @@ enum {
     CC_G   = F_SF | F_OF | F_ZF,
     CC_NU  = F_PF,
     CC_U   = F_PF,
+};
+
+struct FlagState {
+    // IN: the set of flags that are uninitialized before the block is
+    // executed.
+    flagset_t in;
+    // OUT: the set of flags that are uninitialized after the block is
+    // executed.
+    flagset_t out;
 };
