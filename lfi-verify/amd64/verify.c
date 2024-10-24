@@ -44,9 +44,10 @@ static bool okmnem(FdInstr* instr) {
 /*     return false; */
 }
 
-static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect) {
+static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
     *target = 0;
     *indirect = false;
+    *cond = false;
 
     // TODO: don't count runtime calls as branches
 
@@ -69,8 +70,10 @@ static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indir
     case FDI_JP:
     case FDI_JS:
     case FDI_JZ:
+        *cond = true;
     case FDI_JMP:
     case FDI_CALL:
+    case FDI_RET:
         if (FD_OP_TYPE(instr, 0) == FD_OT_OFF) {
             int64_t imm = FD_OP_IMM(instr, 0);
             *target = v->addr + FD_SIZE(instr) + imm;
@@ -87,8 +90,8 @@ static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indir
 
 static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     int64_t target;
-    bool indirect;
-    bool branch = branchinfo(v, instr, &target, &indirect);
+    bool indirect, cond;
+    bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
         if (target % bundlesize != 0)
             verr(v, instr, "jump target is not bundle-aligned");
