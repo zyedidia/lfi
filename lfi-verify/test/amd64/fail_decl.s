@@ -4,3 +4,28 @@ foo:
 div %rdi, %rax
 jz foo
 ret
+---
+// flags: --decl
+.bundle_align_mode 4
+foo:
+jz bar
+.p2align 4
+entry:
+imul %rdi, %rax
+jo foo
+.p2align 4
+bar:
+---
+.bundle_align_mode 4
+cmp %eax, %eax
+foo:
+jz bar
+.p2align 4
+x:
+jmp foo
+.p2align 4
+entry:
+imul %rdi, %rax
+jo x
+.p2align 4
+bar:

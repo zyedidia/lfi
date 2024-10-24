@@ -113,6 +113,10 @@ static flagset_t flagmodify[FDI_XTEST + 1] = {
     [FDI_SHR]  =        F_SF | F_ZF |        F_PF | F_CF,
     [FDI_SHL]  =        F_SF | F_ZF |        F_PF | F_CF,
     [FDI_SAR]  =        F_SF | F_ZF |        F_PF | F_CF,
+    [FDI_BT]   =                                    F_CF,
+    [FDI_BTS]  =                                    F_CF,
+    [FDI_BTR]  =                                    F_CF,
+    [FDI_BTC]  =                                    F_CF,
 
     [FDI_FUCOMIP] = F_OF | F_ZF | F_PF,
     [FDI_FUCOMI]  = F_OF | F_ZF | F_PF,
@@ -167,7 +171,7 @@ static flagset_t flagundef[FDI_XTEST + 1] = {
 // Analyzes a block of instructions. Given a flagset of undefined flags,
 // returns the new flagset after all the instructions in the block execute.
 // Reports an error if an undefined flag is read.
-static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t n) {
+static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t n, bool report) {
     for (size_t i = 0; i < n; i++) {
         FdInstr* instr = &instrs[i];
 
@@ -178,7 +182,7 @@ static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t
         // Undef and modify cannot overlap.
         assert((undef & modify) == 0);
 
-        if ((in & read) != 0) {
+        if ((in & read) != 0 && report) {
             verr(v, instr, "instruction reads a possibly undefined flag");
         }
 
@@ -201,11 +205,12 @@ static ssize_t findinstr(FdInstr* instrs, size_t n, size_t addr) {
     return -1;
 }
 
-// Types of leaders.
-enum {
-    L_NONE        = 0,
-    L_TARGET      = 1,
-    L_FALLTHROUGH = 2,
+struct BasicBlock {
+    struct BasicBlock* target;
+    struct BasicBlock* fallthrough;
+    size_t startaddr;
+    size_t size;
+    flagset_t in;
 };
 
 static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
@@ -214,50 +219,98 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
         verrmin(v, "cannot allocate: out of memory");
         return;
     }
-    leaders[0] = L_TARGET;
+    struct BasicBlock* blocks = calloc(n * sizeof(struct BasicBlock), 1);
+    if (!blocks) {
+        verrmin(v, "out of memory");
+        free(leaders);
+        return;
+    }
+
+    // All flags in an undefined state except F_DF.
+    flagset_t undef = F_CF | F_OF | F_SF | F_ZF | F_PF | F_AF;
+
+    leaders[0] = true;
+    size_t nleaders = 1;
 
     v->addr = addr;
     for (size_t i = 0; i < n; i++) {
         FdInstr* instr = &instrs[i];
         int64_t target;
-        bool indirect;
-        bool branch = branchinfo(v, instr, &target, &indirect);
+        bool indirect, cond;
+        bool branch = branchinfo(v, instr, &target, &indirect, &cond);
         // We don't consider indirect branches in our CFG analysis because
         // their correct usage is enforced by a different mechanism.
         branch = branch && !indirect;
-        if (branch && i + 1 < n) {
+        if (branch && i+1 < n) {
             // Instruction after a branch is a leader.
-            if (leaders[i + 1] == L_NONE)
-                leaders[i + 1] = L_FALLTHROUGH; // fallthrough leader if not already a leader
+            if (!leaders[i+1])
+                nleaders++;
+            leaders[i+1] = true;
         }
         // Target is a leader.
         if (branch) {
             ssize_t i = findinstr(instrs, n, target - addr);
-            if (i >= 0)
-                leaders[i] = L_TARGET;
+            if (i >= 0) {
+                if (!leaders[i])
+                    nleaders++;
+                leaders[i] = true;
+            }
         }
         v->addr += instr->size;
     }
 
-    // All flags in an undefined state except F_DF.
-    flagset_t undef = F_CF | F_OF | F_SF | F_ZF | F_PF | F_AF;
-    ssize_t lastleader = -1;
-    size_t lastloc = addr;
-    size_t loc = addr;
-    for (size_t i = 0; i < n; i++) {
-        if (leaders[i]) {
-            v->addr = lastloc;
-            if (lastleader != -1)
-                analyzeblock(v, undef, &instrs[lastleader], i - lastleader);
-            if (leaders[i] != L_FALLTHROUGH) {
-                // Only update for non-fallthrough leaders.
-                lastleader = i;
-                lastloc = loc;
+    v->addr = addr;
+    size_t leader = 0;
+    while (leader < n) {
+        v->addr += instrs[leader].size;
+        for (size_t i = 1; leader + i <= n; i++) {
+            if (leader + i == n || leaders[leader + i]) {
+                // basic block is i instructions starting at leader
+                FdInstr* instr = &instrs[leader + i - 1];
+                int64_t target;
+                bool indirect, cond;
+                v->addr -= instr->size;
+                bool branch = branchinfo(v, instr, &target, &indirect, &cond);
+                v->addr += instr->size;
+                branch = branch && !indirect;
+                blocks[leader] = (struct BasicBlock) {
+                    .fallthrough = leader + i < n && (!branch || cond) ? &blocks[leader + i] : NULL,
+                    .startaddr = v->addr,
+                    .in = 0,
+                    .size = i,
+                };
+                if (branch) {
+                    ssize_t targidx = findinstr(instrs, n, target - addr);
+                    if (targidx >= 0) {
+                        blocks[leader].target = &blocks[targidx];
+                    }
+                }
+                leader += i;
+                break;
             }
+            v->addr += instrs[leader + i].size;
         }
-        loc += instrs[i].size;
     }
-    // final basic block
-    v->addr = lastloc;
-    analyzeblock(v, undef, &instrs[lastleader], n - lastleader);
+
+    for (size_t i = 0; i < n; i++) {
+        if (blocks[i].size > 0) {
+            v->addr = blocks[i].startaddr;
+            flagset_t out = analyzeblock(v, undef, &instrs[i], blocks[i].size, false);
+            if (blocks[i].fallthrough)
+                blocks[i].fallthrough->in |= out;
+            if (blocks[i].target)
+                blocks[i].target->in |= out;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        if (blocks[i].size > 0) {
+            v->addr = blocks[i].startaddr;
+            flagset_t out = analyzeblock(v, blocks[i].in, &instrs[i], blocks[i].size, true);
+            if (blocks[i].fallthrough)
+                blocks[i].fallthrough->in |= out;
+            if (blocks[i].target)
+                blocks[i].target->in |= out;
+        }
+    }
 }
