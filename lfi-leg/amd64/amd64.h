@@ -64,6 +64,22 @@ stripdollar(char* op)
 }
 
 static char*
+bundle_lock()
+{
+    if (args.checked)
+        return "";
+    return ".bundle_lock";
+}
+
+static char*
+bundle_unlock()
+{
+    if (args.checked)
+        return "";
+    return ".bundle_unlock";
+}
+
+static char*
 bundle_align_mode()
 {
     switch (args.cfi) {

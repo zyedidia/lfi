@@ -25,7 +25,8 @@ enum {
     ARG_bundlecall    = 0x8b,
     ARG_useret        = 0x8c,
     ARG_no_pext_elim  = 0x8d,
-    ARG_allowtls         = 0x8e,
+    ARG_allowtls      = 0x8e,
+    ARG_checked       = 0x8f,
 };
 
 // options (TODO):
@@ -61,6 +62,7 @@ static struct argp_option options[] = {
     { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
     { "use-ret",        ARG_useret,        0,      0, "Allow return instructions for x86-64 (unsafe)" },
     { "allow-tls",      ARG_allowtls,      0,      0, "Do not rewrite TLS accesses into host calls" },
+    { "checked",        ARG_checked,       0,      0, "Trap instead of masking (only if arch=amd64,p2size=0)" },
     { 0 },
 };
 
@@ -171,6 +173,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->p2size = 0;
         else
             args->p2size = atoi(arg);
+        break;
+    case ARG_checked:
+        args->checked = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;

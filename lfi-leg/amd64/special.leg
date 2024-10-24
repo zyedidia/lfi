@@ -34,7 +34,7 @@ AddrBP = (
 )
 
 ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     if (args.p2size == 0) {
         mkinsn("leaq %s, %%rsp", a.unmod);
         mkinsn("pext %%r15, %%rsp, %%rsp");
@@ -43,13 +43,13 @@ ModLeaSP = 'lea' 'q'? - a:AddrBP COMMA '%rsp' - {
         mkinsn("leal %s, %%esp", a.val);
         mkinsn("leaq (%%rsp, %%r14), %%rsp");
     }
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(a);
 }
 
 ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
     char* op = lop(m.val);
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     if (args.p2size == 0) {
         if (strncmp(m.val, "add", 3) == 0) {
             mkinsn("andq %%r15, %%rsp");
@@ -66,13 +66,13 @@ ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
         mkinsn("%s %s, %%esp", op, i.val);
         mkinsn("orq %%r14, %%rsp");
     }
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(m); rfree(i); free(op);
 }
 
 ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
     char* op = lop(m.val);
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     if (args.p2size == 0) {
         mkinsn("%s %s, %%rsp", m.val, r.val);
         mkinsn("andq %%r15, %%rsp");
@@ -81,7 +81,7 @@ ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {
         mkinsn("%s %s, %%esp", op, lo(r.val));
         mkinsn("orq %%r14, %%rsp");
     }
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(m); rfree(r); free(op);
 }
 
@@ -93,10 +93,10 @@ MODINST = < (
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Leave = 'leave' 'q'? - {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mkinsn("movl %%ebp, %%esp");
     mkinsn("orq %%r14, %%rsp");
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     mkinsn("popq %%rbp");
 }
 

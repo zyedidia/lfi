@@ -25,10 +25,10 @@ mask(const char* reg)
 Top = (Stos | Movs | Lea | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mask("%rdi");
     mkinsn("%s%s", s.val, rest.val);
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(s); rfree(rest);
 }
 
@@ -37,11 +37,11 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 }
 
 Movs = m:MOVS rest:REMAINDER {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mask("%rdi");
     mask("%rsi");
     mkinsn("%s%s", m.val, rest.val);
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(m); rfree(rest);
 }
 

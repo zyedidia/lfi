@@ -50,6 +50,7 @@ struct arguments {
     bool bundlecall;
     bool useret;
     bool allowtls;
+    bool checked;
 };
 
 extern struct arguments args;

@@ -94,7 +94,7 @@ amd64_rewrite(FILE* input, struct output* output)
         }
     }
 
-    if (args.p2size == 0 && !args.nopextelim)
+    if (args.p2size == 0 && !args.nopextelim && !args.checked)
         amd64_pextelim(ops);
 
     amd64_display(output, ops);
