@@ -11,3 +11,16 @@ ret
 foo:
 div %rdi, %rax
 ret
+---
+// flags: --decl
+.bundle_align_mode 4
+foo:
+test %eax, %eax
+js .L1
+jne .L2
+.p2align 4
+.L1:
+nop
+.p2align 4
+.L2:
+nop

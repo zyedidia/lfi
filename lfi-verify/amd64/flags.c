@@ -110,6 +110,12 @@ static flagset_t flagmodify[FDI_XTEST + 1] = {
     [FDI_SUB]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
     [FDI_TEST] = F_OF | F_SF | F_ZF |        F_PF | F_CF,
     [FDI_XOR]  = F_OF | F_SF | F_ZF |        F_PF | F_CF,
+    [FDI_SHR]  =        F_SF | F_ZF |        F_PF | F_CF,
+    [FDI_SHL]  =        F_SF | F_ZF |        F_PF | F_CF,
+    [FDI_SAR]  =        F_SF | F_ZF |        F_PF | F_CF,
+
+    [FDI_FUCOMIP] = F_OF | F_ZF | F_PF,
+    [FDI_FUCOMI]  = F_OF | F_ZF | F_PF,
 };
 
 // Flags placed in an undefined state by instruction. This table must be
@@ -195,14 +201,22 @@ static ssize_t findinstr(FdInstr* instrs, size_t n, size_t addr) {
     return -1;
 }
 
+// Types of leaders.
+enum {
+    L_NONE        = 0,
+    L_TARGET      = 1,
+    L_FALLTHROUGH = 2,
+};
+
 static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
-    bool* leaders = calloc(n * sizeof(bool), 1);
+    uint8_t* leaders = calloc(n * sizeof(uint8_t), 1);
     if (!leaders) {
         verrmin(v, "cannot allocate: out of memory");
         return;
     }
-    leaders[0] = true;
+    leaders[0] = L_TARGET;
 
+    v->addr = addr;
     for (size_t i = 0; i < n; i++) {
         FdInstr* instr = &instrs[i];
         int64_t target;
@@ -213,24 +227,33 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
         branch = branch && !indirect;
         if (branch && i + 1 < n) {
             // Instruction after a branch is a leader.
-            leaders[i + 1] = true;
+            if (leaders[i + 1] == L_NONE)
+                leaders[i + 1] = L_FALLTHROUGH; // fallthrough leader if not already a leader
         }
         // Target is a leader.
-        size_t i = findinstr(instrs, n, target - v->addr);
-        leaders[i] = true;
+        if (branch) {
+            ssize_t i = findinstr(instrs, n, target - addr);
+            if (i >= 0)
+                leaders[i] = L_TARGET;
+        }
+        v->addr += instr->size;
     }
 
     // All flags in an undefined state except F_DF.
     flagset_t undef = F_CF | F_OF | F_SF | F_ZF | F_PF | F_AF;
-    size_t lastleader = 0;
+    ssize_t lastleader = -1;
     size_t lastloc = addr;
     size_t loc = addr;
     for (size_t i = 0; i < n; i++) {
-        if (leaders[i] && lastleader > 0) {
+        if (leaders[i]) {
             v->addr = lastloc;
-            analyzeblock(v, undef, &instrs[lastleader], i - lastleader);
-            lastleader = i;
-            lastloc = loc;
+            if (lastleader != -1)
+                analyzeblock(v, undef, &instrs[lastleader], i - lastleader);
+            if (leaders[i] != L_FALLTHROUGH) {
+                // Only update for non-fallthrough leaders.
+                lastleader = i;
+                lastloc = loc;
+            }
         }
         loc += instrs[i].size;
     }
