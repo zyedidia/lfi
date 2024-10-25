@@ -163,6 +163,22 @@ int lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot);
 // lfi_proc_munmap unmaps a region of a process's memory.
 int lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size);
 
+typedef struct {
+    // base address of the mapping (not the region)
+    uint64_t base;
+    // length of the mapping
+    size_t len;
+    int prot;
+    int flags;
+    int fd;
+    off_t offset;
+} LFIMapInfo;
+
+// lfi_proc_mquery queries the status of a mmap region within the sandbox.
+// Returns false if there is no mapping at 'addr' and otherwise returns the
+// info in 'info. 'addr' must be page-aligned.
+bool lfi_proc_mquery(LFIProc* proc, uint64_t addr, LFIMapInfo* info);
+
 // lfi_proc_invoke invokes 'fn' inside the given process.
 //
 // When the function returns it will call 'retfn', which must also be a

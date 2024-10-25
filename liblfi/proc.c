@@ -542,6 +542,24 @@ lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
     return mm_unmap_cb(&proc->mm, addr, size, cbunmap, NULL);
 }
 
+bool
+lfi_proc_mquery(LFIProc* proc, uint64_t addr, LFIMapInfo* info)
+{
+    MMInfo minfo;
+    bool ok = mm_querypage(&proc->mm, addr, &minfo);
+    if (ok) {
+        *info = (LFIMapInfo) {
+            .base = minfo.base,
+            .len = minfo.len,
+            .prot = minfo.prot,
+            .flags = minfo.flags,
+            .fd = minfo.fd,
+            .offset = minfo.offset,
+        };
+    }
+    return ok;
+}
+
 void
 lfi_proc_free(LFIProc* p)
 {
