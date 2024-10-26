@@ -50,11 +50,10 @@ proc_validate(LFIProc* proc)
         *r = procaddr(proc->base, *r);
 
     // sys register (if used for this arch)
-    if ((r = regs_sys(&proc->regs)))
+    if (proc->lfi->opts.sysexternal && (r = regs_sys(&proc->regs)))
         *r = (uintptr_t) proc->sys;
 
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
-        /* *regs_mask(&proc->regs) = 64 - proc->lfi->opts.p2size; */
         *lfi_regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
 }
 

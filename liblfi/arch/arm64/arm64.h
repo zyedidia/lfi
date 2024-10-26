@@ -25,13 +25,9 @@ regs_addr(LFIRegs* regs, int n)
 static uint64_t*
 regs_sys(LFIRegs* regs)
 {
-#ifdef SYSEXTERNAL
     return &regs->x25;
-#else
-    (void) regs;
-    return NULL;
-#endif
 }
+
 static void
 regs_init(LFIRegs* regs, uint64_t entry, uint64_t sp)
 {

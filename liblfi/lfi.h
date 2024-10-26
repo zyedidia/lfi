@@ -137,8 +137,8 @@ void lfi_proc_exit(uint64_t code);
 // lfi_proc_load an ELF binary into the address space for 'proc'.
 //
 // 'prog/progsz' is the data of the ELF file to be loaded, and
-// 'interp/interpsz' is the data for the dynamic linker, or NULL if there is no
-// dynamic linker. Output information will be placed in 'o_info'.
+// 'interp/interpsz' is the ELF image of the dynamic linker, or NULL if there
+// is no dynamic linker. Output information will be placed in 'o_info'.
 bool lfi_proc_loadelf(LFIProc* proc, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, LFIProcInfo* o_info);
 
 // lfi_proc_mapat maps a specific region of memory in a process's address space.
