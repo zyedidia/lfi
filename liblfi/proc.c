@@ -10,6 +10,7 @@
 #include "proc.h"
 #include "err.h"
 #include "elf.h"
+#include "stack.h"
 
 #if defined(__aarch64__) || defined(_M_ARM64)
 #include "arch/arm64/arm64.h"
@@ -86,6 +87,10 @@ lfi_proc_init(LFIProc* proc, uintptr_t entry, uintptr_t sp)
     return true;
 }
 
+// The procstack is only used for programs that call proc_start while a proc
+// is already running (from a runtime call).
+static _Thread_local Stack procstack;
+
 __attribute__((visibility("hidden"))) _Thread_local LFIProc* lfi_myproc;
 
 LFIProc*
@@ -103,6 +108,8 @@ lfi_proc_settp(LFIProc* p, void* tp)
 uint64_t
 lfi_proc_start(LFIProc* proc)
 {
+    if (lfi_myproc != NULL)
+        stackpush(&procstack, lfi_myproc);
     lfi_myproc = proc;
     return lfi_proc_entry(proc, &proc->kstackp);
 }
@@ -125,7 +132,7 @@ void
 lfi_proc_exit(uint64_t code)
 {
     LFIProc* p = lfi_myproc;
-    lfi_myproc = NULL;
+    lfi_myproc = stackpop(&procstack);
     lfi_asm_proc_exit(p->kstackp, code);
 }
 
@@ -288,7 +295,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
         uintptr_t offset = p->vaddr - start;
 
         if (ehdr.type == ET_EXEC) {
-            if (start < base) {
+            if (start < base - proc->base) {
                 lfi_errno = LFI_ERR_INVALID_ELF;
                 goto err1;
             }

@@ -3,6 +3,7 @@ srcs = [
   'err.c',
   'proc.c',
   'buddy.c',
+  'stack.c',
 ]
 
 mmap = subproject('libmmap').get_variable('mmap')
