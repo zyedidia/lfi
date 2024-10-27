@@ -1,3 +1,6 @@
+// for memfd_create
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
@@ -56,6 +59,45 @@ proc_validate(LFIProc* proc)
 
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
         *lfi_regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
+}
+
+bool
+lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasize)
+{
+    int fd = memfd_create("", 0);
+    if (fd < 0)
+        goto err1;
+    int r = ftruncate(fd, codesize + datasize);
+    if (r < 0)
+        goto err2;
+    void* alias = mmap(NULL, codesize + datasize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (alias == (void*) -1)
+        goto err2;
+
+    proc->ucode = codesize;
+    proc->udata = datasize;
+    proc->ucodebase = codebase;
+    proc->ucodealias = alias;
+
+    void* codemap = mmap((void*) (proc->base + codebase), codesize, PROT_READ | PROT_EXEC, MAP_SHARED | MAP_FIXED, fd, 0);
+    if (codemap == (void*) -1)
+        goto err3;
+    void* datamap = mmap((void*) (proc->base + codebase + codesize), datasize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, codesize);
+    if (datamap == (void*) -1)
+        goto err3;
+
+    // Close the file descriptor now so that it is automatically deleted when
+    // its last mapping is unmapped.
+    close(fd);
+
+    return true;
+
+err3:
+    munmap(alias, codesize + datasize);
+err2:
+    close(fd);
+err1:
+    return false;
 }
 
 bool
@@ -278,6 +320,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
 
     // TODO: enforce filesz/memsz limit?
 
+    uintptr_t laststart = -1;
     for (int i = 0; i < ehdr.phnum; i++) {
         ElfProgHeader* p = &phdr[i];
         if (p->type != PT_LOAD)
@@ -289,14 +332,15 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
             lfi_errno = LFI_ERR_INVALID_ELF;
             goto err1;
         }
-        if (p->vaddr % p->align != 0) {
-            lfi_errno = LFI_ERR_INVALID_ELF;
-            goto err1;
-        }
 
         uintptr_t start = truncp(p->vaddr, p->align);
         uintptr_t end = ceilp(p->vaddr + p->memsz, p->align);
         uintptr_t offset = p->vaddr - start;
+
+        if (start == laststart)
+            fprintf(stderr, "warning: current segment will overwrite previous segment\n");
+
+        laststart = start;
 
         if (ehdr.type == ET_EXEC) {
             if (start < base - proc->base) {
@@ -316,7 +360,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
             goto err1;
         }
 
-        /* printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags)); */
+        printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags));
 
         if (!bufreadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
             goto err1;
@@ -387,20 +431,13 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
     uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
 
-    void* g1 = mmap((void*) guard1, GUARD1SZ, PROT_NONE, MAPANON, -1, 0);
-    if (g1 == (void*) -1)
-        goto maperr;
-    void* g2 = mmap((void*) guard2, GUARD2SZ, PROT_NONE, MAPANON, -1, 0);
-    if (g2 == (void*) -1)
-        goto maperr;
-
     proc->g1start = proc->base; // includes first page, which may be the syspage
     proc->g1end = guard1 + GUARD1SZ;
     proc->g2start = guard2;
     proc->g2end = guard2 + GUARD2SZ;
 
     size_t stacksize = proc->lfi->opts.stacksize;
-    void* stack = mmap((void*) ((uintptr_t) g2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    void* stack = mmap((void*) (guard2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
     if (stack == (void*) -1)
         goto maperr;
 
@@ -410,7 +447,7 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     syssetup(proc->sys, proc);
 
     // Now we are ready to load.
-    uintptr_t base = (uintptr_t) g1 + GUARD1SZ;
+    uintptr_t base = guard1 + GUARD1SZ;
     uintptr_t plast, pentry, ilast, ientry;
     bool hasinterp = interp.data != NULL;
     if (!load(proc, prog, base, &plast, &pentry))

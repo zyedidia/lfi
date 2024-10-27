@@ -95,6 +95,21 @@ uint64_t lfi_numprocs(LFIEngine* lfi);
 // context pointer.
 bool lfi_addproc(LFIEngine* lfi, LFIProc** proc, void* ctxp);
 
+// lfi_adduproc creates a new micro process.
+//
+// A micro process can only load ELF images that split their code and data
+// segments into to regions of size 'codesize' and 'datasize'. The sandbox
+// memory for a micro process will be preallocated, and initialization will not
+// involve any calls to mmap or mprotect. This means that micro processes can
+// start up extremely quickly and scalably (no syscalls and no TLB shootdowns).
+// Generally, you can expect a micro process to start in less than 10us for
+// code/data sizes of 128KiB or less.
+//
+// 'codebase' is the base of the code/data regions relative to the sandbox
+// base.
+bool lfi_adduproc(LFIEngine* lfi, LFIProc** proc, void* ctxp, uintptr_t
+        codebase, size_t codesize, size_t datasize);
+
 // lfi_rmproc removes a process and frees all associated data.
 void lfi_rmproc(LFIEngine* lfi, LFIProc* proc);
 

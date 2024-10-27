@@ -251,6 +251,21 @@ lfi_addproc(LFIEngine* lfi, LFIProc** proc, void* ctxp)
     return true;
 }
 
+bool
+lfi_adduproc(LFIEngine* lfi, LFIProc** proc, void* ctxp, uintptr_t codebase,
+        size_t codesize, size_t datasize)
+{
+    if (!lfi_addproc(lfi, proc, ctxp))
+        return false;
+
+    if (!lfi_uproc_init(*proc, codebase, codesize, datasize)) {
+        lfi_rmproc(lfi, *proc);
+        return false;
+    }
+
+    return true;
+}
+
 void
 lfi_rmproc(LFIEngine* lfi, LFIProc* proc)
 {

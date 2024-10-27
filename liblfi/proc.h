@@ -31,6 +31,12 @@ typedef struct LFIProc {
     uintptr_t base;
     size_t size;
 
+    // info for micro processes
+    uintptr_t ucodebase;
+    size_t ucode;
+    size_t udata;
+    void* ucodealias;
+
     uintptr_t g1start, g1end;
     uintptr_t g2start, g2end;
     MMAddrSpace mm;
@@ -44,3 +50,5 @@ typedef struct LFIProc {
 void lfi_proc_free(LFIProc* proc);
 
 bool lfi_proc_meminit(LFIProc* proc);
+
+bool lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasize);
