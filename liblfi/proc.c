@@ -289,6 +289,10 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
             lfi_errno = LFI_ERR_INVALID_ELF;
             goto err1;
         }
+        if (p->vaddr % p->align != 0) {
+            lfi_errno = LFI_ERR_INVALID_ELF;
+            goto err1;
+        }
 
         uintptr_t start = truncp(p->vaddr, p->align);
         uintptr_t end = ceilp(p->vaddr + p->memsz, p->align);
@@ -369,6 +373,8 @@ procclear(LFIProc* proc)
 bool
 lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, LFIProcInfo* info)
 {
+    procclear(proc);
+
     FileBuf prog = (FileBuf) {
         .data = progdat,
         .size = progsz,
