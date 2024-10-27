@@ -28,6 +28,14 @@ extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 extern void lfi_get_tp() asm ("lfi_get_tp");
 extern void lfi_set_tp() asm ("lfi_set_tp");
 
+static LFISys* sysalloc(uintptr_t base, int sysexternal, size_t pagesize);
+static void syssetup(LFISys* table, LFIProc* proc);
+
+enum {
+    MAPANON = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
+    MAPFILE = MAP_PRIVATE | MAP_FIXED,
+};
+
 static uintptr_t
 procaddr(uintptr_t base, uintptr_t addr)
 {
@@ -64,6 +72,14 @@ proc_validate(LFIProc* proc)
 bool
 lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasize)
 {
+    uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
+    uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
+
+    proc->g1start = proc->base; // includes first page, which may be the syspage
+    proc->g1end = guard1 + GUARD1SZ;
+    proc->g2start = guard2;
+    proc->g2end = guard2 + GUARD2SZ;
+
     int fd = memfd_create("", 0);
     if (fd < 0)
         goto err1;
@@ -76,7 +92,7 @@ lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasi
 
     proc->ucode = codesize;
     proc->udata = datasize;
-    proc->ucodebase = codebase;
+    proc->ucodebase = proc->base + codebase;
     proc->ucodealias = alias;
 
     void* codemap = mmap((void*) (proc->base + codebase), codesize, PROT_READ | PROT_EXEC, MAP_SHARED | MAP_FIXED, fd, 0);
@@ -85,14 +101,25 @@ lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasi
     void* datamap = mmap((void*) (proc->base + codebase + codesize), datasize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, codesize);
     if (datamap == (void*) -1)
         goto err3;
+    size_t stacksize = proc->lfi->opts.stacksize;
+    void* stack = mmap((void*) (guard2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+    if (stack == (void*) -1)
+        goto err3;
+    proc->stack = stack;
 
     // Close the file descriptor now so that it is automatically deleted when
     // its last mapping is unmapped.
     close(fd);
 
+    proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
+    if (!proc->sys)
+        goto err3;
+    syssetup(proc->sys, proc);
+
     return true;
 
 err3:
+    lfi_errno = LFI_ERR_CANNOT_MAP;
     munmap(alias, codesize + datasize);
 err2:
     close(fd);
@@ -254,11 +281,6 @@ bufread(FileBuf buf, void* to, size_t count, off_t offset)
     return i;
 }
 
-enum {
-    MAPANON = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
-    MAPFILE = MAP_PRIVATE | MAP_FIXED,
-};
-
 static bool
 bufreadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
         size_t p_offset, size_t filesz, int prot, FileBuf buf, size_t pagesize)
@@ -280,6 +302,47 @@ bufreadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
     }
     if (lfi_proc_mprotect(proc, start, end - start, prot) < 0)
         return false;
+    return true;
+}
+
+static bool
+ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
+        size_t p_offset, size_t filesz, int prot, FileBuf buf, size_t pagesize)
+{
+    void* target;
+    if (prot == (PROT_READ | PROT_EXEC)) {
+        // code region segment
+        if (start < proc->ucodebase || start + (end - start) > proc->ucodebase + proc->ucode) {
+            return false;
+        }
+
+        LFIVerifier* verifier = proc->lfi->opts.verifier;
+        if (verifier) {
+            if (!lfiv_verify(verifier, &buf.data[p_offset], filesz, start + offset)) {
+                lfi_errno = LFI_ERR_VERIFY;
+                return false;
+            }
+        }
+        target = proc->ucodealias + (start - proc->ucodebase) + offset;
+
+        // TODO: presanitize for x86
+    } else if (prot == (PROT_READ | PROT_WRITE)) {
+        // data region segment
+        uintptr_t database = proc->ucodebase + proc->udata;
+        if (start < database || start + (end - start) > database + proc->udata) {
+            return false;
+        }
+        target = (void*) start + offset;
+    } else {
+        // All segments in a micro process are either RX or RW.
+        return false;
+    }
+    // TODO: add mapping to proc->mm
+    ssize_t n = bufread(buf, target, filesz, p_offset);
+    if (n != (ssize_t) filesz) {
+        lfi_errno = LFI_ERR_INVALID_ELF;
+        return false;
+    }
     return true;
 }
 
@@ -362,8 +425,13 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
 
         printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags));
 
-        if (!bufreadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
-            goto err1;
+        if (proc->ucodealias) {
+            if (!ureadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
+                goto err1;
+        } else {
+            if (!bufreadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
+                goto err1;
+        }
 
         if (base == 0) {
             base = base + start;
@@ -371,6 +439,10 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
         if (base + end > last) {
             last = base + end;
         }
+    }
+
+    if (proc->ucodealias) {
+        __builtin___clear_cache((char*) proc->ucodebase, (char*) proc->ucodebase + proc->ucode);
     }
 
     *plast = last;
@@ -389,17 +461,20 @@ sysalloc(uintptr_t base, int sysexternal, size_t pagesize)
 {
     LFISys* sys;
     if (sysexternal) {
-        sys = mmap(NULL, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        sys = malloc(sizeof(LFISys));
+        if (!sys)
+            return NULL;
     } else {
         sys = mmap((void*) base, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+        if (sys == (void*) -1)
+            return NULL;
     }
-    if (sys == (void*) -1)
-        return NULL;
     return sys;
 }
 
 static void
-syssetup(LFISys* table, LFIProc* proc) {
+syssetup(LFISys* table, LFIProc* proc)
+{
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
     table->rtcalls[1] = (uintptr_t) &lfi_get_tp;
     table->rtcalls[2] = (uintptr_t) &lfi_set_tp;
@@ -417,8 +492,6 @@ procclear(LFIProc* proc)
 bool
 lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, LFIProcInfo* info)
 {
-    procclear(proc);
-
     FileBuf prog = (FileBuf) {
         .data = progdat,
         .size = progsz,
@@ -431,20 +504,29 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     uintptr_t guard1 = proc->base + proc->lfi->opts.pagesize;
     uintptr_t guard2 = proc->base + proc->size - GUARD2SZ;
 
-    proc->g1start = proc->base; // includes first page, which may be the syspage
-    proc->g1end = guard1 + GUARD1SZ;
-    proc->g2start = guard2;
-    proc->g2end = guard2 + GUARD2SZ;
+    if (proc->ucodealias != NULL) {
+        // This is a micro process.
+        if (interpdat != NULL || interpsz != 0)
+            return false;
+    } else {
+        procclear(proc);
 
-    size_t stacksize = proc->lfi->opts.stacksize;
-    void* stack = mmap((void*) (guard2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
-    if (stack == (void*) -1)
-        goto maperr;
+        proc->g1start = proc->base; // includes first page, which may be the syspage
+        proc->g1end = guard1 + GUARD1SZ;
+        proc->g2start = guard2;
+        proc->g2end = guard2 + GUARD2SZ;
 
-    proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
-    if (!proc->sys)
-        goto err;
-    syssetup(proc->sys, proc);
+        size_t stacksize = proc->lfi->opts.stacksize;
+        void* stack = mmap((void*) (guard2 - stacksize), stacksize, PROT_READ | PROT_WRITE, MAPANON, -1, 0);
+        if (stack == (void*) -1)
+            goto maperr;
+        proc->stack = stack;
+
+        proc->sys = sysalloc(proc->base, proc->lfi->opts.sysexternal, proc->lfi->opts.pagesize);
+        if (!proc->sys)
+            goto err;
+        syssetup(proc->sys, proc);
+    }
 
     // Now we are ready to load.
     uintptr_t base = guard1 + GUARD1SZ;
@@ -461,8 +543,8 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
     assert(n == sizeof(ehdr)); // must succeed since we just read it to load
 
     *info = (LFIProcInfo) {
-        .stack = stack,
-        .stacksize = stacksize,
+        .stack = proc->stack,
+        .stacksize = proc->lfi->opts.stacksize,
         .lastva = hasinterp ? ilast : plast,
         .elfentry = pentry,
         .ldentry = hasinterp ? ientry : 0,
@@ -613,6 +695,8 @@ void
 lfi_proc_free(LFIProc* p)
 {
     procclear(p);
+    if (p->lfi->opts.sysexternal)
+        free(p->sys);
     free(p);
 }
 

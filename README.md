@@ -4,16 +4,16 @@
 ![Test Workflow](https://github.com/zyedidia/lfi/actions/workflows/test.yaml/badge.svg)
 [![MPL License](https://img.shields.io/badge/license-MPL%202.0-blue)](https://github.com/zyedidia/lfi/blob/master/LICENSE)
 
-LFI is a performant and secure software sandboxing system targeting the ARM64
-and x86-64 architectures. LFI allows you to run ~64K (ARM64) or ~3K (x86-64)
-sandboxes in a single address space while guaranteeing that the sandboxes
-cannot read or write each other's memory. Each sandbox may be given up to 4GiB
-of memory. These sandboxes are very efficient: on ARM64 they run with
-roughly 7% overhead compared to native code when sandboxing reads and writes,
-and 1.5% overhead when only sandboxing writes (x86-64 has slightly higher
-overheads). Since all sandboxes exist in the same address space, context
-switches do not require changing the CPU's privilege level (i.e., transitioning
-to kernel mode).
+LFI (Lightweight Fault Isolation) is a performant and secure software
+sandboxing system targeting the ARM64 and x86-64 architectures. LFI allows you
+to run ~64K (ARM64) or ~3K (x86-64) sandboxes in a single address space while
+guaranteeing that the sandboxes cannot read or write each other's memory. Each
+sandbox may be given up to 4GiB of memory. These sandboxes are very efficient:
+on ARM64 they run with roughly 7% overhead compared to native code when
+sandboxing reads and writes, and 1.5% overhead when only sandboxing writes
+(x86-64 has slightly higher overheads). Since all sandboxes exist in the same
+address space, context switches do not require changing the CPU's privilege
+level (i.e., transitioning to kernel mode).
 
 LFI's support for x86-64 is in-progress and does not yet include a complete
 static verifier. The scalability limit of 3K sandboxes on x86-64 will also be

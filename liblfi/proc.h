@@ -30,6 +30,7 @@ typedef struct LFIProc {
     LFIRegs regs;
     uintptr_t base;
     size_t size;
+    void* stack;
 
     // info for micro processes
     uintptr_t ucodebase;
