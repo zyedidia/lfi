@@ -9,7 +9,7 @@
 // process because the macOS TLS implementation has a terrible calling
 // convention. Instead we require sysexternal on Apple, and use x25.
 #ifdef __APPLE__
-	ldr x21, [x25, N_RTCALLS+8]
+	ldr x21, [x25, N_RTCALLS*8+8]
 #else
 	mrs	x21, tpidr_el0
 	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12
@@ -59,7 +59,7 @@
 .global lfi_get_tp
 lfi_get_tp:
 #ifdef __APPLE__
-	ldr x0, [x25, N_RTCALLS+8]
+	ldr x0, [x25, N_RTCALLS*8+8]
 #else
 	mrs	x0, tpidr_el0
 	add	x0, x0, #:tprel_hi12:lfi_myproc, lsl #12
@@ -75,7 +75,7 @@ lfi_get_tp:
 .global lfi_set_tp
 lfi_set_tp:
 #ifdef __APPLE__
-	ldr x22, [x25, N_RTCALLS+8]
+	ldr x22, [x25, N_RTCALLS*8+8]
 #else
 	mrs	x22, tpidr_el0
 	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
