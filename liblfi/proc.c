@@ -80,6 +80,11 @@ lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasi
     proc->g2start = guard2;
     proc->g2end = guard2 + GUARD2SZ;
 
+    if (proc->base + codebase < proc->g1end) {
+        lfi_errno = LFI_ERR_INVALID_UPROC;
+        return false;
+    }
+
     int fd = memfd_create("", 0);
     if (fd < 0)
         goto err1;
@@ -313,6 +318,7 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
     if (prot == (PROT_READ | PROT_EXEC)) {
         // code region segment
         if (start < proc->ucodebase || start + (end - start) > proc->ucodebase + proc->ucode) {
+            lfi_errno = LFI_ERR_UPROC_SEG;
             return false;
         }
 
@@ -326,15 +332,18 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
         target = proc->ucodealias + (start - proc->ucodebase) + offset;
 
         // TODO: presanitize for x86
-    } else if (prot == (PROT_READ | PROT_WRITE)) {
+    } else if (prot == (PROT_READ | PROT_WRITE) || prot == PROT_READ) {
+        // Note: for micro processes, read-only segments are mapped read-write.
         // data region segment
         uintptr_t database = proc->ucodebase + proc->udata;
         if (start < database || start + (end - start) > database + proc->udata) {
+            lfi_errno = LFI_ERR_UPROC_SEG;
             return false;
         }
         target = (void*) start + offset;
     } else {
         // All segments in a micro process are either RX or RW.
+        lfi_errno = LFI_ERR_UPROC_SEG;
         return false;
     }
     // TODO: add mapping to proc->mm
@@ -423,7 +432,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
             goto err1;
         }
 
-        printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags));
+        /* printf("load %lx %lx (P: %d)\n", base + start, base + end, pflags(p->flags)); */
 
         if (proc->ucodealias) {
             if (!ureadelfseg(proc, base + start, offset, base + end, p->offset, p->filesz, pflags(p->flags), buf, pagesize))
@@ -485,13 +494,28 @@ syssetup(LFISys* table, LFIProc* proc)
 static void
 procclear(LFIProc* proc)
 {
-    void* p = mmap((void*) proc->base, proc->size, PROT_NONE, MAPANON, -1, 0);
-    assert(p != (void*) -1);
+    if (proc->ucodealias) {
+        // micro process just clears by zeroing/sanitizing
+        memset(proc->stack, 0, proc->lfi->opts.stacksize);
+#if defined(__x86_64__) || defined(_M_X64)
+        // Why is 0 a valid instruction in x86.
+        const uint8_t SAFE_BYTE = 0xcc;
+#else
+        const uint8_t SAFE_BYTE = 0;
+#endif
+        memset(proc->ucodealias, SAFE_BYTE, proc->ucode);
+        memset(proc->ucodealias + proc->ucode, 0, proc->udata);
+    } else {
+        void* p = mmap((void*) proc->base, proc->size, PROT_NONE, MAPANON, -1, 0);
+        assert(p != (void*) -1);
+    }
 }
 
 bool
 lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, LFIProcInfo* info)
 {
+    procclear(proc);
+
     FileBuf prog = (FileBuf) {
         .data = progdat,
         .size = progsz,
@@ -509,8 +533,6 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
         if (interpdat != NULL || interpsz != 0)
             return false;
     } else {
-        procclear(proc);
-
         proc->g1start = proc->base; // includes first page, which may be the syspage
         proc->g1end = guard1 + GUARD1SZ;
         proc->g2start = guard2;
@@ -554,6 +576,10 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
         .elfphnum = ehdr.phnum,
         .elfphentsize = ehdr.phentsize,
     };
+    if (proc->ucodealias) {
+        uintptr_t dataend = proc->base + proc->ucodebase + proc->ucode + proc->udata;
+        info->extradata = dataend - info->lastva;
+    }
 
     return true;
 
@@ -617,6 +643,7 @@ procmap(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd
 void*
 lfi_proc_mapany(LFIProc* proc, size_t size, int prot, int flags, int fd, off_t offset)
 {
+    assert(!proc->ucodealias);
     uintptr_t addr = mm_mapany(&proc->mm, size, prot, flags, fd, offset);
     if (addr == (uint64_t) -1)
         return NULL;
@@ -653,6 +680,7 @@ lfi_proc_mapat(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags,
 int
 lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 {
+    assert(!proc->ucodealias);
     // Cannot overlap guard pages.
     if (overlaps(addr, size, proc->g1start, proc->g1end) ||
         overlaps(addr, size, proc->g2start, proc->g2end))
@@ -665,6 +693,7 @@ lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
 int
 lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
 {
+    assert(!proc->ucodealias);
     // Cannot overlap guard pages.
     if (overlaps(addr, size, proc->g1start, proc->g1end) ||
         overlaps(addr, size, proc->g2start, proc->g2end))
@@ -676,6 +705,7 @@ lfi_proc_munmap(LFIProc* proc, uintptr_t addr, size_t size)
 bool
 lfi_proc_mquery(LFIProc* proc, uint64_t addr, LFIMapInfo* info)
 {
+    assert(!proc->ucodealias);
     MMInfo minfo;
     bool ok = mm_querypage(&proc->mm, addr, &minfo);
     if (ok) {

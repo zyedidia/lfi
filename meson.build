@@ -43,6 +43,7 @@ cpuarch = archmap[cpu]
 
 go = find_program('go')
 xxd = find_program('xxd', required: false)
+cp = find_program('cp')
 
 subdir('lfi-leg')
 subdir('lfi-verify')

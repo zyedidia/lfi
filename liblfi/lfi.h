@@ -21,6 +21,8 @@ enum {
     LFI_ERR_NOVERIFIER    = 10,
     LFI_ERR_INVALID_GAS   = 11,
     LFI_ERR_NOSYSHANDLER  = 12,
+    LFI_ERR_INVALID_UPROC = 13,
+    LFI_ERR_UPROC_SEG     = 14,
 };
 
 typedef uint64_t (*SysHandler)(void* ctxp, uint64_t sysno, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
@@ -155,6 +157,10 @@ void lfi_proc_exit(uint64_t code);
 // 'interp/interpsz' is the ELF image of the dynamic linker, or NULL if there
 // is no dynamic linker. Output information will be placed in 'o_info'.
 bool lfi_proc_loadelf(LFIProc* proc, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, LFIProcInfo* o_info);
+
+// Note: the following mmap functionality is not available for micro processes.
+// Such processes should use an sbrk API written by the user, which allocates
+// from the micro process's data region.
 
 // lfi_proc_mapat maps a specific region of memory in a process's address space.
 //

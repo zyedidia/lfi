@@ -37,6 +37,10 @@ lfi_strerror()
         return "gas is not available on this system";
     case LFI_ERR_NOSYSHANDLER:
         return "no runtime call handler provided";
+    case LFI_ERR_INVALID_UPROC:
+        return "invalid uproc parameters";
+    case LFI_ERR_UPROC_SEG:
+        return "ELF segment doesn't map to pre-allocated location";
     }
     return "unknown error";
 }
