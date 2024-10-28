@@ -11,10 +11,11 @@
 #ifdef __APPLE__
 	ldr x21, [x25, N_RTCALLS*8+8]
 #else
-	mrs	x21, tpidr_el0
-	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12
-	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
-	ldr	x21, [x21]
+	adrp x22, :gottprel:lfi_myproc
+	ldr x22, [x22, #:gottprel_lo12:lfi_myproc]
+	mrs x21, tpidr_el0
+	ldr x21, [x21, x22]
+	mov x22, #0
 #endif
 .endm
 
@@ -54,35 +55,40 @@
 	ldp x0, x1,   [x0, PROC_REGS+16*0]
 .endm
 
-// Puts the sandbox's thread pointer in x0.
+// Puts the sandbox's thread pointer in x0, clobbers x22.
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
 #ifdef __APPLE__
 	ldr x0, [x25, N_RTCALLS*8+8]
 #else
-	mrs	x0, tpidr_el0
-	add	x0, x0, #:tprel_hi12:lfi_myproc, lsl #12
-	add	x0, x0, #:tprel_lo12_nc:lfi_myproc
-	ldr	x0, [x0]
+	adrp x22, :gottprel:lfi_myproc
+	ldr x22, [x22, #:gottprel_lo12:lfi_myproc]
+	mrs x0, tpidr_el0
+	ldr x0, [x0, x22]
+	mov x22, #0
 #endif
 	ldr x0, [x0, #8]
 	add x30, x21, w30, uxtw
 	ret
 
-// Sets the sandbox's thread pointer to x0 and clobbers x22.
+// Sets the sandbox's thread pointer to x0 and clobbers x22 and x20.
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
 #ifdef __APPLE__
 	ldr x22, [x25, N_RTCALLS*8+8]
-#else
-	mrs	x22, tpidr_el0
-	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
-	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
-	ldr	x22, [x22]
-#endif
 	str x0, [x22, #8]
+	mov x22, #0
+#else
+	adrp x22, :gottprel:lfi_myproc
+	ldr x22, [x22, #:gottprel_lo12:lfi_myproc]
+	mrs x20, tpidr_el0
+	ldr x20, [x20, x22]
+	mov x22, #0
+	str x0, [x20, #8]
+	mov x20, #0
+#endif
 	add x30, x21, w30, uxtw
 	ret
 
