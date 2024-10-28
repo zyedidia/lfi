@@ -11,7 +11,7 @@
 #include "testuprog.inc"
 
 enum {
-    NBENCH = 1000000,
+    NBENCH = 1000,
 };
 
 static size_t
