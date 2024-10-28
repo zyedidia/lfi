@@ -1,9 +1,12 @@
+#if __linux__
 // for memfd_create
 #define _GNU_SOURCE
+#endif
 
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 
 #include "align.h"
@@ -85,9 +88,18 @@ lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasi
         return false;
     }
 
+#if __linux__
     int fd = memfd_create("", 0);
     if (fd < 0)
         goto err1;
+#else
+    char name[32];
+    snprintf(name, 32, "lfi_uproc_%lx", proc->base);
+    int fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0600);
+    if (fd < 0)
+        goto err1;
+    shm_unlink(name);
+#endif
     int r = ftruncate(fd, codesize + datasize);
     if (r < 0)
         goto err2;
@@ -488,6 +500,7 @@ syssetup(LFISys* table, LFIProc* proc)
     table->rtcalls[1] = (uintptr_t) &lfi_get_tp;
     table->rtcalls[2] = (uintptr_t) &lfi_set_tp;
     table->base = proc->base;
+    table->proc = proc;
     mprotect(table, proc->lfi->opts.pagesize, PROT_READ);
 }
 
@@ -656,7 +669,7 @@ lfi_proc_mapany(LFIProc* proc, size_t size, int prot, int flags, int fd, off_t o
 }
 
 static void
-cbunmap(uintptr_t start, size_t len, MMInfo info, void* udata)
+cbunmap(uint64_t start, size_t len, MMInfo info, void* udata)
 {
     (void) udata, (void) info;
     void* p = mmap((void*) start, len, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);

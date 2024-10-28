@@ -5,10 +5,17 @@
 
 // Puts Proc* in x21.
 .macro GET_PROC
+// On Apple Silicon we do not use thread-locals to keep track of the current
+// process because the macOS TLS implementation has a terrible calling
+// convention. Instead we require sysexternal on Apple, and use x25.
+#ifdef __APPLE__
+	ldr x21, [x25, N_RTCALLS+8]
+#else
 	mrs	x21, tpidr_el0
 	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12
 	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
 	ldr	x21, [x21]
+#endif
 .endm
 
 // save caller-saved registers, assuming sandbox syspage is x21
@@ -51,10 +58,14 @@
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
+#ifdef __APPLE__
+	ldr x0, [x25, N_RTCALLS+8]
+#else
 	mrs	x0, tpidr_el0
 	add	x0, x0, #:tprel_hi12:lfi_myproc, lsl #12
 	add	x0, x0, #:tprel_lo12_nc:lfi_myproc
 	ldr	x0, [x0]
+#endif
 	ldr x0, [x0, #8]
 	add x30, x21, w30, uxtw
 	ret
@@ -63,10 +74,14 @@ lfi_get_tp:
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
+#ifdef __APPLE__
+	ldr x22, [x25, N_RTCALLS+8]
+#else
 	mrs	x22, tpidr_el0
 	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
 	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
 	ldr	x22, [x22]
+#endif
 	str x0, [x22, #8]
 	add x30, x21, w30, uxtw
 	ret

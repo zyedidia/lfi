@@ -47,6 +47,11 @@ lfi_new(LFIOptions options)
     if (options.noverify)
         options.verifier = NULL;
 
+#if __APPLE
+    // sysexternal is required on macOS
+    options.sysexternal = 1;
+#endif
+
     assert(!options.verifier || options.verifier->verify);
 
     *engine = (LFIEngine) {

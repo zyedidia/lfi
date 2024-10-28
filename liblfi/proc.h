@@ -13,6 +13,7 @@ enum {
 typedef struct {
     uintptr_t rtcalls[256];
     uintptr_t base;
+    void* proc;
 } LFISys;
 
 typedef struct LFIMem {
