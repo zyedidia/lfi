@@ -10,17 +10,14 @@
     ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
-
-static int count;
 %}
 
 Syscall = 'syscall' - {
     if (!args.decl) {
-        char* label = xasprintf(".LFI_SYS%d", count++);
         mkdirective(".bundle_lock");
-        mkinsn("leaq %s(%%rip), %%r11", label);
+        mkinsn("leaq 1024f(%%rip), %%r11");
         mkinsn("jmpq *(%%r14)");
-        mklabel(label);
+        mklabel("1024");
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("syscall");

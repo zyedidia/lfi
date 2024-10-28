@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 enum {
@@ -83,14 +84,10 @@ enum {
 static size_t
 bufread(uint8_t* buf, size_t bufsz, void* to, size_t count, off_t offset)
 {
-    size_t i;
-    char* toc = (char*) to;
-    for (i = 0; i < count; i++) {
-        if (offset + i >= bufsz)
-            break;
-        toc[i] = buf[offset + i];
-    }
-    return i;
+    if (offset + count > bufsz)
+        count = bufsz - offset;
+    memcpy(to, &buf[offset], count);
+    return count;
 }
 
 // The return value is dynamically allocated and must be freed by

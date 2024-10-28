@@ -288,14 +288,10 @@ typedef struct {
 static size_t
 bufread(FileBuf buf, void* to, size_t count, off_t offset)
 {
-    size_t i;
-    char* toc = (char*) to;
-    for (i = 0; i < count; i++) {
-        if (offset + i >= buf.size)
-            break;
-        toc[i] = buf.data[offset + i];
-    }
-    return i;
+    if (offset + count > buf.size)
+        count = buf.size - offset;
+    memcpy(to, &buf.data[offset], count);
+    return count;
 }
 
 static bool
