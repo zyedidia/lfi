@@ -342,8 +342,6 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
             }
         }
         target = proc->ucodealias + (start - proc->ucodebase) + offset;
-
-        // TODO: presanitize for x86
     } else if (prot == (PROT_READ | PROT_WRITE) || prot == PROT_READ) {
         // Note: for micro processes, read-only segments are mapped read-write.
         // data region segment
@@ -358,7 +356,9 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
         lfi_errno = LFI_ERR_UPROC_SEG;
         return false;
     }
-    // TODO: add mapping to proc->mm
+    // If we want to support memory mapping for micro processes we have to
+    // update proc->mm here. Currentl memory mappings are not supported for
+    // micro processes.
     ssize_t n = bufread(buf, target, filesz, p_offset);
     if (n != (ssize_t) filesz) {
         lfi_errno = LFI_ERR_INVALID_ELF;
@@ -501,7 +501,8 @@ syssetup(LFISys* table, LFIProc* proc)
     table->rtcalls[2] = (uintptr_t) &lfi_set_tp;
     table->base = proc->base;
     table->proc = proc;
-    mprotect(table, proc->lfi->opts.pagesize, PROT_READ);
+    if (!proc->lfi->opts.sysexternal)
+        mprotect(table, proc->lfi->opts.pagesize, PROT_READ);
 }
 
 static void
