@@ -35,13 +35,18 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static bool okmnem(FdInstr* instr) {
-    return true;
-/*     switch (FD_TYPE(instr)) { */
-/* #include "base.instrs" */
-/*     } */
-/*  */
-/*     return false; */
+static bool okmnem(Verifier* v, FdInstr* instr) {
+    if (v->opts->decl) {
+        switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+        default:
+            break;
+        }
+    } else {
+        // TODO:
+        return true;
+    }
+    return false;
 }
 
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect) {
@@ -107,7 +112,7 @@ static size_t vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesi
             return ninstr;
         }
 
-        if (!okmnem(&instr))
+        if (!okmnem(v, &instr))
             verr(v, &instr, "illegal instruction");
 
         chkbranch(v, &instr, bundlesize);
