@@ -4,13 +4,13 @@ foo:
 add $8, %rax
 nop
 jz foo
-ret
+nop
 ---
 // flags: --decl
 .bundle_align_mode 4
 foo:
 div %rdi, %rax
-ret
+nop
 ---
 // flags: --decl
 .bundle_align_mode 4
@@ -33,8 +33,9 @@ jae foo
 ---
 // flags: --decl
 .bundle_align_mode 4
-foo:
 jmp entry
+.p2align 4
+foo:
 je bar
 .p2align 4
 entry:
@@ -42,3 +43,14 @@ cmp %eax, %eax
 jge foo
 .p2align 4
 bar:
+---
+// flags: --decl
+.bundle_align_mode 4
+test %bl, %bl
+jle .foo
+nop
+.p2align 4
+.foo:
+je .bar
+.p2align 4
+.bar:

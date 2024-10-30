@@ -291,15 +291,20 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
             v->addr += instrs[leader + i].size;
         }
     }
+    for (size_t i = 0; i < n; i++) {
+        if (blocks[i].size > 0) {
+            blocks[i].in = undef;
+        }
+    }
 
     for (size_t i = 0; i < n; i++) {
         if (blocks[i].size > 0) {
             v->addr = blocks[i].startaddr;
-            flagset_t out = analyzeblock(v, undef, &instrs[i], blocks[i].size, false);
+            flagset_t out = analyzeblock(v, blocks[i].in, &instrs[i], blocks[i].size, false);
             if (blocks[i].fallthrough)
-                blocks[i].fallthrough->in |= out;
+                blocks[i].fallthrough->in &= out;
             if (blocks[i].target)
-                blocks[i].target->in |= out;
+                blocks[i].target->in &= out;
         }
     }
 
@@ -308,9 +313,9 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
             v->addr = blocks[i].startaddr;
             flagset_t out = analyzeblock(v, blocks[i].in, &instrs[i], blocks[i].size, true);
             if (blocks[i].fallthrough)
-                blocks[i].fallthrough->in |= out;
+                blocks[i].fallthrough->in &= out;
             if (blocks[i].target)
-                blocks[i].target->in |= out;
+                blocks[i].target->in &= out;
         }
     }
 }

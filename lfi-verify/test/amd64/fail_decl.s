@@ -3,7 +3,7 @@
 foo:
 div %rdi, %rax
 jz foo
-ret
+nop
 ---
 // flags: --decl
 .bundle_align_mode 4
