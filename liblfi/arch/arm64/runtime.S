@@ -86,6 +86,13 @@ lfi_set_tp:
 	add x30, x21, w30, uxtw
 	ret
 
+// Accelerated return for library sandboxes.
+.p2align 4
+.globl lfi_ret
+lfi_ret:
+	// TODO
+	brk #0
+
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
 .globl lfi_asm_invoke

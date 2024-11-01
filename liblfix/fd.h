@@ -5,27 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-struct LFIXProc;
-
-enum {
-    NOFILE = 128,
-};
-
-typedef struct {
-    void* dev;
-    size_t refs;
-    ssize_t (*read)(void*, struct LFIXProc*, uint8_t*, size_t);
-    ssize_t (*write)(void*, struct LFIXProc*, uint8_t*, size_t);
-    ssize_t (*lseek)(void*, struct LFIXProc*, off_t, int);
-    int (*close)(void*, struct LFIXProc*);
-    int (*stat)(void*, struct LFIXProc*, struct stat*);
-    ssize_t (*getdents)(void*, struct LFIXProc*, void*, size_t);
-    int (*mapfd)(void*);
-} FDFile;
-
-typedef struct {
-    FDFile* files[NOFILE];
-} FDTable;
+#include "lfix.h"
 
 void lfix_fdassign(FDTable* t, int fd, FDFile* ff);
 

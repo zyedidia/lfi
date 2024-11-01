@@ -13,6 +13,7 @@
 #include "elf.h"
 #include "proc.h"
 #include "io.h"
+#include "fd.h"
 
 #include "cwalk/cwalk.h"
 
@@ -89,7 +90,11 @@ procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv)
     char* interppath = elfinterp(prog, progsz);
     Buf interp = (Buf){NULL, 0};
     if (interppath) {
-        interp = bufreadfile(interppath);
+        if (p->lfix->readfile && p->lfix->readfile(interppath, &interp.data, &interp.size)) {
+            // good
+        } else {
+            interp = bufreadfile(interppath);
+        }
         if (!interp.data) {
             fprintf(stderr, "error opening dynamic linker %s: %s\n", interppath, strerror(errno));
             free(interppath);

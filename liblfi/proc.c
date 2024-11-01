@@ -30,6 +30,7 @@ extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_e
 extern void lfi_syscall_entry() asm ("lfi_syscall_entry");
 extern void lfi_get_tp() asm ("lfi_get_tp");
 extern void lfi_set_tp() asm ("lfi_set_tp");
+extern void lfi_ret() asm ("lfi_ret");
 
 static LFISys* sysalloc(uintptr_t base, int sysexternal, size_t pagesize);
 static void syssetup(LFISys* table, LFIProc* proc);
@@ -212,6 +213,13 @@ lfi_proc_invoke(LFIProc* proc, void* fn, void* ret)
     *((void**) proc->regs.rsp) = ret;
 #endif
     return lfi_asm_invoke(proc, fn, &proc->kstackp);
+}
+
+void
+lfi_proc_pause(uint64_t code)
+{
+    LFIProc* p = lfi_myproc;
+    lfi_asm_proc_exit(p->kstackp, code);
 }
 
 void
@@ -495,6 +503,7 @@ syssetup(LFISys* table, LFIProc* proc)
     table->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
     table->rtcalls[1] = (uintptr_t) &lfi_get_tp;
     table->rtcalls[2] = (uintptr_t) &lfi_set_tp;
+    table->rtcalls[3] = (uintptr_t) &lfi_ret;
     table->base = proc->base;
     table->proc = proc;
     if (!proc->lfi->opts.sysexternal)

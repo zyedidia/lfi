@@ -7,11 +7,27 @@
 
 #include "file.h"
 #include "sys.h"
+#include "io.h"
 
 FDFile*
-lfix_filenew(int dirfd, const char* name, int flags, int mode)
+lfix_filenew(LFIXEngine* lfix, int dirfd, const char* name, int flags, int mode)
 {
-    int kfd = openat(dirfd, name, flags, mode);
+    Buf file;
+    int kfd;
+    // TODO: handle dirfd properly for readfile?
+    if (lfix->readfile && lfix->readfile(name, &file.data, &file.size)) {
+        kfd = memfd_create("", 0);
+        if (kfd < 0)
+            return NULL;
+        ssize_t n = write(kfd, file.data, file.size);
+        if (n == -1 || (size_t) n != file.size) {
+            close(kfd);
+            return NULL;
+        }
+        lseek(kfd, 0, SEEK_SET);
+    } else {
+        kfd = openat(dirfd, name, flags, mode);
+    }
     if (kfd < 0)
         return NULL;
     return lfix_filefdnew(kfd);
@@ -55,7 +71,8 @@ static int
 filestat(void* dev, struct LFIXProc* p, struct stat* statbuf)
 {
     (void) p;
-    return syserr(fstatat(filefd(dev), "", statbuf, AT_EMPTY_PATH));
+    int err = syserr(fstatat(filefd(dev), "", statbuf, AT_EMPTY_PATH));
+    return err;
 }
 
 static ssize_t

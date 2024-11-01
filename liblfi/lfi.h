@@ -151,6 +151,14 @@ LFIProc* lfi_proc();
 // 'code' value will be returned there.
 void lfi_proc_exit(uint64_t code);
 
+// lfi_proc_pause causes the currently active process to pause.
+//
+// Control flow will return back to where lfi_proc_start was called, and the
+// 'code' value will be returned there. However, the currently active LFI
+// process (returned by lfi_proc) will not be reset. The user can use this
+// value to resume the sandbox manually.
+void lfi_proc_pause(uint64_t code);
+
 // lfi_proc_load an ELF binary into the address space for 'proc'.
 //
 // 'prog/progsz' is the data of the ELF file to be loaded, and

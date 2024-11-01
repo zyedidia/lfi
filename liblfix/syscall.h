@@ -213,12 +213,15 @@ sysbrk(LFIXProc* p, uintptr_t addr)
 SYSWRAP_1(sysbrk, uintptr_t);
 
 static int
-sysexit(LFIXProc* p, int code)
+sysexit(LFIXProc* p, uint64_t code)
 {
-    lfi_proc_exit(code);
+    if (p->lfix->pause)
+        lfi_proc_pause(code);
+    else
+        lfi_proc_exit(code);
     assert(!"unreachable");
 }
-SYSWRAP_1(sysexit, int);
+SYSWRAP_1(sysexit, uint64_t);
 
 static int
 sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
@@ -228,7 +231,8 @@ sysopenat(LFIXProc* p, int dirfd, uintptr_t pathp, int flags, int mode)
     const char* path = procpath(p, pathp);
     if (!path)
         return -EFAULT;
-    FDFile* f = lfix_filenew(p->cwd.fd, path, flags, mode);
+    FDFile* f = lfix_filenew(p->lfix, p->cwd.fd, path, flags, mode);
+    // printf("open %s\n", path);
     if (!f)
         return -ENOENT;
     int fd = lfix_fdalloc(&p->fdtable);

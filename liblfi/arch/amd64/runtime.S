@@ -5,7 +5,8 @@
 
 // save caller-saved registers, assuming sandbox syspage is at %gs
 .macro SAVE_PARTIAL_REGS
-	mov %fs:lfi_myproc@tpoff, %rcx
+	mov lfi_myproc@gottpoff(%rip), %rcx
+	movq %fs:(%rcx), %rcx
 	mov %rsp, PROC_REGS+8*0(%rcx)
 	mov %rax, PROC_REGS+8*1(%rcx)
 	// rcx clobbered
@@ -45,7 +46,8 @@
 lfi_get_tp:
 	pushq %rdi
 	// %rdi = myproc
-	movq %fs:lfi_myproc@tpoff, %rdi
+	mov lfi_myproc@gottpoff(%rip), %rdi
+	movq %fs:(%rdi), %rdi
 	// clamp %rax to a signed 32-bit value
 	movslq %eax, %rax
 	// %rax = %rax + tp
@@ -62,9 +64,28 @@ lfi_get_tp:
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
-	mov %fs:lfi_myproc@tpoff, %rdx
+	mov lfi_myproc@gottpoff(%rip), %rdx
+	movq %fs:(%rdx), %rdx
 	mov %rax, 8(%rdx)
 	jmp *%r11
+	int3
+
+// Accelerated return for library sandboxes.
+.p2align 4
+.global lfi_ret
+lfi_ret:
+	movq lfi_myproc@gottpoff(%rip), %r11
+	movq %fs:(%r11), %r11
+	movq 0(%r11), %rsp // kstackp
+	// return value should already be in %rax
+	// realign stack (is this necessary?)
+	popq %rbp
+	popq %rbx
+	popq %r12
+	popq %r13
+	popq %r14
+	popq %r15
+	ret
 	int3
 
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
@@ -80,7 +101,6 @@ lfi_asm_invoke:
 	pushq %rbp
 
 	movq %rsi, %r12
-	subq $16, %rsp
 	movq %rsp, (%rdx)
 	RESTORE_INVOKE_REGS
 	jmpq *%r12
@@ -97,7 +117,6 @@ lfi_proc_entry:
 	pushq %r12
 	pushq %rbx
 	pushq %rbp
-	subq $16, %rsp
 	// save stack to kstackp
 	mov %rsp, (%rsi)
 	jmp lfi_restore_regs
@@ -109,7 +128,6 @@ lfi_proc_entry:
 lfi_asm_proc_exit:
 	movq %rdi, %rsp
 	movq %rsi, %rax
-	addq $16, %rsp
 	popq %rbp
 	popq %rbx
 	popq %r12
@@ -124,12 +142,15 @@ lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
 	// Proc* is now in %rcx
 	mov (%rcx), %rsp // load stack
+	pushq %rcx
 	// syscall return address
 	pushq %r11
+	sub $8, %rsp
 	mov %rcx, %rdi
 	call lfi_syscall_handler
+	add $8, %rsp
 	popq %r11
-	mov %fs:lfi_myproc@tpoff, %rdi
+	popq %rdi
 	jmp lfi_restore_partial_regs
 	int3
 

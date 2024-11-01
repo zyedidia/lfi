@@ -14,7 +14,7 @@ liblfix = static_library(
   'lfix',
   srcs,
   dependencies: [mmap.as_link_whole(), liblfi_dep.as_link_whole(), liblfiv_dep],
-  c_args: c_args_hardened,
+  c_args: c_args_hardened + ['-fvisibility=hidden'],
   install: true,
 )
 

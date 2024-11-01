@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "lfi.h"
 #include "lfix.h"
@@ -39,7 +40,7 @@ lfix_init(LFIXEngine* lfix)
     };
 
     if (options.noverify) {
-        /* fprintf(stderr, "warning: verification disabled\n"); */
+        fprintf(stderr, "warning: verification disabled\n");
     }
 
     LFIEngine* lfi = lfi_new(options);

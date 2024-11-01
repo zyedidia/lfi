@@ -12,6 +12,8 @@
 }                                              \
 %}
 
+Top = Syscall | Retcall
+
 Syscall = 'syscall' - {
     if (!args.decl) {
         mkdirective(".bundle_lock");
@@ -22,6 +24,14 @@ Syscall = 'syscall' - {
     } else {
         mkinsn("syscall");
     }
+}
+
+Retcall = 'libret' - {
+    mkdirective(".bundle_lock");
+    mkinsn("leaq 1024f(%%rip), %%r11");
+    mkinsn("jmpq *24(%%r14)");
+    mklabel("1024");
+    mkdirective(".bundle_unlock");
 }
 
 %%
