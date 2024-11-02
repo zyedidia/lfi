@@ -53,7 +53,7 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 
 Args args;
 
-void dumpasm(uint8_t*, size_t);
+void dumpasm(uint8_t*, size_t, size_t);
 
 int
 main(int argc, char** argv)
@@ -64,7 +64,7 @@ main(int argc, char** argv)
     size_t size = codegen(&buf, args.n, (struct Options){0});
 
     if (args.dump && args.disasm) {
-        dumpasm(buf, size);
+        dumpasm(buf, size, args.n);
     } else if (args.dump) {
         fwrite(buf, 1, size, stdout);
     }

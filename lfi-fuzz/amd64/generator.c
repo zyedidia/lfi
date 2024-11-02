@@ -30,6 +30,7 @@ ibufappend(struct InsnBuf* ibuf, uint8_t* data, size_t size)
 static LFIvOpts vopts = (LFIvOpts) {
     .nobranches = true,
     .noundefined = true,
+    .nomemops = true,
     .decl = true,
     .poc = false,
 };
@@ -55,7 +56,7 @@ max(size_t a, size_t b)
 
 enum {
     BBMIN = 2,
-    BBMAX = 16,
+    BBMAX = 6,
 };
 
 static size_t
@@ -63,12 +64,6 @@ rngbbsize(struct Options opts)
 {
     (void) opts;
     return max(BBMIN, xor32() % BBMAX);
-}
-
-static bool
-filterinsn(uint8_t* insn, size_t size)
-{
-    return true;
 }
 
 static void
@@ -88,10 +83,8 @@ bbgen(struct InsnBuf* buf, size_t ninsn, struct Options opts)
     while (i < ninsn - (presize + postsize)) {
         size_t n = x64_encode(&insn[0]);
         assert(n > 0);
-        if (filterinsn(insn, n)) {
-            ibufappend(buf, insn, n);
-            i++;
-        }
+        ibufappend(buf, insn, n);
+        i++;
     }
 
     if (postsize) {
@@ -108,7 +101,16 @@ codegen(uint8_t** o_buf, size_t ninsn, struct Options opts)
         size_t bbsize = min(ninsn - i, rngbbsize(opts));
         if (bbsize < BBMIN)
             break;
-        bbgen(&ibuf, bbsize, opts);
+        struct InsnBuf bb;
+        while (true) {
+            bb = (struct InsnBuf) {0};
+            // generate basic blocks until one passes verification
+            bbgen(&bb, bbsize, opts);
+            if (lfiv_verify_amd64(bb.data, bb.size, 0, &vopts)) {
+                break;
+            }
+        }
+        ibufappend(&ibuf, bb.data, bb.size);
         i += bbsize;
     }
     uint8_t nop = 0x90;

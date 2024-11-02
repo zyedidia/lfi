@@ -35,20 +35,6 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static bool okmnem(Verifier* v, FdInstr* instr) {
-    if (v->opts->decl) {
-        switch (FD_TYPE(instr)) {
-#include "decl.instrs"
-        default:
-            break;
-        }
-    } else {
-        // TODO:
-        return true;
-    }
-    return false;
-}
-
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
     *target = 0;
     *indirect = false;
@@ -91,6 +77,57 @@ static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indir
         break;
     }
     return branch;
+}
+
+static bool okmnem(Verifier* v, FdInstr* instr) {
+    if (v->opts->nobranches) {
+        bool indirect, cond;
+        int64_t target;
+        bool branch = branchinfo(v, instr, &target, &indirect, &cond);
+        if (branch)
+            return false;
+    }
+
+    if (v->opts->nomemops) {
+        switch (FD_TYPE(instr)) {
+        case FDI_PUSH:
+        case FDI_POP:
+        case FDI_STOS:
+        case FDI_MOVS:
+            return false;
+        default:
+            break;
+        }
+        for (size_t i = 0; i < 4; i++) {
+            if (FD_OP_TYPE(instr, i) == FD_OT_MEM && FD_TYPE(instr) != FDI_LEA) {
+                return false;
+            }
+        }
+    }
+
+    if (v->opts->noundefined) {
+        switch (FD_TYPE(instr)) {
+        case FDI_UD0:
+        case FDI_UD1:
+        case FDI_UD2:
+            return false;
+        default:
+            break;
+        }
+    }
+
+
+    if (v->opts->decl) {
+        switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+        default:
+            break;
+        }
+    } else {
+        // TODO:
+        return true;
+    }
+    return false;
 }
 
 static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {

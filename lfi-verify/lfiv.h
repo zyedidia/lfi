@@ -37,6 +37,7 @@ typedef struct {
     LFIMeterType meter;
     bool nobranches;
     bool noundefined;
+    bool nomemops;
 
     void (*err)(char* msg, size_t sz);
 } LFIvOpts;
