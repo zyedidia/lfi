@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "lfiv.h"
 #include "generator.h"
@@ -87,19 +89,28 @@ enum {
 };
 
 size_t
-codegen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
+codegen(uint8_t** o_buf, size_t ninsn, struct Options opts)
 {
+    uint8_t* buf = malloc(ninsn * sizeof(uint32_t));
+    assert(buf);
+    *o_buf = buf;
+    uint32_t* insnbuf = (uint32_t*) buf;
     size_t i = 0;
-    while (i < nbuf) {
-        size_t bbsize = min(nbuf - i, rngbbsize(opts));
+    while (i < ninsn) {
+        size_t bbsize = min(ninsn - i, rngbbsize(opts));
         if (bbsize < BBMIN)
             break;
         bbgen(&insnbuf[i], bbsize, opts);
         i += bbsize;
     }
-    while (i < nbuf) {
+    while (i < ninsn) {
         insnbuf[i] = NOP;
         i++;
     }
-    return i;
+    while (i * sizeof(uint32_t) % getpagesize() != 0) {
+        insnbuf[i] = NOP;
+        i++;
+    }
+    assert(ninsn == i);
+    return ninsn * sizeof(uint32_t);
 }

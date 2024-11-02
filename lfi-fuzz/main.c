@@ -53,46 +53,24 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 
 Args args;
 
-static size_t
-ceilp(size_t x, size_t align)
-{
-    size_t align_mask = align - 1;
-    return (x + align_mask) & ~align_mask;
-}
-
-enum {
-    LDR0 = 0xf9400000,
-};
+void dumpasm(uint8_t*, size_t);
 
 int
 main(int argc, char** argv)
 {
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 
-    if (args.n % pagesize() != 0) {
-        args.n = ceilp(args.n, pagesize());
-        fprintf(stderr, "info: raising instruction count to %ld\n", args.n);
-    }
-
-    size_t bufsz = args.n * sizeof(uint32_t);
-    uint32_t* buf = malloc(bufsz);
-    assert(buf);
-    size_t ninsn = codegen(buf, args.n, (struct Options){0});
+    uint8_t* buf;
+    size_t size = codegen(&buf, args.n, (struct Options){0});
 
     if (args.dump && args.disasm) {
-        char fmtbuf[128];
-        for (size_t i = 0; i < ninsn; i++) {
-            struct Da64Inst inst;
-            da64_decode(buf[i], &inst);
-            da64_format(&inst, fmtbuf);
-            printf("%lx: %08x: %s\n", i * sizeof(uint32_t), buf[i], fmtbuf);
-        }
+        dumpasm(buf, size);
     } else if (args.dump) {
-        fwrite(buf, sizeof(uint32_t), ninsn, stdout);
+        fwrite(buf, 1, size, stdout);
     }
 
     if (args.run) {
-        if (!runprog(buf, bufsz))
+        if (!runprog(buf, size))
             exit(1);
     }
 
