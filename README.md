@@ -28,7 +28,7 @@ ensure they are safe to run. This verifier works by analyzing binary machine
 code to ensure that the program will not access memory outside of its 4GiB
 region or execute any system calls or other "unsafe" instructions. The verifier
 is extremely simple, and is implemented in only a few hundred lines of code,
-located in `lfi-verify/src/verifier.rs`. Thanks to the verifier, the compiler
+located in `lfi-verify/arm64/verify.c`. Thanks to the verifier, the compiler
 used to generate the code is untrusted, so bugs in LLVM or GCC cannot cause
 security vulnerabilities. This approach is both more secure and more performant
 than current approaches that rely on a trusted compiler like Cranelift. The
@@ -133,7 +133,6 @@ To install the tools, you must have the following dependencies installed:
 
 * Go for `lfi-compile` and running tests.
 * GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
-* LDC (`apt install ldc`) for `lfi-run`.
 
 LFI uses the Meson build system with Ninja. When configuring the build you will
 be alerted of any missing dependencies.
@@ -227,7 +226,7 @@ Some notes:
 
 * By default, LFI on x86-64 uses 16-byte bundles. We have measured better
   performance with 32-byte bundles on Intel machines, and better performance
-  with 16-byte bundles on AMD machines.
+  with 16-byte bundles on AMD machines. LFI does not use bundles on Arm64.
 * The `--sandbox` option can be used to configure isolation granularity. With
   `stores`, only stores and control-flow is sandboxed. Programs are allowed to
   read outside of their memory. With `bundle-jumps`, LFI only enforces that
