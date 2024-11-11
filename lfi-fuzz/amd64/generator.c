@@ -27,6 +27,12 @@ ibufappend(struct InsnBuf* ibuf, uint8_t* data, size_t size)
     ibuf->size += size;
 }
 
+static void
+ibufreset(struct InsnBuf* ibuf)
+{
+    ibuf->size = 0;
+}
+
 static LFIvOpts vopts = (LFIvOpts) {
     .nobranches = true,
     .noundefined = true,
@@ -97,18 +103,19 @@ codegen(uint8_t** o_buf, size_t ninsn, struct Options opts)
 {
     struct InsnBuf ibuf = {0};
     size_t i = 0;
+    struct InsnBuf bb = {0};
     while (i < ninsn) {
         size_t bbsize = min(ninsn - i, rngbbsize(opts));
         if (bbsize < BBMIN)
             break;
-        struct InsnBuf bb;
         while (true) {
-            bb = (struct InsnBuf) {0};
+            ibufreset(&bb);
             // generate basic blocks until one passes verification
             bbgen(&bb, bbsize, opts);
             if (lfiv_verify_amd64(bb.data, bb.size, 0, &vopts)) {
                 break;
             }
+            /* dumpasm(bb.data, bb.size, bbsize); */
         }
         ibufappend(&ibuf, bb.data, bb.size);
         i += bbsize;
