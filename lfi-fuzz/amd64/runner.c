@@ -63,6 +63,62 @@ hash(uint64_t u)
     return v;
 }
 
+static inline void
+dumpreginit(struct Regs* r)
+{
+    printf("movabs $0x%lx, %%rsp\n", r->rsp);
+    printf("movabs $0x%lx, %%rax\n", r->rax);
+    printf("movabs $0x%lx, %%rcx\n", r->rcx);
+    printf("movabs $0x%lx, %%rdx\n", r->rdx);
+    printf("movabs $0x%lx, %%rbx\n", r->rbx);
+    printf("movabs $0x%lx, %%rbp\n", r->rbp);
+    printf("movabs $0x%lx, %%rsi\n", r->rsi);
+    printf("movabs $0x%lx, %%rdi\n", r->rdi);
+    printf("movabs $0x%lx, %%r8\n", r->r8);
+    printf("movabs $0x%lx, %%r9\n", r->r9);
+    printf("movabs $0x%lx, %%r10\n", r->r10);
+    printf("movabs $0x%lx, %%r11\n", r->r11);
+    printf("movabs $0x%lx, %%r12\n", r->r12);
+    printf("movabs $0x%lx, %%r13\n", r->r13);
+    printf("movabs $0x%lx, %%r14\n", r->r14);
+    printf("movabs $0x%lx, %%r15\n", r->r15);
+
+    for (size_t i = 0; i < 16; i++) {
+        printf("movaps xmm_%ld(%%rip), %%xmm%ld\n", i, i);
+    }
+    for (size_t i = 0; i < 16; i++) {
+        printf(".p2align 4\n");
+        printf("xmm_%ld:\n", i);
+        printf(".quad 0x%lx\n", r->xmm[i*2]);
+        printf(".quad 0x%lx\n", r->xmm[i*2+1]);
+    }
+}
+
+static inline void
+dumpregs(struct Regs* r)
+{
+    printf("%%rsp: %lx\n", r->rsp);
+    printf("%%rax: %lx\n", r->rax);
+    printf("%%rcx: %lx\n", r->rcx);
+    printf("%%rdx: %lx\n", r->rdx);
+    printf("%%rbx: %lx\n", r->rbx);
+    printf("%%rbp: %lx\n", r->rbp);
+    printf("%%rsi: %lx\n", r->rsi);
+    printf("%%rdi: %lx\n", r->rdi);
+    printf("%%r8: %lx\n", r->r8);
+    printf("%%r9: %lx\n", r->r9);
+    printf("%%r10: %lx\n", r->r10);
+    printf("%%r11: %lx\n", r->r11);
+    printf("%%r12: %lx\n", r->r12);
+    printf("%%r13: %lx\n", r->r13);
+    printf("%%r14: %lx\n", r->r14);
+    printf("%%r15: %lx\n", r->r15);
+
+    for (size_t i = 0; i < 32; i++) {
+        printf("%%xmm_%ld: %lx\n", i, r->xmm[i]);
+    }
+}
+
 static uint64_t
 hashregs(struct Regs* r)
 {
@@ -140,7 +196,7 @@ end(struct Regs* r)
 
     printf("ended: %lx\n", u);
     printf("illegal: %d\n", illegal);
-    exit(1);
+    exit(0);
 }
 
 static void

@@ -7,6 +7,7 @@
 
 #include "lfiv.h"
 #include "generator.h"
+#include "rand.h"
 
 int x64_encode(uint8_t*);
 
@@ -41,13 +42,6 @@ static LFIvOpts vopts = (LFIvOpts) {
     .poc = false,
 };
 
-static uint32_t
-xor32()
-{
-    static uint32_t y = 2463534242UL;
-    y^=(y<<13); y^=(y>>17); return (y^=(y<<15));
-}
-
 static size_t
 min(size_t a, size_t b)
 {
@@ -69,7 +63,7 @@ static size_t
 rngbbsize(struct Options opts)
 {
     (void) opts;
-    return max(BBMIN, xor32() % BBMAX);
+    return max(BBMIN, rand_u32() % BBMAX);
 }
 
 static void
@@ -86,6 +80,11 @@ bbgen(struct InsnBuf* buf, size_t ninsn, struct Options opts)
 
     size_t i = 0;
     uint8_t insn[15];
+
+    for (size_t i = 0; i < 15; i++) {
+        insn[i] = rand_u32();
+    }
+
     while (i < ninsn - (presize + postsize)) {
         size_t n = x64_encode(&insn[0]);
         assert(n > 0);

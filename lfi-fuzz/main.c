@@ -7,6 +7,7 @@
 #include "runner.h"
 #include "generator.h"
 #include "disarm64.h"
+#include "rand.h"
 
 static char doc[] = "lfi-fuzz: LFI fuzzer";
 
@@ -17,6 +18,7 @@ static struct argp_option options[] = {
     { "dump",           'd',               0,      0, "dump generated instructions", -1 },
     { "disasm",         'D',               0,      0, "dump disassembled instructions (use with --dump)", -1 },
     { "run",            'r',               0,      0, "run generated instructions", -1 },
+    { "seed",           's',               "HEXNUM", 0, "generator seed (hex)", -1 },
     { "n",              'n',               "NUM",  0, "number of instructions to generate", -1 },
     { 0 },
 };
@@ -42,6 +44,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case 'n':
         args->n = atoi(arg);
         break;
+    case 's':
+        args->seed = strtoll(arg, NULL, 16);
+        break;
     default:
         return ARGP_ERR_UNKNOWN;
     }
@@ -59,6 +64,8 @@ int
 main(int argc, char** argv)
 {
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
+
+    rand_init();
 
     uint8_t* buf;
     size_t size = codegen(&buf, args.n, (struct Options){0});

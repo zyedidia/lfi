@@ -4,6 +4,7 @@ subdir('llvm-fuzz')
 
 srcs = files(
   'main.c',
+  'rand.c',
 )
 includes = []
 
@@ -20,5 +21,6 @@ lfifuzz = executable(
   sources: srcs,
   dependencies: [argp, liblfiv_dep, disarm],
   include_directories: includes,
+  link_args: ['-static'],
   install: true,
 )

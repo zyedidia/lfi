@@ -13,19 +13,12 @@ static LFIvOpts vopts = (LFIvOpts) {
     .poc = false,
 };
 
-static uint32_t
-xor32()
-{
-    static uint32_t y = 2463534242UL;
-    y^=(y<<13); y^=(y>>17); return (y^=(y<<15));
-}
-
 static bool filterinsn(uint32_t);
 
 static uint32_t
 rnginsn()
 {
-    return xor32();
+    return rand_u32();
 }
 
 static size_t
@@ -49,7 +42,7 @@ static size_t
 rngbbsize(struct Options opts)
 {
     (void) opts;
-    return max(BBMIN, xor32() % BBMAX);
+    return max(BBMIN, rand_u32() % BBMAX);
 }
 
 static bool
