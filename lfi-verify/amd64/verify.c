@@ -208,6 +208,7 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
         }
 
         analyzecfg(&v, instrs, ninstr, addr);
+        free(instrs);
     }
 
     return !v.failed;

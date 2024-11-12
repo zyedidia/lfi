@@ -318,4 +318,7 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
                 blocks[i].target->in &= out;
         }
     }
+
+    free(leaders);
+    free(blocks);
 }
