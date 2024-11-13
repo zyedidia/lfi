@@ -44,6 +44,8 @@ jumpto:
 
 	mov 8*7(%rdi), %rdi
 
+	// set all flags
+	cmp %eax, %eax
 	jmpq *%r11
 	int3
 
