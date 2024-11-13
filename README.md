@@ -140,7 +140,7 @@ be alerted of any missing dependencies.
 To perform a complete build of all tools and of both a GCC and Clang toolchain run
 
 ```
-./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64 or x86-64
+./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64 or x86_64
 ```
 
 Note: if you get an error about `asm/types.h` not found while building LLVM
