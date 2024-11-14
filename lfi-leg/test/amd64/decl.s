@@ -1,17 +1,17 @@
-shrq %rdi, %rax
+shrdq %cl, %rdi, %rax
 >>>
 .bundle_align_mode 4
 .bundle_lock
-andq $0x3f, %rdi
-shrq %rdi, %rax
+andb $0x3f, %cl
+shrdq %cl, %rdi, %rax
 .bundle_unlock
 ------
-shrl %edi, %eax
+shrdl %cl, %edi, %eax
 >>>
 .bundle_align_mode 4
 .bundle_lock
-andl $0x1f, %edi
-shrl %edi, %eax
+andb $0x1f, %cl
+shrdl %cl, %edi, %eax
 .bundle_unlock
 ------
 callq *(%rax)
@@ -25,8 +25,3 @@ cmpq %rax, %rax
 callq *%r11
 .bundle_unlock
 .p2align 4
-------
-syscall
->>>
-.bundle_align_mode 4
-syscall

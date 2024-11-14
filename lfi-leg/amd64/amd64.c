@@ -23,6 +23,7 @@ void amd64_storespass(struct op*);
 void amd64_declpass(struct op*);
 void amd64_tlspass(struct op*);
 void amd64_syscallpass(struct op*);
+void amd64_meterpass(struct op*);
 
 void amd64_pextelim(struct op*);
 
@@ -32,6 +33,7 @@ static Pass passes[] = {
     (Pass) { .fn = &amd64_storespass },
     (Pass) { .fn = &amd64_branchpass },
     (Pass) { .fn = &amd64_declpass, .disabled = true },
+    (Pass) { .fn = &amd64_meterpass, .disabled = true },
     (Pass) { .fn = &amd64_tlspass },
     (Pass) { .fn = &amd64_syscallpass },
 };
@@ -76,6 +78,10 @@ amd64_rewrite(FILE* input, struct output* output)
         if (args.decl && passes[i].fn == &amd64_declpass)
             passes[i].disabled = false;
         else if (passes[i].fn == &amd64_declpass)
+            passes[i].disabled = true;
+        if (args.meter != METER_NONE && passes[i].fn == &amd64_meterpass)
+            passes[i].disabled = false;
+        else if (passes[i].fn == &amd64_meterpass)
             passes[i].disabled = true;
         if (args.allowtls && passes[i].fn == &amd64_tlspass)
             passes[i].disabled = true;

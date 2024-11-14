@@ -12,33 +12,33 @@
 %}
 
 ShiftInsn = (
-    (s:ShiftQ SEP r:REG COMMA x:REG) {
+    (s:ShiftQ SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
-        mkinsn("andq $0x3f, %s", r.val);
-        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkinsn("andb $0x3f, %%cl");
+        mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkdirective(".bundle_unlock");
-        rfree(r); rfree(x);
+        rfree(x1); rfree(x2);
     }
-    | (s:ShiftL SEP r:REG COMMA x:REG) {
+    | (s:ShiftL SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
-        mkinsn("andl $0x1f, %s", r.val);
-        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkinsn("andb $0x1f, %%cl");
+        mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkdirective(".bundle_unlock");
-        rfree(r); rfree(x);
+        rfree(x1); rfree(x2);
     }
-    | (s:ShiftW SEP r:REG COMMA x:REG) {
+    | (s:ShiftW SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
-        mkinsn("andw $0xf, %s", r.val);
-        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkinsn("andb $0xf, %%cl");
+        mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkdirective(".bundle_unlock");
-        rfree(r); rfree(x);
+        rfree(x1); rfree(x2);
     }
-    | (s:ShiftB SEP r:REG COMMA x:REG) {
+    | (s:ShiftB SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
-        mkinsn("andl $0x7, %s", r.val);
-        mkinsn("%s %s, %s", s.val, r.val, x.val);
+        mkinsn("andb $0x7, %%cl");
+        mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkdirective(".bundle_unlock");
-        rfree(r); rfree(x);
+        rfree(x1); rfree(x2);
     }
 )
 
@@ -47,7 +47,7 @@ ShiftL = < Shift 'l' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 ShiftW = < Shift 'w' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 ShiftB = < Shift 'b' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-Shift = ('shr' | 'shl')
+Shift = ('shrd' | 'shld')
 
 %%
 

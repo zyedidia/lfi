@@ -1,0 +1,80 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+#include "util.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+
+static void
+timermeter(bool indirect)
+{
+    mkinsn("leaq 0(%%r12), %%r12");
+}
+%}
+
+Top = IndBranch | Branch
+
+IndBranch = b:INDBRANCH SEP '*' r:XREG {
+    timermeter(true);
+    mkinsn("%s *%s", b.val, r.val);
+    rfree(b); rfree(r);
+}
+
+Branch = b:DIRBRANCH SEP name:NAME {
+    mkdirective(".bundle_lock");
+    timermeter(false);
+    mkinsn("%s %s", b.val, name.val);
+    mkdirective(".bundle_unlock");
+    rfree(b); rfree(name);
+}
+
+INDBRANCH = < ('notrack'? ('jmp' 'q'?) | ('call' 'q'?)) > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+DIRBRANCH = < (JCC | JMP) > {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
+JMP = 'jmp' | 'call'
+
+JCC = 'jo'
+    | 'jno'
+    | 'jc' | 'jb'
+    | 'jae' | 'jnb'
+    | 'je' | 'jz'
+    | 'jne' | 'jnz'
+    | 'jna' | 'jbe'
+    | 'ja' | 'jnbe'
+    | 'js'
+    | 'jns'
+    | 'jp' | 'jpe'
+    | 'jnp' | 'jpo'
+    | 'jl' | 'jnge'
+    | 'jge' | 'jnl'
+    | 'jle' | 'jng'
+    | 'jg' | 'jnle'
+
+%%
+
+void
+amd64_meterpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

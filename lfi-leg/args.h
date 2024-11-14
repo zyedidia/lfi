@@ -17,11 +17,11 @@ enum boxtype {
 };
 
 enum meter {
-    METER_NONE,
-    METER_BRANCH,
-    METER_BRANCH_RESUME,
-    METER_FP,
-    METER_TIMER,
+    METER_NONE          = 0,
+    METER_BRANCH        = 1,
+    METER_BRANCH_RESUME = 2,
+    METER_FP            = 3,
+    METER_TIMER         = 4,
 };
 
 enum flags {

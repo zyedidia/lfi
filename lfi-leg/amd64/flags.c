@@ -25,6 +25,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("%s -mllvm -align-labels=16", flags);
         else if (args.cfi == CFI_BUNDLE32)
             flags = xasprintf("%s -mllvm -align-labels=32", flags);
+        if (args.meter != METER_NONE)
+            flags = xasprintf("%s -mllvm --reserve-r12", flags);
         break;
     case FLAGS_GCC:
         if (args.boxtype > BOX_BUNDLEJUMPS)
@@ -37,6 +39,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("%s -falign-labels=32 -falign-functions=32", flags);
         if (args.p2size == 0)
             flags = xasprintf("%s -ffixed-r15", flags);
+        if (args.meter != METER_NONE)
+            flags = xasprintf("%s -ffixed-r12", flags);
         break;
     default:
         assert(0);
@@ -44,5 +48,7 @@ amd64_getflags(enum flags compiler)
     if (!args.allowtls && compiler != FLAGS_POSTLINK) {
         flags = xasprintf("%s -mno-tls-direct-seg-refs -mtls-dialect=gnu2", flags);
     }
+    if (args.sysexternal)
+        flags = xasprintf("%s -ffixed-r13", flags);
     return flags;
 }

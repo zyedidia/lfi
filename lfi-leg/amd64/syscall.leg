@@ -15,15 +15,11 @@
 Top = Syscall | Retcall
 
 Syscall = 'syscall' - {
-    if (!args.decl) {
-        mkdirective(".bundle_lock");
-        mkinsn("leaq 1024f(%%rip), %%r11");
-        mkinsn("jmpq *(%%r14)");
-        mklabel("1024");
-        mkdirective(".bundle_unlock");
-    } else {
-        mkinsn("syscall");
-    }
+    mkdirective(".bundle_lock");
+    mkinsn("leaq 1024f(%%rip), %%r11");
+    mkinsn("jmpq *(%%r14)");
+    mklabel("1024");
+    mkdirective(".bundle_unlock");
 }
 
 Retcall = 'libret' - {
