@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "rand.h"
 #include "lfiv.h"
 #include "generator.h"
 
@@ -14,6 +15,23 @@ static LFIvOpts vopts = (LFIvOpts) {
 };
 
 static bool filterinsn(uint32_t);
+
+struct InsnBuf {
+    uint8_t* data;
+    size_t size;
+    size_t cap;
+};
+
+static void
+ibufappend(struct InsnBuf* ibuf, uint32_t* data, size_t size)
+{
+    if (ibuf->size + size >= ibuf->cap) {
+        ibuf->cap = ibuf->cap * 2 + ibuf->size + size;
+        ibuf->data = realloc(ibuf->data, ibuf->cap);
+    }
+    memcpy(&ibuf->data[ibuf->size], data, size);
+    ibuf->size += size;
+}
 
 static uint32_t
 rnginsn()
@@ -52,7 +70,7 @@ filterinsn(uint32_t insn)
 }
 
 static void
-bbgen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
+bbgen(struct InsnBuf* ibuf, size_t nbuf, struct Options opts)
 {
     const size_t presize = 0;
     const size_t postsize = 0;
@@ -67,7 +85,7 @@ bbgen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
     while (i < nbuf - (presize + postsize)) {
         uint32_t insn = rnginsn();
         if (filterinsn(insn)) {
-            insnbuf[i] = insn;
+            ibufappend(ibuf, &insn, 4);
             i++;
         }
     }
@@ -77,33 +95,27 @@ bbgen(uint32_t* insnbuf, size_t nbuf, struct Options opts)
     }
 }
 
-enum {
-    NOP = 0xd503201f,
-};
-
 size_t
 codegen(uint8_t** o_buf, size_t ninsn, struct Options opts)
 {
-    uint8_t* buf = malloc(ninsn * sizeof(uint32_t));
-    assert(buf);
-    *o_buf = buf;
-    uint32_t* insnbuf = (uint32_t*) buf;
+    struct InsnBuf ibuf = {0};
     size_t i = 0;
     while (i < ninsn) {
         size_t bbsize = min(ninsn - i, rngbbsize(opts));
         if (bbsize < BBMIN)
             break;
-        bbgen(&insnbuf[i], bbsize, opts);
+        bbgen(&ibuf, bbsize, opts);
         i += bbsize;
     }
+    uint32_t nop = 0xd503201f;
     while (i < ninsn) {
-        insnbuf[i] = NOP;
+        ibufappend(&ibuf, &nop, sizeof(nop));
         i++;
     }
     while (i * sizeof(uint32_t) % getpagesize() != 0) {
-        insnbuf[i] = NOP;
+        ibufappend(&ibuf, &nop, sizeof(nop));
         i++;
     }
-    assert(ninsn == i);
-    return ninsn * sizeof(uint32_t);
+    *o_buf = (uint8_t*) ibuf.data;
+    return ibuf.size;
 }

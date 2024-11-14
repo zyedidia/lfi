@@ -65,6 +65,10 @@ main(int argc, char** argv)
 {
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
 
+    if (args.seed == 0) {
+        args.seed = 2463534242;
+    }
+
     rand_init();
 
     uint8_t* buf;
