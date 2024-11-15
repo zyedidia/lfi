@@ -42,7 +42,7 @@ DIRBRANCH = < (JCC | JMP) > {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
-JMP = 'jmp' | 'call'
+JMP = 'jmp' | ('call' 'q'?)
 
 JCC = 'jo'
     | 'jno'
