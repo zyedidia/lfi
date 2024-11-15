@@ -32,6 +32,8 @@ nosys:
 bool
 lfix_init(LFIXEngine* lfix)
 {
+    *lfix = (LFIXEngine){0};
+
     LFIOptions options = (LFIOptions) {
         .pagesize = getpagesize(),
         .stacksize = mb(2),

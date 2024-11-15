@@ -225,8 +225,12 @@ static char *makeCharClass(unsigned char *cclass)
     }
 
   ptr= string;
-  for (c= 0;  c < 32;  ++c)
-    ptr += sprintf(ptr, "\\%03o", bits[c]);
+  size_t size = sizeof(string);
+  for (c= 0;  c < 32;  ++c) {
+    int n = snprintf(ptr, size, "\\%03o", bits[c]);
+    size -= n;
+    ptr += n;
+  }
 
   return string;
 }
