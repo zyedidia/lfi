@@ -127,10 +127,10 @@ AddrNoOpt = (
         rfree(r); rfree(i);
     }
     # [xN]
-    | (LB (!'x18' r:XREG) RB) {
+    | (LB (!'x18' r:XREG) RB) !COMMA {
         $$ = (Result) {
             .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
-            .val = strdup("[x18]"),
+            .val = xasprintf("[x18]"),
         };
         rfree(r);
     }

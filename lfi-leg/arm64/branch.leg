@@ -23,7 +23,7 @@ IndBranch = b:BRANCH r:XREG {
     rfree(b); rfree(r);
 }
 
-BRANCH = < ('br' | 'blr') > - {
+BRANCH = < ('br' | 'blr' | 'ret') > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
