@@ -11,6 +11,8 @@
 }                                              \
 %}
 
+Top = ShiftInsn | BsInsn
+
 ShiftInsn = (
     (s:ShiftQ SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
@@ -48,6 +50,17 @@ ShiftW = < Shift 'w' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 ShiftB = < Shift 'b' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Shift = ('shrd' | 'shld')
+
+BsInsn = insn:Bs SEP src:REG COMMA dst:REG {
+    mkdirective(".bundle_lock");
+    mkinsn("test %s, %s", src.val, src.val);
+    mkinsn("jz 1024f");
+    mkinsn("%s %s, %s", insn.val, src.val, dst.val);
+    mkdirective(".bundle_unlock");
+    mkinsn("1024:");
+}
+
+Bs = < ('bsr' | 'bsf') > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 %%
 

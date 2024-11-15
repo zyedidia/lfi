@@ -25,3 +25,13 @@ cmpq %rax, %rax
 callq *%r11
 .bundle_unlock
 .p2align 4
+------
+bsr %eax, %eax
+>>>
+.bundle_align_mode 4
+.bundle_lock
+test %eax, %eax
+jz 1024f
+bsr %eax, %eax
+.bundle_unlock
+1024:
