@@ -345,14 +345,17 @@ amd64_postlink(uint8_t* buf, size_t sz)
         }
 
         uint8_t* code = &buf[p->offset];
-        size_t count = 0;
-        nopfix(code, p->filesz, args.bundle, p->vaddr);
-        while (count + args.bundle <= p->filesz) {
-            bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count);
-            if (!args.noprefix && false)
-                padrewrite(&code[count], args.bundle, p->vaddr + count);
-            callrewrite(&code[count], args.bundle, p->vaddr + count);
-            count += args.bundle;
+
+        if (args.bundle != 0) {
+            size_t count = 0;
+            nopfix(code, p->filesz, args.bundle, p->vaddr);
+            while (count + args.bundle <= p->filesz) {
+                bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count);
+                if (!args.noprefix && false)
+                    padrewrite(&code[count], args.bundle, p->vaddr + count);
+                callrewrite(&code[count], args.bundle, p->vaddr + count);
+                count += args.bundle;
+            }
         }
     }
 }

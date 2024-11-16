@@ -11,7 +11,9 @@ amd64_getflags(enum flags compiler)
     char* flags = "";
     switch (compiler) {
     case FLAGS_POSTLINK:
-        if (args.cfi == CFI_BUNDLE16)
+        if (args.boxtype <= BOX_SYSCALLS)
+            flags = "--bundle=0";
+        else if (args.cfi == CFI_BUNDLE16)
             flags = "--bundle=16";
         else if (args.cfi == CFI_BUNDLE32)
             flags = "--bundle=32";
@@ -21,6 +23,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("-mllvm --reserve-r14 -mllvm --reserve-r11");
         else if (args.boxtype == BOX_BUNDLEJUMPS)
             flags = xasprintf("-mllvm --reserve-r11");
+        else if (args.boxtype == BOX_SYSCALLS)
+            flags = xasprintf("-mllvm --reserve-r14");
         if (args.cfi == CFI_BUNDLE16)
             flags = xasprintf("%s -mllvm -align-labels=16", flags);
         else if (args.cfi == CFI_BUNDLE32)
@@ -33,6 +37,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("-ffixed-r11 -ffixed-r14");
         else if (args.boxtype == BOX_BUNDLEJUMPS)
             flags = xasprintf("-ffixed-r11");
+        else if (args.boxtype == BOX_SYSCALLS)
+            flags = xasprintf("-ffixed-r14");
         if (args.cfi == CFI_BUNDLE16)
             flags = xasprintf("%s -falign-labels=16 -falign-functions=16", flags);
         else if (args.cfi == CFI_BUNDLE32)

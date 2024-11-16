@@ -46,7 +46,7 @@ static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "output",         'o',               "FILE", 0, "Output to FILE instead of standard output" },
     { "arch",           'a',               "ARCH", 0, "Set the target architecture (arm64,amd64)" },
-    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,none)" },
+    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores,bundle-jumps,syscalls,none)" },
     { "poc",            ARG_poc,           0,      0, "Produce position-oblivious code (implies --sys-external)" },
     { "sys-external",   ARG_sys_external,  0,      0, "Store runtime call table outside sandbox"},
     { "no-guard-elim",  ARG_no_guard_elim, 0,      0, "Do not run redundant guard elimination"},
@@ -96,6 +96,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->boxtype = BOX_JUMPS;
         else if (strcmp(arg, "bundle-jumps") == 0)
             args->boxtype = BOX_BUNDLEJUMPS;
+        else if (strcmp(arg, "syscalls") == 0)
+            args->boxtype = BOX_SYSCALLS;
         else if (strcmp(arg, "none") == 0)
             args->boxtype = BOX_NONE;
         else {
