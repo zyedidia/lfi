@@ -2,10 +2,13 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "lfi.h"
 #include "lfix.h"
 #include "sys.h"
+
+static pthread_mutex_t bkl = PTHREAD_MUTEX_INITIALIZER;
 
 static uint64_t
 lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
@@ -18,7 +21,9 @@ lfix_syscall(void* ctxp, uint64_t sysno, uint64_t a0, uint64_t a1,
         goto nosys;
 
     LFIXProc* p = (LFIXProc*) ctxp;
+    pthread_mutex_lock(&bkl);
     uintptr_t ret = fn(p, a0, a1, a2, a3, a4, a5);
+    pthread_mutex_unlock(&bkl);
 
     /* printf("syscall: %ld = %lx\n", sysno, ret); */
     return ret;
