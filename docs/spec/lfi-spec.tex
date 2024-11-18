@@ -1,0 +1,192 @@
+\documentclass[11pt]{report}
+\usepackage{verbatim}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage{inputenc}
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{scrextend}
+\usepackage{tcolorbox}
+\usepackage{fancyvrb}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{framed}
+\usepackage{multicol}
+\usepackage{xspace}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{framed}
+\xspaceaddexceptions{]\}}
+\addtokomafont{labelinglabel}{\textbf}
+\usepackage[papersize={8.5in,11in},centering,tmargin=1in]{geometry}
+\usepackage[T1]{fontenc}
+
+\renewenvironment{leftbar}[2][\hsize]
+{
+    \def\FrameCommand
+    {
+        {\color{#2}\vrule width 3pt}
+        \hspace{0pt}
+    }
+    \MakeFramed{\hsize#1\advance\hsize-\width\FrameRestore}
+}
+{\endMakeFramed}
+
+\renewcommand{\cellalign}{cl}
+\renewcommand{\theadalign}{cl}
+
+% \usepackage{draftwatermark}
+% \SetWatermarkText{DRAFT}
+% \SetWatermarkScale{1}
+
+% font
+\usepackage{nimbusserif}
+\usepackage[scaled]{beramono}
+
+\usepackage{pst-text}
+\usepackage{ulem}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\code}[1]{\mbox{\textup{\small\texttt{#1}}}}
+\newcommand{\term}[1]{\mbox{\textbf{#1}}}
+\newcommand{\codefoot}[1]{\mbox{\textup{\footnotesize\texttt{#1}}}}
+
+\titleformat{\chapter}{\normalfont\huge}{\thechapter}{20pt}{\centering\huge}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+\let\cleardoublepage=\clearpage
+
+\DefineVerbatimEnvironment{codesample}{Verbatim}{%
+    fontsize=\fontsize{9}{12},
+    xleftmargin=0.5in,
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcounter{specctr}
+\newcounter{specsubctr}
+\newcounter{specsubsubctr}
+\newcommand{\specitem}{
+    \par
+    \setlength{\leftskip}{0pt}
+    \setcounter{specsubctr}{0}
+    \stepcounter{specctr}
+    \makebox[0pt][r]{\thechapter.\thespecctr\hspace{0.5cm}}}
+\newcommand{\specitemnamed}[1]{
+    \par
+    \setlength{\leftskip}{0pt}
+    \setcounter{specsubctr}{0}
+    \stepcounter{specctr}
+    \makebox[0pt][r]{\thechapter.\thespecctr\hspace{0.5cm}}}
+\newcommand{\specsubitem}{
+    \par
+    \setcounter{specsubsubctr}{0}
+    \stepcounter{specsubctr}
+    \label{spec:\thechapter.\thespecctr.\thespecsubctr}
+    \setlength{\leftskip}{0.5in}
+    \makebox[0pt][r]{\thechapter.\thespecctr.\thespecsubctr\hspace{0.5cm}}}
+\newcommand{\specsubsubitem}{
+    \par
+    \setlength{\leftskip}{1in}
+    \stepcounter{specsubsubctr}
+    \makebox[0pt][r]{\thechapter.\thespecctr.\thespecsubctr.\thespecsubsubctr\hspace{0.5cm}}}
+\newcommand{\specchapter}[1]{
+\par
+\setcounter{specctr}{0}
+\setcounter{specsubctr}{0}
+\setcounter{specsubsubctr}{0}
+\chapter{#1}
+\label{ch:#1}
+}
+\newcommand{\specappendix}[1]{
+\par
+\setcounter{specctr}{0}
+\setcounter{specsubctr}{0}
+\setcounter{specsubsubctr}{0}
+\chapter{#1}
+\label{ap:#1}
+}
+\newcommand{\specsection}[1]{
+\par
+\setcounter{section}{\value{specctr}}
+\stepcounter{specctr}
+\setcounter{specsubctr}{0}
+\setcounter{specsubsubctr}{0}
+\setlength{\leftskip}{0.5in}
+\section{#1}
+}
+\newcommand{\specappxsection}[1]{
+\par
+\setcounter{section}{\value{specctr}}
+\stepcounter{specctr}
+\setcounter{specsubctr}{0}
+\setcounter{specsubsubctr}{0}
+\setlength{\leftskip}{0.5in}
+\section*{#1}
+}
+\newcommand{\specsubsection}[1]{
+\par
+\setcounter{subsection}{\value{specsubctr}}
+\stepcounter{specsubctr}
+\setcounter{specsubsubctr}{0}
+\setlength{\leftskip}{1in}
+\subsection{#1}
+}
+
+\newenvironment{subsubitemize}
+{
+\begin{itemize}
+\setlength{\leftskip}{1in}
+}
+{
+\end{itemize}
+}
+
+\newenvironment{subsubenumerate}
+{
+\begin{enumerate}
+\setlength{\leftskip}{1in}
+}
+{
+\end{enumerate}
+}
+
+\newcommand{\inlineheading}[1]{
+\vspace{0.5cm}
+\textbf{#1}
+\vspace{0.5cm}
+}
+
+\newcommand{\example}[1]{\under{Example}\hspace{0.25cm}\textit{#1}}
+\newcommand{\informative}[1]{\textit{#1}}
+
+\newcommand{\secref}[1]{\guillemotleft\ref{sec:#1}: #1\guillemotright}
+\newcommand{\subsecref}[1]{\guillemotleft\ref{subsec:#1}: #1\guillemotright}
+\newcommand{\itemref}[2]{\guillemotleft\ref{ch:#1}.#2: #1\guillemotright}
+\newcommand{\subitemref}[2]{\guillemotleft\ref{sec:#1}.#2: #1\guillemotright}
+\newcommand{\subsubitemref}[2]{\guillemotleft\ref{subsec:#1}.#2: #1\guillemotright}
+\newcommand{\appxref}[1]{\guillemotleft Appendix \ref{ap:#1}: #1\guillemotright}
+
+\title{LFI Specification (DRAFT)}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+% \include{introduction}
+
+\part{LFI-Arm64}
+\include{arm64/verifier}
+\include{arm64/runtime}
+% \include{arm64/assembler}
+
+\part{LFI-x64}
+\include{x64/verifier}
+\include{x64/runtime}
+% \include{x64/assembler}
+% \include{riscv/verifier}
+
+\end{document}

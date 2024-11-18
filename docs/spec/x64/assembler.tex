@@ -1,0 +1,86 @@
+\specchapter{LFI-x64 Assembly}
+
+\informative{LFI-x64 Assembly is a pseudo-ISA specified by this document. LFI-x64 has significant overlap with the x64 ISA.}
+
+\specsection{Instructions}
+
+\specsection{Control Flow}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    LFI-x64 & x64 \\ \hline
+    \code{jmpq *\%rX}        & \fbox{\makecell{
+        \code{andl \$0xffffffe0, \%eX} \\
+        \code{orq \%r14, \%rX} \\
+        \code{jmpq *\%rX}
+    }} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{jmpq *N(\ldots)}        & \makecell{
+        \code{LFI:movq N(\ldots), \%rT} \\
+        \fbox{\makecell{
+            \code{andl \$0xffffffe0, \%eT} \\
+            \code{orq \%r14, \%rT} \\
+            \code{jmpq *\%rT}
+        }}
+    } \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{callq *\%rX}        &
+    \fbox{\makecell{
+        \code{andl \$0xffffffe0, \%eX} \\
+        \code{orq \%r14, \%rX} \\
+        $\rightarrow$\code{callq *\%rX}
+    }} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{callq *N(\ldots)}        &
+    \makecell{
+        \code{LFI:movq N(\ldots), \%rT} \\
+        \fbox{\makecell{
+        \code{andl \$0xffffffe0, \%eT} \\
+        \code{orq \%r14, \%rT} \\
+        $\rightarrow$\code{callq *\%rT}
+        }}
+    }
+    \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{call \ldots}        & \fbox{\makecell{
+        $\rightarrow$\code{callq *\%rT}
+    }} \\ \hline
+\end{tabular}
+
+\specsection{Register Accesses}
+
+\specsection{Memory Accesses}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{lea N(\ldots), \ldots}        &
+    \makecell{
+        \code{lea N(\ldots), \ldots}
+    }
+    \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\ldots \xspace N(\%rX) \ldots}        &
+    \makecell{
+        \code{\ldots \xspace \%gs:N(\%eX) \ldots}
+    }
+    \\ \hline
+\end{tabular}
+
+\specsection{Thread-local Storage Accesses}
+
+\specsection{System Instructions}

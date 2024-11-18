@@ -1,0 +1,241 @@
+\specchapter{LFI-Arm64 Assembly}
+
+% Don't forget to undefine at the bottom
+% If you change these, update the xN/wN terminology list.
+\providecommand{\xbase}{\code{x21}\xspace}
+\providecommand{\xaddr}{\code{x18}\xspace}
+\providecommand{\xret}{\code{x30}\xspace}
+\providecommand{\xsp}{\code{sp}\xspace}
+
+\informative{LFI-Arm64 Assembly is a pseudo-ISA specified by this document. LFI-Arm64 has significant overlap with the Arm64 ISA.}
+
+\specsection{Terminology}
+
+\specitem
+Each \term{instruction} in LFI-Arm64 is specified as a translation to Arm64
+instructions. The implementation may choose any translation as long as it
+preserves the same memory accesses and final register state as the translations
+listed in this document.
+
+\informative{The translations are crafted so that the resulting program is
+accepted by the LFI-Arm64 Verifier. The translations listed in this document
+are the recommended implementations.}
+
+\specitem
+The notation \code{xN} refers to any of the following registers:
+\code{x0},
+\code{x1},
+\code{x2},
+\code{x3},
+\code{x4},
+\code{x5},
+\code{x6},
+\code{x7},
+\code{x8},
+\code{x9},
+\code{x10},
+\code{x11},
+\code{x12},
+\code{x13},
+\code{x14},
+\code{x15},
+\code{x16},
+\code{x17},
+\code{x18},
+\code{x19},
+\code{x20},
+\code{x21},
+\code{x22},
+\code{x23},
+\code{x24},
+\code{x25},
+\code{x26},
+\code{x27},
+\code{x28},
+\code{x29},
+\code{x30}.
+
+\specitem
+The notation \code{wN} refers to any of the following registers, corresponding to the lower 32 bits of \code{xN}:
+\code{w0},
+\code{w1},
+\code{w2},
+\code{w3},
+\code{w4},
+\code{w5},
+\code{w6},
+\code{w7},
+\code{w8},
+\code{w9},
+\code{w10},
+\code{w11},
+\code{w12},
+\code{w13},
+\code{w14},
+\code{w15},
+\code{w16},
+\code{w17},
+\code{w18},
+\code{w19},
+\code{w20},
+\code{w21},
+\code{w22},
+\code{w23},
+\code{w24},
+\code{w25},
+\code{w26},
+\code{w27},
+\code{w28},
+\code{w29},
+\code{w30}.
+
+\specsection{Instructions}
+
+\specitem
+If an Arm64 instruction that is permitted by the LFI-Arm64 Verifier is not specified in this document, then its translation is the identity translation (no modification).
+
+\specitem
+Instructions that attempt to use \xbase or \xaddr are invalid in LFI-Arm64.
+
+\specitem
+Each instruction is defined using a table, with the LFI-Arm64 instruction of the left, and its translation to Arm64 on the right. Some instruction translations may use temporary locations, expressed using register notation---these may be translated to registers or valid memory accesses. 64-bit temporary locations are notated as \code{xT} and \code{xT2}; 32-bit temporary locations are notated as \code{wT} and \code{wT1}.
+
+\informative{An implementation may choose to implement temporary locations via a reserved register, via a register allocation scheme, via stack slots, or possibly some other mechanism or combinations of these mechanisms.}
+
+\specsection{Indirect Branches}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    LFI-Arm64 & Arm64 \\ \hline
+    \code{br xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{br x18}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{blr xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{blr x18}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{ret}        & \makecell{\code{ret}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{ret xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{ret x18}} \\ \hline
+\end{tabular}
+
+\specsection{Register Accesses}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{ldr x30, [...]}        & \makecell{\code{ldr xT, [...]} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{mov sp, xN}        & \makecell{\code{add sp, x21, xN, uxtw}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{add sp, sp, \{\#i,xM\}}        & \makecell{\code{add xT, sp, \{\#i,xM\}} \\ \code{add sp, x21, wT, uxtw}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{sub sp, sp, \{\#i,xM\}}        & \makecell{\code{sub xT, sp, \{\#i,xM\}} \\ \code{add sp, x21, wT, uxtw}} \\ \hline
+\end{tabular}
+
+\specsection{Memory Accesses}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM]} & \makecell{\code{\{ld,st\}r \ldots, [x21, wM, uxtw]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM, \#i]} & \makecell{\code{add xT, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM, \#i]!} & \makecell{\code{add xM, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x21, wM, uxtw]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM], \#i} & \makecell{\code{\{ld,st\}r \ldots, [x21, wM, uxtw]} \\ \code{add xM, xM, \#i}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM1, xM2]} & \makecell{\code{add xT, xM1, xM2} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}r \ldots, [xM1, xM2, mod \#i]} & \makecell{\code{add xT, xM1, xM2, mod \#i} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}X \ldots, [xM, \#i]} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}X \ldots, [xM, \#i]!} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18]} \\ \code{add xM, xM, \#i}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}X \ldots, [xM], \#i} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]} \\ \code{add xM, xM, \#i}} \\ \hline
+\end{tabular}
+
+\specitem
+\begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
+    \code{\{ld,st\}X \ldots, [xM1], xM2} & \makecell{\code{add x18, x21, wM1, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]} \\ \code{add xM1, xM1, xM2}} \\ \hline
+\end{tabular}
+
+\specsection{Thread-local Storage Accesses}
+
+\specitem
+ \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
+    \code{mrs x0, tpidr\_el0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x21, \#8]} \\ \code{blr x30} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+\end{tabular} 
+
+\specitem
+ \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
+    \code{mrs xN, tpidr\_el0} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{ldr x30, [x21, \#8]} \\ \code{blr x30} \\ \code{mov xN, x0} \\  \code{mov x0, xT2} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+\end{tabular} 
+
+\informative{Attempts to read from \code{tpidr\_el0} are translated into calls to rtcall 1}.
+
+\specitem
+ \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
+    \code{mrs tpidr\_el0, x0} & \makecell{\code{mov wT1, w30} \\ \code{ldr x30, [x21, \#16]} \\ \code{blr x30} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+\end{tabular} 
+
+\specitem
+ \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
+    \code{msr tpidr\_el0, xN} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{mov x0, xN} \\ \code{ldr x30, [x21, \#16]} \\ \code{blr x30} \\  \code{mov x0, xT2} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+\end{tabular} 
+
+% TODO: it might make sense to reserve rtcall 0 so that it could be used for direct entry (blr x21).
+\informative{Attempts to write \code{tpidr\_el0} are translated into calls to rtcall 2}.
+
+\specsection{System Instructions}
+
+\specitem
+ \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
+    \code{svc \#0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x21]} \\ \code{blr x30} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+\end{tabular} 
+
+\informative{Attempts to execute a system call are translated into calls to rtcall 0}.
+
+\let\xbase\undefined
+\let\xaddr\undefined
+\let\xret\undefined
+\let\xsp\undefined

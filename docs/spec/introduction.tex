@@ -1,0 +1,16 @@
+\specchapter{Introduction}
+
+\specitem
+This document specifies the behavior of an LFI system for a particular
+architecture, describing the behavior of three components:
+
+\begin{enumerate}
+    \item The verifier: a program that reads a block of machine code, and
+        returns either \textbf{accept} or \textbf{reject}.
+    \item The assembler: a program that produces machine code from assembly
+        source code.
+    \item The runtime: a program that loads and executes programs, while
+        maintaining their memory isolation. This document leaves the runtime
+        component unspecified as much as possible to allow many possible
+        implementations.
+\end{enumerate}
