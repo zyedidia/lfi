@@ -13,12 +13,17 @@ host's \term{page size}.
 
 \informative{On x64, the host's page size is 4KiB.}
 
+\specsection{Virtual Memory Mappings}
+
 \specitem
 \label{specitem:page}
-A \term{page} may be readable, read-writable, read-executable, or unmapped
-(not readable, not writable, not executable).
+A \term{page} may only be readable, read-writable, read-executable, or unmapped
+(no permissions).
 
-\specsection{Virtual Memory Mappings}
+\informative{This Rule implies that a page can never be marked both writable and executable.}
+
+\specitem
+If a \term{page} is executable, its memory contents must pass the LFI-x64 verifier.
 
 \specitem
 The first \term{page} of the \term{sandbox} must be mapped read-only.

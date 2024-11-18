@@ -14,14 +14,19 @@ A \term{page} is a region of memory with a size that is divisible by the host's
 \informative{On Arm64 the host's page size may be 4KiB, 16KiB, or 64KiB depending on the host.}
 
 \specitem
-\label{specitem:page}
-A \term{page} may be readable, read-writable, read-executable, or unmapped
-(not readable, not writable, not executable).
-
-\specitem
 A runtime may operate in \term{dense mode} or \term{sparse mode}. Unless otherwise specified, a Rule applies to both modes.
 
 \specsection{Virtual Memory Mappings}
+
+\specitem
+\label{specitem:page}
+A \term{page} may only be readable, read-writable, read-executable, or unmapped
+(no permissions).
+
+\informative{This Rule implies that a page can never be marked both writable and executable.}
+
+\specitem
+If a \term{page} is executable, its memory contents must pass the LFI-Arm64 verifier.
 
 \specitem
 The first \term{page} of the \term{sandbox} must be mapped read-only.
