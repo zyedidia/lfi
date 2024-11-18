@@ -46,6 +46,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_max_procs:
         args->max_procs = true;
         break;
+    case ARG_poc:
+        args->poc = true;
+        break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)
             args->inputs[args->ninputs++] = arg;

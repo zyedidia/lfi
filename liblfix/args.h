@@ -11,6 +11,7 @@ typedef struct {
     char* inputs[INPUTMAX];
     size_t ninputs;
     bool max_procs;
+    bool poc;
 } Args;
 
 extern Args args;
