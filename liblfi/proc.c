@@ -372,7 +372,7 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
 }
 
 static bool
-load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pentry)
+load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* pfirst, uintptr_t* plast, uintptr_t* pentry)
 {
     uintptr_t last = 0;
     size_t pagesize = proc->lfi->opts.pagesize;
@@ -406,6 +406,10 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
         goto err1;
     }
 
+    uintptr_t first = 0;
+
+    uintptr_t elfbase = ehdr.type == ET_DYN ? base : proc->base;
+
     // TODO: enforce filesz/memsz limit?
 
     uintptr_t laststart = -1;
@@ -424,6 +428,9 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
         uintptr_t start = truncp(p->vaddr, p->align);
         uintptr_t end = ceilp(p->vaddr + p->memsz, p->align);
         uintptr_t offset = p->vaddr - start;
+
+        if (first == 0 || elfbase + start < first)
+            first = elfbase + start;
 
         if (start == laststart)
             fprintf(stderr, "warning: current segment will overwrite previous segment\n");
@@ -472,6 +479,7 @@ load(LFIProc* proc, FileBuf buf, uintptr_t base, uintptr_t* plast, uintptr_t* pe
 
     *plast = last;
     *pentry = ehdr.type == ET_DYN ? base + ehdr.entry : proc->base + ehdr.entry;
+    *pfirst = first;
 
     free(phdr);
 
@@ -571,12 +579,12 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
 
     // Now we are ready to load.
     uintptr_t base = guard1 + GUARD1SZ;
-    uintptr_t plast, pentry, ilast, ientry;
+    uintptr_t pfirst, plast, pentry, ifirst, ilast, ientry;
     bool hasinterp = interp.data != NULL;
-    if (!load(proc, prog, base, &plast, &pentry))
+    if (!load(proc, prog, base, &pfirst, &plast, &pentry))
         goto err;
     if (hasinterp)
-        if (!load(proc, interp, plast, &ilast, &ientry))
+        if (!load(proc, interp, plast, &ifirst, &ilast, &ientry))
             goto err;
 
     ElfFileHeader ehdr;
@@ -589,8 +597,8 @@ lfi_proc_loadelf(LFIProc* proc, uint8_t* progdat, size_t progsz, uint8_t* interp
         .lastva = hasinterp ? ilast : plast,
         .elfentry = pentry,
         .ldentry = hasinterp ? ientry : 0,
-        .elfbase = base,
-        .ldbase = hasinterp ? plast : base,
+        .elfbase = pfirst,
+        .ldbase = hasinterp ? ifirst : pfirst,
         .elfphoff = ehdr.phoff,
         .elfphnum = ehdr.phnum,
         .elfphentsize = ehdr.phentsize,
