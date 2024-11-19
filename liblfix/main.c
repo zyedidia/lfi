@@ -75,6 +75,8 @@ main(int argc, char** argv)
         fprintf(stderr, "error initializing: %s\n", lfi_strerror());
         return 1;
     }
+    if (args.poc)
+        engine.poc = true;
 
     if (args.max_procs) {
         printf("max processes: %ld\n", lfi_maxprocs(engine.l_engine));

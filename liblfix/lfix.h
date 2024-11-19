@@ -31,6 +31,7 @@ typedef struct {
     LFIEngine* l_engine;
     bool pause;
     bool (*readfile)(const char* filename, uint8_t** buf, size_t* size);
+    bool poc;
 } LFIXEngine;
 
 typedef struct {

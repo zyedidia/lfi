@@ -9,7 +9,6 @@
 
 #include <sys/mman.h>
 
-#include "args.h"
 #include "lfix.h"
 #include "elf.h"
 #include "proc.h"
@@ -31,7 +30,7 @@ procaddr(LFIXProc* proc, uintptr_t addr)
 uintptr_t
 procuseraddr(LFIXProc* proc, uintptr_t addr)
 {
-    if (args.poc)
+    if (proc->lfix->poc)
         return (uintptr_t) ((uint32_t) addr);
     return procaddr(proc, addr);
 }

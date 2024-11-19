@@ -101,6 +101,7 @@ lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasi
         goto err1;
     shm_unlink(name);
 #endif
+
     int r = ftruncate(fd, codesize + datasize);
     if (r < 0)
         goto err2;
