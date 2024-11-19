@@ -12,7 +12,7 @@
 }                                              \
 %}
 
-Top = CallInd | Lea
+Top = CallInd | LeaRip | LeaImmRspRegDisp | LeaRspRegDisp | LeaImmRspReg | LeaRspReg | LeaRsp | MovRsp | AddRsp | MovGot
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.nopie) {
@@ -23,14 +23,14 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
     } else if (strcmp(r.val, "%r11") == 0) {
         // need %rax as a temporary since %r11 is already in use
         mkinsn("pushq %%rax");
-        mkinsn("leaq 1024f(%%rip), %%rax");
+        mkinsn("leal 1024f(%%rip), %%eax");
         // restore %rax and push the return address at the same time
         mkinsn("xchg %%rax, (%%rsp)");
         if (args.decl)
             mkinsn("cmpl %eax, %eax");
         mkinsn("jmpq *%s", r.val);
     } else {
-        mkinsn("leaq 1024f(%%rip), %%r11");
+        mkinsn("leal 1024f(%%rip), %%r11d");
         mkinsn("pushq %%r11");
         if (args.decl)
             mkinsn("cmpl %eax, %eax");
@@ -41,15 +41,55 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
     rfree(r);
 }
 
-Lea = l:LEA (i:IMM_VAR LP '%rip' RP) COMMA r:REG {
+LeaRip = 'lea' 'q'? SEP (i:IMM_VAR LP '%rip' RP) COMMA r:XREG_NOSP {
     mkdirective(".bundle_lock");
-    mkinsn("%s %s(%%rip), %s", l.val, i.val, r.val);
-    mkinsn("movl %s, %s", lo(r.val), lo(r.val));
+    mkinsn("leal %s(%%rip), %s", i.val, lo(r.val));
     mkdirective(".bundle_unlock");
-    rfree(l); rfree(i); rfree(r);
+    rfree(i); rfree(r);
 }
 
-LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+LeaRsp = 'lea' 'q'? SEP (i:IMM_VAR LP '%rsp' RP) COMMA r:XREG_NOSP {
+    mkinsn("leal %s(%%rsp), %s", i.val, lo(r.val));
+    rfree(i); rfree(r);
+}
+
+LeaImmRspReg = 'lea' 'q'? SEP (i:IMM_VAR LP '%rsp' COMMA x:XREG_NOSP RP) COMMA r:XREG_NOSP {
+    mkinsn("leal %s(%%rsp, %s), %s", i.val, x.val, lo(r.val));
+    rfree(i); rfree(r); rfree(x);
+}
+
+LeaRspReg = 'lea' 'q'? SEP (LP '%rsp' COMMA x:XREG_NOSP RP) COMMA r:XREG_NOSP {
+    mkinsn("leal (%%rsp, %s), %s", x.val, lo(r.val));
+    rfree(r); rfree(x);
+}
+
+LeaImmRspRegDisp = 'lea' 'q'? SEP (i:IMM_VAR LP '%rsp' COMMA x:XREG COMMA d:IMM RP) COMMA r:XREG {
+    mkinsn("leal %s(%%rsp, %s, %s), %s", i.val, x.val, d.val, lo(r.val));
+    rfree(i); rfree(r); rfree(x); rfree(d);
+}
+
+LeaRspRegDisp = 'lea' 'q'? SEP (LP '%rsp' COMMA x:XREG_NOSP COMMA d:IMM RP) COMMA r:XREG_NOSP {
+    mkinsn("leal (%%rsp, %s, %s), %s", x.val, d.val, lo(r.val));
+    rfree(d); rfree(r); rfree(x);
+}
+
+MovRsp = 'mov' 'q'? SEP '%rsp' COMMA r:XREG {
+    mkinsn("movl %%esp, %s", lo(r.val));
+    rfree(r);
+}
+
+MovGot = 'mov' 'q'? SEP n:NAME '@GOTPCREL(%rip)' COMMA r:XREG {
+    mkinsn("movl %s@GOTPCREL(%%rip), %s", n.val, lo(r.val));
+    rfree(n); rfree(r);
+}
+
+AddRsp = 'add' 'q'? SEP '%rsp' COMMA r:XREG {
+    mkdirective(".bundle_lock");
+    mkinsn("movl %%esp, %%r11d");
+    mkinsn("addq %%r11, %s", r.val);
+    mkdirective(".bundle_unlock");
+    rfree(r);
+}
 
 %%
 

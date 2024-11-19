@@ -2,8 +2,7 @@ call foo
 >>>
 .bundle_align_mode 4
 .bundle_lock
-leaq 1024f(%rip), %r11
-movl %r11d, %r11d
+leal 1024f(%rip), %r11d
 .bundle_unlock
 pushq %r11
 jmp foo
@@ -16,7 +15,7 @@ callq *%rax
 .bundle_lock
 andl $0xfffffff0, %eax
 orq %r14, %rax
-leaq 1024f(%rip), %r11
+leal 1024f(%rip), %r11d
 pushq %r11
 jmpq *%rax
 .p2align 4
@@ -27,8 +26,7 @@ leaq x(%rip), %rax
 >>>
 .bundle_align_mode 4
 .bundle_lock
-leaq x(%rip), %rax
-movl %eax, %eax
+leal x(%rip), %eax
 .bundle_unlock
 ------
 rep stosq
@@ -61,4 +59,40 @@ syscall
 leaq 1024f(%rip), %r11
 jmpq *(%r13)
 1024:
+.bundle_unlock
+------
+leaq 4(%rsp), %rax
+>>>
+.bundle_align_mode 4
+leal 4(%rsp), %eax
+------
+movq %rsp, %rax
+>>>
+.bundle_align_mode 4
+movl %esp, %eax
+------
+addq %rsp, %rax
+>>>
+.bundle_align_mode 4
+.bundle_lock
+movl %esp, %r11d
+addq %r11, %rax
+.bundle_unlock
+------
+movq x@GOTPCREL(%rip), %rax
+>>>
+.bundle_align_mode 4
+movl x@GOTPCREL(%rip), %eax
+------
+leaq (%rsp, %rax), %rax
+>>>
+.bundle_align_mode 4
+leal (%rsp, %rax), %eax
+------
+leaq 0x18(%rbp), %rsp
+>>>
+.bundle_align_mode 4
+.bundle_lock
+leal 0x18(%ebp), %esp
+leaq (%rsp, %r14), %rsp
 .bundle_unlock
