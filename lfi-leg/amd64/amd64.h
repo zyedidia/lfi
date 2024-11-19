@@ -129,7 +129,7 @@ bundle_nop_indcall()
     // lfi-postlink will fix it up.
     if (!args.bundlecall) {
         if (args.decl)
-            mkinsn("cmpq %%rax, %%rax");
+            mkinsn("cmpl %%eax, %%eax");
         return;
     }
     switch (args.cfi) {
@@ -170,7 +170,7 @@ bundle_nop_indcall()
         assert(0);
     }
     if (args.decl)
-        mkinsn("cmpq %rax, %rax");
+        mkinsn("cmpl %%eax, %%eax");
 }
 
 static void

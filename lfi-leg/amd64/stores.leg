@@ -28,6 +28,9 @@ Stos = s:STOS rest:REMAINDER {
     mkdirective(".bundle_lock");
     mask("%rdi");
     mkinsn("%s%s", s.val, rest.val);
+    if (args.poc) {
+        mkinsn("movl %%edi, %%edi");
+    }
     mkdirective(".bundle_unlock");
     rfree(s); rfree(rest);
 }
@@ -41,6 +44,10 @@ Movs = m:MOVS rest:REMAINDER {
     mask("%rdi");
     mask("%rsi");
     mkinsn("%s%s", m.val, rest.val);
+    if (args.poc) {
+        mkinsn("movl %%edi, %%edi");
+        mkinsn("movl %%esi, %%esi");
+    }
     mkdirective(".bundle_unlock");
     rfree(m); rfree(rest);
 }

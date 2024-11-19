@@ -26,7 +26,7 @@ ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     mkinsn("xor %%eax, %%eax");
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
-    mkinsn("jmpq *8(%%r14)");
+    mkinsn("jmpq *8(%s)", args.sysexternal ? "%r13" : "%r14");
     mklabel(label);
     mkdirective(".bundle_unlock");
     mkinsn("movq %%rax, %s", r.val);
@@ -40,7 +40,7 @@ OpTP_any = m:NAME '%fs:' n:NUM - COMMA rest:REMAINDER - {
     mkinsn("movq $%s, %%rax", n.val);
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
-    mkinsn("jmpq *8(%%r14)");
+    mkinsn("jmpq *8(%s)", args.sysexternal ? "%r13" : "%r14");
     mklabel(label);
     mkdirective(".bundle_unlock");
     mkinsn("movq %%rax, %%r11");
@@ -54,7 +54,7 @@ ReadTP_rax = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA '%rax' - {
     mkinsn("xor %%eax, %%eax");
     mkdirective(".bundle_lock");
     mkinsn("leaq %s(%%rip), %%r11", label);
-    mkinsn("jmpq *8(%%r14)");
+    mkinsn("jmpq *8(%s)", args.sysexternal ? "%r13" : "%r14");
     mklabel(label);
     mkdirective(".bundle_unlock");
     free(label);

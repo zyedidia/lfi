@@ -30,6 +30,7 @@ tests = {
     'amd64/variable.s',
     'amd64/tls.s',
     'amd64/meter_timer.s',
+    'amd64/poc.s',
   ],
   'riscv64': [
     'riscv64/arith.s',

@@ -25,7 +25,8 @@ enum {
     ARG_bundlecall    = 0x8b,
     ARG_useret        = 0x8c,
     ARG_no_pext_elim  = 0x8d,
-    ARG_allowtls         = 0x8e,
+    ARG_allowtls      = 0x8e,
+    ARG_nopie         = 0x8f
 };
 
 // options (TODO):
@@ -61,6 +62,7 @@ static struct argp_option options[] = {
     { "bundle-call",    ARG_bundlecall,    0,      0, "Dedicate a full bundle for calls (allows use without lfi-postlink)" },
     { "use-ret",        ARG_useret,        0,      0, "Allow return instructions for x86-64 (unsafe)" },
     { "allow-tls",      ARG_allowtls,      0,      0, "Do not rewrite TLS accesses into host calls" },
+    { "no-pie",         ARG_nopie,         0,      0, "Generating position-independent code is not required" },
     { 0 },
 };
 
@@ -116,6 +118,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_useret:
         args->useret = true;
+        break;
+    case ARG_nopie:
+        args->nopie = true;
         break;
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)

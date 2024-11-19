@@ -12,12 +12,12 @@ amd64_getflags(enum flags compiler)
     switch (compiler) {
     case FLAGS_POSTLINK:
         if (args.boxtype <= BOX_SYSCALLS)
-            flags = "--bundle=0";
+            return "--bundle=0";
         else if (args.cfi == CFI_BUNDLE16)
-            flags = "--bundle=16";
+            return "--bundle=16";
         else if (args.cfi == CFI_BUNDLE32)
-            flags = "--bundle=32";
-        break;
+            return "--bundle=32";
+        return "";
     case FLAGS_CLANG:
         if (args.boxtype > BOX_BUNDLEJUMPS)
             flags = xasprintf("-mllvm --reserve-r14 -mllvm --reserve-r11");
@@ -47,6 +47,8 @@ amd64_getflags(enum flags compiler)
             flags = xasprintf("%s -ffixed-r15", flags);
         if (args.meter != METER_NONE)
             flags = xasprintf("%s -ffixed-r12", flags);
+        if (args.poc)
+            flags = xasprintf("%s -fno-plt", flags);
         break;
     default:
         assert(0);

@@ -25,8 +25,7 @@ regs_addr(LFIRegs* regs, int n)
 static uint64_t*
 regs_sys(LFIRegs* regs)
 {
-    (void) regs;
-    return NULL;
+    return &regs->r13;
 }
 
 static void

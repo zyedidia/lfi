@@ -21,7 +21,7 @@ movq %gs:(%eax), %r11
 .bundle_lock
 andl $0xfffffff0, %r11d
 orq %r14, %r11
-cmpq %rax, %rax
+cmpl %eax, %eax
 callq *%r11
 .bundle_unlock
 .p2align 4

@@ -20,6 +20,7 @@ void amd64_specialpass(struct op*);
 void amd64_branchpass(struct op*);
 void amd64_loadspass(struct op*);
 void amd64_storespass(struct op*);
+void amd64_pocpass(struct op*);
 void amd64_declpass(struct op*);
 void amd64_tlspass(struct op*);
 void amd64_syscallpass(struct op*);
@@ -32,6 +33,7 @@ static Pass passes[] = {
     (Pass) { .fn = &amd64_loadspass },
     (Pass) { .fn = &amd64_storespass },
     (Pass) { .fn = &amd64_branchpass },
+    (Pass) { .fn = &amd64_pocpass, .disabled = true },
     (Pass) { .fn = &amd64_declpass, .disabled = true },
     (Pass) { .fn = &amd64_meterpass, .disabled = true },
     (Pass) { .fn = &amd64_tlspass },
@@ -43,12 +45,8 @@ void amd64_display(struct output* output, struct op* ops);
 static void
 warnargs()
 {
-    if (args.poc)
-        fprintf(stderr, "warning: --poc has no effect on amd64\n");
     if (args.noguardelim)
         fprintf(stderr, "warning: --no-guard-elim has no effect on amd64\n");
-    if (args.sysexternal)
-        fprintf(stderr, "warning: --sys-external has no effect on amd64\n");
     if (args.singlethread && args.boxtype != BOX_BUNDLEJUMPS)
         fprintf(stderr, "warning: --single-thread has no effect if --sandbox != bundle-jumps\n");
 }
@@ -74,6 +72,10 @@ amd64_rewrite(FILE* input, struct output* output)
         if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_specialpass)
             passes[i].disabled = true;
         if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &amd64_branchpass)
+            passes[i].disabled = true;
+        if (args.poc && passes[i].fn == &amd64_pocpass)
+            passes[i].disabled = false;
+        else if (passes[i].fn == &amd64_pocpass)
             passes[i].disabled = true;
         if (args.decl && passes[i].fn == &amd64_declpass)
             passes[i].disabled = false;

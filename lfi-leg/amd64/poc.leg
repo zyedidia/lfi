@@ -1,0 +1,70 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+#include "util.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = CallInd | Lea
+
+CallInd = 'call' 'q'? SEP '*' r:XREG {
+    if (args.nopie) {
+        mkinsn("push $1024f");
+        if (args.decl)
+            mkinsn("cmpl %eax, %eax");
+        mkinsn("jmpq *%s", r.val);
+    } else if (strcmp(r.val, "%r11") == 0) {
+        // need %rax as a temporary since %r11 is already in use
+        mkinsn("pushq %%rax");
+        mkinsn("leaq 1024f(%%rip), %%rax");
+        // restore %rax and push the return address at the same time
+        mkinsn("xchg %%rax, (%%rsp)");
+        if (args.decl)
+            mkinsn("cmpl %eax, %eax");
+        mkinsn("jmpq *%s", r.val);
+    } else {
+        mkinsn("leaq 1024f(%%rip), %%r11");
+        mkinsn("pushq %%r11");
+        if (args.decl)
+            mkinsn("cmpl %eax, %eax");
+        mkinsn("jmpq *%s", r.val);
+    }
+    mkdirective(bundle_align());
+    mklabel("1024");
+    rfree(r);
+}
+
+Lea = l:LEA (i:IMM_VAR LP '%rip' RP) COMMA r:REG {
+    mkdirective(".bundle_lock");
+    mkinsn("%s %s(%%rip), %s", l.val, i.val, r.val);
+    mkinsn("movl %s, %s", lo(r.val), lo(r.val));
+    mkdirective(".bundle_unlock");
+    rfree(l); rfree(i); rfree(r);
+}
+
+LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+%%
+
+void
+amd64_pocpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}
