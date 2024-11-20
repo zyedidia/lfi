@@ -49,7 +49,11 @@ measured a runtime overhead of 7% and a code size overhead of 14% for full
 isolation. This compares well with LLVM-based ahead-of-time WebAssembly
 compilers, which incur upwards of 20% runtime overhead. Additionally, LFI can
 be used for pure fault isolation, where sandboxes may read, but not write,
-each other's memory. In this case, we measured a runtime overhead of around 1.5%.
+each other's memory. In this case, we measured a runtime overhead of around
+1.5%. LFI also compares well with Native Client (NaCl), the most widely-known
+prior SFI system, which incurred around 16% overhead for full isolation and 7%
+overhead for just stores on x86-64 SPEC benchmarks. NaCl never received Arm64
+support before being deprecated.
 
 LFI is also secure: the compiler toolchain used to
 produce LFI-compatible programs is not a part of the trusted code base, and LFI
