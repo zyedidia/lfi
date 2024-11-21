@@ -79,7 +79,13 @@ parse_opt(int key, char* arg, struct argp_state* state)
         args->output = arg;
         break;
     case 'a':
-        if (strcmp(arg, "amd64") != 0 && strcmp(arg, "arm64") != 0 && strcmp(arg, "riscv64") != 0) {
+        if (strcmp(arg, "amd64") != 0 &&
+            strcmp(arg, "x64") != 0 &&
+            strcmp(arg, "x86-64") != 0 &&
+            strcmp(arg, "x86_64") != 0 &&
+            strcmp(arg, "arm64") != 0 &&
+            strcmp(arg, "aarch64") != 0 &&
+            strcmp(arg, "riscv64") != 0) {
             fprintf(stderr, "unknown architecture: %s\n", arg);
             return ARGP_ERR_UNKNOWN;
         }
@@ -259,7 +265,7 @@ main(int argc, char** argv)
         size_t n;
         while ((n = fread(buf, 1, 4096, input)) != 0)
             outwritebuf(&out, buf, n);
-    } else if (strcmp(args.arch, "arm64") == 0) {
+    } else if (strcmp(args.arch, "arm64") == 0 || strcmp(args.arch, "aarch64") == 0) {
         if (args.flags != FLAGS_NONE) {
             char* flags = arm64_getflags(args.flags);
             puts(flags);
@@ -268,7 +274,10 @@ main(int argc, char** argv)
 
         if (!arm64_rewrite(input, &out))
             return 1;
-    } else if (strcmp(args.arch, "amd64") == 0) {
+    } else if (strcmp(args.arch, "amd64") == 0 ||
+            strcmp(args.arch, "x86-64") == 0 ||
+            strcmp(args.arch, "x86_64") == 0 ||
+            strcmp(args.arch, "x64") == 0) {
         if (args.flags != FLAGS_NONE) {
             char* flags = amd64_getflags(args.flags);
             puts(flags);
