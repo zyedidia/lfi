@@ -57,7 +57,7 @@ SyscallFn syscalls[] = {
     [LSYS_writev]            = syswritev_,
     [LSYS_set_tid_address]   = sysignore_,
     [LSYS_brk]               = sysbrk_,
-    [LSYS_ioctl]             = syserror_,
+    [LSYS_ioctl]             = sysignore_,
     [LSYS_exit_group]        = sysexit_,
     [LSYS_exit]              = sysexit_,
     [LSYS_close]             = sysclose_,
@@ -87,6 +87,7 @@ SyscallFn syscalls[] = {
     [LSYS_chdir]             = syschdir_,
     [LSYS_unlinkat]          = sysunlinkat_,
     [LSYS_futex]             = sysfutex_,
+    [LSYS_rt_sigaction]      = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
