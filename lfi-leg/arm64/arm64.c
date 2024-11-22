@@ -73,7 +73,7 @@ arm64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = true;
         if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &arm64_branchpass)
             passes[i].disabled = true;
-        if (args.boxtype == BOX_NONE && passes[i].fn == &arm64_specialpass) {
+        if (args.boxtype == BOX_SYSCALLS && passes[i].fn == &arm64_specialpass) {
             passes[i].disabled = true;
             args.noguardelim = true;
         }

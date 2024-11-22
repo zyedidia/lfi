@@ -48,6 +48,7 @@ enum {
     LSYS_membarrier      = 283,
     LSYS_dup             = 23,
     LSYS_futex           = 98,
+    LSYS_sched_getaffinity = 123,
 };
 
 SyscallFn syscalls[] = {
@@ -88,6 +89,8 @@ SyscallFn syscalls[] = {
     [LSYS_unlinkat]          = sysunlinkat_,
     [LSYS_futex]             = sysfutex_,
     [LSYS_rt_sigaction]      = sysignore_,
+    [LSYS_gettid]            = sysignore_,
+    [LSYS_sched_getaffinity] = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
