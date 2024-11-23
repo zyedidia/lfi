@@ -77,7 +77,7 @@ procnewfile(LFIXEngine* lfix, uint8_t* prog, size_t progsz, int argc, char** arg
     p->size = lfi_proc_size(p->l_proc);
 
     if (!procfile(p, prog, progsz, argc, argv))
-        return NULL;
+        goto err;
     lfix_fdinit(&p->fdtable);
     return p;
 err:
@@ -88,7 +88,6 @@ err:
 static bool
 procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv)
 {
-    int interpfd = -1;
     char* interppath = elfinterp(prog, progsz);
     Buf interp = (Buf){NULL, 0};
     if (interppath) {
@@ -108,9 +107,6 @@ procfile(LFIXProc* p, uint8_t* prog, size_t progsz, int argc, char** argv)
     bool success = true;
     if (!procsetup(p, prog, progsz, interp.data, interp.size, argc, argv))
         success = false;
-
-    if (interpfd >= 0)
-        close(interpfd);
 
     return success;
 }

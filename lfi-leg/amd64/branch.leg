@@ -109,7 +109,7 @@ BranchMem = j:JMP - '*' a:Addr {
     mkdirective(".bundle_lock");
     bundle_mask("%r11");
     if (args.decl)
-        mkinsn("cmpl %eax, %eax");
+        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -120,7 +120,7 @@ BranchMemSafe = j:JMP - '*' a:Addr {
     mkdirective(".bundle_lock");
     bundle_mask("%r11");
     if (args.decl)
-        mkinsn("cmpl %eax, %eax");
+        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -130,7 +130,7 @@ Branch = j:JMP '*' r:XREG {
     mkdirective(".bundle_lock");
     bundle_mask(r.val);
     if (args.decl)
-        mkinsn("cmpl %eax, %eax");
+        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%s", j.val, r.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(r);
@@ -147,7 +147,7 @@ Ret = 'ret' 'q'? - {
         mkdirective(".bundle_lock");
         mkinsn("andq $0xffffffff%s, (%%rsp)", bundle_mask_constant());
         if (args.decl)
-            mkinsn("cmpl %eax, %eax");
+            mkinsn("cmpl %%eax, %%eax");
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
@@ -155,7 +155,7 @@ Ret = 'ret' 'q'? - {
         mkdirective(".bundle_lock");
         bundle_mask("%r11");
         if (args.decl)
-            mkinsn("cmpl %eax, %eax");
+            mkinsn("cmpl %%eax, %%eax");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
     }
