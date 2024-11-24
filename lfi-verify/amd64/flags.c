@@ -118,8 +118,15 @@ static flagset_t flagmodify[FDI_XTEST + 1] = {
     [FDI_BTR]  =                                    F_CF,
     [FDI_BTC]  =                                    F_CF,
 
-    [FDI_FUCOMIP] = F_OF | F_ZF | F_PF,
-    [FDI_FUCOMI]  = F_OF | F_ZF | F_PF,
+    // Instructions not typically accepted by DeCl, but useful to know about
+    // for running flags-verification on arbitrary binaries.
+    [FDI_FUCOMIP]     = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_FUCOMI]      = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_FCOMIP]      = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_FCOMI]       = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_SSE_COMISS]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_SSE_COMISD]  = F_OF | F_SF | F_ZF | F_AF | F_PF | F_CF,
+    [FDI_CMPXCHG]     =               F_ZF,
 };
 
 // Flags placed in an undefined state by instruction. This table must be
@@ -190,6 +197,7 @@ static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t
         in |= undef;
         // New flags that are defined.
         in &= ~modify;
+
         v->addr += instr->size;
     }
     return in;
@@ -262,6 +270,7 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
     v->addr = addr;
     size_t leader = 0;
     while (leader < n) {
+        size_t bbstart = v->addr;
         v->addr += instrs[leader].size;
         for (size_t i = 1; leader + i <= n; i++) {
             if (leader + i == n || leaders[leader + i]) {
@@ -275,7 +284,7 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
                 branch = branch && !indirect;
                 blocks[leader] = (struct BasicBlock) {
                     .fallthrough = leader + i < n && (!branch || cond) ? &blocks[leader + i] : NULL,
-                    .startaddr = v->addr,
+                    .startaddr = bbstart,
                     .in = 0,
                     .size = i,
                 };

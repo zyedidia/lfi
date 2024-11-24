@@ -181,7 +181,7 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
         .opts = opts,
     };
 
-    size_t bundlesize = 16;
+    size_t bundlesize = 32;
 
     size_t count = 0;
     size_t ninstr = 0;
