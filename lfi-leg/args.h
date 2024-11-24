@@ -3,9 +3,9 @@
 #include <stdbool.h>
 
 enum cfi {
-    CFI_BUNDLE16,
-    CFI_BUNDLE32,
-    CFI_HW,
+    CFI_BUNDLE16 = 0,
+    CFI_BUNDLE32 = 1,
+    CFI_HW       = 2,
 };
 
 enum boxtype {

@@ -12,23 +12,45 @@
 }                                              \
 
 static void
+branchmeter(bool indirect)
+{
+    if (indirect) {
+        mkinsn("sub $0, %%r12");
+        mkinsn("jns 1024f");
+        mkinsn("int3");
+        mklabel("1024");
+    } else {
+        mkinsn("leaq 0(%%r12), %%r12");
+        mkinsn("pushq %%rcx");
+        mkinsn("movl $0x3f, %%ecx");
+        mkinsn("shrx %%rcx, %%r12, %%rcx");
+        mkinsn("jrcxz 1024f");
+        mkinsn("int3");
+        mklabel("1024");
+        mkinsn("popq %%rcx");
+    }
+}
+
+static void
 timermeter(bool indirect)
 {
     mkinsn("leaq 0(%%r12), %%r12");
 }
+
+static void (*meter)(bool);
 %}
 
 Top = IndBranch | Branch
 
 IndBranch = b:INDBRANCH SEP '*' r:XREG {
-    timermeter(true);
+    meter(true);
     mkinsn("%s *%s", b.val, r.val);
     rfree(b); rfree(r);
 }
 
 Branch = b:DIRBRANCH SEP name:NAME {
     mkdirective(".bundle_lock");
-    timermeter(false);
+    meter(false);
     mkinsn("%s %s", b.val, name.val);
     mkdirective(".bundle_unlock");
     rfree(b); rfree(name);
@@ -72,6 +94,19 @@ amd64_meterpass(struct op* op)
     memset(&ctx, 0, sizeof(yycontext));
     ctx.op = op;
     oplocate(op);
+
+    switch (args.meter) {
+    case METER_BRANCH:
+        meter = branchmeter;
+        break;
+    case METER_TIMER:
+        meter = timermeter;
+        break;
+    default:
+        fprintf(stderr, "meter pass run without a valid meter setting\n");
+        return;
+    }
+
     if (yyparse(&ctx)) {
         opremove(op);
         opfree(op);
