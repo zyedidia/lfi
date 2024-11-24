@@ -181,7 +181,18 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
         .opts = opts,
     };
 
-    size_t bundlesize = 16;
+    size_t bundlesize;
+    switch (opts->bundle) {
+    case LFI_BUNDLE16:
+        bundlesize = 16;
+        break;
+    case LFI_BUNDLE32:
+        bundlesize = 32;
+        break;
+    default:
+        verrmin(&v, "bundle size must be 16 or 32");
+        return false;
+    }
 
     size_t count = 0;
     size_t ninstr = 0;

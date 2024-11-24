@@ -3,8 +3,8 @@
 #include <stdbool.h>
 
 enum cfi {
-    CFI_BUNDLE16 = 0,
-    CFI_BUNDLE32 = 1,
+    CFI_BUNDLE32 = 0,
+    CFI_BUNDLE16 = 1,
     CFI_HW       = 2,
 };
 

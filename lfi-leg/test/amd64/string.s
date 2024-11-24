@@ -1,6 +1,6 @@
 rep stosq
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 movl %edi, %edi
 leaq (%r14, %rdi), %rdi
@@ -9,7 +9,7 @@ rep stosq
 ------
 rep movsq
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 movl %edi, %edi
 leaq (%r14, %rdi), %rdi

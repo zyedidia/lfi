@@ -17,7 +17,7 @@ tests = {
   ],
   'amd64': [
     'amd64/branch.s',
-    'amd64/bundle32.s',
+    'amd64/bundle16.s',
     'amd64/bundlejumps.s',
     'amd64/decl.s',
     'amd64/ldst.s',

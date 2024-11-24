@@ -22,6 +22,7 @@ enum {
     ARG_poc   = 0x80,
     ARG_decl  = 0x81,
     ARG_meter = 0x82,
+    ARG_cfi   = 0x83,
 };
 
 static struct argp_option options[] = {
@@ -31,6 +32,7 @@ static struct argp_option options[] = {
     { "poc",            ARG_poc,           0,      0, "require position-oblivious code" },
     { "decl",           ARG_decl,          0,      0, "require deterministic instructions" },
     { "meter",          ARG_meter,         "TYPE", 0, "require metering instructions" },
+    { "cfi",            ARG_cfi,           "TYPE", 0, "Select CFI mechanism (bundle16,bundle32)" },
     { 0 },
 };
 
@@ -69,6 +71,16 @@ parse_opt(int key, char* arg, struct argp_state* state)
             opts.bundle = LFI_BUNDLE8;
         } else {
             fprintf(stderr, "unsupported metering type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
+        break;
+    case ARG_cfi:
+        if (strcmp(arg, "bundle16") == 0)
+            opts.bundle = LFI_BUNDLE16;
+        else if (strcmp(arg, "bundle32") == 0)
+            opts.bundle = LFI_BUNDLE32;
+        else {
+            fprintf(stderr, "unsupported cfi type: %s\n", arg);
             return ARGP_ERR_UNKNOWN;
         }
         break;
@@ -187,6 +199,9 @@ main(int argc, char** argv)
 
     if (args.n == 0)
         args.n = 1;
+
+    if (strcmp(args.arch, "amd64") == 0 && opts.bundle == LFI_BUNDLE_NONE)
+        opts.bundle = LFI_BUNDLE32;
 
     opts.err = errfn;
     LFIVerifier v = (LFIVerifier) {

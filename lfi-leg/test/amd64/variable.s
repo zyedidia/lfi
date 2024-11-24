@@ -1,6 +1,6 @@
 mov (%rsi), %rdx
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 pext %r15, %rsi, %r11
 mov (%r14, %r11), %rdx
@@ -8,7 +8,7 @@ mov (%r14, %r11), %rdx
 ------
 mov (%rsi, %rax), %rdx
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 leaq (%rsi, %rax), %r11
 .bundle_lock
 pext %r15, %r11, %r11
@@ -17,20 +17,20 @@ mov (%r14, %r11), %rdx
 ------
 callq *(%rsp)
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 movq (%rsp), %r11
 .bundle_lock
 andq %r15, %r11
-andq $0xfffffffffffffff0, %r11
+andq $0xffffffffffffffe0, %r11
 orq %r14, %r11
 callq *%r11
 .bundle_unlock
-.p2align 4
+.p2align 5
 ------
 imulq $24, -88(%rsp), %rax
 imulq $24, -88(%rdi), %rax
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 imulq $24, -88(%rsp), %rax
 .bundle_lock
 movq %rdi, %r11
@@ -40,7 +40,7 @@ imulq $24, -88(%r14, %r11), %rax
 ------
 movq %dh, (%rax)
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 movq %rdi, %r11
 .bundle_lock
 pext %r15, %rax, %rdi
@@ -51,7 +51,7 @@ movq %r11, %rdi
 ------
 rep stosq
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 pext %r15, %rdi, %rdi
 leaq (%r14, %rdi), %rdi
@@ -62,7 +62,7 @@ movq %rcx, 64(%rdi)
 movq %rcx, 8(%rdi)
 xorl %ecx, %ecx
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 movq %rdi, %r11
 andq %r15, %r11
@@ -78,7 +78,7 @@ xorl %ecx, %ecx
 movq %rcx, 64(%rdi)
 jne foo
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 pext %r15, %rdi, %r11
 movq %rcx, 64(%r14, %r11)
@@ -88,7 +88,7 @@ jne foo
 mov %rax, (%rdi, %rsi)
 addq $8, %rdi
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 leaq (%rdi, %rsi), %r11
 .bundle_lock
 andq %r15, %r11
@@ -99,7 +99,7 @@ addq $8, %rdi
 mov %rax, (%rdi, %rsi)
 cmovns %r11, %rdx
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 leaq (%rdi, %rsi), %r11
 .bundle_lock
 pext %r15, %r11, %r11
@@ -109,7 +109,7 @@ cmovns %r11, %rdx
 ------
 addq $8, %rsp
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 andq %r15, %rsp
 leaq 8(%rsp, %r14), %rsp
@@ -117,7 +117,7 @@ leaq 8(%rsp, %r14), %rsp
 ------
 subq $8, %rsp
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 andq %r15, %rsp
 leaq -8(%rsp, %r14), %rsp
@@ -125,7 +125,7 @@ leaq -8(%rsp, %r14), %rsp
 ------
 addq %rdi, %rsp
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 addq %rdi, %rsp
 andq %r15, %rsp
@@ -134,7 +134,7 @@ orq %r14, %rsp
 ------
 leaq 0x10(%rbp), %rsp
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 leaq 0x10(%rbp), %rsp
 pext %r15, %rsp, %rsp

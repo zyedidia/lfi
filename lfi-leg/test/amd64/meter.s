@@ -1,8 +1,8 @@
 jmpq *%rax
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
-andl $0xfffffff0, %eax
+andl $0xffffffe0, %eax
 orq %r14, %rax
 sub $0, %r12
 jns 1024f
@@ -13,7 +13,7 @@ jmpq *%rax
 ------
 jmp foo
 >>>
-.bundle_align_mode 4
+.bundle_align_mode 5
 .bundle_lock
 leaq 0(%r12), %r12
 pushq %rcx

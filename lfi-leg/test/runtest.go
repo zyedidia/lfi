@@ -16,7 +16,7 @@ var testflags = map[string][]string{
 	"sysexternal.s":  []string{"--sys-external"},
 	"storesonly.s":   []string{"--sandbox=stores"},
 	"nosegue.s":      []string{"--no-segue"},
-	"bundle32.s":     []string{"--cfi=bundle32"},
+	"bundle16.s":     []string{"--cfi=bundle16"},
 	"singlethread.s": []string{"--single-thread", "--sandbox=bundle-jumps"},
 	"bundlejumps.s":  []string{"--sandbox=bundle-jumps"},
 	"decl.s":         []string{"--decl"},
