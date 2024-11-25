@@ -57,3 +57,9 @@ ldr x30, [x21, #8]
 ldr x30, [x21, #16]
 ---
 str w18, [x18]
+---
+stp xzr, xzr, [sp, #-0x10]!
+---
+swpal w0, w0, [x18]
+---
+ldadd w0, w0, [x18]

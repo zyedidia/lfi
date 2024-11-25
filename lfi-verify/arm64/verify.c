@@ -135,17 +135,19 @@ static bool sysreg(uint16_t sysreg) {
         sysreg == SYS_id_aa64isar1_el1;
 }
 
-static int nmod(struct Da64Inst* dinst) {
+// returns a bitmask of modified operands
+static uint8_t nmod(struct Da64Inst* dinst) {
     switch (DA64_GROUP(dinst->mnem)) {
     case DA64G_BRANCH:
     case DA64G_BCOND:
     case DA64G_BRANCHREG:
-        return 0;
-    case DA64G_LDATOMIC:
-    case DA64G_SWP:
+        return 0b0;
     case DA64G_CASP:
     case DA64G_CAS:
-        return 2;
+        return 0b11;
+    case DA64G_LDATOMIC:
+    case DA64G_SWP:
+        return 0b10;
     }
 
     switch (dinst->mnem) {
@@ -168,7 +170,7 @@ static int nmod(struct Da64Inst* dinst) {
     case DA64I_LDP_FP_POST:
     case DA64I_LDP_FP:
     case DA64I_LDP_FP_PRE:
-        return 2;
+        return 0b11;
     // stores
     case DA64I_STR_IMM:
     case DA64I_STR_REG:
@@ -189,10 +191,10 @@ static int nmod(struct Da64Inst* dinst) {
     case DA64I_STPX_POST:
     case DA64I_STPX:
     case DA64I_STPX_PRE:
-        return 0;
+        return 0b0;
     }
 
-    return 1;
+    return 0b1;
 }
 
 static bool branchinfo(Verifier* v, struct Da64Inst* dinst, int64_t* target, bool* indirect) {
@@ -422,7 +424,7 @@ static void chkwriteback(Verifier* v, struct Da64Inst* dinst) {
         return;
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
         struct Da64Op* op = &dinst->ops[i];
-        if (op->type == DA_OP_REGGP && op->reg == memreg) {
+        if (op->type == DA_OP_REGGP && op->reg == memreg && op->reg != 31) {
             verr(v, dinst, "unpredictable writeback to register");
             break;
         }
@@ -449,14 +451,15 @@ static void vchk(Verifier* v, uint32_t insn) {
     chkadr(v, &dinst);
     chkmemops(v, &dinst);
 
-    int n = nmod(&dinst);
-    for (int i = 0; i < n; i++) {
-        if (!okmod(v, &dinst, &dinst.ops[i]))
-            verr(v, &dinst, "illegal modification of reserved register");
+    uint8_t mask = nmod(&dinst);
+    for (int i = 0; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
+        if (((mask >> i) & 1) == 1)
+            if (!okmod(v, &dinst, &dinst.ops[i]))
+                verr(v, &dinst, "illegal modification of reserved register");
     }
 
-    assert(n <= 2);
-    if (n == 2 && dinst.ops[0].reg == dinst.ops[1].reg)
+    assert(mask <= 0b11);
+    if (mask == 0b11 && dinst.ops[0].reg == dinst.ops[1].reg)
         verr(v, &dinst, "simultaneous modification of the same register is unpredictable");
 
     chkwriteback(v, &dinst);
@@ -468,9 +471,10 @@ static void vchk(Verifier* v, uint32_t insn) {
         case DA64I_BLR:
             return;
         }
-        for (int i = n; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
-            if (!okreadpoc(v, &dinst, &dinst.ops[i]))
-                verr(v, &dinst, "illegal read of 64-bit address register");
+        for (int i = 0; i < sizeof(dinst.ops) / sizeof(struct Da64Op); i++) {
+            if (((mask >> i) & 1) == 0)
+                if (!okreadpoc(v, &dinst, &dinst.ops[i]))
+                    verr(v, &dinst, "illegal read of 64-bit address register");
         }
     }
 }
