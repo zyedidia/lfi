@@ -39,34 +39,28 @@
 	mov PROC_REGS+8*7(%rdi), %rdi
 .endm
 
-// Adds %rax to the sandbox's thread pointer, loads the result, and puts it in
-// %rax.
+// Loads the sandbox's thread pointer into %rax. Does not clobber flags.
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
-	pushq %rdi
-	// %rdi = myproc
-	mov lfi_myproc@gottpoff(%rip), %rdi
-	movq %fs:(%rdi), %rdi
-	// clamp %rax to a signed 32-bit value
-	movslq %eax, %rax
-	// %rax = %rax + tp
-	addq 8(%rdi), %rax
-	// %rax = (%rax)
-	movq (%rax), %rax
-	popq %rdi
+	// %rax = myproc
+	mov lfi_myproc@gottpoff(%rip), %rax
+	movq %fs:(%rax), %rax
+	// %rax = tp
+	movq 8(%rax), %rax
 	jmp *%r11
 	int3
 
-// Sets the sandbox's thread pointer to %rax and clobbers %rdx. This function
-// is not used on x86-64, since libc will set the thread pointer via an
-// archprctl system call rather than wrfsbase.
+// Sets the sandbox's thread pointer to %rax. This function is not used on
+// x86-64, since libc will set the thread pointer via an archprctl system call
+// rather than wrfsbase.
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
-	mov lfi_myproc@gottpoff(%rip), %rdx
-	movq %fs:(%rdx), %rdx
-	mov %rax, 8(%rdx)
+	mov lfi_myproc@gottpoff(%rip), %r14
+	movq %fs:(%r14), %r14
+	mov %rax, 8(%r14)
+	mov PROC_REGS+8*14(%r14), %r14
 	jmp *%r11
 	int3
 

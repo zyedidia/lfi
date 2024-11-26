@@ -70,19 +70,21 @@ lfi_get_tp:
 	add x30, x21, w30, uxtw
 	ret
 
-// Sets the sandbox's thread pointer to x0 and clobbers x22.
+// Sets the sandbox's thread pointer to x0.
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
 #ifdef __APPLE__
-	ldr x22, [x25, N_RTCALLS*8+8]
+	ldr x21, [x25, N_RTCALLS*8+8]
 #else
-	mrs	x22, tpidr_el0
-	add	x22, x22, #:tprel_hi12:lfi_myproc, lsl #12
-	add	x22, x22, #:tprel_lo12_nc:lfi_myproc
-	ldr	x22, [x22]
+	mrs	x21, tpidr_el0
+	add	x21, x21, #:tprel_hi12:lfi_myproc, lsl #12
+	add	x21, x21, #:tprel_lo12_nc:lfi_myproc
+	ldr	x21, [x21]
 #endif
-	str x0, [x22, #8]
+	str x0, [x21, #8]
+	// reload x21 from offset 16 from struct LFIProc
+	ldr x21, [x21, PROC_REGS+8*21]
 	add x30, x21, w30, uxtw
 	ret
 

@@ -9,17 +9,26 @@
     ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
+
+static void
+swap(char* r0, char* r1)
+{
+    mkinsn("eor %s, %s, %s", r0, r0, r1);
+    mkinsn("eor %s, %s, %s", r1, r0, r1);
+    mkinsn("eor %s, %s, %s", r0, r0, r1);
+}
 %}
 
 Top = ReadTP_x0 | ReadTP_any | WriteTP_any !.
 
 ReadTP_any = 'mrs' SEP r:REG COMMA ('tpidr_el0' | 'TPIDR_EL0') - {
-    mkinsn("str x0, [sp, #-16]!");
+    // save x0 in the dst register
+    mkinsn("mov %s, x0", r.val);
     mkinsn("mov w22, w30");
     mkinsn("ldr x30, [%s, #8]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
-    mkinsn("mov %s, x0", r.val);
-    mkinsn("ldr x0, [sp], 16");
+    // now swap x0 and dst to restore x0, and place the result in dst.
+    swap("x0", r.val);
     mkinsn("add x30, x21, w22, uxtw");
     rfree(r);
 }
@@ -33,12 +42,12 @@ ReadTP_x0 = 'mrs' SEP 'x0' - COMMA ('tpidr_el0' | 'TPIDR_EL0') - {
 
 WriteTP_any = 'msr' SEP ('tpidr_el0' | 'TPIDR_EL0') COMMA r:REG - {
     mkinsn("mov w22, w30");
-    mkinsn("stp x0, x22, [sp, #-16]!");
     if (strcmp(r.val, "x0") != 0)
-        mkinsn("mov x0, %s", r.val);
+        swap("x0", r.val);
     mkinsn("ldr x30, [%s, #16]", args.sysexternal ? "x25" : "x21");
     mkinsn("blr x30");
-    mkinsn("ldp x0, x22, [sp], 16");
+    if (strcmp(r.val, "x0") != 0)
+        swap("x0", r.val);
     mkinsn("add x30, x21, w22, uxtw");
     rfree(r);
 }

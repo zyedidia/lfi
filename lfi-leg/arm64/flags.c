@@ -60,5 +60,7 @@ arm64_getflags(enum flags compiler)
     }
     if (args.sysexternal)
         flags = xasprintf("%s -ffixed-x25", flags);
+    /* if (args.poc) */
+    /*     flags = xasprintf("%s -fno-plt", flags); */
     return flags;
 }

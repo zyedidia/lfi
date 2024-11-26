@@ -1,20 +1,17 @@
 mov %fs:0, %rdx
 >>>
 .bundle_align_mode 5
-pushq %rax
-xor %eax, %eax
+movq %rax, %rdx
 .bundle_lock
 leaq .LFI_TLS0(%rip), %r11
 jmpq *8(%r14)
 .LFI_TLS0:
 .bundle_unlock
-movq %rax, %rdx
-popq %rax
+xchgq %rax, %rdx
 ------
 mov %fs:0, %rax
 >>>
 .bundle_align_mode 5
-xor %eax, %eax
 .bundle_lock
 leaq .LFI_TLS0(%rip), %r11
 jmpq *8(%r14)
@@ -24,7 +21,6 @@ jmpq *8(%r14)
 mov %fs:0x0, %rax
 >>>
 .bundle_align_mode 5
-xor %eax, %eax
 .bundle_lock
 leaq .LFI_TLS0(%rip), %r11
 jmpq *8(%r14)
@@ -38,16 +34,19 @@ callq *x@TLSCALL(%rax)
 callq *x@TLSCALL(%rax)
 .p2align 5
 ------
-add %fs:0x28, %rax
+add %fs:0x28, %rdx
 >>>
 .bundle_align_mode 5
-pushq %rax
-movq $0x28, %rax
+movq %rax, %rdx
 .bundle_lock
 leaq .LFI_TLS0(%rip), %r11
 jmpq *8(%r14)
 .LFI_TLS0:
 .bundle_unlock
 movq %rax, %r11
-popq %rax
-add %r11, %rax
+xchgq %rax, %rdx
+.bundle_lock
+movl %r11d, %r11d
+movq 0x28(%r14, %r11), %r11
+.bundle_unlock
+add %r11, %rdx
