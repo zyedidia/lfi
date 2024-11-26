@@ -78,16 +78,16 @@ CallIndMemSafe = 'call' 'q'? SEP '*' a:Addr {
 
 Call = 'call' 'q'? - rest:ITEM {
     if (args.poc && args.nopie) {
-        mkinsn("push $1024f");
+        mkinsn("push $1023f");
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1024");
+        mklabel("1023");
     } else if (args.poc) {
-        mkinsn("leaq 1024f(%%rip), %%r11");
+        mkinsn("leaq 1023f(%%rip), %%r11");
         mkinsn("pushq %%r11");
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1024");
+        mklabel("1023");
     } else {
         if (args.bundlecall)
             mkdirective(bundle_align());
@@ -108,8 +108,6 @@ BranchMem = j:JMP - '*' a:Addr {
     }
     mkdirective(".bundle_lock");
     bundle_mask("%r11");
-    if (args.decl)
-        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -119,8 +117,6 @@ BranchMemSafe = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r11", a.unmod);
     mkdirective(".bundle_lock");
     bundle_mask("%r11");
-    if (args.decl)
-        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -129,8 +125,6 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 Branch = j:JMP '*' r:XREG {
     mkdirective(".bundle_lock");
     bundle_mask(r.val);
-    if (args.decl)
-        mkinsn("cmpl %%eax, %%eax");
     mkinsn("%s *%s", j.val, r.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(r);
@@ -146,16 +140,12 @@ Ret = 'ret' 'q'? - {
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(".bundle_lock");
         mkinsn("andq $0xffffffff%s, (%%rsp)", bundle_mask_constant());
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("popq %%r11");
         mkdirective(".bundle_lock");
         bundle_mask("%r11");
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
     }

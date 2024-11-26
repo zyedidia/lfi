@@ -34,8 +34,8 @@ static Pass passes[] = {
     (Pass) { .fn = &amd64_storespass },
     (Pass) { .fn = &amd64_branchpass },
     (Pass) { .fn = &amd64_pocpass, .disabled = true },
-    (Pass) { .fn = &amd64_declpass, .disabled = true },
     (Pass) { .fn = &amd64_meterpass, .disabled = true },
+    (Pass) { .fn = &amd64_declpass, .disabled = true },
     (Pass) { .fn = &amd64_tlspass },
     (Pass) { .fn = &amd64_syscallpass },
 };
@@ -88,6 +88,10 @@ amd64_rewrite(FILE* input, struct output* output)
         if (args.allowtls && passes[i].fn == &amd64_tlspass)
             passes[i].disabled = true;
         else if (passes[i].fn == &amd64_tlspass)
+            passes[i].disabled = false;
+        if (args.syscall && passes[i].fn == &amd64_syscallpass)
+            passes[i].disabled = true;
+        else if (passes[i].fn == &amd64_syscallpass)
             passes[i].disabled = false;
     }
 

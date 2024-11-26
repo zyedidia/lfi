@@ -26,7 +26,8 @@ enum {
     ARG_useret        = 0x8c,
     ARG_no_pext_elim  = 0x8d,
     ARG_allowtls      = 0x8e,
-    ARG_nopie         = 0x8f
+    ARG_nopie         = 0x8f,
+    ARG_syscall       = 0x90,
 };
 
 // options (TODO):
@@ -63,6 +64,7 @@ static struct argp_option options[] = {
     { "use-ret",        ARG_useret,        0,      0, "Allow return instructions for x86-64 (unsafe)" },
     { "allow-tls",      ARG_allowtls,      0,      0, "Do not rewrite TLS accesses into host calls" },
     { "no-pie",         ARG_nopie,         0,      0, "Generating position-independent code is not required" },
+    { "allow-syscall",  ARG_syscall,       0,      0, "Do not rewrite syscalls into host calls" },
     { 0 },
 };
 
@@ -118,6 +120,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_allowtls:
         args->allowtls = true;
+        break;
+    case ARG_syscall:
+        args->syscall = true;
         break;
     case ARG_no_pext_elim:
         args->nopextelim = true;

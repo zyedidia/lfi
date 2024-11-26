@@ -2,7 +2,7 @@ jmp foo
 >>>
 .bundle_align_mode 5
 .bundle_lock
-leaq 0(%r12), %r12
+.byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00
 jmp foo
 .bundle_unlock
 ------
@@ -10,7 +10,7 @@ jz foo
 >>>
 .bundle_align_mode 5
 .bundle_lock
-leaq 0(%r12), %r12
+.byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00
 jz foo
 .bundle_unlock
 ------
@@ -20,7 +20,7 @@ jmpq *%rax
 .bundle_lock
 andl $0xffffffe0, %eax
 orq %r14, %rax
-leaq 0(%r12), %r12
+.byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00
 jmpq *%rax
 .bundle_unlock
 ------
@@ -28,7 +28,7 @@ call foo
 >>>
 .bundle_align_mode 5
 .bundle_lock
-leaq 0(%r12), %r12
+.byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00
 callq foo
 .bundle_unlock
 .p2align 5

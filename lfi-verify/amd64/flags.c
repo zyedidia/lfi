@@ -189,6 +189,10 @@ static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t
         // Undef and modify cannot overlap.
         assert((undef & modify) == 0);
 
+        if ((read & F_AF) != 0 && report) {
+            verr(v, instr, "instruction reads F_AF, which may always be undefined");
+        }
+
         if ((in & read) != 0 && report) {
             verr(v, instr, "instruction reads a possibly undefined flag");
         }

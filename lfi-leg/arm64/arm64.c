@@ -89,6 +89,10 @@ arm64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = true;
         else if (passes[i].fn == &arm64_tlspass)
             passes[i].disabled = false;
+        if (args.syscall && passes[i].fn == &arm64_syscallpass)
+            passes[i].disabled = true;
+        else if (passes[i].fn == &arm64_syscallpass)
+            passes[i].disabled = false;
     }
 
     for (size_t i = 0; i < npass; i++) {

@@ -16,25 +16,29 @@ branchmeter(bool indirect)
 {
     if (indirect) {
         mkinsn("sub $0, %%r12");
-        mkinsn("jns 1024f");
+        // This instruction is written directly as bytes to avoid relying on
+        // the linker to relax it.
+        mkinsn(".byte 0x79, 0x01"); // jns next(%rip)
         mkinsn("int3");
-        mklabel("1024");
+        // next:
     } else {
-        mkinsn("leaq 0(%%r12), %%r12");
-        mkinsn("pushq %%rcx");
-        mkinsn("movl $0x3f, %%ecx");
+        // leaq 0(%%r12), %%r12 forced to use encoding with a 4-byte immediate
+        mkinsn(".byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00");
+        mkinsn("movq %%rcx, %%r11");
+        mkinsn("mov $0x3f, %%cl");
         mkinsn("shrx %%rcx, %%r12, %%rcx");
         mkinsn("jrcxz 1024f");
         mkinsn("int3");
         mklabel("1024");
-        mkinsn("popq %%rcx");
+        mkinsn("movq %%r11, %%rcx");
     }
 }
 
 static void
 timermeter(bool indirect)
 {
-    mkinsn("leaq 0(%%r12), %%r12");
+    // leaq 0(%%r12), %%r12 forced to use encoding with a 4-byte immediate
+    mkinsn(".byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00");
 }
 
 static void (*meter)(bool);

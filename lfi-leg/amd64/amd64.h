@@ -128,8 +128,6 @@ bundle_nop_indcall()
     // Instead it will be inserted afterwards by the assembler, and
     // lfi-postlink will fix it up.
     if (!args.bundlecall) {
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
         return;
     }
     switch (args.cfi) {
@@ -169,8 +167,6 @@ bundle_nop_indcall()
     default:
         assert(0);
     }
-    if (args.decl)
-        mkinsn("cmpl %%eax, %%eax");
 }
 
 static void

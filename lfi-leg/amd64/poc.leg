@@ -16,35 +16,27 @@ Top = CallInd | LeaRip | LeaImmRspRegDisp | LeaRspRegDisp | LeaImmRspReg | LeaRs
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.nopie) {
-        mkinsn("push $1024f");
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
+        mkinsn("push $1023f");
         mkinsn("jmpq *%s", r.val);
     } else if (strcmp(r.val, "%r11") == 0) {
         // need %rax as a temporary since %r11 is already in use
         mkinsn("pushq %%rax");
-        mkinsn("leal 1024f(%%rip), %%eax");
+        mkinsn("leal 1023f(%%rip), %%eax");
         // restore %rax and push the return address at the same time
         mkinsn("xchg %%rax, (%%rsp)");
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
         mkinsn("jmpq *%s", r.val);
     } else {
-        mkinsn("leal 1024f(%%rip), %%r11d");
+        mkinsn("leal 1023f(%%rip), %%r11d");
         mkinsn("pushq %%r11");
-        if (args.decl)
-            mkinsn("cmpl %%eax, %%eax");
         mkinsn("jmpq *%s", r.val);
     }
     mkdirective(bundle_align());
-    mklabel("1024");
+    mklabel("1023");
     rfree(r);
 }
 
 LeaRip = 'lea' 'q'? SEP (i:IMM_VAR LP '%rip' RP) COMMA r:XREG_NOSP {
-    mkdirective(".bundle_lock");
     mkinsn("leal %s(%%rip), %s", i.val, lo(r.val));
-    mkdirective(".bundle_unlock");
     rfree(i); rfree(r);
 }
 

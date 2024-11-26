@@ -1,13 +1,11 @@
 call foo
 >>>
 .bundle_align_mode 5
-.bundle_lock
-leal 1024f(%rip), %r11d
-.bundle_unlock
+leal 1023f(%rip), %r11d
 pushq %r11
 jmp foo
 .p2align 5
-1024:
+1023:
 ------
 callq *%rax
 >>>
@@ -15,19 +13,17 @@ callq *%rax
 .bundle_lock
 andl $0xffffffe0, %eax
 orq %r14, %rax
-leal 1024f(%rip), %r11d
+leal 1023f(%rip), %r11d
 pushq %r11
 jmpq *%rax
 .p2align 5
-1024:
+1023:
 .bundle_unlock
 ------
 leaq x(%rip), %rax
 >>>
 .bundle_align_mode 5
-.bundle_lock
 leal x(%rip), %eax
-.bundle_unlock
 ------
 rep stosq
 >>>

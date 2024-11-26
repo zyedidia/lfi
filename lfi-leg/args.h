@@ -52,6 +52,7 @@ struct arguments {
     bool useret;
     bool allowtls;
     bool nopie;
+    bool syscall;
 };
 
 extern struct arguments args;
