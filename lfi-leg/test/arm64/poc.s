@@ -1,7 +1,7 @@
 adr x0, hello
 >>>
-adr x18, hello
-mov w0, w18
+adr x0, hello
+mov w0, w0
 ------
 str x30, [x0]
 >>>

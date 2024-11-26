@@ -14,8 +14,8 @@
 Top = Adr | ReadSPLR | StRes
 
 Adr = a:ADR rt:XREG COMMA rest:REMAINDER {
-    mkinsn("%s x18, %s", a.val, rest.val);
-    mkinsn("mov w%s, w18", num(rt.val));
+    mkinsn("%s %s, %s", a.val, rt.val, rest.val);
+    mkinsn("mov w%s, w%s", num(rt.val), num(rt.val));
     rfree(a); rfree(rt); rfree(rest);
 }
 
