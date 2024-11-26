@@ -33,6 +33,7 @@ ceilimm(uint32_t imm, uint32_t align)
 static uint32_t
 subx23(int64_t imm)
 {
+    imm = 0;
     if (imm < 4096) {
         return OP_SUB | (imm << 10) | (23 << 5) | (23);
     }
@@ -275,7 +276,7 @@ arm64_postlink(uint8_t* buf, size_t sz)
             continue;
         }
 
-        removeinvalid(&buf[p->offset], p->filesz);
+        /* removeinvalid(&buf[p->offset], p->filesz); */
         if (args.meter != METER_NONE)
             meteropt(&buf[p->offset], p->filesz, p->vaddr);
     }
