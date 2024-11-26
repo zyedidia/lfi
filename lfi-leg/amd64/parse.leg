@@ -17,6 +17,7 @@ Top = Insn* !.
 Insn = - Label? (
       FnDirective
     | BundleDirective
+    | AlignDirective
     | Directive Comment?
     | Comment
     | AnyPrefix
@@ -34,6 +35,11 @@ Directive = < '.' (!EOL .)* > - {
 }
 
 BundleDirective = < '.bundle_align' (!EOL .)* > - {
+    mkdirective(bundle_align());
+}
+
+AlignDirective = '.p2align' - rest:REMAINDER {
+    mkdirective(xasprintf(".p2align %s", rest.val));
     mkdirective(bundle_align());
 }
 
