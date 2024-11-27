@@ -169,6 +169,7 @@ SyscallFn syscalls[] = {
     [LSYS_readlink]          = sysreadlink_,
     [LSYS_access]            = sysaccess_,
     [LSYS_unlink]            = sysunlink_,
+    [LSYS_gettid]            = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
