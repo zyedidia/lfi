@@ -28,8 +28,9 @@ tbzmeter(bool indirect, bool fncall)
     if (fncall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
+    mklabel("1000");
     mkinsn("sub x23, x23, #0");
-    mkinsnopt("tbz x23, #63, .+8", !fncall);
+    mkinsnopt("tbz x23, #63, 1000b+12", !fncall);
     mkinsnopt("blr x25", !fncall);
 }
 

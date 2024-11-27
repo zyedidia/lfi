@@ -35,12 +35,14 @@ BundleDirective = < '.bundle_align' - > {
 
 AlignDirective = '.p2align' - rest:REMAINDER {
     mkdirective(xasprintf(".p2align %s", rest.val));
-    mkdirective(bundle_align());
+    // comment out for clang-decl, uncomment for gcc-decl
+    // mkdirective(bundle_align());
 }
 
 FnDirective = < '.type' - ([^,])* ',' - [@%] 'function' - > {
     mkdirective(xasprintf("%s", yytext));
-    mkdirective(bundle_align());
+    // comment out for clang-decl, uncomment for gcc-decl
+    // mkdirective(bundle_align());
 }
 
 Directive = < '.' (!EOL .)* > - {
