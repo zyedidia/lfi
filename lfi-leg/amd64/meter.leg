@@ -16,20 +16,15 @@ branchmeter(bool indirect)
 {
     if (indirect) {
         mkinsn("sub $0, %%r12");
-        // This instruction is written directly as bytes to avoid relying on
-        // the linker to relax it.
-        mkinsn(".byte 0x79, 0x01"); // jns next(%rip)
+        mkinsn("jns 1000b+8");
         mkinsn("int3");
-        // next:
     } else {
-        // leaq 0(%%r12), %%r12 forced to use encoding with a 4-byte immediate
-        mkinsn(".byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00");
+        mkinsn("leaq 512(%%r12), %%r12");
         mkinsn("movq %%rcx, %%r11");
         mkinsn("mov $0x3f, %%cl");
         mkinsn("shrx %%rcx, %%r12, %%rcx");
-        mkinsn("jrcxz 1024f");
+        mkinsn("jrcxz 1000b+22");
         mkinsn("int3");
-        mklabel("1024");
         mkinsn("movq %%r11, %%rcx");
     }
 }
@@ -54,6 +49,7 @@ IndBranch = b:INDBRANCH SEP '*' r:XREG {
 
 Branch = b:DIRBRANCH SEP name:NAME {
     mkdirective(".bundle_lock");
+    mklabel("1000");
     meter(false);
     mkinsn("%s %s", b.val, name.val);
     mkdirective(".bundle_unlock");

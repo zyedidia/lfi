@@ -30,8 +30,6 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         mkinsn("pushq %%r11");
         mkinsn("jmpq *%s", r.val);
     }
-    mkdirective(bundle_align());
-    mklabel("1023");
     rfree(r);
 }
 
