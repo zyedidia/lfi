@@ -13,12 +13,14 @@ callq *%rax
 .bundle_lock
 andl $0xffffffe0, %eax
 orq %r14, %rax
+.bundle_lock
 leal 1023f(%rip), %r11d
 pushq %r11
+.bundle_unlock
 jmpq *%rax
+.bundle_unlock
 .p2align 5
 1023:
-.bundle_unlock
 ------
 leaq x(%rip), %rax
 >>>

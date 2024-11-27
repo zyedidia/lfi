@@ -16,15 +16,19 @@ branchmeter(bool indirect)
 {
     if (indirect) {
         mkinsn("sub $0, %%r12");
-        mkinsn("jns 1000b+8");
-        mkinsn("int3");
+        // will be replaced with the metering sequence by the post linker
+        mkinsn("nop"); // jns
+        mkinsn("nop"); // jns
+        mkinsn("nop"); // int3
     } else {
         mkinsn("leaq 512(%%r12), %%r12");
         mkinsn("movq %%rcx, %%r11");
         mkinsn("mov $0x3f, %%cl");
         mkinsn("shrx %%rcx, %%r12, %%rcx");
-        mkinsn("jrcxz 1000b+22");
-        mkinsn("int3");
+        // will be replaced with the metering sequence by the post linker
+        mkinsn("nop"); // jrcxz
+        mkinsn("nop"); // jrcxz
+        mkinsn("nop"); // int3
         mkinsn("movq %%r11, %%rcx");
     }
 }
@@ -32,8 +36,7 @@ branchmeter(bool indirect)
 static void
 timermeter(bool indirect)
 {
-    // leaq 0(%%r12), %%r12 forced to use encoding with a 4-byte immediate
-    mkinsn(".byte 0x4d, 0x8d, 0xa4, 0x24, 0x00, 0x00, 0x00, 0x00");
+    mkinsn("leaq 512(%%r12), %%r12");
 }
 
 static void (*meter)(bool);
@@ -49,7 +52,6 @@ IndBranch = b:INDBRANCH SEP '*' r:XREG {
 
 Branch = b:DIRBRANCH SEP name:NAME {
     mkdirective(".bundle_lock");
-    mklabel("1000");
     meter(false);
     mkinsn("%s %s", b.val, name.val);
     mkdirective(".bundle_unlock");

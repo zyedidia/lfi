@@ -15,12 +15,11 @@ Top = Branch | BranchMem | BranchMemSafe | CallTLS | CallInd | CallIndMem | Call
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.poc) {
         mkdirective(".bundle_lock");
-        mklabel("1000");
         bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     } else {
         // we use r11 here so that we get consistent instruction sizes, so that the nop
         // has the correct size to align the call to the end of the bundle. In theory,
@@ -30,13 +29,12 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         if (args.bundlecall)
             mkdirective(bundle_align());
         mkdirective(".bundle_lock");
-        mklabel("1000");
         bundle_mask("%r11");
         bundle_nop_indcall();
         mkinsn("callq *%%r11");
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     }
     rfree(r);
 }
@@ -60,13 +58,12 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    mklabel("1000");
     bundle_mask("%r11");
     bundle_nop_indcall();
     mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
-    mklabel("1023");
+    mkfuncret();
     rfree(a);
 }
 
@@ -75,28 +72,27 @@ CallIndMemSafe = 'call' 'q'? SEP '*' a:Addr {
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    mklabel("1000");
     bundle_mask("%r11");
     bundle_nop_indcall();
     mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
-    mklabel("1023");
+    mkfuncret();
     rfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
     if (args.poc && args.nopie) {
-        mkinsn("push $1023f");
+        mkinsn("push $%sf", funcret);
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     } else if (args.poc) {
-        mkinsn("leaq 1023f(%%rip), %%r11");
+        mkinsn("leaq %sf(%%rip), %%r11", funcret);
         mkinsn("pushq %%r11");
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     } else {
         if (args.bundlecall)
             mkdirective(bundle_align());
@@ -116,7 +112,6 @@ BranchMem = j:JMP - '*' a:Addr {
         mkpost(a);
     }
     mkdirective(".bundle_lock");
-    mklabel("1000");
     bundle_mask("%r11");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
@@ -126,7 +121,6 @@ BranchMem = j:JMP - '*' a:Addr {
 BranchMemSafe = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r11", a.unmod);
     mkdirective(".bundle_lock");
-    mklabel("1000");
     bundle_mask("%r11");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
@@ -135,7 +129,6 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 
 Branch = j:JMP '*' r:XREG {
     mkdirective(".bundle_lock");
-    mklabel("1000");
     bundle_mask(r.val);
     mkinsn("%s *%s", j.val, r.val);
     mkdirective(".bundle_unlock");
@@ -151,14 +144,12 @@ Ret = 'ret' 'q'? - {
         mkinsn("ret");
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(".bundle_lock");
-        mklabel("1000");
         mkinsn("andq $0xffffffff%s, (%%rsp)", bundle_mask_constant());
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("popq %%r11");
         mkdirective(".bundle_lock");
-        mklabel("1000");
         bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");

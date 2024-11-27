@@ -7,7 +7,6 @@ srcs += files(
 leg_inputs = [
   'parse.leg',
   'syscall.leg',
-  'special.leg',
   'decl.leg',
   'pextelim.leg',
   'tls.leg',
@@ -19,6 +18,7 @@ leg_addr_inputs = [
   'branch.leg',
   'loads.leg',
   'stores.leg',
+  'special.leg',
 ]
 
 foreach l : leg_inputs
