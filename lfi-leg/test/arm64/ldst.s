@@ -146,3 +146,8 @@ adrp x0, :got:x;ldr x0, [x0, :got_lo12:x]
 adrp x0, :got:x
 add x18, x21, w0, uxtw
 ldr x0, [x18, :got_lo12:x]
+------
+stxrb w11, w10, [x8]
+>>>
+add x18, x21, w8, uxtw
+stxrb w11, w10, [x18]
