@@ -18,6 +18,8 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(".bundle_unlock");
+        mkdirective(bundle_align());
+        mkfuncret();
     } else {
         // we use r11 here so that we get consistent instruction sizes, so that the nop
         // has the correct size to align the call to the end of the bundle. In theory,
@@ -32,6 +34,7 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         mkinsn("callq *%%r11");
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
+        mkfuncret();
     }
     rfree(r);
 }
@@ -60,6 +63,7 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
     mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
+    mkfuncret();
     rfree(a);
 }
 
@@ -73,21 +77,22 @@ CallIndMemSafe = 'call' 'q'? SEP '*' a:Addr {
     mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
     mkdirective(bundle_align());
+    mkfuncret();
     rfree(a);
 }
 
 Call = 'call' 'q'? - rest:ITEM {
     if (args.poc && args.nopie) {
-        mkinsn("push $1023f");
+        mkinsn("push $%sf", funcret);
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     } else if (args.poc) {
-        mkinsn("leaq 1023f(%%rip), %%r11");
+        mkinsn("leaq %sf(%%rip), %%r11", funcret);
         mkinsn("pushq %%r11");
         mkinsn("jmp %s", rest.val);
         mkdirective(bundle_align());
-        mklabel("1023");
+        mkfuncret();
     } else {
         if (args.bundlecall)
             mkdirective(bundle_align());

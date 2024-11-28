@@ -8,8 +8,9 @@ bl foo
 .bundle_align_mode 4
 .p2align 4
 .bundle_lock
+1000:
 sub x23, x23, #0
-tbz x23, #63, .+8
+tbz x23, #63, 1000b+12
 blr x25
 bl foo
 .bundle_unlock
@@ -21,8 +22,9 @@ add x18, x21, w0, uxtw
 bic x24, x18, 0xf
 .p2align 4
 .bundle_lock
+1000:
 sub x23, x23, #0
-tbz x23, #63, .+8
+tbz x23, #63, 1000b+12
 blr x25
 blr x24
 .bundle_unlock
@@ -33,8 +35,9 @@ br x0
 add x18, x21, w0, uxtw
 bic x24, x18, 0xf
 .bundle_lock
+1000:
 sub x23, x23, #0
-tbz x23, #63, .+8
+tbz x23, #63, 1000b+12
 blr x25
 br x24
 .bundle_unlock
@@ -49,8 +52,9 @@ ret
 .bundle_align_mode 4
 bic x24, x30, 0xf
 .bundle_lock
+1000:
 sub x23, x23, #0
-tbz x23, #63, .+8
+tbz x23, #63, 1000b+12
 blr x25
 ret x24
 .bundle_unlock
@@ -60,6 +64,7 @@ foo:
 >>>
 .bundle_align_mode 4
 .bundle_lock
+1000:
 sub x23, x23, #0
 b foo
 .bundle_unlock
@@ -71,13 +76,8 @@ foo:
 >>>
 .bundle_align_mode 4
 .bundle_lock
+1000:
 sub x23, x23, #0
 cbnz x0, foo
 .bundle_unlock
 foo:
-------
-.p2align 5,,15
->>>
-.bundle_align_mode 4
-.p2align 5,,15
-.p2align 4

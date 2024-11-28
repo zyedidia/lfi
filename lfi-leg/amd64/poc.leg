@@ -10,28 +10,30 @@
     ctx->idx += yyc != 0;                      \
     result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
 }                                              \
+
+char* funcret = "1023";
 %}
 
 Top = CallInd | LeaRip | LeaImmRspRegDisp | LeaRspRegDisp | LeaImmRspReg | LeaRspReg | LeaRsp | MovRsp | AddRsp | MovGot
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.nopie) {
-        mkinsn("push $1023f");
+        mkinsn("push $%sf", funcret);
         mkinsn("jmpq *%s", r.val);
     } else if (strcmp(r.val, "%r11") == 0) {
         // need %rax as a temporary since %r11 is already in use
         mkinsn("pushq %%rax");
-        mkinsn("leal 1023f(%%rip), %%eax");
+        mkinsn("leal %sf(%%rip), %%eax", funcret);
         // restore %rax and push the return address at the same time
         mkinsn("xchg %%rax, (%%rsp)");
         mkinsn("jmpq *%s", r.val);
     } else {
-        mkinsn("leal 1023f(%%rip), %%r11d");
+        mkdirective(".bundle_lock");
+        mkinsn("leal %sf(%%rip), %%r11d", funcret);
         mkinsn("pushq %%r11");
+        mkdirective(".bundle_unlock");
         mkinsn("jmpq *%s", r.val);
     }
-    mkdirective(bundle_align());
-    mklabel("1023");
     rfree(r);
 }
 

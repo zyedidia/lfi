@@ -87,9 +87,3 @@ orq %r14, %r11
 callq *%r11
 .bundle_unlock
 .p2align 5
-------
-.type   _ZNSt8auto_ptrI9GameStateED2Ev, @function
->>>
-.bundle_align_mode 5
-.type   _ZNSt8auto_ptrI9GameStateED2Ev, @function
-.p2align 5

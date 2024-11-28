@@ -29,3 +29,19 @@ leaq -0x10(%rsp), %rsp
 leal -0x10(%esp), %esp
 leaq (%rsp, %r14), %rsp
 .bundle_unlock
+------
+mov (%rdi), %rsp
+>>>
+.bundle_align_mode 5
+.bundle_lock
+mov %gs:(%edi), %esp
+orq %r14, %rsp
+.bundle_unlock
+------
+mov 14(%rdi), %rsp
+>>>
+.bundle_align_mode 5
+.bundle_lock
+mov %gs:14(%edi), %esp
+orq %r14, %rsp
+.bundle_unlock

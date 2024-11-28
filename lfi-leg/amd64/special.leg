@@ -12,7 +12,7 @@
 }                                              \
 %}
 
-ModSP = ModLeaSP | ModImmSP | ModRegSP | Leave
+ModSP = ModLeaSP | ModAddrSP | ModImmSP | ModRegSP | Leave
 
 AddrBP = (
     # imm(...)
@@ -68,6 +68,21 @@ ModImmSP = m:MODINST i:IMM COMMA '%rsp' - {
     }
     mkdirective(".bundle_unlock");
     rfree(m); rfree(i); free(op);
+}
+
+ModAddrSP = m:MODINST a:Addr COMMA '%rsp' - {
+    char* op = lop(m.val);
+    mkdirective(".bundle_lock");
+    if (args.p2size == 0) {
+        mkinsn("%s %s, %%rsp", m.val, a.unmod);
+        mkinsn("andq %%r15, %%rsp");
+        mkinsn("orq %%r14, %%rsp");
+    } else {
+        mkinsn("%s %s, %%esp", op, a.unmod);
+        mkinsn("orq %%r14, %%rsp");
+    }
+    mkdirective(".bundle_unlock");
+    rfree(m); rfree(a); free(op);
 }
 
 ModRegSP = m:MODINST r:XREG COMMA '%rsp' - {

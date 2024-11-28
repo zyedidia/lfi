@@ -224,3 +224,13 @@ strclean(char* s, size_t n)
     }
     return sdup;
 }
+
+// labels
+extern char* funcret;
+
+static inline void
+mkfuncret(void)
+{
+    if (args.poc)
+        mklabel(funcret);
+}

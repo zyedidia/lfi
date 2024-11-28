@@ -15,9 +15,7 @@
 Top = Insn* !.
 
 Insn = - Label? (
-      FnDirective
-    | BundleDirective
-    | AlignDirective
+      BundleDirective
     | Directive Comment?
     | Comment
     | AnyPrefix
