@@ -144,10 +144,11 @@ main(int argc, char** argv)
     }
     fclose(f);
 
-    if (strcmp(args.arch, "amd64") == 0)
+    if (strcmp(args.arch, "amd64") == 0) {
         amd64_postlink(buf, sz);
-    else if (strcmp(args.arch, "arm64") == 0)
+    } else if (strcmp(args.arch, "arm64") == 0) {
         arm64_postlink(buf, sz);
+    }
 
     munmap(buf, sz);
 

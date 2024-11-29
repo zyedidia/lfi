@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <Zydis/Zydis.h>
 
+#include "fadec.h"
 #include "elf.h"
 #include "postlink.h"
 
@@ -329,6 +330,94 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
     }
 }
 
+static bool branchinfo(size_t addr, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
+    *target = 0;
+    *indirect = false;
+    *cond = false;
+
+    // TODO: don't count runtime calls as branches
+
+    bool branch = true;
+    switch (FD_TYPE(instr)) {
+    case FDI_JA:
+    case FDI_JBE:
+    case FDI_JC:
+    case FDI_JCXZ:
+    case FDI_JG:
+    case FDI_JGE:
+    case FDI_JL:
+    case FDI_JLE:
+    case FDI_JNC:
+    case FDI_JNO:
+    case FDI_JNP:
+    case FDI_JNS:
+    case FDI_JNZ:
+    case FDI_JO:
+    case FDI_JP:
+    case FDI_JS:
+    case FDI_JZ:
+        *cond = true;
+    case FDI_JMP:
+    case FDI_CALL:
+    case FDI_RET:
+        if (FD_OP_TYPE(instr, 0) == FD_OT_OFF) {
+            int64_t imm = FD_OP_IMM(instr, 0);
+            *target = addr + FD_SIZE(instr) + imm;
+        } else {
+            *indirect = true;
+        }
+        break;
+    default:
+        branch = false;
+        break;
+    }
+    return branch;
+}
+
+static void
+meterupdate(uint8_t* code, size_t size, size_t addr)
+{
+    size_t count = 0;
+    while (count < size) {
+        FdInstr instr;
+        int ret = fd_decode(&code[count], size - count, 64, 0, &instr);
+        if (ret < 0) {
+            fprintf(stderr, "%lx: count not decode\n", addr + count);
+            return;
+        }
+        if (FD_TYPE(&instr) == FDI_LEA && FD_OP_REG(&instr, 0) == FD_REG_R12) {
+            assert(ret == 8);
+            memset(&code[count + 4], 0, 4);
+        }
+        bool indirect, cond;
+        int64_t target;
+        bool branch = branchinfo(addr+count, &instr, &target, &indirect, &cond);
+        uint8_t mov[3] = {0x4c, 0x89, 0xd9};   // mov %r11, %rcx
+        uint8_t nop1[3] = {0x90, 0x90, 0x90};  // nop; nop; nop
+        uint8_t nop3[3] = {0xf, 0x1f, 0x00};   // 3-byte nop
+        uint8_t jrcxz[3] = {0xe3, 0x01, 0xcc}; // jrcxz .+3; int3
+        uint8_t jns[3] = {0x79, 0x01, 0xcc};   // jns .+3; int3
+        if (branch) {
+            size_t noploc = 3;
+            if (count >= 3 && memcmp(&code[count-3], mov, 3) == 0) {
+                noploc = 6;
+            }
+            if (count >= noploc &&
+                    (memcmp(&code[count-noploc], nop1, 3) == 0 || memcmp(&code[count-noploc], nop3, 3) == 0)) {
+                if (target <= addr+count) {
+                    // fill in the check
+                    if (noploc == 6) {
+                        memcpy(&code[count-noploc], jrcxz, 3);
+                    } else {
+                        memcpy(&code[count-noploc], jns, 3);
+                    }
+                }
+            }
+        }
+        count += ret;
+    }
+}
+
 void
 amd64_postlink(uint8_t* buf, size_t sz)
 {
@@ -350,12 +439,16 @@ amd64_postlink(uint8_t* buf, size_t sz)
             size_t count = 0;
             nopfix(code, p->filesz, args.bundle, p->vaddr);
             while (count + args.bundle <= p->filesz) {
-                bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count);
+                /* bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count); */
                 if (!args.noprefix && false)
                     padrewrite(&code[count], args.bundle, p->vaddr + count);
                 callrewrite(&code[count], args.bundle, p->vaddr + count);
                 count += args.bundle;
             }
+        }
+
+        if (args.meter != METER_NONE) {
+            meterupdate(code, p->filesz, p->vaddr);
         }
     }
 }
