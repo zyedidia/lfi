@@ -15,30 +15,34 @@ Top = ShiftInsn | BsInsn
 
 ShiftInsn = (
     (s:ShiftQ SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
-        mkdirective(".bundle_lock");
-        mkinsn("andb $0x3f, %%cl");
+        // Impossible to overflow in this case due to CPU's automatic mask
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
-        mkdirective(".bundle_unlock");
         rfree(x1); rfree(x2);
     }
     | (s:ShiftL SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
+        mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0x1f, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
+        mkinsn("movq %%r11, %%rcx");
         mkdirective(".bundle_unlock");
         rfree(x1); rfree(x2);
     }
     | (s:ShiftW SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
+        mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0xf, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
+        mkinsn("movq %%r11, %%rcx");
         mkdirective(".bundle_unlock");
         rfree(x1); rfree(x2);
     }
     | (s:ShiftB SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
         mkdirective(".bundle_lock");
+        mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0x7, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
+        mkinsn("movq %%r11, %%rcx");
         mkdirective(".bundle_unlock");
         rfree(x1); rfree(x2);
     }

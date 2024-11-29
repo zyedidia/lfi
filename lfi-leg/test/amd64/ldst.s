@@ -111,3 +111,8 @@ vextracti128 $0x1, %ymm12, -736(%rbp)
 >>>
 .bundle_align_mode 5
 vextracti128 $0x1, %ymm12, %gs:-736(%ebp)
+------
+movaps %xmm0, _ZN3std3sys3pal4unix14stack_overflow3imp5GUARD29_$u7b$$u7b$constant$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$3VAL17h5082f51ad7913d78E@TPOFF(%rax)
+>>>
+.bundle_align_mode 5
+movaps %xmm0, %gs:_ZN3std3sys3pal4unix14stack_overflow3imp5GUARD29_$u7b$$u7b$constant$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$3VAL17h5082f51ad7913d78E@TPOFF(%eax)

@@ -14,7 +14,7 @@ REMAINDER = < (!(EOL | ';') .)* > { $$ = (Result) { .val = strndup(yytext, yylen
 
 IMM = < IMM_RAW > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-IMM_VAR = < ([-+a-zA-Z0-9_.@]+ | BALANCED_RAW) > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+IMM_VAR = < ([-+a-zA-Z0-9_.@$]+ | BALANCED_RAW) > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 NUM = < (('0x' [0-9a-fA-F]+) | [0-9]+) > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };

@@ -10,14 +10,14 @@ jmp foo
 callq *%rax
 >>>
 .bundle_align_mode 5
+movq %rax, %r11
 .bundle_lock
-andl $0xffffffe0, %eax
-orq %r14, %rax
-.bundle_lock
-leal 1023f(%rip), %r11d
-pushq %r11
-.bundle_unlock
-jmpq *%rax
+andl $0xffffffe0, %r11d
+orq %r14, %r11
+pushq %rax
+leal 1023f(%rip), %eax
+xchg %rax, (%rsp)
+jmpq *%r11
 .bundle_unlock
 .p2align 5
 1023:

@@ -13,7 +13,7 @@
 Top = Branch | BranchMem | BranchMemSafe | CallTLS | CallInd | CallIndMem | CallIndMemSafe | Call | Ret
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
-    if (args.poc) {
+    if (!args.poc) {
         mkdirective(".bundle_lock");
         bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
@@ -21,13 +21,7 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         mkdirective(bundle_align());
         mkfuncret();
     } else {
-        // we use r11 here so that we get consistent instruction sizes, so that the nop
-        // has the correct size to align the call to the end of the bundle. In theory,
-        // we could make two CallInds -- one for registers that require a REX prefix and
-        // one for ones that don't.
         mkinsn("movq %s, %%r11", r.val);
-        if (args.bundlecall)
-            mkdirective(bundle_align());
         mkdirective(".bundle_lock");
         bundle_mask("%r11");
         bundle_nop_indcall();
@@ -128,10 +122,18 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 }
 
 Branch = j:JMP '*' r:XREG {
-    mkdirective(".bundle_lock");
-    bundle_mask(r.val);
-    mkinsn("%s *%s", j.val, r.val);
-    mkdirective(".bundle_unlock");
+    if (!args.poc) {
+        mkdirective(".bundle_lock");
+        bundle_mask(r.val);
+        mkinsn("%s *%s", j.val, r.val);
+        mkdirective(".bundle_unlock");
+    } else {
+        mkinsn("movq %s, %%r11", r.val);
+        mkdirective(".bundle_lock");
+        bundle_mask("%r11");
+        mkinsn("%s *%%r11", j.val);
+        mkdirective(".bundle_unlock");
+    }
     rfree(j); rfree(r);
 }
 

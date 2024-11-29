@@ -1,17 +1,16 @@
 shrdq %cl, %rdi, %rax
 >>>
 .bundle_align_mode 5
-.bundle_lock
-andb $0x3f, %cl
 shrdq %cl, %rdi, %rax
-.bundle_unlock
 ------
 shrdl %cl, %edi, %eax
 >>>
 .bundle_align_mode 5
 .bundle_lock
+movq %rcx, %r11
 andb $0x1f, %cl
 shrdl %cl, %edi, %eax
+movq %r11, %rcx
 .bundle_unlock
 ------
 callq *(%rax)

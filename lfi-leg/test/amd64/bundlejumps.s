@@ -1,10 +1,9 @@
 call *%rax
 >>>
 .bundle_align_mode 5
-movq %rax, %r11
 .bundle_lock
-andq $0xffffffffffffffe0, %r11
-callq *%r11
+andq $0xffffffffffffffe0, %rax
+callq *%rax
 .bundle_unlock
 .p2align 5
 ------
