@@ -60,6 +60,7 @@ enum {
     LSYS_getrusage         = 98,
     LSYS_prctl             = 157,
     LSYS_futex             = 202,
+    LSYS_sigaltstack       = 131,
 };
 
 enum {
@@ -71,7 +72,7 @@ sysarchprctl(LFIXProc* p, int code, uintptr_t addr)
 {
     switch (code) {
     case ARCH_SET_FS:
-        addr = procaddr(p, addr);
+        addr = procuseraddr(p, addr);
         lfi_proc_tpset(p->l_proc, addr);
         return 0;
     default:
@@ -170,6 +171,9 @@ SyscallFn syscalls[] = {
     [LSYS_access]            = sysaccess_,
     [LSYS_unlink]            = sysunlink_,
     [LSYS_gettid]            = sysignore_,
+    [LSYS_poll]              = sysignore_,
+    [LSYS_rt_sigaction]      = sysignore_,
+    [LSYS_sigaltstack]       = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
