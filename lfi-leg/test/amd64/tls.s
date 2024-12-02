@@ -37,14 +37,14 @@ callq *x@TLSCALL(%rax)
 add %fs:0x28, %rdx
 >>>
 .bundle_align_mode 5
-movq %rax, %rdx
+pushq %rax
 .bundle_lock
 leaq .LFI_TLS0(%rip), %r11
 jmpq *8(%r14)
 .LFI_TLS0:
 .bundle_unlock
 movq %rax, %r11
-xchgq %rax, %rdx
+popq %rax
 .bundle_lock
 movl %r11d, %r11d
 movq 0x28(%r14, %r11), %r11
