@@ -112,10 +112,6 @@ main(int argc, char** argv)
     if (args.arch == NULL) {
         args.arch = getarch();
     }
-    if (strcmp(args.arch, "amd64") == 0 && args.bundle == 0) {
-        // default bundle size for x86-64
-        args.bundle = 16;
-    }
 
     FILE* f = fopen(args.input, "r+");
     if (!f) {
