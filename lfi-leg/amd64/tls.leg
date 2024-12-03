@@ -19,7 +19,7 @@ static int count;
 
 Top = (ReadTP_rax | ReadTP_any | OpTP_any | OpTP_any_addr) !.
 
-ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
+ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:XREG - {
     char* label = xasprintf(".LFI_TLS%d", count++);
     // save %rax into r.
     mkinsn("movq %%rax, %s", r.val);
@@ -61,7 +61,10 @@ OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
         mkdirective(".bundle_unlock");
     }
     // Finally we can perform the operation.
-    mkinsn("%s %%r11, %s", m.val, r.val);
+    if (suffix(m.val) == 'l')
+        mkinsn("%s %%r11d, %s", m.val, r.val);
+    else
+        mkinsn("%s %%r11, %s", m.val, r.val);
     rfree(r); rfree(m); rfree(a)
 }
 
@@ -91,7 +94,10 @@ OpTP_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
         mkdirective(".bundle_unlock");
     }
     // Finally we can perform the operation.
-    mkinsn("%s %%r11, %s", m.val, r.val);
+    if (suffix(m.val) == 'l')
+        mkinsn("%s %%r11d, %s", m.val, r.val);
+    else
+        mkinsn("%s %%r11, %s", m.val, r.val);
     rfree(r); rfree(m); rfree(n)
 }
 

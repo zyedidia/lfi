@@ -69,3 +69,20 @@ movl %r11d, %r11d
 movq (%r14, %r11), %r11
 .bundle_unlock
 add %r11, %rax
+------
+movl %fs:0, %ecx
+>>>
+.bundle_align_mode 5
+pushq %rax
+.bundle_lock
+leaq .LFI_TLS0(%rip), %r11
+jmpq *8(%r14)
+.LFI_TLS0:
+.bundle_unlock
+movq %rax, %r11
+popq %rax
+.bundle_lock
+movl %r11d, %r11d
+movq 0(%r14, %r11), %r11
+.bundle_unlock
+movl %r11d, %ecx

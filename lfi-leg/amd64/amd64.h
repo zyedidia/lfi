@@ -45,6 +45,13 @@ lo(const char* reg)
     return reg;
 }
 
+static char
+suffix(char* op)
+{
+    size_t len = strlen(op);
+    return op[len - 1];
+}
+
 static char*
 lop(char* op)
 {
