@@ -9,7 +9,6 @@ leg_inputs = [
   'syscall.leg',
   'decl.leg',
   'pextelim.leg',
-  'tls.leg',
   'meter.leg',
   'poc.leg',
 ]
@@ -19,6 +18,7 @@ leg_addr_inputs = [
   'loads.leg',
   'stores.leg',
   'special.leg',
+  'tls.leg',
 ]
 
 foreach l : leg_inputs

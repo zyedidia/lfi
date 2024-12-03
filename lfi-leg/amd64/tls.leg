@@ -17,7 +17,7 @@ static int count;
 # TLS accesses must not touch the stack or clobber flags... This makes things a
 # bit complicated.
 
-Top = (ReadTP_rax | ReadTP_any | OpTP_any) !.
+Top = (ReadTP_rax | ReadTP_any | OpTP_any | OpTP_any_addr) !.
 
 ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     char* label = xasprintf(".LFI_TLS%d", count++);
@@ -31,6 +31,38 @@ ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:REG - {
     // restore %rax, and move the return result into r.
     mkinsn("xchgq %%rax, %s", r.val);
     rfree(r);
+}
+
+OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
+    char* label = xasprintf(".LFI_TLS%d", count++);
+    mkinsn("pushq %%rax");
+    mkdirective(".bundle_lock");
+    mkinsn("leaq %s(%%rip), %%r11", label);
+    mkinsn("jmpq *8(%s)", args.sysexternal ? "%r13" : "%r14");
+    mklabel(label);
+    mkdirective(".bundle_unlock");
+    mkinsn("movq %%rax, %%r11");
+    // tp in %r11, now need to compute movq n(%r11), %r11
+    // Unfortunately the memory access passes have already run,
+    // so we need to manually construct this memory access.
+    mkinsn("leaq %s, %%rax", a.unmod);
+    mkinsn("addq %%rax, %%r11");
+    mkinsn("popq %%rax");
+    if (args.boxtype < BOX_FULL) {
+        // no need to sandbox the load
+        mkinsn("movq (%%r11), %%r11");
+    } else {
+        mkdirective(".bundle_lock");
+        if (args.p2size == 0)
+            mkinsn("pext %%r15, %%r11, %%r11");
+        else
+            mkinsn("movl %r11d, %r11d");
+        mkinsn("movq (%%r14, %%r11), %%r11");
+        mkdirective(".bundle_unlock");
+    }
+    // Finally we can perform the operation.
+    mkinsn("%s %%r11, %s", m.val, r.val);
+    rfree(r); rfree(m); rfree(a)
 }
 
 OpTP_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
