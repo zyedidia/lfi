@@ -50,21 +50,16 @@ OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
     mkinsn("popq %%rax");
     if (args.boxtype < BOX_FULL) {
         // no need to sandbox the load
-        mkinsn("movq (%%r11), %%r11");
+        mkinsn("%s (%%r11), %s", m.val, r.val);
     } else {
         mkdirective(".bundle_lock");
         if (args.p2size == 0)
             mkinsn("pext %%r15, %%r11, %%r11");
         else
             mkinsn("movl %r11d, %r11d");
-        mkinsn("movq (%%r14, %%r11), %%r11");
+        mkinsn("%s (%%r14, %%r11), %s", m.val, r.val);
         mkdirective(".bundle_unlock");
     }
-    // Finally we can perform the operation.
-    if (suffix(m.val) == 'l')
-        mkinsn("%s %%r11d, %s", m.val, r.val);
-    else
-        mkinsn("%s %%r11, %s", m.val, r.val);
     rfree(r); rfree(m); rfree(a)
 }
 
@@ -83,21 +78,16 @@ OpTP_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
     // so we need to manually construct this memory access.
     if (args.boxtype < BOX_FULL) {
         // no need to sandbox the load
-        mkinsn("movq %s(%%r11), %%r11", n.val);
+        mkinsn("%s %s(%%r11), %s", m.val, n.val, r.val);
     } else {
         mkdirective(".bundle_lock");
         if (args.p2size == 0)
             mkinsn("pext %%r15, %%r11, %%r11");
         else
             mkinsn("movl %r11d, %r11d");
-        mkinsn("movq %s(%%r14, %%r11), %%r11", n.val);
+        mkinsn("%s %s(%%r14, %%r11), %s", m.val, n.val, r.val);
         mkdirective(".bundle_unlock");
     }
-    // Finally we can perform the operation.
-    if (suffix(m.val) == 'l')
-        mkinsn("%s %%r11d, %s", m.val, r.val);
-    else
-        mkinsn("%s %%r11, %s", m.val, r.val);
     rfree(r); rfree(m); rfree(n)
 }
 
