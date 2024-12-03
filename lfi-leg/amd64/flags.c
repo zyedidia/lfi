@@ -38,7 +38,7 @@ amd64_getflags(enum flags compiler)
         else if (args.boxtype == BOX_BUNDLEJUMPS)
             flags = xasprintf("-ffixed-r11");
         else if (args.boxtype == BOX_SYSCALLS)
-            flags = xasprintf("-ffixed-r14");
+            flags = xasprintf("-ffixed-r14 -ffixed-r11");
         if (args.cfi == CFI_BUNDLE16)
             flags = xasprintf("%s -falign-labels=16 -falign-functions=16", flags);
         else if (args.cfi == CFI_BUNDLE32)

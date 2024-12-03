@@ -14,9 +14,6 @@
 static int count;
 %}
 
-# TLS accesses must not touch the stack or clobber flags... This makes things a
-# bit complicated.
-
 Top = (ReadTP_rax | ReadTP_any | OpTP_any | OpTP_any_addr) !.
 
 ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:XREG - {
@@ -42,11 +39,8 @@ OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
     mklabel(label);
     mkdirective(".bundle_unlock");
     mkinsn("movq %%rax, %%r11");
-    // tp in %r11, now need to compute movq n(%r11), %r11
-    // Unfortunately the memory access passes have already run,
-    // so we need to manually construct this memory access.
     mkinsn("leaq %s, %%rax", a.unmod);
-    mkinsn("addq %%rax, %%r11");
+    mkinsn("leaq (%%rax, %%r11), %%r11");
     mkinsn("popq %%rax");
     if (args.boxtype < BOX_FULL) {
         // no need to sandbox the load
