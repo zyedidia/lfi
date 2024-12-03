@@ -61,7 +61,7 @@ jmpq *8(%r14)
 .bundle_unlock
 movq %rax, %r11
 leaq (%rax), %rax
-addq %rax, %r11
+leaq (%rax, %r11), %r11
 popq %rax
 .bundle_lock
 movl %r11d, %r11d
