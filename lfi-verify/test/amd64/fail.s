@@ -15,3 +15,5 @@ jmp foo
 nop
 foo:
 nop
+---
+jmpq *%rax

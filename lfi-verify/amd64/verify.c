@@ -137,35 +137,46 @@ static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     if (branch && !indirect) {
         if (target % bundlesize != 0)
             verr(v, instr, "jump target is not bundle-aligned");
+    } else if (branch && indirect) {
+        verr(v, instr, "invalid indirect branch");
     }
 }
+
+#include "macroinst.c"
 
 static size_t vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize) {
     size_t count = 0;
     size_t ninstr = 0;
 
     while (count < bundlesize && count < size) {
-        FdInstr instr;
-        int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
-        if (ret < 0) {
-            verrmin(v, "%lx: unknown instruction", v->addr);
-            return ninstr;
+        struct MacroInst mi = macroinst(v, &buf[count], size - count);
+        if (mi.size < 0) {
+            FdInstr instr;
+            int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
+            if (ret < 0) {
+                verrmin(v, "%lx: unknown instruction", v->addr);
+                return ninstr;
+            }
+            mi.size = ret;
+            mi.ninstr = 1;
+
+            if (!okmnem(v, &instr))
+                verr(v, &instr, "illegal instruction");
+
+            chkbranch(v, &instr, bundlesize);
         }
 
-        if (!okmnem(v, &instr))
-            verr(v, &instr, "illegal instruction");
-
-        chkbranch(v, &instr, bundlesize);
-
-        if (count + ret > bundlesize) {
+        if (count + mi.size > bundlesize) {
+            FdInstr instr;
+            fd_decode(&buf[count], size - count, 64, 0, &instr);
             verr(v, &instr, "instruction spans bundle boundary");
             v->abort = true; // not useful to give further errors
             return ninstr;
         }
 
-        v->addr += ret;
-        count += ret;
-        ninstr++;
+        v->addr += mi.size;
+        count += mi.size;
+        ninstr += mi.ninstr;
     }
     return ninstr;
 }
