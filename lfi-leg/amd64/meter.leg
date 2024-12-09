@@ -15,7 +15,7 @@ static void
 branchmeter(bool indirect)
 {
     if (indirect) {
-        mkinsn("sub $0, %%r12");
+        mkinsn("sub $512, %%r12");
         // will be replaced with the metering sequence by the post linker
         mkinsn("nop"); // jns
         mkinsn("nop"); // jns
