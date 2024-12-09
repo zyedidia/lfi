@@ -389,6 +389,10 @@ meterupdate(uint8_t* code, size_t size, size_t addr)
             assert(ret == 8);
             memset(&code[count + 4], 0, 4);
         }
+        if (FD_TYPE(&instr) == FDI_SUB && FD_OP_REG(&instr, 0) == FD_REG_R12) {
+            assert(ret == 7);
+            memset(&code[count + 3], 0, 4);
+        }
         bool indirect, cond;
         int64_t target;
         bool branch = branchinfo(addr+count, &instr, &target, &indirect, &cond);
