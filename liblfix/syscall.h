@@ -436,6 +436,13 @@ sysrenameat2(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t ne
 SYSWRAP_5(sysrenameat2, int, uintptr_t, int, uintptr_t, int);
 
 static int
+sysrenameat(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t newpathp)
+{
+    return sysrenameat2(p, oldfd, oldpathp, newfd, newpathp, 0);
+}
+SYSWRAP_4(sysrenameat, int, uintptr_t, int, uintptr_t);
+
+static int
 syssysinfo(LFIXProc* p, uintptr_t infop)
 {
     struct sysinfo* info = (struct sysinfo*) procbufalign(p, infop, sizeof(struct sysinfo), alignof(struct sysinfo));

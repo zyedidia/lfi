@@ -45,10 +45,13 @@ enum {
     LSYS_prctl           = 167,
     LSYS_madvise         = 233,
     LSYS_mprotect        = 226,
+    LSYS_renameat2       = 276,
     LSYS_membarrier      = 283,
     LSYS_dup             = 23,
     LSYS_futex           = 98,
     LSYS_sched_getaffinity = 123,
+    LSYS_ppoll = 73,
+    LSYS_sigaltstack = 132,
 };
 
 SyscallFn syscalls[] = {
@@ -80,7 +83,8 @@ SyscallFn syscalls[] = {
     [LSYS_prctl]             = sysignore_,
     [LSYS_readlinkat]        = sysreadlinkat_,
     [LSYS_faccessat]         = sysfaccessat_,
-    [LSYS_renameat]          = sysrenameat2_,
+    [LSYS_renameat]          = sysrenameat_,
+    [LSYS_renameat2]         = sysrenameat2_,
     [LSYS_sysinfo]           = syssysinfo_,
     [LSYS_dup]               = sysdup_,
     [LSYS_getdents64]        = sysgetdents64_,
@@ -91,6 +95,8 @@ SyscallFn syscalls[] = {
     [LSYS_rt_sigaction]      = sysignore_,
     [LSYS_gettid]            = sysignore_,
     [LSYS_sched_getaffinity] = sysignore_,
+    [LSYS_ppoll] = sysignore_,
+    [LSYS_sigaltstack] = sysignore_,
 };
 
 _Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
