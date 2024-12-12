@@ -50,8 +50,8 @@ AddrOpt = (
             };
         } else {
             $$ = (Result) {
-                .pre = xasprintf("add x22, %s, %s", r.val, i.val),
-                .val = strdup("[x21, w22, uxtw]"),
+                .pre = xasprintf("add x18, x21, w%s, uxtw", num(r.val)),
+                .val = xasprintf("[x18, %s]", i.val),
             };
         }
         rfree(r); rfree(i);
@@ -72,7 +72,19 @@ AddrOpt = (
         rfree(r);
     }
     # [xN, xM, ...]
-    | (LB r1:XREG COMMA r2:REG COMMA m:ADDR_MOD RB) {
+    | (LB r1:XREG COMMA r2:WREG COMMA m:ADDR_MOD RB) {
+        $$ = (Result){0};
+        if (args.largeguard) {
+            $$.pre = xasprintf("add x18, x21, w%s, uxtw", num(r1.val));
+            $$.val = xasprintf("[x18, %s, %s]", r2.val, m.val);
+        } else {
+            $$.pre = xasprintf("add x22, %s, %s, %s", r1.val, r2.val, m.val);
+            $$.val = strdup("[x21, w22, uxtw]");
+        }
+        rfree(r1); rfree(r2); rfree(m);
+    }
+    # [xN, xM, ...]
+    | (LB r1:XREG COMMA r2:XREG COMMA m:ADDR_MOD RB) {
         $$ = (Result) {
             .pre = xasprintf("add x22, %s, %s, %s", r1.val, r2.val, m.val),
             .val = strdup("[x21, w22, uxtw]"),

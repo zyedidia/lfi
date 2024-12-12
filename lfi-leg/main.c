@@ -28,6 +28,7 @@ enum {
     ARG_allowtls      = 0x8e,
     ARG_nopie         = 0x8f,
     ARG_syscall       = 0x90,
+    ARG_largeguard    = 0x91,
 };
 
 // options (TODO):
@@ -65,6 +66,7 @@ static struct argp_option options[] = {
     { "allow-tls",      ARG_allowtls,      0,      0, "Do not rewrite TLS accesses into host calls" },
     { "no-pie",         ARG_nopie,         0,      0, "Generating position-independent code is not required" },
     { "allow-syscall",  ARG_syscall,       0,      0, "Do not rewrite syscalls into host calls" },
+    { "large-guard",    ARG_largeguard,    0,      0, "Assume large guard pages" },
     { 0 },
 };
 
@@ -120,6 +122,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_allowtls:
         args->allowtls = true;
+        break;
+    case ARG_largeguard:
+        args->largeguard = true;
         break;
     case ARG_syscall:
         args->syscall = true;

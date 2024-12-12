@@ -24,18 +24,18 @@ ldr x1, [x18, #4188]
 ------
 ldr x1, [x1, #:lo12:map]
 >>>
-add x22, x1, #:lo12:map
-ldr x1, [x21, w22, uxtw]
+add x18, x21, w1, uxtw
+ldr x1, [x18, #:lo12:map]
 ------
 ldr x0, [x1, #-56]
 >>>
-add x22, x1, #-56
-ldr x0, [x21, w22, uxtw]
+add x18, x21, w1, uxtw
+ldr x0, [x18, #-56]
 ------
 ldr x19, [x9, :lo12:.L_MergedGlobals+456]
 >>>
-add x22, x9, :lo12:.L_MergedGlobals+456
-ldr x19, [x21, w22, uxtw]
+add x18, x21, w9, uxtw
+ldr x19, [x18, :lo12:.L_MergedGlobals+456]
 ------
 stur x8, [x29, #-8] // 8-byte Folded Spill
 >>>
@@ -71,10 +71,12 @@ ld1 { v0.s }[1], [x18]
 add x8, x8, x10
 ------
 ldr x0, [x1, :lo12:foo]
+>>>
+add x18, x21, w1, uxtw
+ldr x0, [x18, :lo12:foo]
+------
 ldr x0, [x1, :got_lo12:foo]
 >>>
-add x22, x1, :lo12:foo
-ldr x0, [x21, w22, uxtw]
 add x18, x21, w1, uxtw
 ldr x0, [x18, :got_lo12:foo]
 ------
@@ -101,8 +103,8 @@ ldaxr x0, [x18]
 ------
 ldr x0, [x0, #8]
 >>>
-add x22, x0, #8
-ldr x0, [x21, w22, uxtw]
+add x18, x21, w0, uxtw
+ldr x0, [x18, #8]
 ------
 ldp x20, x18, [x0]
 ldp x20, x21, [x1]

@@ -53,6 +53,7 @@ struct arguments {
     bool allowtls;
     bool nopie;
     bool syscall;
+    bool largeguard;
 };
 
 extern struct arguments args;
