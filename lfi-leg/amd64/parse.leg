@@ -16,6 +16,8 @@ Top = Insn* !.
 
 Insn = - Label? (
       BundleDirective
+    | TrustedDirective
+    | UntrustedDirective
     | Directive Comment?
     | Comment
     | AnyPrefix
@@ -44,6 +46,17 @@ AlignDirective = '.p2align' - rest:REMAINDER {
 FnDirective = < '.type' - ([^,])* ',' - [@%] 'function' - > {
     mkdirective(xasprintf("%s", yytext));
     mkdirective(bundle_align());
+}
+
+TrustedDirective = '.section' - '.text.trusted' rest:REMAINDER {
+    struct op* op = mkdirective(xasprintf(".section .text.trusted%s", rest.val));
+    op->truststart = true;
+    rfree(rest);
+}
+
+UntrustedDirective = < ('.text' | '.section') (!EOL .)* > {
+    struct op* op = mkdirective(strndup(yytext, yyleng));
+    op->notruststart = true;
 }
 
 PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {

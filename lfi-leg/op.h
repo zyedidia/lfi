@@ -14,6 +14,8 @@ struct op {
     char* replace;
     char* target;
     bool rmforward;
+    bool truststart;
+    bool notruststart;
 
     struct op* next;
     struct op* prev;

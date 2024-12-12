@@ -99,9 +99,17 @@ amd64_rewrite(FILE* input, struct output* output)
         if (passes[i].disabled)
             continue;
         struct op* op = ops;
+        bool trusted = false;
         while (op) {
             struct op* next = op->next;
-            passes[i].fn(op);
+            if (op->truststart)
+                trusted = true;
+            if (op->notruststart)
+                trusted = false;
+
+            if (!trusted)
+                passes[i].fn(op);
+
             op = next;
         }
     }
