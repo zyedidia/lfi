@@ -153,3 +153,8 @@ stxrb w11, w10, [x8]
 >>>
 add x18, x21, w8, uxtw
 stxrb w11, w10, [x18]
+------
+ldr x12, [x11, x0]
+>>>
+add x22, x11, x0
+ldr x12, [x21, w22, uxtw]

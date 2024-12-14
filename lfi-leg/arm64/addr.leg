@@ -37,6 +37,14 @@ AddrOpt = (
         };
         rfree(r); rfree(i);
     }
+    # [xN, xM]
+    | (LB r1:XREG COMMA r2:REG RB) {
+        $$ = (Result) {
+            .pre = xasprintf("add x22, %s, %s", r1.val, r2.val),
+            .val = strdup("[x21, w22, uxtw]"),
+        };
+        rfree(r1); rfree(r2);
+    }
     # [xN, i]
     | (LB (!'x18' r:XREG) COMMA i:IMM RB) {
         char* ival = i.val;
@@ -90,14 +98,6 @@ AddrOpt = (
             .val = strdup("[x21, w22, uxtw]"),
         };
         rfree(r1); rfree(r2); rfree(m);
-    }
-    # [xN, xM]
-    | (LB r1:XREG COMMA r2:REG RB) {
-        $$ = (Result) {
-            .pre = xasprintf("add x22, %s, %s", r1.val, r2.val),
-            .val = strdup("[x21, w22, uxtw]"),
-        };
-        rfree(r1); rfree(r2);
     }
 )
 
