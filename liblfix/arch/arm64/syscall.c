@@ -59,7 +59,7 @@ enum {
     LSYS_ftruncate         = 46,
 };
 
-SyscallFn syscalls[] = {
+SyscallFn syscalls[SYS_max] = {
     [LSYS_read]              = sysread_,
     [LSYS_write]             = syswrite_,
     [LSYS_readv]             = sysreadv_,
@@ -109,4 +109,4 @@ SyscallFn syscalls[] = {
     [LSYS_ftruncate]         = sysignore_,
 };
 
-_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
+_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) <= SYS_max, "syscalls exceed SYS_max");

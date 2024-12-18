@@ -116,7 +116,7 @@ sysunlink(LFIXProc* p, uintptr_t pathp)
 }
 SYSWRAP_1(sysunlink, uintptr_t);
 
-SyscallFn syscalls[] = {
+SyscallFn syscalls[SYS_max] = {
     [LSYS_read]              = sysread_,
     [LSYS_write]             = syswrite_,
     [LSYS_readv]             = sysreadv_,
@@ -169,4 +169,4 @@ SyscallFn syscalls[] = {
     [LSYS_sigaltstack]       = sysignore_,
 };
 
-_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
+_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) <= SYS_max, "syscalls exceed SYS_max");
