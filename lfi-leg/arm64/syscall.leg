@@ -23,7 +23,7 @@ Syscall = < 'svc' - (!EOL .)* > - {
     mkinsn("add x30, x21, w22, uxtw");
 }
 
-Retcall = 'svc' - '#1' - {
+Retcall = 'svc' - '#'? '0x'? '1' - {
     if (!args.poc)
         mkinsn("mov x22, x30");
     else
