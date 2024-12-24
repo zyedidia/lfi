@@ -92,8 +92,22 @@ lfi_set_tp:
 .p2align 4
 .globl lfi_ret
 lfi_ret:
-	// TODO
-	brk #0
+	GET_PROC
+	// restore kernel stack
+	ldr x22, [x21]
+	mov sp, x22
+	// restore callee-saved registers
+	ldp x29, x30, [sp], 16
+	ldp x27, x28, [sp], 16
+	ldp x25, x26, [sp], 16
+	ldp x23, x24, [sp], 16
+	ldp x21, x22, [sp], 16
+	ldp x19, x20, [sp], 16
+	ldp d14, d15, [sp], 16
+	ldp d12, d13, [sp], 16
+	ldp d10, d11, [sp], 16
+	ldp d8, d9,   [sp], 16
+	ret
 
 // lfi_asm_invoke(Proc* p, void* fn, void** kstackp)
 .p2align 4
