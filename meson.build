@@ -58,4 +58,3 @@ endif
 # subdir('libsobox')
 # subdir('lfi-veribdd')
 subdir('specinvoke')
-subdir('toolchain')
