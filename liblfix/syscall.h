@@ -391,7 +391,8 @@ sysgetcwd(LFIXProc* p, uintptr_t bufp, size_t size)
     uint8_t* buf = procbuf(p, bufp, size);
     if (!buf)
         return -EINVAL;
-    memcpy(buf, p->cwd.name, size < LFI_PATH_MAX ? size : LFI_PATH_MAX);
+    size = size < LFI_PATH_MAX ? size : LFI_PATH_MAX;
+    memcpy(buf, p->cwd.name, size);
     buf[size - 1] = 0;
     return (uintptr_t) buf;
 }
