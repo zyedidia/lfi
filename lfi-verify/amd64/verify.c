@@ -130,6 +130,29 @@ static bool okmnem(Verifier* v, FdInstr* instr) {
     return false;
 }
 
+static void chkmem(Verifier* v, FdInstr* instr) {
+    if (FD_TYPE(instr) == FDI_LEA || FD_TYPE(instr) == FDI_NOP)
+        return;
+
+    for (size_t i = 0; i < 4; i++) {
+        if (FD_OP_TYPE(instr, i) == FD_OT_MEM) {
+            if (FD_SEGMENT(instr) == FD_REG_GS) {
+                if (FD_ADDRSIZE(instr) != 4)
+                    verr(v, instr, "segmented memory access must use 32-bit address");
+                continue;
+            }
+
+            if (FD_ADDRSIZE(instr) != 8)
+                verr(v, instr, "non-segmented memory access must use 64-bit address");
+            if (FD_OP_BASE(instr, i) != FD_REG_SP &&
+                    FD_OP_BASE(instr, i) != FD_REG_IP)
+                verr(v, instr, "invalid base register for memory access");
+            if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
+                verr(v, instr, "invalid index register for memory access");
+        }
+    }
+}
+
 static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     int64_t target;
     bool indirect, cond;
@@ -164,6 +187,7 @@ static size_t vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesi
                 verr(v, &instr, "illegal instruction");
 
             chkbranch(v, &instr, bundlesize);
+            chkmem(v, &instr);
         }
 
         if (count + mi.size > bundlesize) {
