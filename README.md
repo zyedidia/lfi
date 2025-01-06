@@ -92,9 +92,6 @@ The LFI project provides the following tools:
 * `lfi-postlink`: patches binaries after linking (required for metering and
   certain x86-64 optimizations).
 * `lfi-run`: runs an LFI-compatible binary.
-* `lfi-compile`: acts like a compiler, but creates an intermediate `.s`
-  file during compilation and runs `lfi-leg` on it. Meant to be used with
-  `clang`/`clang++`.
 
 # Installation
 
@@ -106,58 +103,20 @@ versions provided with releases, or build from source.
 ## Prebuilt distribution
 
 Prebuilt toolchains are provided in the GitHub releases:
-https://github.com/zyedidia/lfi/releases/. The prebuilt toolchain includes
-a full GCC compiler, as well as LLVM runtime libraries and Clang wrappers.
-Note: to use the Clang toolchain you must have an externally installed
-version of Clang, while the GCC toolchain provides all necessary binaries
-internally.
+https://github.com/zyedidia/lfi/releases/. The prebuilt toolchain includes a
+full Clang compiler based on LLVM 19.
 
 When you download a prebuilt toolchain, you will see the following directories:
 
-* `bin/`: contains the LFI rewriter, verifier, and runtime. Put this on your
-  `PATH`.
-* `gcc/`: contains a complete LFI GCC toolchain. The C and C++ compilers can be
-  found in `gcc/aarch64-lfi-linux-musl/bin/` as `aarch64-lfi-linux-musl-gcc`
-  and `aarch64-lfi-linux-musl-g++`. You may want to put this directory on your
-  `PATH` (`gcc/aarch64-lfi-linux-musl/bin/`).
-* `clang/`: contains a Clang-compatible LFI sysroot and runtime libraries,
-  plus wrapper scripts. You can run the `lfi-clang` and `lfi-clang++` scripts
-  in `clang/bin/` to invoke your system Clang with the LFI sysroot. You may
-  want to put this directory on your `PATH` (`clang/bin/`).
-
-The x86-64 toolchain only supports GCC by default (patches to LLVM are required
-to use Clang).
-
-You will also find libraries in the prebuilt archives. The `liblfi` and
-`liblfiverify` libraries allow you to write your own runtime with your own
-runtime call API. The `liblfileg` library allows you to use the rewriter as a
-library. See the files installed to `include` and `lib` in the provided
-archives for details.
+* `lfi-bin/`: contains the LFI rewriter, verifier, and runtime. Put this on
+  your `PATH`.
+* `bin/`: contains the LLVM compiler binaries.
+* `sysroot/`: contains the LFI sysroot, including libc, libc++, a dynamic
+  linker, and additional runtime support libraries.
 
 ## Building from source
 
-To install the tools, you must have the following dependencies installed:
-
-* Go for `lfi-compile` and running tests.
-* GCC or Clang for `lfi-leg`/`lfi-verify`/`lfi-postlink`/liblfi`.
-
-LFI uses the Meson build system with Ninja. When configuring the build you will
-be alerted of any missing dependencies.
-
-To perform a complete build of all tools and of both a GCC and Clang toolchain run
-
-```
-./install-toolchain.sh $PWD/lfi-toolchain $ARCH # ARCH is aarch64 or x86_64
-```
-
-Note: if you get an error about `asm/types.h` not found while building LLVM
-libc++, you may have to symlink `/usr/include/asm-generic` to
-`/usr/include/asm`.
-
-Running the script may take a long time (10-15 minutes) as it will build a
-compiler toolchain for you along with the standard LFI tools/libraries.
-
-To build just the LFI tools/libraries from source, run the following:
+To build and install the LFI tools, run the following commands:
 
 ```
 meson setup build --prefix=$PWD/install
@@ -169,10 +128,9 @@ You will find the generated binaries, libraries, and headers in `$PWD/install`
 (or in your prefix of choice). Before building a compiler toolchain, you should
 make sure the installed `bin` directory is on your `PATH`.
 
-For more details about building a compiler toolchain, see
-[lfi-gcc](https://github.com/zyedidia/lfi-gcc) and
-[lfi-clang](https://github.com/zyedidia/lfi-clang). These are included as
-submodules in the `toolchain` directory.
+Next, you might want to build a compiler toolchain based on LLVM or GCC. For
+instructions and scripts, see [lfi-gcc](https://github.com/zyedidia/lfi-gcc)
+and [lfi-llvm](https://github.com/zyedidia/lfi-llvm-toolchain).
 
 # Example
 
@@ -189,7 +147,7 @@ int main() {
 With Clang:
 
 ```
-$ lfi-clang hello.c -O2 -o hello
+$ aarch64-lfi-linux-musl-clang hello.c -O2 -o hello -static-pie
 $ lfi-verify hello # check if it verifies (also performed by lfi-run)
 verifying test
 verification passed (3.2 MB/s)
