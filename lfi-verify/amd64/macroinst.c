@@ -4,67 +4,78 @@ struct MacroInst {
 };
 
 static struct MacroInst macroinst_jmp(Verifier* v, uint8_t* buf, size_t size) {
-    FdInstr i_and, i_jmp;
+    // andl $0xffffffe0, %eX
+    // orq %r14, %rX
+    // jmpq *%rX
+
+    FdInstr i_and, i_or, i_jmp;
     if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_jmp) < 0)
+    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
-    // andq $0xffffffffffffffe0, %rXX
+    if (fd_decode(&buf[i_and.size + i_or.size], size - i_and.size - i_or.size, 64, 0, &i_jmp) < 0)
+        return (struct MacroInst){-1, 0};
+
     if (FD_TYPE(&i_and) != FDI_AND ||
             FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
+            FD_OP_SIZE(&i_and, 0) != 4 ||
             FD_OP_TYPE(&i_and, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    // jmpq *%rXX
+    if (FD_TYPE(&i_or) != FDI_OR ||
+            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_or, 0) != 8 ||
+            FD_OP_SIZE(&i_or, 1) != 8 ||
+            FD_OP_REG(&i_or, 1) != FD_REG_R14 ||
+            FD_OP_REG(&i_or, 0) != FD_OP_REG(&i_and, 0))
+        return (struct MacroInst){-1, 0};
+
     if (FD_TYPE(&i_jmp) != FDI_JMP ||
             FD_OP_TYPE(&i_jmp, 0) != FD_OT_REG ||
             FD_OP_REG(&i_jmp, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_and.size + i_jmp.size, 2};
+    return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
 }
 
 static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
-    FdInstr i_and, i_call;
+    // andl $0xffffffe0, %eX
+    // orq %r14, %rX
+    // nop*
+    // callq *%rX
+
+    FdInstr i_and, i_or, i_jmp;
     if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_call) < 0)
+    if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
-    // andq $0xffffffffffffffe0, %rXX
+    if (fd_decode(&buf[i_and.size + i_or.size], size - i_and.size - i_or.size, 64, 0, &i_jmp) < 0)
+        return (struct MacroInst){-1, 0};
+
     if (FD_TYPE(&i_and) != FDI_AND ||
             FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
+            FD_OP_SIZE(&i_and, 0) != 4 ||
             FD_OP_TYPE(&i_and, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and, 1) != 0xffffffffffffffe0)
         return (struct MacroInst){-1, 0};
 
-    // callq *%rXX
-    if (FD_TYPE(&i_call) != FDI_CALL ||
-            FD_OP_TYPE(&i_call, 0) != FD_OT_REG ||
-            FD_OP_REG(&i_call, 0) != FD_OP_REG(&i_and, 0))
+    if (FD_TYPE(&i_or) != FDI_OR ||
+            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
+            FD_OP_SIZE(&i_or, 0) != 8 ||
+            FD_OP_SIZE(&i_or, 1) != 8 ||
+            FD_OP_REG(&i_or, 1) != FD_REG_R14 ||
+            FD_OP_REG(&i_or, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_and.size + i_call.size, 2};
-}
-
-static struct MacroInst macroinst_shxd(Verifier* v, uint8_t* buf, size_t size) {
-    return (struct MacroInst){-1, 0};
-}
-
-static struct MacroInst macroinst_bsx(Verifier* v, uint8_t* buf, size_t size) {
-    FdInstr i_test, i_jz, i_bsx;
-    if (fd_decode(&buf[0], size, 64, 0, &i_test) < 0)
-        return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_test.size], size - i_test.size, 64, 0, &i_jz) < 0)
-        return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_test.size + i_jz.size], size - i_test.size - i_jz.size, 64, 0, &i_bsx) < 0)
+    if (FD_TYPE(&i_jmp) != FDI_JMP ||
+            FD_OP_TYPE(&i_jmp, 0) != FD_OT_REG ||
+            FD_OP_REG(&i_jmp, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    // test %rXX, %rXX
-    // jz .SKIP
-    // bsx
-    // .SKIP:
-    return (struct MacroInst){-1, 0};
+    return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
 }
 
 static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) {
@@ -76,6 +87,8 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
         return (struct MacroInst){-1, 0};
     if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
+
+    printf("%d\n", FD_TYPE(&i_mov));
 
     // allow addl, subl, or movl
     if (FD_TYPE(&i_mov) != FDI_MOV &&
@@ -104,9 +117,6 @@ typedef struct MacroInst (*MacroFn)(Verifier*, uint8_t*, size_t);
 
 static MacroFn mfns[] = {
     macroinst_jmp,
-    macroinst_call,
-    macroinst_shxd,
-    macroinst_bsx,
     macroinst_modsp,
 };
 

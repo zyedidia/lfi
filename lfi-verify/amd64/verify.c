@@ -35,6 +35,10 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
+static bool reserved(FdReg reg) {
+    return reg == FD_REG_R14 || reg == FD_REG_SP;
+}
+
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
     *target = 0;
     *indirect = false;
@@ -153,6 +157,29 @@ static void chkmem(Verifier* v, FdInstr* instr) {
     }
 }
 
+static int nmod(FdInstr* instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_CMP:
+        return 0;
+    case FDI_XCHG:
+        return 2;
+    default:
+        return 1;
+    }
+}
+
+static void chkmod(Verifier* v, FdInstr* instr) {
+    if (FD_TYPE(instr) == FDI_NOP)
+        return;
+
+    int n = nmod(instr);
+    assert(n <= 4);
+    for (size_t i = 0; i < n; i++) {
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(FD_OP_REG(instr, i)))
+            verr(v, instr, "modification of reserved register");
+    }
+}
+
 static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     int64_t target;
     bool indirect, cond;
@@ -188,6 +215,7 @@ static size_t vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesi
 
             chkbranch(v, &instr, bundlesize);
             chkmem(v, &instr);
+            chkmod(v, &instr);
         }
 
         if (count + mi.size > bundlesize) {

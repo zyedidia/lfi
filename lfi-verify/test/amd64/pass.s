@@ -28,3 +28,15 @@ leaq 8(%rax), %rax
 mov 12(%rsp), %rax
 ---
 mov 12(%rip), %rax
+---
+andl $0xffffffe0, %eax
+orq %r14, %rax
+jmp *%rax
+---
+movl %eax, %esp
+orq %r14, %rsp
+---
+add $12, %esp
+orq %r14, %rsp
+---
+cmp %rsp, %rsp
