@@ -40,11 +40,39 @@ static struct MacroInst macroinst_jmp(Verifier* v, uint8_t* buf, size_t size) {
     return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
 }
 
+static bool okdisp(int64_t disp) {
+    return (disp % 8 == 0) && (disp < 256);
+}
+
 static struct MacroInst macroinst_rtcall(Verifier* v, uint8_t* buf, size_t size) {
     // leaq 1f(%rip), %r11
     // jmpq *N(%r14)
     // 1:
-    return (struct MacroInst){-1, 0};
+    FdInstr i_lea, i_jmp;
+    if (fd_decode(&buf[0], size, 64, 0, &i_lea) < 0)
+        return (struct MacroInst){-1, 0};
+    if (fd_decode(&buf[i_lea.size], size - i_lea.size, 64, 0, &i_jmp) < 0)
+        return (struct MacroInst){-1, 0};
+
+    if (FD_TYPE(&i_lea) != FDI_LEA ||
+            FD_OP_TYPE(&i_lea, 0) != FD_OT_REG ||
+            FD_OP_REG(&i_lea, 0) != FD_REG_R11 ||
+            FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
+            FD_OP_BASE(&i_lea, 1) != FD_REG_IP)
+        return (struct MacroInst){-1, 0};
+
+    if (FD_TYPE(&i_jmp) != FDI_JMP ||
+            FD_OP_TYPE(&i_jmp, 0) != FD_OT_MEM ||
+            FD_OP_BASE(&i_jmp, 0) != FD_REG_R14 ||
+            FD_OP_INDEX(&i_jmp, 0) != FD_REG_NONE ||
+            FD_OP_SCALE(&i_jmp, 0) != 0 ||
+            !okdisp(FD_OP_DISP(&i_jmp, 0)))
+        return (struct MacroInst){-1, 0};
+
+    if (FD_OP_DISP(&i_lea, 1) != i_jmp.size)
+        return (struct MacroInst){-1, 0};
+
+    return (struct MacroInst){i_lea.size + i_jmp.size, 2};
 }
 
 static size_t bundle(Verifier* v) {
@@ -69,6 +97,9 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
     FdInstr i_and, i_or, i_jmp;
     if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
+    if (FD_TYPE(&i_and) != FDI_AND)
+        return (struct MacroInst){-1, 0};
+
     if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
     size_t count = i_and.size + i_or.size;
@@ -82,7 +113,7 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
             break;
     }
 
-    if (count >= bundlesize)
+    if ((v->addr + count) % bundlesize != 0)
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_and) != FDI_AND ||

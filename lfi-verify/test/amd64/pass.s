@@ -43,11 +43,19 @@ cmp %rsp, %rsp
 ---
 andl $0xffffffe0, %eax
 orq %r14, %rax
-nop
+.nops 24
 callq *%rax
 ---
 .nops 2
 andl $0xffffffe0, %eax
 orq %r14, %rax
-.nops 18
+.nops 22
 callq *%rax
+---
+leaq 1f(%rip), %r11
+jmpq *(%r14)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *8(%r14)
+1:

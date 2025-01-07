@@ -61,3 +61,26 @@ andl $0xffffffe0, %eax
 orq %r14, %rax
 .nops 28
 callq *%rax
+---
+andl $0xffffffe0, %eax
+orq %r14, %rax
+callq *%rax
+---
+jmpq *(%r14)
+---
+leaq 1f(%rip), %r11
+jmpq *(%r14)
+nop
+1:
+---
+leaq 1f(%rip), %r12
+jmpq *(%r14)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *4(%r14)
+1:
+---
+leaq 1f(%rip), %r11
+jmpq *(%r14, %rax)
+1:
