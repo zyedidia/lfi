@@ -40,7 +40,27 @@ static struct MacroInst macroinst_jmp(Verifier* v, uint8_t* buf, size_t size) {
     return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
 }
 
+static struct MacroInst macroinst_rtcall(Verifier* v, uint8_t* buf, size_t size) {
+    // leaq 1f(%rip), %r11
+    // jmpq *N(%r14)
+    // 1:
+    return (struct MacroInst){-1, 0};
+}
+
+static size_t bundle(Verifier* v) {
+    switch (v->opts->bundle) {
+    case LFI_BUNDLE16:
+        return 16;
+    case LFI_BUNDLE32:
+        return 32;
+    default:
+        assert(!"unreachable");
+    }
+}
+
 static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
+    size_t bundlesize = bundle(v);
+
     // andl $0xffffffe0, %eX
     // orq %r14, %rX
     // nop*
@@ -51,7 +71,18 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
         return (struct MacroInst){-1, 0};
     if (fd_decode(&buf[i_and.size], size - i_and.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
-    if (fd_decode(&buf[i_and.size + i_or.size], size - i_and.size - i_or.size, 64, 0, &i_jmp) < 0)
+    size_t count = i_and.size + i_or.size;
+    size_t icount = 2;
+    while (count < bundlesize) {
+        if (fd_decode(&buf[count], size - count, 64, 0, &i_jmp) < 0)
+            return (struct MacroInst){-1, 0};
+        icount++;
+        count += i_jmp.size;
+        if (FD_TYPE(&i_jmp) != FDI_NOP)
+            break;
+    }
+
+    if (count >= bundlesize)
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_and) != FDI_AND ||
@@ -70,12 +101,12 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
             FD_OP_REG(&i_or, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_jmp) != FDI_JMP ||
+    if (FD_TYPE(&i_jmp) != FDI_CALL ||
             FD_OP_TYPE(&i_jmp, 0) != FD_OT_REG ||
             FD_OP_REG(&i_jmp, 0) != FD_OP_REG(&i_and, 0))
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_and.size + i_or.size + i_jmp.size, 3};
+    return (struct MacroInst){count, icount};
 }
 
 static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) {
@@ -87,8 +118,6 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
         return (struct MacroInst){-1, 0};
     if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
-
-    printf("%d\n", FD_TYPE(&i_mov));
 
     // allow addl, subl, or movl
     if (FD_TYPE(&i_mov) != FDI_MOV &&
@@ -117,6 +146,8 @@ typedef struct MacroInst (*MacroFn)(Verifier*, uint8_t*, size_t);
 
 static MacroFn mfns[] = {
     macroinst_jmp,
+    macroinst_call,
+    macroinst_rtcall,
     macroinst_modsp,
 };
 

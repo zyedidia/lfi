@@ -118,7 +118,8 @@ No instruction except the following may use \code{jmpq *}
     \item
         \term{macroinstruction}: \\
         \code{leaq 1f(\%rip), \%r11} \\
-        \code{jmpq *N(\rbase)} \\ \\
+        \code{jmpq *N(\rbase)} \\
+        \code{1:} \\ \\
         Where \code{N \% 8 == 0} and \code{N <= 256}.
 \end{enumerate}
 

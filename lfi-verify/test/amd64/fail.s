@@ -54,3 +54,10 @@ mov $0, %rsp
 add $12, %rsp
 ---
 xchg %r14, %rax
+---
+callq *%rax
+---
+andl $0xffffffe0, %eax
+orq %r14, %rax
+.nops 28
+callq *%rax

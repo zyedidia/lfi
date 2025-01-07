@@ -40,3 +40,14 @@ add $12, %esp
 orq %r14, %rsp
 ---
 cmp %rsp, %rsp
+---
+andl $0xffffffe0, %eax
+orq %r14, %rax
+nop
+callq *%rax
+---
+.nops 2
+andl $0xffffffe0, %eax
+orq %r14, %rax
+.nops 18
+callq *%rax
