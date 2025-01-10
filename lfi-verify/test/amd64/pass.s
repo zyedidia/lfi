@@ -39,6 +39,9 @@ orq %r14, %rsp
 add $12, %esp
 orq %r14, %rsp
 ---
+andl $0xfffffff0, %esp
+orq %r14, %rsp
+---
 cmp %rsp, %rsp
 ---
 andl $0xffffffe0, %eax

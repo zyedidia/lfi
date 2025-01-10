@@ -141,7 +141,7 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
 }
 
 static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) {
-    // movl/addl/subl ..., %esp
+    // movl/addl/subl/andl ..., %esp
     // orq %r14, %rsp
 
     FdInstr i_mov, i_or;
@@ -153,6 +153,7 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
     // allow addl, subl, or movl
     if (FD_TYPE(&i_mov) != FDI_MOV &&
             FD_TYPE(&i_mov) != FDI_ADD &&
+            FD_TYPE(&i_mov) != FDI_AND &&
             FD_TYPE(&i_mov) != FDI_SUB)
         return (struct MacroInst){-1, 0};
 
