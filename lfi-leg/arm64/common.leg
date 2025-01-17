@@ -30,6 +30,10 @@ XREG = < 'x' REGNUM > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }
 
+XREG_SP = < (('x' REGNUM) | 'sp') > - {
+    $$ = (Result) { .val = strndup(yytext, yyleng) };
+}
+
 WREG = < 'w' REGNUM > - {
     $$ = (Result) { .val = strndup(yytext, yyleng) };
 }

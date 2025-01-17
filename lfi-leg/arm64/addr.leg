@@ -79,8 +79,8 @@ AddrOpt = (
         };
         rfree(r);
     }
-    # [xN, xM, ...]
-    | (LB r1:XREG COMMA r2:WREG COMMA m:ADDR_MOD RB) {
+    # [xN, wM, ...]
+    | (LB r1:XREG_SP COMMA r2:WREG COMMA m:ADDR_MOD RB) {
         $$ = (Result){0};
         if (args.largeguard) {
             $$.pre = xasprintf("add x18, x21, w%s, uxtw", num(r1.val));
@@ -92,7 +92,7 @@ AddrOpt = (
         rfree(r1); rfree(r2); rfree(m);
     }
     # [xN, xM, ...]
-    | (LB r1:XREG COMMA r2:XREG COMMA m:ADDR_MOD RB) {
+    | (LB r1:XREG_SP COMMA r2:XREG COMMA m:ADDR_MOD RB) {
         $$ = (Result) {
             .pre = xasprintf("add x22, %s, %s, %s", r1.val, r2.val, m.val),
             .val = strdup("[x21, w22, uxtw]"),

@@ -158,3 +158,8 @@ ldr x12, [x11, x0]
 >>>
 add x22, x11, x0
 ldr x12, [x21, w22, uxtw]
+------
+ldr w4, [sp, w3, uxtw #2]
+>>>
+add x22, sp, w3, uxtw #2
+ldr w4, [x21, w22, uxtw]
