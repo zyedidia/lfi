@@ -57,6 +57,14 @@ mkdirective(char* text)
 }
 
 struct op*
+mkcomment(char* text)
+{
+    struct op* op = mkop();
+    op->text = strdup(text);
+    return op;
+}
+
+struct op*
 mkinsn(char* fmt, ...)
 {
     va_list ap;

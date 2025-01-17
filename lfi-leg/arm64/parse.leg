@@ -17,8 +17,8 @@ Top = Insn* !.
 Insn = - Label? (
       FnDirective Comment?
     | BundleDirective Comment?
-    | TrustedDirective
-    | UntrustedDirective
+    | TrustedDirective | Enable
+    | UntrustedDirective | Disable
     | Directive Comment?
     | Comment
     | Any
@@ -55,6 +55,16 @@ TrustedDirective = '.section' - '.text.trusted' rest:REMAINDER {
 UntrustedDirective = < ('.text' | '.section') (!EOL .)* > {
     struct op* op = mkdirective(strndup(yytext, yyleng));
     op->notruststart = true;
+}
+
+Enable = '//lfi:enable' (!EOL .)* {
+    struct op* op = mkcomment("//lfi:enable");
+    op->notruststart = true;
+}
+
+Disable = '//lfi:disable' (!EOL .)* {
+    struct op* op = mkcomment("//lfi:disable");
+    op->truststart = true;
 }
 
 Directive = < '.' (!EOL .)* > - {

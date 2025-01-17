@@ -35,6 +35,8 @@ struct op* mkinsn(char* fmt, ...);
 
 struct op* mkdirective(char* text);
 
+struct op* mkcomment(char* text);
+
 void opremove(struct op* op);
 
 void opfree(struct op* op);
