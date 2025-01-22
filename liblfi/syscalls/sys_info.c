@@ -24,7 +24,7 @@ sys_uname(struct TuxProc* p, lfiptr_t bufp)
         return -TUX_EFAULT;
     struct UTSName* uts = (struct UTSName*) utsb;
     strcpy(uts->sysname, "Linux");
-    strcpy(uts->release, LINUX_VERSION "-libtux");
+    strcpy(uts->release, LINUX_VERSION "-liblfi");
     strcpy(uts->version, "0.0.0-unknown");
     strcpy(uts->machine, "x86_64");
     return 0;

@@ -22,14 +22,9 @@ cwalk = subproject('cwalk')
 mmap = subproject('libmmap')
 boxmap = subproject('libboxmap')
 
-defs = []
-
 libelf = []
 if get_option('liblfi-perf')
-  libelf = dependency('libelf', required: false)
-  if libelf.found()
-    defs += '-DHAVE_LIBELF'
-  endif
+  libelf = subproject('libelf').get_variable('libelf_dep')
 endif
 
 config_h = configure_file(
@@ -37,16 +32,21 @@ config_h = configure_file(
   configuration: {
     'CONFIG_MAX_FUTEX': get_option('liblfi-max_futex'),
     'CONFIG_THREADS':   get_option('liblfi-threads'),
+    'CONFIG_PERF':      get_option('liblfi-perf'),
   }
 )
 
 liblfi = static_library(
   'lfi',
   sources: srcs + [config_h],
-  c_args: c_args_hardened + c_args_warnings + defs,
+  c_args: c_args_hardened + c_args_warnings,
   include_directories: include_directories('include', 'arch/' + xcpuarch, 'arch/'),
-  dependencies: [cwalk.get_variable('cwalk_dep'), mmap.get_variable('mmap'), boxmap.get_variable('boxmap'), libelf],
-  link_whole: [cwalk.get_variable('libcwalk'), mmap.get_variable('libmmap'), boxmap.get_variable('libboxmap')],
+  dependencies: [
+    cwalk.get_variable('cwalk_dep').as_link_whole(),
+    mmap.get_variable('mmap').as_link_whole(),
+    boxmap.get_variable('boxmap').as_link_whole(),
+    get_option('liblfi-perf') ? libelf.as_link_whole() : [],
+  ],
   install: true,
 )
 

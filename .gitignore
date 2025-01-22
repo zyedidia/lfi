@@ -46,5 +46,6 @@ subprojects/libmmap
 subprojects/libargp
 subprojects/cwalk
 subprojects/libboxmap
+subprojects/libelf
 
 .cache

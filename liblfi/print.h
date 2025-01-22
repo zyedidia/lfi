@@ -10,20 +10,20 @@
 #define VERBOSE(tux, fmt, ...)                                                          \
     do {                                                                                \
         if (tux->opts.verbose)                                                          \
-            fprintf(stderr, "[libtux] " fmt "\n", ##__VA_ARGS__);                       \
+            fprintf(stderr, "[liblfi] " fmt "\n", ##__VA_ARGS__);                       \
     } while (0)
 
 #define INFO(fmt, ...)                                                                  \
     do {                                                                                \
-        fprintf(stderr, SGR_INFO "[libtux] " fmt SGR_RESET "\n", ##__VA_ARGS__);        \
+        fprintf(stderr, SGR_INFO "[liblfi] " fmt SGR_RESET "\n", ##__VA_ARGS__);        \
     } while (0)
 
 #define WARN(fmt, ...)                                                                  \
     do {                                                                                \
-        fprintf(stderr, SGR_WARN "[libtux] WARN: " fmt SGR_RESET "\n", ##__VA_ARGS__);  \
+        fprintf(stderr, SGR_WARN "[liblfi] WARN: " fmt SGR_RESET "\n", ##__VA_ARGS__);  \
     } while (0)
 
 #define DBG(fmt, ...)                                                                   \
     do {                                                                                \
-        fprintf(stderr, SGR_DEBUG "[libtux]: " fmt SGR_RESET "\n", ##__VA_ARGS__);      \
+        fprintf(stderr, SGR_DEBUG "[liblfi]: " fmt SGR_RESET "\n", ##__VA_ARGS__);      \
     } while (0)

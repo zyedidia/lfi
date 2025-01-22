@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/zyedidia/libelf
+revision = master
+directory = libelf

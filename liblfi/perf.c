@@ -1,4 +1,6 @@
-#ifdef HAVE_LIBELF
+#include "config.h"
+
+#ifdef CONFIG_PERF
 
 #include <stdio.h>
 #include <unistd.h>
@@ -6,7 +8,6 @@
 #include <gelf.h>
 
 int perf_output_jit_interface_file(uint8_t * buffer, size_t file_size, uintptr_t offset) {
-
     Elf *e = elf_memory((char *) buffer, file_size);
     if (!e) {
         fprintf(stderr, "elf_memory failed: %s\n", elf_errmsg(-1));
@@ -90,7 +91,7 @@ err:
 
 int perf_output_jit_interface_file(uint8_t * buffer, size_t file_size, uintptr_t offset) {
     (void) buffer, (void) file_size, (void) offset;
-    WARN("perf support is disabled because libtux was built without libelf");
+    WARN("perf support is disabled because liblfi was built without libelf");
     return 0;
 }
 
