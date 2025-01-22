@@ -1,3 +1,0 @@
-srcs += files(
-  'syscall.c',
-)

@@ -263,6 +263,8 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
                     break;
                 if (isjmp(instrs[j].mnemonic))
                     continue;
+                if (instrs[j].mnemonic == ZYDIS_MNEMONIC_LEA)
+                    continue;
                 if (instrs[j].mnemonic == ZYDIS_MNEMONIC_NOP) {
                     continue;
                 }
@@ -311,7 +313,9 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
                 if (req.operands[idx].type == ZYDIS_OPERAND_TYPE_IMMEDIATE) {
                     req.operands[idx].imm.u -= adjust;
                 } else if (req.operands[idx].type == ZYDIS_OPERAND_TYPE_MEMORY) {
-                    req.operands[idx].mem.displacement -= adjust;
+                    // don't adjust lea 0x3(%rip)/0x4(%rip) used for runtime calls
+                    if (!(instrs[j].mnemonic == ZYDIS_MNEMONIC_LEA && (req.operands[idx].mem.displacement == 3 || req.operands[idx].mem.displacement == 4)))
+                        req.operands[idx].mem.displacement -= adjust;
                 }
                 ZyanUSize encoded_len = instrs[j].length;
                 if (ZYAN_FAILED(ZydisEncoderEncodeInstruction(&req, insn, &encoded_len))) {

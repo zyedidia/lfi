@@ -44,5 +44,7 @@ subprojects/fadec
 subprojects/disarm
 subprojects/libmmap
 subprojects/libargp
+subprojects/cwalk
+subprojects/libboxmap
 
 .cache

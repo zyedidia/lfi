@@ -1,21 +1,13 @@
 #pragma once
 
-#include "lfi.h"
-#include "buddy.h"
+#include "lfi_tux.h"
+#include "file.h"
 
-enum {
-    LFI_ADDR_SPACE_MAX = 16,
+struct Tux {
+    struct LFIPlatform* plat;
+    struct TuxOptions opts;
+
+    struct FDFile* fstdin;
+    struct FDFile* fstdout;
+    struct FDFile* fstderr;
 };
-
-typedef struct {
-    void* base;
-    size_t size;
-    size_t active;
-    struct buddy* alloc;
-} LFIAddrSpace;
-
-typedef struct LFIEngine {
-    LFIAddrSpace spaces[LFI_ADDR_SPACE_MAX];
-    size_t nspaces;
-    LFIOptions opts;
-} LFIEngine;

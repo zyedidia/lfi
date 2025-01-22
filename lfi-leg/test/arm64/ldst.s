@@ -163,3 +163,8 @@ ldr w4, [sp, w3, uxtw #2]
 >>>
 add x22, sp, w3, uxtw #2
 ldr w4, [x21, w22, uxtw]
+------
+ld1sb   {z4.h}, p0/z, [x6]
+>>>
+add x18, x21, w6, uxtw
+ld1sb {z4.h}, p0/z, [x18]

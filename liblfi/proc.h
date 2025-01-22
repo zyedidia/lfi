@@ -1,56 +1,87 @@
 #pragma once
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <pthread.h>
+
+#include "lfi_tux.h"
+
+#include "config.h"
 #include "lfi.h"
-#include "mmap.h"
+#include "types.h"
+#include "futex.h"
 
 enum {
-    CODEMAX = 1ULL * 1024 * 1024 * 1024,
-
-    GUARD1SZ = 80 * 1024,
-    GUARD2SZ = 80 * 1024,
+    TUX_PATH_MAX   = 4096,
+    TUX_NOFILE     = 128,
+    TUX_BRKMAXSIZE = 512ULL * 1024 * 1024,
 };
 
-typedef struct {
-    uintptr_t rtcalls[256];
-    uintptr_t base;
-    void* proc;
-} LFISys;
+struct TuxProc;
 
-typedef struct LFIMem {
-    uintptr_t base;
-    size_t size;
-    int prot;
+struct FDFile {
+    void* dev;
+    size_t refs;
+    pthread_mutex_t lk_refs;
 
-    struct LFIMem* next;
-    struct LFIMem* prev;
-} LFIMem;
+    ssize_t (*read)(void*, uint8_t*, size_t);
+    ssize_t (*write)(void*, uint8_t*, size_t);
+    ssize_t (*lseek)(void*, off_t, int);
+    int     (*close)(void*);
+    int     (*stat_)(void*, struct Stat*);
+    ssize_t (*getdents)(void*, void*, size_t);
+    int     (*chown)(void*, tux_uid_t, tux_gid_t);
+    int     (*chmod)(void*, tux_mode_t);
+    int     (*truncate)(void*, off_t);
+    int     (*sync)(void*);
 
-typedef struct LFIProc {
-    void* kstackp;
-    void* tp;
-    LFIRegs regs;
-    uintptr_t base;
-    size_t size;
-    void* stack;
+    struct HostFile* (*file)(void*);
+};
 
-    // info for micro processes
-    uintptr_t ucodebase;
-    size_t ucode;
-    size_t udata;
-    void* ucodealias;
+struct FDTable {
+    struct FDFile* files[TUX_NOFILE];
+    pthread_mutex_t lk;
+};
 
-    uintptr_t g1start, g1end;
-    uintptr_t g2start, g2end;
-    MMAddrSpace mm;
+struct Dir {
+    struct HostFile* file;
+    struct FDFile* fd;
+    pthread_mutex_t lk;
+};
 
-    LFISys* sys;
+struct TuxProc {
+    struct LFIAddrSpace* p_as;
+    lfiptr_t brkbase;
+    size_t brksize;
+    pthread_mutex_t lk_as;
+    pthread_mutex_t lk_brk;
 
-    LFIEngine* lfi;
-    void* ctxp;
-} LFIProc;
+    struct FDTable fdtable;
+    struct Dir cwd;
 
-void lfi_proc_free(LFIProc* proc);
+#ifdef CONFIG_THREADS
+    struct Futexes futexes;
+#endif
 
-bool lfi_proc_meminit(LFIProc* proc);
+    struct Tux* tux;
+    struct LFIAddrSpaceInfo p_info;
+};
 
-bool lfi_uproc_init(LFIProc* proc, uintptr_t codebase, size_t codesize, size_t datasize);
+struct TuxThread {
+    struct LFIContext* p_ctx;
+    lfiptr_t stack;
+
+    uintptr_t ctid;
+    int tid;
+
+    struct TuxProc* proc;
+};
+
+int procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flags, int fd, off_t offset);
+
+int procmapany(struct TuxProc* p, size_t size, int prot, int flags, int fd, off_t offset, lfiptr_t* o_mapstart);
+
+int procunmap(struct TuxProc* p, lfiptr_t start, size_t size);
+
+struct TuxThread* procnewthread(struct TuxThread* p);

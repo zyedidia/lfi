@@ -18,6 +18,11 @@ c_args_hardened = [
   '-Werror=int-conversion',
 ]
 
+c_args_warnings = [
+  '-Wno-unused-parameter',
+  '-Wno-gnu-zero-variadic-macro-arguments',
+]
+
 has_auto_var_init = meson.get_compiler('c').has_argument('-ftrivial-auto-var-init=zero')
 if has_auto_var_init
   c_args_hardened += '-ftrivial-auto-var-init=zero'
@@ -27,11 +32,14 @@ has_fuzzer = meson.get_compiler('c').has_argument('-fsanitize=fuzzer')
 argp = subproject('argp').get_variable('argp_dep')
 
 cpu = target_machine.cpu_family()
-lfi_gcc = find_program(cpu + '-lfi-linux-musl-gcc', required: false)
 
 archmap = {
   'aarch64': 'arm64',
   'x86_64': 'amd64',
+}
+xarchmap = {
+  'aarch64': 'arm64',
+  'x86_64': 'x64',
 }
 
 if not archmap.has_key(cpu)
@@ -40,6 +48,7 @@ if not archmap.has_key(cpu)
 endif
 
 cpuarch = archmap[cpu]
+xcpuarch = xarchmap[cpu]
 
 go = find_program('go')
 xxd = find_program('xxd', required: false)
@@ -49,12 +58,12 @@ subdir('lfi-leg')
 subdir('lfi-verify')
 subdir('lfi-postlink')
 subdir('lfi-compile')
-subdir('liblfi')
-subdir('liblfix')
 if get_option('fuzzer')
   subdir('lfi-fuzz')
 endif
-# subdir('lfi-run')
-# subdir('libsobox')
 # subdir('lfi-veribdd')
 subdir('specinvoke')
+subdir('liblfi-small')
+subdir('liblfi')
+subdir('lfi-run')
+# subdir('lfi-run')

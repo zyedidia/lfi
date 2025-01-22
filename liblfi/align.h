@@ -3,14 +3,16 @@
 #include <stdint.h>
 #include <stddef.h>
 
-static uintptr_t
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static inline uintptr_t
 truncp(uintptr_t addr, size_t align)
 {
     size_t align_mask = align - 1;
     return addr & ~align_mask;
 }
 
-static uintptr_t
+static inline uintptr_t
 ceilp(uintptr_t addr, size_t align)
 {
     size_t align_mask = align - 1;

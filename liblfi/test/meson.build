@@ -1,45 +1,68 @@
 tests = [
-  'init.c',
-  'run.c',
-  'uproc.c',
+  'test_init.c',
+  'test_raw.c',
+  'test_tux.c',
+  'test_fs.c',
 ]
 
-if not xxd.found()
-  warning('xxd not found: cannot test liblfi')
+test('test_init', executable(
+  'test_init.elf',
+  'test_init.c',
+  dependencies: [liblfi_dep]
+), suite: ['liblfi'])
+
+lficc = find_program(cpu + '-lfi-linux-musl-clang', required: false)
+if not lficc.found()
+  warning('lficc not found: cannot test liblfi')
   subdir_done()
 endif
 
-gcc = meson.get_compiler('c')
+go = find_program('go', required: false)
+if not go.found()
+  warning('go not found: cannot test liblfi')
+  subdir_done()
+endif
 
-testprog = executable('testprog', 'testprog.S', link_args: ['-nostdlib', '-static-pie'])
-
-testprog_inc = custom_target(
-  'testprog_inc',
-  output: ['testprog.inc'],
-  input: testprog,
-  command: [xxd, '-i', '@INPUT@', '@OUTPUT@']
+test_raw = executable(
+  'test_raw.elf',
+  'test_raw.c',
+  dependencies: [liblfi_dep]
 )
 
-uproc_ld = custom_target(
-  'uproc.ld',
-  output: ['uproc.ld'],
-  input: files('uproc.ld').get(0),
-  command: [cp, '@INPUT@', '@OUTPUT@']
+test_tux = executable(
+  'test_tux.elf',
+  'test_tux.c',
+  dependencies: [liblfi_dep]
 )
 
-testuprog = executable('testuprog', 'testprog.S', link_args: ['-nostdlib', '-static', '-T', uproc_ld.full_path()], link_depends: uproc_ld)
-
-testuprog_inc = custom_target(
-  'testuprog_inc',
-  output: ['testuprog.inc'],
-  input: testuprog,
-  command: [xxd, '-i', '@INPUT@', '@OUTPUT@']
+test_fs = executable(
+  'test_fs.elf',
+  'test_fs.c',
+  dependencies: [liblfi_dep]
 )
 
-foreach t : tests
-  test(t, executable(
-    t + '.elf',
-    t, testprog_inc, testuprog_inc,
-    dependencies: [liblfi_dep, liblfiv_dep],
-  ), suite: ['liblfi'])
+testdata = [
+  {'bin': test_raw, 'file': 'raw/test.S', 'inputs': [], 'cflags': ['-nostdlib']},
+  {'bin': test_tux, 'file': 'tux/hello.c', 'inputs': [], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/alloc.c', 'inputs': [], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/argv.c', 'inputs': ['one', 'two', 'three'], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/file.c', 'inputs': ['tux/inputs/file.txt'], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/chdir.c', 'inputs': ['tux/inputs', 'file.txt'], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/thread.c', 'inputs': [], 'cflags': []},
+  {'bin': test_fs, 'file': 'tux/fs.c', 'inputs': '/proc/self/test.txt', 'cflags': []}
+]
+
+foreach input : testdata
+  out = input['file'].replace('/', '_') + '.lfi'
+  exec = custom_target(out,
+    output: out,
+    input: input['file'],
+    command: [lficc, '-O2', '-o', '@OUTPUT@', '@INPUT@', '-static-pie'] + input['cflags'],
+  )
+  expected = input['file'] + '.out'
+  test(input['file'],
+    go, args: ['run', 'run.go', expected, input['bin'], exec] + input['inputs'],
+    workdir: meson.current_source_dir(),
+    suite: ['liblfi']
+  )
 endforeach

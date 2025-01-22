@@ -46,6 +46,7 @@ LD_MULTI = < (
     | 'ldp'
     | 'ld' 'a'? 'xp'
     | 'ldnp'
+    | 'ld1sb'
 ) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 AO = 'add' | 'clr' | 'eor' | 'set'
