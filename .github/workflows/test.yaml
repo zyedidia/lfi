@@ -18,11 +18,11 @@ jobs:
 
     - name: Install LFI x86-64 Compiler
       if: matrix.os == 'ubuntu-22.04'
-      run: wget https://github.com/zyedidia/lfi/releases/download/v0.5/x86_64-lfi-clang.tar.gz && tar -xf x86_64-lfi-clang.tar.gz && echo "$PWD/x86_64-lfi-clang/lfi-bin" >> $GITHUB_PATH
+      run: wget -q https://github.com/zyedidia/lfi/releases/download/v0.5/x86_64-lfi-clang.tar.gz && tar -xf x86_64-lfi-clang.tar.gz && echo "$PWD/x86_64-lfi-clang/lfi-bin" >> $GITHUB_PATH
 
     - name: Install LFI AArch64 Compiler
       if: matrix.os == 'ubuntu-22.04-arm'
-      run: wget https://github.com/zyedidia/lfi/releases/download/v0.5/aarch64-lfi-clang.tar.gz && tar -xf aarch64-lfi-clang.tar.gz && echo "$PWD/aarch64-lfi-clang/lfi-bin" >> $GITHUB_PATH
+      run: wget -q https://github.com/zyedidia/lfi/releases/download/v0.5/aarch64-lfi-clang.tar.gz && tar -xf aarch64-lfi-clang.tar.gz && echo "$PWD/aarch64-lfi-clang/lfi-bin" >> $GITHUB_PATH
 
     - name: Build and Test
       run: |
