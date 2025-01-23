@@ -13,6 +13,7 @@ lfi_new_plat(size_t pagesize)
     struct PlatOptions opts = (struct PlatOptions) {
         .pagesize = pagesize,
         .vmsize = gb(4),
+        .verifier = NULL,
     };
 
     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));

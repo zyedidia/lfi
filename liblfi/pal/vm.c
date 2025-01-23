@@ -70,12 +70,13 @@ mapmem(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
 static int
 protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
 {
-    if ((prot & LFI_PROT_EXEC) == 0 || !verifier) {
+    if (((prot & LFI_PROT_EXEC) == 0) || !verifier) {
         return host_mprotect((void*) base, size, prot);
     } else if ((prot & LFI_PROT_EXEC) && (prot & LFI_PROT_WRITE)) {
         return -1;
     }
 
+    assert(verifier);
     if (!lfiv_verify(verifier, (void*) base, size, (uintptr_t) base)) {
         return -1;
     }
@@ -93,6 +94,7 @@ mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
     int r;
     if ((r = mapmem(as, start, size, LFI_PROT_READ, flags, hf, off)) < 0)
         return r;
+    assert(as->plat);
     if (protectverify(start, size, prot, as->plat->opts.verifier) < 0) {
         host_munmap((void*) start, size);
         return -1;
@@ -147,6 +149,7 @@ lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
     assert(addr >= as->minaddr && addr + size <= as->maxaddr);
 
     // TODO: mark the mapping with libmmap?
+    assert(as->plat);
     return protectverify(addr, size, prot, as->plat->opts.verifier);
 }
 
