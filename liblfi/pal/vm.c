@@ -70,7 +70,7 @@ mapmem(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
 static int
 protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
 {
-    if (((prot & LFI_PROT_EXEC) == 0) || !verifier) {
+    if (!verifier || ((prot & LFI_PROT_EXEC) == 0)) {
         return host_mprotect((void*) base, size, prot);
     } else if ((prot & LFI_PROT_EXEC) && (prot & LFI_PROT_WRITE)) {
         return -1;
@@ -87,7 +87,7 @@ static int
 mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
         int flags, struct HostFile* hf, off_t off)
 {
-    if ((prot & LFI_PROT_EXEC) == 0)
+    if (!verifier || ((prot & LFI_PROT_EXEC) == 0))
         return mapmem(as, start, size, prot, flags, hf, off);
     else if ((prot & LFI_PROT_WRITE) != 0)
         return -1;
