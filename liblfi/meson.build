@@ -46,6 +46,7 @@ liblfi = static_library(
     mmap.get_variable('mmap').as_link_whole(),
     boxmap.get_variable('boxmap').as_link_whole(),
     get_option('liblfi-perf') ? libelf.as_link_whole() : [],
+    liblfiv_dep.as_link_whole(),
   ],
   install: true,
 )
