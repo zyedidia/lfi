@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #include "args.h"
-#include "elf.h"
+#include "elfdefs.h"
 #include "lfiv.h"
 
 static char doc[] = "lfiv: LFI verifier";
