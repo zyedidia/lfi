@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lfiv.h"
 #include "lfi.h"
 #include "lfi_arch.h"
 #include "mmap.h"
@@ -10,6 +11,7 @@ struct PlatOptions {
     size_t pagesize;
     size_t vmsize;
     bool sysexternal;
+    LFIVerifier* verifier;
 };
 
 struct LFIPlatform {

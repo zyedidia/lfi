@@ -14,6 +14,7 @@ lfi_new_plat(size_t pagesize)
         .pagesize = pagesize,
         .vmsize = gb(4),
     };
+
     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
     if (!plat)
         return NULL;
