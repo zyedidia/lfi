@@ -20,7 +20,7 @@ sys_ioctl(struct TuxProc* p, int fd, unsigned long request, uintptr_t va0,
     if (fd != 0 && fd != 1 && fd != 2)
         return -TUX_EINVAL;
     if (request != TUX_TIOCGWINSZ) {
-        WARN("unknown ioctl request: %ld", request);
+        WARN(p->tux, "unknown ioctl request: %ld", request);
         return -TUX_EINVAL;
     }
     uint8_t* wsb = procbufalign(p, va0, sizeof(struct WinSize), alignof(struct WinSize));

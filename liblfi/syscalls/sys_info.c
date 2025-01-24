@@ -43,6 +43,6 @@ sys_sysinfo(struct TuxProc* p, lfiptr_t infop)
 int
 sys_getrlimit(struct TuxProc* p, int resource, uintptr_t rlimp)
 {
-    WARN("getrlimit ignored");
+    WARN(p->tux, "getrlimit ignored");
     return 0;
 }

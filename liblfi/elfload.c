@@ -83,7 +83,6 @@ load(struct LFIAddrSpace* as, buf_t buf, uintptr_t base, uintptr_t* pfirst, uint
     }
 
     if (!elfcheck(&ehdr)) {
-        WARN("elfcheck failed");
         return false;
     }
 

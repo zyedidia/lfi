@@ -110,13 +110,13 @@ procfile(struct TuxThread* p, uint8_t* prog, size_t progsz, int argc, char** arg
         if (cwk_path_is_absolute(interppath)) {
             interp = bufreadfile(p->proc->tux, interppath);
             if (!interp.data) {
-                WARN("error opening dynamic linker %s: %s", interppath, strerror(errno));
+                WARN(p->proc->tux, "error opening dynamic linker %s: %s", interppath, strerror(errno));
                 free(interppath);
                 return false;
             }
             VERBOSE(p->proc->tux, "dynamic linker: %s", interppath);
         } else {
-            WARN("interpreter ignored because it is relative path: %s", interppath);
+            WARN(p->proc->tux, "interpreter ignored because it is relative path: %s", interppath);
         }
         free(interppath);
     }

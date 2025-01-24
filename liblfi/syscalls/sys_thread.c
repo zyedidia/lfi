@@ -53,7 +53,7 @@ sys_futex(struct TuxThread* p, lfiptr_t uaddrp, int op, uint32_t val,
     case TUX_FUTEX_REQUEUE:
         return futexrequeue(p, uaddr, op, val);
     default:
-        WARN("invalid futex op %d\n", op);
+        WARN(p->proc->tux, "invalid futex op %d\n", op);
         return -TUX_EINVAL;
     }
 }
@@ -79,7 +79,7 @@ static int
 spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint64_t ctidp, uint64_t tls, uint64_t func)
 {
     if ((flags & 0xff) != 0 && (flags & 0xff) != TUX_SIGCHLD) {
-        WARN("unsupported clone signal: %x", (unsigned) flags & 0xff);
+        WARN(p->proc->tux, "unsupported clone signal: %x", (unsigned) flags & 0xff);
         return -TUX_EINVAL;
     }
     flags &= ~0xff;
@@ -92,11 +92,11 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
     flags &= ~ignored;
 
     if (flags & ~allowed) {
-        WARN("disallowed clone flags: %lx", (unsigned long) (flags & ~allowed));
+        WARN(p->proc->tux, "disallowed clone flags: %lx", (unsigned long) (flags & ~allowed));
         return -TUX_EINVAL;
     }
     if ((flags & required) != required) {
-        WARN("missing required clone flags: %lx", (unsigned long) required);
+        WARN(p->proc->tux, "missing required clone flags: %lx", (unsigned long) required);
         return -TUX_EINVAL;
     }
 
@@ -172,7 +172,7 @@ sys_sched_getaffinity(struct TuxProc* p, int32_t pid, uint64_t cpusetsize, int64
 int
 sys_sched_setaffinity(struct TuxProc* p, int32_t pid, uint64_t cpusetsize, int64_t maskaddr)
 {
-    WARN("unimplemented: sched_setaffinity");
+    WARN(p->tux, "unimplemented: sched_setaffinity");
     return 0;
 }
 

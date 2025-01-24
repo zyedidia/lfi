@@ -22,7 +22,7 @@ futexnew(struct TuxProc* proc, uintptr_t addr)
 {
     struct List* e;
     if (!(e = list_first(proc->futexes.free))) {
-        WARN("ran out of futexes");
+        WARN(proc->tux, "ran out of futexes");
         return NULL;
     }
     list_remove(&proc->futexes.free, e);

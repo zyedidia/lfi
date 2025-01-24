@@ -17,7 +17,7 @@ sys_prctl(struct TuxProc* p, int op, uint64_t arg2, uint64_t arg3, uint64_t arg4
     case TUX_PR_SET_NAME:
         return pr_set_name(p, arg2);
     default:
-        WARN("unknown prctl op %d", op);
+        WARN(p->tux, "unknown prctl op %d", op);
         return -TUX_EINVAL;
     }
 }

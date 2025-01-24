@@ -81,6 +81,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(prctl,             sys_prctl(proc, a0, a1, a2, a3, a4))
     SYS(set_robust_list,   0)
     SYS(membarrier,        0)
+    SYS(sigaltstack,       0)
     SYS(statx,             -TUX_ENOSYS)
     SYS(rseq,              -TUX_ENOSYS)
     SYS(prlimit64,         -TUX_ENOSYS)

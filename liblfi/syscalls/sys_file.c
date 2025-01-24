@@ -211,7 +211,6 @@ sys_fstat(struct TuxProc* p, int fd, lfiptr_t statbufp)
     return sys_newfstatat(p, fd, 0, statbufp, TUX_AT_EMPTY_PATH);
 }
 
-
 int
 sys_stat(struct TuxProc* p, lfiptr_t pathp, lfiptr_t statbufp)
 {
@@ -380,7 +379,7 @@ sys_faccessat2(struct TuxProc* p, int dirfd, uintptr_t pathp, int mode, int flag
     if (dirfd != TUX_AT_FDCWD && !dir)
         return -TUX_EBADF;
     if (flags != 0) {
-        WARN("faccessat2 used with non-zero flags");
+        WARN(p->tux, "faccessat2 used with non-zero flags");
         return -TUX_EINVAL;
     }
     const char* path = procpath(p, pathp);

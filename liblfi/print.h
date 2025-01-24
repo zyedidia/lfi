@@ -18,9 +18,10 @@
         fprintf(stderr, SGR_INFO "[liblfi] " fmt SGR_RESET "\n", ##__VA_ARGS__);        \
     } while (0)
 
-#define WARN(fmt, ...)                                                                  \
-    do {                                                                                \
-        fprintf(stderr, SGR_WARN "[liblfi] WARN: " fmt SGR_RESET "\n", ##__VA_ARGS__);  \
+#define WARN(tux, fmt, ...)                                                                 \
+    do {                                                                                    \
+        if (tux->opts.verbose)                                                              \
+            fprintf(stderr, SGR_WARN "[liblfi] WARN: " fmt SGR_RESET "\n", ##__VA_ARGS__);  \
     } while (0)
 
 #define DBG(fmt, ...)                                                                   \

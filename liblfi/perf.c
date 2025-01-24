@@ -7,7 +7,7 @@
 #include <libelf.h>
 #include <gelf.h>
 
-int perf_output_jit_interface_file(uint8_t * buffer, size_t file_size, uintptr_t offset) {
+int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
     Elf *e = elf_memory((char *) buffer, file_size);
     if (!e) {
         fprintf(stderr, "elf_memory failed: %s\n", elf_errmsg(-1));
@@ -89,9 +89,9 @@ err:
 #include <stdio.h>
 #include "print.h"
 
-int perf_output_jit_interface_file(uint8_t * buffer, size_t file_size, uintptr_t offset) {
+int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
     (void) buffer, (void) file_size, (void) offset;
-    WARN("perf support is disabled because liblfi was built without libelf");
+    fprintf(stderr, "perf support is disabled because liblfi was built without libelf");
     return 0;
 }
 
