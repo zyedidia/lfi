@@ -74,7 +74,7 @@ protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
     if (!verifier || ((prot & LFI_PROT_EXEC) == 0)) {
         return host_mprotect((void*) base, size, prot);
     } else if ((prot & LFI_PROT_EXEC) && (prot & LFI_PROT_WRITE)) {
-        WARN("attempted to use WX memory");
+        fprintf(stderr, "attempted to use WX memory");
         if (!verifier)
             return host_mprotect((void*) base, size, prot);
         return -1;
