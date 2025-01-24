@@ -4,7 +4,7 @@
 
 typedef uint64_t tux_dev_t;
 typedef uint64_t tux_ino_t;
-typedef uint32_t tux_nlink_t;
+typedef uint64_t tux_nlink_t;
 typedef uint32_t tux_mode_t;
 typedef uint32_t tux_uid_t;
 typedef uint32_t tux_gid_t;
