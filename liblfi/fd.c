@@ -62,7 +62,7 @@ fdrelease(struct FDFile* f, struct TuxProc* p)
     if (f->refs == 0) {
         if (f->close)
             f->close(f->dev);
-        free(f);
+        /* free(f); */
     }
 }
 
