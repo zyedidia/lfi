@@ -69,8 +69,9 @@ fdrelease(struct FDFile* f)
         if (f->close)
             f->close(f->dev);
         free(f);
+    } else {
+        unlock(&f->lk_refs);
     }
-    unlock(&f->lk_refs);
 }
 
 bool
