@@ -27,9 +27,9 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
         return 1;
     }
 
-    char* tmpdir = "/tmp";
+    char* tmpdir = "/data/local/tmp";
     if (!direxists(tmpdir))
-        tmpdir = "/data/local/tmp";
+        tmpdir = "/tmp";
     if (!direxists(tmpdir))
         tmpdir = ".";
 
