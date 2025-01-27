@@ -13,12 +13,20 @@ int fdalloc(struct FDTable* t);
 
 struct FDFile* fdget(struct FDTable* t, int fd);
 
-void fdrelease(struct FDFile* f, struct TuxProc* p);
+void fdrelease(struct FDFile* f);
 
-bool fdremove(struct FDTable* t, int fd, struct TuxProc* p);
+bool fdremove(struct FDTable* t, int fd);
 
 bool fdhas(struct FDTable* t, int fd);
 
-void fdclear(struct FDTable* t, struct TuxProc* p);
+void fdclear(struct FDTable* t);
 
 void fdinit(struct Tux* tux, struct FDTable* t);
+
+static inline void
+fdprelease(struct FDFile** fp)
+{
+    fdrelease(*fp);
+}
+
+#define FD_DEFER(f) f __attribute__((cleanup(fdprelease)))

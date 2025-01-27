@@ -27,7 +27,7 @@ sys_chdir(struct TuxProc* p, uintptr_t pathp)
         return -TUX_EFAULT;
     struct HostFile* file = host_openat(p->cwd.file, path, TUX_O_DIRECTORY | TUX_O_PATH, 0);
     if (p->cwd.fd) {
-        fdrelease(p->cwd.fd, p);
+        fdrelease(p->cwd.fd);
         p->cwd.fd = NULL;
     } else if (p->cwd.file) {
         host_close(p->cwd.file);
@@ -48,15 +48,10 @@ sys_fchdir(struct TuxProc* p, int fd)
     if (!host_isdir(file))
         return -TUX_ENOTDIR;
     if (p->cwd.fd) {
-        fdrelease(p->cwd.fd, p);
+        fdrelease(p->cwd.fd);
         p->cwd.fd = NULL;
     } else if (p->cwd.file) {
         host_close(p->cwd.file);
-    }
-
-    {
-        LOCK_WITH_DEFER(&f->lk_refs, lk_refs);
-        f->refs++;
     }
 
     p->cwd.fd = f;

@@ -234,6 +234,7 @@ procmapany(struct TuxProc* p, size_t size, int prot, int flags, int fd,
 {
     struct HostFile* hf = NULL;
     if (fd >= 0) {
+        // TODO: fdrelease
         struct FDFile* f = fdget(&p->fdtable, fd);
         if (!f)
             return -TUX_EBADF;
@@ -257,6 +258,7 @@ procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flags,
 {
     struct HostFile* hf = NULL;
     if (fd >= 0) {
+        // TODO: fdrelease
         struct FDFile* f = fdget(&p->fdtable, fd);
         if (!f)
             return -TUX_EBADF;

@@ -35,10 +35,10 @@ fdhas_x(struct FDTable* t, int fd)
 }
 
 static bool
-fdremove_x(struct FDTable* t, int fd, struct TuxProc* p)
+fdremove_x(struct FDTable* t, int fd)
 {
     if (fdhas_x(t, fd)) {
-        fdrelease(t->files[fd], p);
+        fdrelease(t->files[fd]);
         t->files[fd] = NULL;
         return true;
     }
@@ -49,28 +49,35 @@ struct FDFile*
 fdget(struct FDTable* t, int fd)
 {
     LOCK_WITH_DEFER(&t->lk, lk);
-    if (fdhas_x(t, fd))
+    if (fdhas_x(t, fd)) {
+        LOCK_WITH_DEFER(&t->files[fd]->lk_refs, lk_refs);
+        t->files[fd]->refs++;
         return t->files[fd];
+    }
     return NULL;
 }
 
 void
-fdrelease(struct FDFile* f, struct TuxProc* p)
+fdrelease(struct FDFile* f)
 {
-    LOCK_WITH_DEFER(&f->lk_refs, lk_refs);
+    if (!f)
+        return;
+    lock(&f->lk_refs);
     f->refs--;
     if (f->refs == 0) {
+        unlock(&f->lk_refs);
         if (f->close)
             f->close(f->dev);
         free(f);
     }
+    unlock(&f->lk_refs);
 }
 
 bool
-fdremove(struct FDTable* t, int fd, struct TuxProc* p)
+fdremove(struct FDTable* t, int fd)
 {
     LOCK_WITH_DEFER(&t->lk, lk);
-    return fdremove_x(t, fd, p);
+    return fdremove_x(t, fd);
 }
 
 bool
@@ -81,11 +88,11 @@ fdhas(struct FDTable* t, int fd)
 }
 
 void
-fdclear(struct FDTable* t, struct TuxProc* p)
+fdclear(struct FDTable* t)
 {
     LOCK_WITH_DEFER(&t->lk, lk);
     for (int fd = 0; fd < TUX_NOFILE; fd++) {
-        fdremove_x(t, fd, p);
+        fdremove_x(t, fd);
     }
 }
 

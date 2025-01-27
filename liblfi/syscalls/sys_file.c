@@ -14,6 +14,7 @@ getfdir(struct TuxProc* p, int dirfd)
 {
     if (dirfd == TUX_AT_FDCWD)
         return p->cwd.file;
+    // TODO: fdrelease
     struct FDFile* f = fdget(&p->fdtable, dirfd);
     if (!f || !f->file)
         return NULL;
@@ -28,7 +29,7 @@ sys_write(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size)
 {
     if (size == 0)
         return 0;
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->write)
@@ -44,7 +45,7 @@ sys_read(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size)
 {
     if (size == 0)
         return 0;
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->read)
@@ -117,7 +118,7 @@ sys_openat(struct TuxProc* p, int dirfd, lfiptr_t pathp, int flags, int mode)
     }
     int fd = fdalloc(&p->fdtable);
     if (fd < 0) {
-        fdrelease(f, p);
+        fdrelease(f);
         VERBOSE(p->tux, "sys_open(\"%s\") = %d", path, -TUX_EMFILE);
         return -TUX_EMFILE;
     }
@@ -135,7 +136,7 @@ sys_open(struct TuxProc* p, lfiptr_t pathp, int flags, int mode)
 int
 sys_close(struct TuxProc* p, int fd)
 {
-    bool ok = fdremove(&p->fdtable, fd, p);
+    bool ok = fdremove(&p->fdtable, fd);
     if (!ok)
         return -TUX_EBADF;
     return 0;
@@ -166,7 +167,7 @@ sys_readlink(struct TuxProc* p, lfiptr_t pathp, lfiptr_t bufp, size_t size)
 ssize_t
 sys_pread64(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size, ssize_t offset)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->read || !f->lseek)
@@ -197,7 +198,7 @@ sys_newfstatat(struct TuxProc* p, int dirfd, lfiptr_t pathp, lfiptr_t statbufp, 
             return -TUX_EBADF;
         return host_fstatat(dir, path, stat, 0);
     }
-    struct FDFile* f = fdget(&p->fdtable, dirfd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, dirfd);
     if (!f)
         return -TUX_EBADF;
     if (!f->stat_)
@@ -227,7 +228,7 @@ sys_lstat(struct TuxProc* p, lfiptr_t pathp, lfiptr_t statbufp)
 ssize_t
 sys_getdents64(struct TuxProc* p, int fd, lfiptr_t dirp, size_t count)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->getdents)
@@ -241,7 +242,7 @@ sys_getdents64(struct TuxProc* p, int fd, lfiptr_t dirp, size_t count)
 off_t
 sys_lseek(struct TuxProc* p, int fd, off_t offset, int whence)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->lseek)
@@ -270,7 +271,7 @@ sys_truncate(struct TuxProc* p, uintptr_t pathp, off_t length)
 int
 sys_ftruncate(struct TuxProc* p, int fd, off_t length)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->truncate)
@@ -290,7 +291,7 @@ sys_chown(struct TuxProc* p, uintptr_t pathp, tux_uid_t owner, tux_gid_t group)
 int
 sys_fchown(struct TuxProc* p, int fd, tux_uid_t owner, tux_gid_t group)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->chown)
@@ -310,7 +311,7 @@ sys_chmod(struct TuxProc* p, uintptr_t pathp, tux_mode_t mode)
 int
 sys_fchmod(struct TuxProc* p, int fd, tux_mode_t mode)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->chmod)
@@ -321,7 +322,7 @@ sys_fchmod(struct TuxProc* p, int fd, tux_mode_t mode)
 int
 sys_fsync(struct TuxProc* p, int fd)
 {
-    struct FDFile* f = fdget(&p->fdtable, fd);
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
     if (!f)
         return -TUX_EBADF;
     if (!f->sync)
