@@ -83,7 +83,7 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
                 }
 
                 // Write to perf map file
-                fprintf(out, "%016lx %08lx %s\n",
+                fprintf(out, "0x%016lx 0x%08lx %s\n",
                         (unsigned long)sym.st_value + offset,
                         (unsigned long)sym.st_size,
                         name);
