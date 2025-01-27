@@ -6,6 +6,19 @@
 #include <unistd.h>
 #include <libelf.h>
 #include <gelf.h>
+#include <stdbool.h>
+#include <dirent.h>
+
+static bool
+direxists(const char* dirname)
+{
+    DIR* dir = opendir(dirname);
+    if (dir) {
+        closedir(dir);
+        return true;
+    }
+    return false;
+}
 
 int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
     Elf *e = elf_memory((char *) buffer, file_size);
@@ -14,8 +27,14 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
         return 1;
     }
 
+    char* tmpdir = "/tmp";
+    if (!direxists(tmpdir))
+        tmpdir = "/data/local/tmp";
+    if (!direxists(tmpdir))
+        tmpdir = ".";
+
     char output_file[256];
-    snprintf(output_file, sizeof(output_file), "/tmp/perf-%d.map", getpid());
+    snprintf(output_file, sizeof(output_file), "%s/perf-%d.map", tmpdir, getpid());
     FILE *out = fopen(output_file, "w");
     if (!out) {
         perror("fopen");
@@ -91,7 +110,7 @@ err:
 
 int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
     (void) buffer, (void) file_size, (void) offset;
-    fprintf(stderr, "perf support is disabled because liblfi was built without libelf");
+    fprintf(stderr, "perf support is disabled because liblfi was built without libelf\n");
     return 0;
 }
 
