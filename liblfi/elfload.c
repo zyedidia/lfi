@@ -7,6 +7,11 @@
 #include "elfload.h"
 #include "syscalls/syscalls.h"
 
+#ifdef CONFIG_GDB
+#define LIBBREAKPOINT_DEFAULT_DISABLED
+#include "breakpoint.h"
+#endif
+
 enum {
     MAPANON = LFI_MAP_PRIVATE | LFI_MAP_ANONYMOUS,
     MAPFILE = LFI_MAP_PRIVATE,
@@ -207,6 +212,18 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
             goto err;
     }
 
+    if (opts.gdbfile) {
+#ifdef CONFIG_GDB
+        char cmd[64];
+        snprintf(cmd, sizeof(cmd), "add-symbol-file %s -o 0x%lx", opts.gdbfile, pfirst);
+        libbreakpoint_push_gdb_command("file");
+        libbreakpoint_push_gdb_command(cmd);
+        breakpoint;
+#else
+        fprintf(stderr, "warning: gdb option ignored because liblfi was not compiled with gdb support\n");
+#endif
+    }
+
     struct FileHeader ehdr;
     ssize_t n = bufread(prog, &ehdr, sizeof(ehdr), 0);
     assert(n == sizeof(ehdr));
@@ -239,5 +256,6 @@ elfload(struct TuxThread* p, uint8_t* progdat, size_t progsz, uint8_t* interpdat
         .stacksize = STACKSIZE,
         .pagesize = p->proc->tux->opts.pagesize,
         .perf = p->proc->tux->opts.perf,
+        .gdbfile = p->proc->tux->opts.gdbfile,
     });
 }

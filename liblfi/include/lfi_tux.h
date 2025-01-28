@@ -18,6 +18,7 @@ struct TuxOptions {
     bool strace;
     bool perf;
     struct TuxFS fs;
+    char* gdbfile;
 };
 
 struct LFIPlatform;

@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://lair.masot.net/git/libbreakpoint.git
+revision = master
+directory = libbreakpoint
+patch_directory = libbreakpoint

@@ -23,12 +23,14 @@ enum {
 enum {
     ARG_strace   = 0x80,
     ARG_pagesize = 0x81,
+    ARG_gdb      = 0x82,
 };
 
 struct Args {
     char* inputs[INPUTMAX];
     size_t ninputs;
     struct TuxOptions opts;
+    bool gdb;
 };
 
 static char doc[] = "lfi-run: LFI Linux emulator";
@@ -38,7 +40,8 @@ static char args_doc[] = "INPUT...";
 static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "verbose",        'V',               0,      0, "show verbose output", -1 },
-    { "perf",        	'p',             	   0,      0, "enable perf support", -1 },
+    { "perf",        	'p',          	   0,      0, "enable perf support", -1 },
+    { "gdb",        	ARG_gdb,       	   0,      0, "enable gdb support", -1 },
     { "strace",         ARG_strace,        0,      0, "show system call trace", -1 },
     { "pagesize",       ARG_pagesize,      "SIZE", 0, "system page size", -1 },
     { 0 },
@@ -64,6 +67,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_pagesize:
         args->opts.pagesize = atoi(arg);
+        break;
+    case ARG_gdb:
+        args->gdb = true;
         break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)
@@ -107,6 +113,9 @@ main(int argc, char** argv)
     struct LFIPlatform* plat = lfi_new_plat(args.opts.pagesize);
 
     args.opts.stacksize = mb(2);
+
+    if (args.gdb)
+        args.opts.gdbfile = args.inputs[0];
 
     struct Tux* tux = lfi_tux_new(plat, args.opts);
 

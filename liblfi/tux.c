@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "config.h"
 #include "lfi_tux.h"
 #include "host.h"
 #include "lfi.h"
@@ -8,6 +9,11 @@
 #include "engine.h"
 
 #include "arch_sys.h"
+
+#ifdef CONFIG_GDB
+#define LIBBREAKPOINT_DEFAULT_DISABLED
+#include "breakpoint.h"
+#endif
 
 EXPORT void
 lfi_tux_syscall(struct LFIContext* ctx)
@@ -18,6 +24,11 @@ lfi_tux_syscall(struct LFIContext* ctx)
 EXPORT struct Tux*
 lfi_tux_new(struct LFIPlatform* plat, struct TuxOptions opts)
 {
+#ifdef CONFIG_GDB
+    if (opts.gdbfile)
+        start_libbreakpoint();
+#endif
+
     struct Tux* tux = malloc(sizeof(struct Tux));
     if (!tux)
         return NULL;
