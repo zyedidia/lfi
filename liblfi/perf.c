@@ -20,7 +20,9 @@ direxists(const char* dirname)
     return false;
 }
 
-int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
+int
+perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset)
+{
     Elf *e = elf_memory((char *) buffer, file_size);
     if (!e) {
         fprintf(stderr, "elf_memory failed: %s\n", elf_errmsg(-1));
@@ -57,7 +59,7 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
         GElf_Shdr shdr;
         if (!gelf_getshdr(scn, &shdr)) {
             fprintf(stderr, "gelf_getshdr failed: %s\n", elf_errmsg(-1));
-	    goto err;
+            goto err;
         }
 
         // Look for symbol table sections
@@ -65,7 +67,7 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
             Elf_Data *data = elf_getdata(scn, NULL);
             if (!data) {
                 fprintf(stderr, "elf_getdata failed: %s\n", elf_errmsg(-1));
-		goto err;
+                goto err;
             }
 
             size_t num_symbols = shdr.sh_size / shdr.sh_entsize;
@@ -75,6 +77,10 @@ int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t 
                     fprintf(stderr, "gelf_getsym failed: %s\n", elf_errmsg(-1));
                     continue;
                 }
+
+                // Skip 0-size entries
+                if (sym.st_size == 0)
+                    continue;
 
                 // Get symbol name
                 const char *name = elf_strptr(e, shdr.sh_link, sym.st_name);
@@ -108,7 +114,9 @@ err:
 #include <stdio.h>
 #include "print.h"
 
-int perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset) {
+int
+perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset)
+{
     (void) buffer, (void) file_size, (void) offset;
     fprintf(stderr, "perf support is disabled because liblfi was built without libelf\n");
     return 0;
