@@ -53,3 +53,7 @@ gb(size_t x)
 }
 
 _Thread_local extern struct LFIContext* lfi_myctx;
+
+void pal_register_clonectx(struct LFIContext* ctx);
+
+void pal_register_myctx(struct LFIContext* ctx);

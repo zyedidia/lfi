@@ -8,6 +8,7 @@
 #include "host.h"
 #include "futex.h"
 #include "syscalls/syscalls.h"
+#include "pal/platform.h"
 
 static long
 futexwait(struct TuxThread* p, uint32_t* uaddr, int op, uint32_t val, uintptr_t timeoutp)
@@ -125,16 +126,26 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
     *regs_return(regs) = 0;
     *regs_sp(regs) = procaddr(p->proc, stack);
 
-    pthread_t thread;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    int err = pthread_create(&thread, &attr, threadspawn, p2);
-    pthread_attr_destroy(&attr);
-    if (err) {
-        assert(!"unimplemented: free machine");
-        return -TUX_EAGAIN;
+    if (p->proc->tux->opts.soboxinit) {
+        // A new thread is being created during sobox initialization. Instead
+        // of creating a new kernel thread, we just save the stack and tls that
+        // was created so it can be reused when we need to spawn threads in the
+        // future.
+        pal_register_clonectx(p2->p_ctx);
+    } else {
+        // Actually create a new thread.
+        pthread_t thread;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        int err = pthread_create(&thread, &attr, threadspawn, p2);
+        pthread_attr_destroy(&attr);
+        if (err) {
+            assert(!"unimplemented: free machine");
+            return -TUX_EAGAIN;
+        }
     }
+
     if (flags & TUX_CLONE_PARENT_SETTID) {
         atomic_store_explicit(ptid, p2->tid, memory_order_release);
     }

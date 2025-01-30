@@ -57,12 +57,12 @@ UntrustedDirective = < ('.text' | '.section') (!EOL .)* > {
     op->notruststart = true;
 }
 
-Enable = '//lfi:enable' (!EOL .)* {
+Enable = ('//' | '#') 'lfi:enable' (!EOL .)* {
     struct op* op = mkcomment("//lfi:enable");
     op->notruststart = true;
 }
 
-Disable = '//lfi:disable' (!EOL .)* {
+Disable = ('//' | '#') 'lfi:disable' (!EOL .)* {
     struct op* op = mkcomment("//lfi:disable");
     op->truststart = true;
 }

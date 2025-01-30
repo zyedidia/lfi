@@ -67,3 +67,9 @@ lfi_tux_proc_run(struct TuxThread* p)
 {
     return lfi_ctx_run(p->p_ctx, p->proc->p_as);
 }
+
+EXPORT void
+lfi_tux_soboxinit(struct Tux* tux, bool val)
+{
+    tux->opts.soboxinit = val;
+}

@@ -17,6 +17,7 @@ struct TuxOptions {
     bool verbose;
     bool strace;
     bool perf;
+    bool soboxinit;
     struct TuxFS fs;
     char* gdbfile;
 };
@@ -36,3 +37,5 @@ uint64_t lfi_tux_proc_run(struct TuxThread* p);
 void lfi_tux_syscall(struct LFIContext* ctx);
 
 struct LFIContext* lfi_tux_ctx(struct TuxThread* p);
+
+void lfi_tux_soboxinit(struct Tux* tux, bool val);

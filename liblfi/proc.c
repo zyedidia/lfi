@@ -59,8 +59,6 @@ procnewthread(struct TuxThread* p)
     newp->tid = nexttid();
     *lfi_ctx_regs(newp->p_ctx) = *lfi_ctx_regs(p->p_ctx);
 
-    // TODO: allocate stack?
-
     return newp;
 
 err1:

@@ -3,8 +3,12 @@
 #include <sys/mman.h>
 
 #include "host.h"
+#include "thread.h"
 #include "pal/platform.h"
 #include "pal/regs.h"
+
+pthread_mutex_t lfi_clonectx_lk = PTHREAD_MUTEX_INITIALIZER;
+struct LFIContext* lfi_clonectx;
 
 _Thread_local struct LFIContext* lfi_myctx;
 
@@ -140,4 +144,18 @@ EXPORT struct LFIAddrSpace*
 lfi_ctx_as(struct LFIContext* ctx)
 {
     return ctx->as;
+}
+
+void
+pal_register_clonectx(struct LFIContext* ctx)
+{
+    assert(lfi_clonectx == NULL);
+    LOCK_WITH_DEFER(&lfi_clonectx_lk, lk);
+    lfi_clonectx = ctx;
+}
+
+void
+pal_register_myctx(struct LFIContext* ctx)
+{
+    assert(!"unimplemented");
 }
