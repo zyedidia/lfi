@@ -178,3 +178,7 @@ int sys_set_tid_address(struct TuxThread* p, uintptr_t ctid);
 int sys_gettid(struct TuxThread* p);
 
 int sys_prctl(struct TuxProc* p, int op, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5);
+
+uintptr_t sys_ignore(struct TuxProc* p, const char* name);
+
+uintptr_t sys_nosys(struct TuxProc* p, const char* name);

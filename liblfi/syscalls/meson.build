@@ -10,6 +10,7 @@ srcs += files(
   'sys_fcntl.c',
   'sys_cwd.c',
   'sys_prctl.c',
+  'sys_none.c',
   'strace.c',
 )
 
