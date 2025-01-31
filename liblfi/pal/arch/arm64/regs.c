@@ -11,3 +11,15 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext* 
     regs->x30 = as->base;
     regs->REG_SYS = (uintptr_t) ctx->sys;
 }
+
+uintptr_t*
+lfi_regs_entry(struct TuxRegs* regs)
+{
+    return &regs->x30;
+}
+
+uintptr_t*
+lfi_regs_arg0(struct TuxRegs* regs)
+{
+    return &regs->x0;
+}

@@ -132,6 +132,11 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
         // was created so it can be reused when we need to spawn threads in the
         // future.
         pal_register_clonectx(p2->p_ctx);
+    } else if (p->p_ctx == lfi_clonectx) {
+        threadspawn(p2);
+        lfi_newctx = p2->p_ctx;
+        // does not return
+        lfi_ctx_pause(p->p_ctx, 0);
     } else {
         // Actually create a new thread.
         pthread_t thread;

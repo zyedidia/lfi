@@ -7,8 +7,11 @@
 #include "pal/platform.h"
 #include "pal/regs.h"
 
+// context for injecting clone calls
 pthread_mutex_t lfi_clonectx_lk = PTHREAD_MUTEX_INITIALIZER;
 struct LFIContext* lfi_clonectx;
+// for newly cloned thread contexts
+_Thread_local struct LFIContext* lfi_newctx;
 
 _Thread_local struct LFIContext* lfi_myctx;
 
@@ -154,8 +157,14 @@ pal_register_clonectx(struct LFIContext* ctx)
     lfi_clonectx = ctx;
 }
 
-void
-pal_register_myctx(struct LFIContext* ctx)
+EXPORT void
+lfi_thread_init(void* thread_create, void* pausefn)
 {
-    assert(!"unimplemented");
+    // invoke sbx_thread_create(&_lfi_pause) with the clone context
+    LOCK_WITH_DEFER(&lfi_clonectx_lk, lk);
+    *lfi_regs_entry(&lfi_clonectx->regs) = (uintptr_t) thread_create;
+    *lfi_regs_arg0(&lfi_clonectx->regs) = (uintptr_t) pausefn;
+    lfi_ctx_run(lfi_clonectx, lfi_clonectx->as);
+    lfi_myctx = lfi_newctx;
+    lfi_newctx = NULL;
 }

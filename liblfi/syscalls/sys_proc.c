@@ -21,10 +21,11 @@ uintptr_t
 sys_exit(struct TuxThread* p, uint64_t code)
 {
     clearctid(p);
-    if (p->proc->tux->opts.pause_on_exit)
+    if (p->proc->tux->opts.pause_on_exit) {
         lfi_ctx_pause(p->p_ctx, code);
-    else
+    } else {
         lfi_ctx_exit(p->p_ctx, code);
+    }
     assert(!"unreachable");
 }
 
