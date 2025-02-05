@@ -1,9 +1,44 @@
-option('fuzzer', type: 'boolean', value: false)
-option('liblfi', type: 'string', value: 'standard', description: 'liblfi configuration (standard, small)')
-option('liblfi-threads', type: 'boolean', value: true, description: 'liblfi: enable use of threads and futexes')
-option('liblfi-max_futex', type: 'integer', min: 1, max: 16384, value: 512, description: 'liblfi: maximum number of futexes per process')
-option('liblfi-perf', type: 'boolean', value: true, description: 'liblfi: enable perf support')
-option('liblfi-host', type: 'string', value: 'linux', description: 'liblfi: host platform')
-option('liblfi-only', type: 'boolean', value: false, description: 'only build liblfi/lfi-run and no compiler tools')
-option('liblfi-gdb', type: 'boolean', value: false, description: 'build liblfi with GDB support')
-option('tools-only', type: 'boolean', value: false, description: 'only build compiler tools and not liblfi/lfi-run')
+option('fuzzer',
+  type: 'boolean',
+  value: false)
+
+option('liblfi',
+  type: 'string',
+  value: 'standard',
+  description: 'liblfi configuration (standard, small)')
+
+option('liblfi-threads',
+  type: 'boolean',
+  value: true,
+  description: 'liblfi: enable use of threads and futexes')
+
+option('liblfi-max_futex',
+  type: 'integer',
+  min: 1,
+  max: 16384,
+  value: 512,
+  description: 'liblfi: maximum number of futexes per process')
+
+option('liblfi-perf',
+  type: 'boolean',
+  value: true,
+  description: 'liblfi: enable perf support')
+
+option('liblfi-host',
+  type: 'string',
+  value: 'linux',
+  description: 'liblfi: host platform')
+
+option('liblfi-only',
+  type: 'boolean',
+  value: false,
+  description: 'only build liblfi/lfi-run and no compiler tools')
+
+option('liblfi-gdb',
+  type: 'boolean',
+  value: false, description: 'build liblfi with GDB support')
+
+option('tools-only',
+  type: 'boolean',
+  value: false,
+  description: 'only build compiler tools and not liblfi/lfi-run')
