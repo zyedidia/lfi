@@ -65,4 +65,8 @@ install_headers('include/lfi_host.h')
 
 liblfi_dep = declare_dependency(link_with: liblfi, include_directories: include_directories('include'))
 
+if not get_option('liblfi-tests')
+  subdir_done()
+endif
+
 subdir('test')

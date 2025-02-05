@@ -242,7 +242,6 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
     flagset_t undef = F_CF | F_OF | F_SF | F_ZF | F_PF | F_AF;
 
     leaders[0] = true;
-    size_t nleaders = 1;
 
     v->addr = addr;
     for (size_t i = 0; i < n; i++) {
@@ -255,16 +254,12 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
         branch = branch && !indirect;
         if (branch && i+1 < n) {
             // Instruction after a branch is a leader.
-            if (!leaders[i+1])
-                nleaders++;
             leaders[i+1] = true;
         }
         // Target is a leader.
         if (branch) {
             ssize_t i = findinstr(instrs, n, target - addr);
             if (i >= 0) {
-                if (!leaders[i])
-                    nleaders++;
                 leaders[i] = true;
             }
         }

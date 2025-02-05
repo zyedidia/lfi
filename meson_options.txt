@@ -34,6 +34,11 @@ option('liblfi-only',
   value: false,
   description: 'only build liblfi/lfi-run and no compiler tools')
 
+option('liblfi-tests',
+  type: 'boolean',
+  value: true,
+  description: 'build liblfi tests')
+
 option('liblfi-gdb',
   type: 'boolean',
   value: false, description: 'build liblfi with GDB support')

@@ -22,4 +22,8 @@ install_headers('lfi_small.h')
 
 liblfi_small_dep = declare_dependency(link_with: liblfi_small, include_directories: include_directories('.'))
 
+if not get_option('liblfi-tests')
+  subdir_done()
+endif
+
 subdir('test')
