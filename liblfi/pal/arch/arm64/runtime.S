@@ -132,8 +132,11 @@ lfi_asm_ctx_exit:
 lfi_ret:
 	GET_PROC
 	// restore kernel stack
-	ldr x22, [x21]
+	ldr x22, [REG_BASE]
 	mov sp, x22
+	// restore the user sp to its initial value
+	ldp x22, xzr, [sp], 16
+	str x22, [REG_BASE, PROC_REGS+16*15+8]
 	// restore callee-saved registers
 	ldp x29, x30, [sp], 16
 	ldp x27, x28, [sp], 16
