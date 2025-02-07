@@ -158,13 +158,13 @@ pal_register_clonectx(struct LFIContext* ctx)
 }
 
 EXPORT void
-lfi_thread_init(void* thread_create, void* pausefn)
+lfi_thread_init(void (*thread_create)(void*), void* pausefn)
 {
     // invoke sbx_thread_create(&_lfi_pause) with the clone context
     LOCK_WITH_DEFER(&lfi_clonectx_lk, lk);
-    *lfi_regs_entry(&lfi_clonectx->regs) = (uintptr_t) thread_create;
-    *lfi_regs_arg0(&lfi_clonectx->regs) = (uintptr_t) pausefn;
-    lfi_ctx_run(lfi_clonectx, lfi_clonectx->as);
+    assert(lfi_myctx == NULL);
+    lfi_myctx = lfi_clonectx;
+    thread_create(pausefn);
     lfi_myctx = lfi_newctx;
     lfi_newctx = NULL;
 }
