@@ -89,8 +89,7 @@ The LFI project provides the following tools:
 
 * `lfi-leg`: reads a `.s` file, and produces an LFI-compatible `.s` file.
 * `lfi-verify`: verifies ELF binaries for LFI-compatibility.
-* `lfi-postlink`: patches binaries after linking (required for metering and
-  certain x86-64 optimizations).
+* `lfi-postlink`: patches binaries after linking (required for certain x86-64 optimizations).
 * `lfi-run`: runs an LFI-compatible binary.
 
 # Installation
