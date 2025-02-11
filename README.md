@@ -201,16 +201,25 @@ Some notes:
   allows for more efficient return sequences, but is only applicable when
   sandboxed programs are single-threaded.
 
+# Library Sandboxing
+
+By default, the LFI compiler produces executables that you can run in a
+sandboxed environment. To adapt this model to library sandboxing, a tool called
+[Sobox](https://github.com/zyedidia/sobox) can be used to generate bindings for
+a library compiled with LFI so that functions within the sandbox can be invoked
+by a host. Since the LFI sandbox runs within a single process, invoking a
+sandboxed function is very cheap -- roughly 20-40 cycles.
+
 # Roadmap
 
-The LFI project is currently under development. The focus is on the following
-features:
+The LFI project is currently under development. Here are some directions we are
+interested in (some of which are being actively developed):
 
+* Integration with library sandboxing tools.
 * New capabilities and full security for the runtime.
 * Optimized integration with WebAssembly (efficiently run WebAssembly inside LFI).
 * Support for dynamic recompilation to other architectures.
-* Native support for x86-64 and RISC-V.
+* Native support for RISC-V.
 * Instrumentation of static binaries, so you don't need to recompile your program.
-* Support for cool new features that are not yet announced.
 * Support for Arm software context IDs for mitigating Spectre attacks (requires
   modifications to Linux, which Arm will hopefully implement soon).
