@@ -20,6 +20,6 @@ host_getpath(struct HostFile* dir, char* buf, size_t size)
     ssize_t r = readlink(procfd, buf, size - 1);
     if (r < 0)
         return tuxerr(errno);
-    buf[r] = 0;
-    return r;
+    buf[r + 1] = 0;
+    return r + 1;
 }

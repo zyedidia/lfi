@@ -18,6 +18,7 @@ sys_getcwd(struct TuxProc* p, uintptr_t bufp, size_t size)
         return -TUX_EINVAL;
     assert(r_size <= size);
     buf[r_size - 1] = 0;
+    VERBOSE(p->tux, "sys_getcwd(\"%s\", %ld) = %ld", buf, size, r_size);
     return r_size;
 }
 
