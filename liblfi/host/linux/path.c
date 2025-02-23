@@ -4,7 +4,7 @@
 #include "host/posix/file.h"
 #include "host/error.h"
 
-int
+ssize_t
 host_getpath(struct HostFile* dir, char* buf, size_t size)
 {
     if (!dir) {
@@ -12,7 +12,7 @@ host_getpath(struct HostFile* dir, char* buf, size_t size)
         char* d = getcwd(buf, size);
         if (!d)
             return tuxerr(errno);
-        return 0;
+        return strnlen(d, size) + 1;
     }
 
     char procfd[32];
@@ -21,5 +21,5 @@ host_getpath(struct HostFile* dir, char* buf, size_t size)
     if (r < 0)
         return tuxerr(errno);
     buf[r] = 0;
-    return 0;
+    return r;
 }

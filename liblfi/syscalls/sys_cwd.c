@@ -4,7 +4,7 @@
 #include "fd.h"
 #include "host.h"
 
-uintptr_t
+ssize_t
 sys_getcwd(struct TuxProc* p, uintptr_t bufp, size_t size)
 {
     if (size == 0)
@@ -13,10 +13,12 @@ sys_getcwd(struct TuxProc* p, uintptr_t bufp, size_t size)
     if (!buf)
         return -TUX_EFAULT;
     size = size < TUX_PATH_MAX ? size : TUX_PATH_MAX;
-    if (host_getpath(p->cwd.file, (char*) buf, size) < 0)
-        return 0;
-    buf[size - 1] = 0;
-    return (uintptr_t) buf;
+    ssize_t r_size = host_getpath(p->cwd.file, (char*) buf, size);
+    if (r_size < 0)
+        return -TUX_EINVAL;
+    assert(r_size <= size);
+    buf[r_size - 1] = 0;
+    return r_size;
 }
 
 int

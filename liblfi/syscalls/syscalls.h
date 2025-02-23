@@ -140,7 +140,7 @@ int sys_sched_yield(struct TuxProc* p);
 
 tux_time_t sys_time(struct TuxProc* p, uintptr_t tlocp);
 
-uintptr_t sys_getcwd(struct TuxProc* p, uintptr_t buf, size_t size);
+ssize_t sys_getcwd(struct TuxProc* p, uintptr_t buf, size_t size);
 
 int sys_fsync(struct TuxProc* p, int fd);
 

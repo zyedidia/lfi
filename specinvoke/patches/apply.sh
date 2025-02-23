@@ -6,3 +6,4 @@ patch -p0 < $PATCH/prm.c.patch
 patch -p0 < $PATCH/molio.c.patch
 patch -p0 < $PATCH/configfile.h.patch
 patch -p0 < $PATCH/configfile.c.patch
+patch -p0 < $PATCH/obstack.h.patch

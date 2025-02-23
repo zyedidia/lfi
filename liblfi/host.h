@@ -84,7 +84,7 @@ int host_renameat2(struct HostFile* olddir, const char* oldpath,
 
 int host_faccessat2(struct HostFile* dir, const char* path, int mode, int flags);
 
-int host_getpath(struct HostFile* dir, char* buf, size_t size);
+ssize_t host_getpath(struct HostFile* dir, char* buf, size_t size);
 
 bool host_isdir(struct HostFile* file);
 
