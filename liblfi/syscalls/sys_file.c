@@ -260,6 +260,7 @@ sys_truncate(struct TuxProc* p, uintptr_t pathp, off_t length)
     if (!cwk_path_is_absolute(path)) {
         char cwd[TUX_PATH_MAX];
         int r;
+        LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
         if ((r = host_getpath(p->cwd.file, cwd, sizeof(cwd))) < 0)
             return r;
         cwk_path_join(cwd, path, buffer, sizeof(buffer));
@@ -285,6 +286,7 @@ sys_chown(struct TuxProc* p, uintptr_t pathp, tux_uid_t owner, tux_gid_t group)
     const char* path = procpath(p, pathp);
     if (!path)
         return -TUX_EFAULT;
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     return host_fchownat(p->cwd.file, path, owner, group, 0);
 }
 
@@ -305,6 +307,7 @@ sys_chmod(struct TuxProc* p, uintptr_t pathp, tux_mode_t mode)
     const char* path = procpath(p, pathp);
     if (!path)
         return -TUX_EFAULT;
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     return host_fchmodat(p->cwd.file, path, mode, 0);
 }
 
@@ -333,6 +336,7 @@ sys_fsync(struct TuxProc* p, int fd)
 int
 sys_unlinkat(struct TuxProc* p, int dirfd, lfiptr_t pathp, int flags)
 {
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     struct HostFile* dir = getfdir(p, dirfd);
     if (dirfd != TUX_AT_FDCWD && !dir)
         return -TUX_EBADF;
@@ -356,6 +360,7 @@ sys_unlink(struct TuxProc* p, lfiptr_t pathp)
 int
 sys_renameat(struct TuxProc* p, int olddir, uintptr_t oldpathp, int newdir, uintptr_t newpathp)
 {
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     struct HostFile* oldf = getfdir(p, olddir);
     struct HostFile* newf = getfdir(p, newdir);
     if ((olddir != TUX_AT_FDCWD && !oldf) || (newdir != TUX_AT_FDCWD && !newf))
@@ -376,6 +381,7 @@ sys_rename(struct TuxProc* p, uintptr_t oldpathp, uintptr_t newpathp)
 int
 sys_faccessat2(struct TuxProc* p, int dirfd, uintptr_t pathp, int mode, int flags)
 {
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     struct HostFile* dir = getfdir(p, dirfd);
     if (dirfd != TUX_AT_FDCWD && !dir)
         return -TUX_EBADF;
@@ -404,6 +410,7 @@ sys_access(struct TuxProc* p, uintptr_t pathp, int mode)
 int
 sys_mkdirat(struct TuxProc* p, int dirfd, uintptr_t pathp, tux_mode_t mode)
 {
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     struct HostFile* dir = getfdir(p, dirfd);
     if (dirfd != TUX_AT_FDCWD && !dir)
         return -TUX_EBADF;

@@ -12,6 +12,7 @@ sys_getcwd(struct TuxProc* p, uintptr_t bufp, size_t size)
     uint8_t* buf = procbuf(p, bufp, size);
     if (!buf)
         return -TUX_EFAULT;
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     size = size < TUX_PATH_MAX ? size : TUX_PATH_MAX;
     ssize_t r_size = host_getpath(p->cwd.file, (char*) buf, size);
     if (r_size < 0)
@@ -28,6 +29,7 @@ sys_chdir(struct TuxProc* p, uintptr_t pathp)
     const char* path = procpath(p, pathp);
     if (!path)
         return -TUX_EFAULT;
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     struct HostFile* file = host_openat(p->cwd.file, path, TUX_O_DIRECTORY | TUX_O_PATH, 0);
     if (p->cwd.fd) {
         fdrelease(p->cwd.fd);
@@ -50,6 +52,7 @@ sys_fchdir(struct TuxProc* p, int fd)
     struct HostFile* file = f->file(f->dev);
     if (!host_isdir(file))
         return -TUX_ENOTDIR;
+    LOCK_WITH_DEFER(&p->cwd.lk, lk_cwd);
     if (p->cwd.fd) {
         fdrelease(p->cwd.fd);
         p->cwd.fd = NULL;
