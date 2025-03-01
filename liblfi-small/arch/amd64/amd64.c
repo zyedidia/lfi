@@ -69,6 +69,5 @@ lfi_regs_mask(LFIRegs* regs)
 uint64_t*
 lfi_regs_gas(LFIRegs* regs)
 {
-    (void) regs;
-    return NULL;
+    return &regs->r12;
 }
