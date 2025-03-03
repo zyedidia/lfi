@@ -6,7 +6,17 @@
 
 #include "lfi.h"
 
+struct TuxBinding {
+    char* hostpath;
+    char* tuxpath;
+};
+
 struct TuxFS {
+    char* root;
+    char* wd;
+    struct TuxBinding* bindings;
+    size_t nbindings;
+
     struct HostFile* (*open)(const char* filename, int flags, int mode);
 };
 

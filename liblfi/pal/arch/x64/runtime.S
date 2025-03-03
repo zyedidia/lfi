@@ -76,8 +76,11 @@ lfi_ret:
 	movq lfi_myctx@gottpoff(%rip), %r11
 	movq %fs:(%r11), %r11
 	movq 0(%r11), %rsp // kstackp
+    // restore user sp to its initial value
+    popq %rbp
+    movq %rbp, PROC_REGS(%r11)
+    popq %rbp // pop dummy value
 	// return value should already be in %rax
-	// realign stack (is this necessary?)
 	popq %rbp
 	popq %rbx
 	popq %r12

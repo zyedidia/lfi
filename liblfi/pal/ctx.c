@@ -168,3 +168,9 @@ lfi_thread_init(void (*thread_create)(void*), void* pausefn)
     lfi_myctx = lfi_newctx;
     lfi_newctx = NULL;
 }
+
+EXPORT bool
+lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t ptr)
+{
+    return ptr >= ctx->as->minaddr && ptr < ctx->as->maxaddr;
+}

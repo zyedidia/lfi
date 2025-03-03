@@ -101,7 +101,13 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
         return -TUX_EINVAL;
     }
 
-    // TODO: validate ctid and ptid for real
+    if (!procvalid(p->proc, stack))
+        return -TUX_EFAULT;
+    if (!procvalid(p->proc, ctidp))
+        return -TUX_EFAULT;
+    if (!procvalid(p->proc, ptidp))
+        return -TUX_EFAULT;
+
     _Atomic(int)* ctid = (_Atomic(int)*) procaddr(p->proc, ctidp);
     _Atomic(int)* ptid = (_Atomic(int)*) procaddr(p->proc, ptidp);
 
@@ -124,7 +130,7 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
 
     struct TuxRegs* regs = lfi_ctx_regs(p2->p_ctx);
     *regs_return(regs) = 0;
-    *regs_sp(regs) = procaddr(p->proc, stack);
+    *regs_sp(regs) = stack;
 
     if (p->proc->tux->opts.soboxinit) {
         // A new thread is being created during sobox initialization. Instead
@@ -204,7 +210,9 @@ sys_sched_yield(struct TuxProc* p)
 int
 sys_set_tid_address(struct TuxThread* p, uintptr_t ctid)
 {
-    p->ctid = procaddr(p->proc, ctid);
+    if (!procvalid(p->proc, ctid))
+        return -TUX_EINVAL;
+    p->ctid = ctid;
     return p->tid;
 }
 

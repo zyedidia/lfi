@@ -9,10 +9,17 @@
 #include "proc.h"
 #include "thread.h"
 
-static inline lfiptr_t
-procaddr(struct TuxProc* p, lfiptr_t addr)
+static inline bool
+procvalid(struct TuxProc* p, lfiptr_t addr)
 {
     return lfi_as_validptr(p->p_as, addr);
+}
+
+static inline void*
+procaddr(struct TuxProc* p, lfiptr_t addr)
+{
+    assert(procvalid(p, addr));
+    return lfi_as_fmptr(p->p_as, addr);
 }
 
 static inline lfiptr_t
@@ -24,6 +31,7 @@ procuseraddr(struct TuxProc* p, void* addr)
 static inline uint8_t*
 procbuf(struct TuxProc* p, lfiptr_t bufp, size_t size)
 {
+    assert(procvalid(p, bufp));
     void* buf = lfi_as_fmptr(p->p_as, bufp);
     return (uint8_t*) buf;
 }
@@ -31,6 +39,8 @@ procbuf(struct TuxProc* p, lfiptr_t bufp, size_t size)
 static inline void*
 procbufalign(struct TuxProc* p, lfiptr_t bufp, size_t size, size_t align)
 {
+    if (!procvalid(p, bufp))
+        return NULL;
     void* buf = lfi_as_fmptr(p->p_as, bufp);
     if (!buf)
         return NULL;
@@ -42,6 +52,8 @@ procbufalign(struct TuxProc* p, lfiptr_t bufp, size_t size, size_t align)
 static inline const char*
 procpath(struct TuxProc* p, lfiptr_t pathp)
 {
+    if (!procvalid(p, pathp))
+        return NULL;
     void* path = lfi_as_fmptr(p->p_as, pathp);
     if (!path)
         return NULL;

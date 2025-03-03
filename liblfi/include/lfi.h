@@ -71,7 +71,7 @@ void                    lfi_as_copyto(struct LFIAddrSpace* as, lfiptr_t dst, voi
 void                    lfi_as_free(struct LFIAddrSpace* as);
 lfiptr_t                lfi_as_toptr(struct LFIAddrSpace* as, void* p);
 void*                   lfi_as_fmptr(struct LFIAddrSpace* as, lfiptr_t lp);
-lfiptr_t                lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t lp);
+bool                    lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t lp);
 
 struct LFIContext*      lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool mainthread);
 uint64_t                lfi_ctx_run(struct LFIContext* ctx, struct LFIAddrSpace* as);
@@ -82,6 +82,7 @@ void                    lfi_ctx_exit(struct LFIContext* ctx, uint64_t val);
 void                    lfi_ctx_pause(struct LFIContext* ctx, uint64_t val);
 void                    lfi_ctx_tpset(struct LFIContext* ctx, lfiptr_t tp);
 struct LFIAddrSpace*    lfi_ctx_as(struct LFIContext* ctx);
+bool                    lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t lp);
 
 void                    lfi_sys_handler(struct LFIPlatform* plat, SysHandlerFn fn);
 

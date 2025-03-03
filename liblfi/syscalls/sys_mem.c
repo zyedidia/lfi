@@ -9,8 +9,11 @@ sys_brk(struct TuxProc* p, lfiptr_t addr)
     LOCK_WITH_DEFER(&p->lk_brk, lk_brk);
 
     lfiptr_t brkp = p->brkbase + p->brksize;
-    if (addr != 0)
-        brkp = procaddr(p, addr);
+    if (addr != 0) {
+        if (!procvalid(p, addr))
+            return -1;
+        brkp = addr;
+    }
     if (brkp < p->brkbase)
         brkp = p->brkbase;
     if (brkp >= p->brkbase + TUX_BRKMAXSIZE)
@@ -42,7 +45,7 @@ sys_brk(struct TuxProc* p, lfiptr_t addr)
 }
 
 uintptr_t
-sys_mmap(struct TuxProc* p, lfiptr_t addrup, size_t length, int prot, int flags, int fd, off_t off)
+sys_mmap(struct TuxProc* p, lfiptr_t addrp, size_t length, int prot, int flags, int fd, off_t off)
 {
     if (length == 0)
         return -TUX_EINVAL;
@@ -58,13 +61,13 @@ sys_mmap(struct TuxProc* p, lfiptr_t addrup, size_t length, int prot, int flags,
         return -TUX_EINVAL;
     }
 
-    lfiptr_t i_addrp = addrup;
+    lfiptr_t i_addrp = addrp;
 
     int r;
-    lfiptr_t addrp;
     if ((flags & LFI_MAP_FIXED) != 0) {
-        addrup = truncp(addrup, p->tux->opts.pagesize);
-        addrp = procaddr(p, addrup);
+        addrp = truncp(addrp, p->tux->opts.pagesize);
+        if (!procvalid(p, addrp))
+            return -1;
         r = procmapat(p, addrp, length, prot, flags, fd, off);
     } else {
         r = procmapany(p, length, prot, flags, fd, off, &addrp);
@@ -79,15 +82,18 @@ sys_mmap(struct TuxProc* p, lfiptr_t addrup, size_t length, int prot, int flags,
 }
 
 int
-sys_mprotect(struct TuxProc* p, lfiptr_t addrup, size_t length, int prot)
+sys_mprotect(struct TuxProc* p, lfiptr_t addrp, size_t length, int prot)
 {
+    if (!procvalid(p, addrp))
+        return -1;
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    lfiptr_t addrp = procaddr(p, addrup);
     return lfi_as_mprotect(p->p_as, addrp, length, prot);
 }
 
 int
-sys_munmap(struct TuxProc* p, lfiptr_t addrup, size_t length)
+sys_munmap(struct TuxProc* p, lfiptr_t addrp, size_t length)
 {
-    return procunmap(p, procaddr(p, addrup), length);
+    if (!procvalid(p, addrp))
+        return -1;
+    return procunmap(p, addrp, length);
 }
