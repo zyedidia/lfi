@@ -20,18 +20,12 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.nopie) {
         mkinsn("push $%sf", funcret);
         mkinsn("jmpq *%s", r.val);
-    } else if (strcmp(r.val, "%r11") == 0) {
+    } else {
         // need %rax as a temporary since %r11 is already in use
         mkinsn("pushq %%rax");
         mkinsn("leal %sf(%%rip), %%eax", funcret);
         // restore %rax and push the return address at the same time
         mkinsn("xchg %%rax, (%%rsp)");
-        mkinsn("jmpq *%s", r.val);
-    } else {
-        mkdirective(".bundle_lock");
-        mkinsn("leal %sf(%%rip), %%r11d", funcret);
-        mkinsn("pushq %%r11");
-        mkdirective(".bundle_unlock");
         mkinsn("jmpq *%s", r.val);
     }
     rfree(r);
