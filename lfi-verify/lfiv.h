@@ -29,7 +29,10 @@ typedef enum {
 } LFIMeterType;
 
 typedef struct {
+    // Eliminates nondeterministic instructions and,
+    // in x86, prevents undefined behavior via control flags.
     bool decl;
+    // position-oblivious code
     bool poc;
     LFIBoxType box;
     size_t p2size;

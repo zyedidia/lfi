@@ -83,6 +83,41 @@ static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indir
     return branch;
 }
 
+static bool okdeclinstr(Verifier* v, FdInstr* instr) {
+    assert(v->opts->decl);
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
+static bool oklfiinstr(Verifier* v, FdInstr* instr) {
+    // TODO: what instructions are allowed in the LFI configuration (decl=false)
+    // that are not allowed in the decl configuration?
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
+static bool okpocinstr(Verifier* v, FdInstr* instr) {
+    assert(v->opts->poc);
+
+    // We could make this its own table.  For now, this appears simpler.
+    if (FD_TYPE(instr) == FDI_CALL) {
+        return false;
+    }
+
+    // TODO> Perhaps redundant.  In what cases do we have opts->poc but not opts->decl?
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
 static bool okmnem(Verifier* v, FdInstr* instr) {
     if (v->opts->nobranches) {
         bool indirect, cond;
@@ -120,18 +155,16 @@ static bool okmnem(Verifier* v, FdInstr* instr) {
         }
     }
 
+    if (!oklfiinstr(v, instr))
+        return false;
 
-    if (v->opts->decl) {
-        switch (FD_TYPE(instr)) {
-#include "decl.instrs"
-        default:
-            break;
-        }
-    } else {
-        // TODO:
-        return true;
-    }
-    return false;
+    if (v->opts->decl && !okdeclinstr(v, instr))
+        return false;
+
+    if (v->opts->poc && !okpocinstr(v, instr))
+        return false;
+
+    return true;
 }
 
 static void chkmem(Verifier* v, FdInstr* instr) {
@@ -249,14 +282,15 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
 
     size_t bundlesize;
     switch (opts->bundle) {
-    case LFI_BUNDLE16:
-        bundlesize = 16;
-        break;
+    // we may choose to enable BUNDLE16 in the future, for some configurations.
+    // case LFI_BUNDLE16:
+    //     bundlesize = 16;
+    //     break;
     case LFI_BUNDLE32:
         bundlesize = 32;
         break;
     default:
-        verrmin(&v, "bundle size must be 16 or 32");
+        verrmin(&v, "bundle size must be 32");
         return false;
     }
 

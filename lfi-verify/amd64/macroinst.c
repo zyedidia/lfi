@@ -77,8 +77,8 @@ static struct MacroInst macroinst_rtcall(Verifier* v, uint8_t* buf, size_t size)
 
 static size_t bundle(Verifier* v) {
     switch (v->opts->bundle) {
-    case LFI_BUNDLE16:
-        return 16;
+    // case LFI_BUNDLE16:
+    //     return 16;
     case LFI_BUNDLE32:
         return 32;
     default:
@@ -88,6 +88,10 @@ static size_t bundle(Verifier* v) {
 
 static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
     size_t bundlesize = bundle(v);
+
+    // not allowed in position-oblivious-code
+    if (v->opts->poc)
+        return (struct MacroInst){-1, 0};
 
     // andl $0xffffffe0, %eX
     // orq %r14, %rX
