@@ -144,6 +144,9 @@ static void chkmem(Verifier* v, FdInstr* instr) {
                 if (FD_ADDRSIZE(instr) != 4)
                     verr(v, instr, "segmented memory access must use 32-bit address");
                 continue;
+            } else if (FD_SEGMENT(instr) == FD_REG_FS) {
+                verr(v, instr, "use of %%fs is not permitted");
+                continue;
             }
 
             if (FD_ADDRSIZE(instr) != 8)

@@ -84,3 +84,9 @@ jmpq *4(%r14)
 leaq 1f(%rip), %r11
 jmpq *(%r14, %rax)
 1:
+---
+mov %fs:0, %rax
+---
+mov %fs:(%rsp), %rax
+---
+mov %fs:(%rip), %rax
