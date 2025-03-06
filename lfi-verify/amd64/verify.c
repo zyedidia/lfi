@@ -110,7 +110,7 @@ static bool okpocinstr(Verifier* v, FdInstr* instr) {
         return false;
     }
 
-    // TODO> Perhaps redundant.  In what cases do we have opts->poc but not opts->decl?
+    // TODO: Perhaps redundant.  In what cases do we have opts->poc but not opts->decl?
     switch (FD_TYPE(instr)) {
 #include "decl.instrs"
     default:
