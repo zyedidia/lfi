@@ -35,8 +35,56 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static bool reserved(FdReg reg) {
-    return reg == FD_REG_R14 || reg == FD_REG_SP;
+// return the number of modified operands
+static int nmod(FdInstr* instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_CMP:
+        return 0;
+    case FDI_XCHG:
+        return 2;
+    default:
+        return 1;
+    }
+}
+
+// returns a bitmask of the operands that are read from.
+// This is designed to be conservative, and not an exhaustive list
+// of all instructions.  We merely want to allow some instructions to read
+// from certain registers in specific cases (e.g. r11d under poc),
+// but considering a register written to is strictly more restrictive
+// than considering it read from.
+static uint8_t readmod_mask(FdInstr* instr) {
+    switch(FD_TYPE(instr)) {
+        case FD_LEA:
+            return 0b01;
+    default:
+        return 0;
+    }
+}
+
+static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
+    FdReg reg = FD_OP_REG(instr, op_index);
+
+    if (reg == FD_REG_R14 || reg == FD_REG_SP)
+        return true;
+
+
+    if (v->opts->poc && reg == FD_REG_R11) {
+        uint8_t read_mask = readmod_mask(instr);
+        bool is_read_op = ((read_mask >> op_index)) & 1 == 1;
+
+        // write ops to r11 are allowed, but reads are only allowed to r11d
+        if (!is_read_op) {
+            return true;
+        }
+        // reads from r11d are allowed
+        if (FD_OP_SIZE(instr, op_index) != 4) {
+            return true;
+        }
+
+        return false;
+    }
+    return false;
 }
 
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
@@ -193,17 +241,6 @@ static void chkmem(Verifier* v, FdInstr* instr) {
     }
 }
 
-static int nmod(FdInstr* instr) {
-    switch (FD_TYPE(instr)) {
-    case FDI_CMP:
-        return 0;
-    case FDI_XCHG:
-        return 2;
-    default:
-        return 1;
-    }
-}
-
 static void chkmod(Verifier* v, FdInstr* instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;
@@ -211,7 +248,8 @@ static void chkmod(Verifier* v, FdInstr* instr) {
     int n = nmod(instr);
     assert(n <= 4);
     for (size_t i = 0; i < n; i++) {
-        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(FD_OP_REG(instr, i)))
+        bool is_read_op = ((read_mask >> i) & 1) == 1;
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
             verr(v, instr, "modification of reserved register");
     }
 }
