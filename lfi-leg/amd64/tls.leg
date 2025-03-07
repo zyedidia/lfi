@@ -50,7 +50,7 @@ OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
         if (args.p2size == 0)
             mkinsn("pext %%r15, %%r11, %%r11");
         else
-            mkinsn("movl %r11d, %r11d");
+            mkinsn("movl %%r11d, %%r11d");
         mkinsn("%s (%%r14, %%r11), %s", m.val, r.val);
         mkdirective(".bundle_unlock");
     }
@@ -78,7 +78,7 @@ OpTP_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
         if (args.p2size == 0)
             mkinsn("pext %%r15, %%r11, %%r11");
         else
-            mkinsn("movl %r11d, %r11d");
+            mkinsn("movl %%r11d, %%r11d");
         mkinsn("%s %s(%%r14, %%r11), %s", m.val, n.val, r.val);
         mkdirective(".bundle_unlock");
     }
