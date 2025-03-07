@@ -6,6 +6,7 @@
 #include "buf.h"
 #include "elfload.h"
 #include "syscalls/syscalls.h"
+#include "pal/platform.h"
 
 #ifdef CONFIG_GDB
 #define LIBBREAKPOINT_DEFAULT_DISABLED
@@ -51,10 +52,10 @@ sanitize(void* p, size_t sz, int prot)
 }
 
 static bool
-bufreadelfseg(struct LFIAddrSpace* as, lfiptr_t start, lfiptr_t offset, lfiptr_t end,
+bufreadelfseg(struct LFIAddrSpace* as, uintptr_t start, uintptr_t offset, uintptr_t end,
         size_t p_offset, size_t filesz, int prot, buf_t buf, size_t pagesize)
 {
-    lfiptr_t p = lfi_as_mapat(as, start, end - start, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
+    lfiptr_t p = lfi_as_mapat(as, p2l(as, start), p2l(as, end - start), LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
     if (p == (lfiptr_t) -1) {
         return false;
     }
@@ -68,7 +69,7 @@ bufreadelfseg(struct LFIAddrSpace* as, lfiptr_t start, lfiptr_t offset, lfiptr_t
     if (n != (ssize_t) filesz) {
         return false;
     }
-    if (lfi_as_mprotect(as, start, end - start, prot) < 0) {
+    if (lfi_as_mprotect(as, p2l(as, start), p2l(as, end - start), prot) < 0) {
         return false;
     }
     return true;
@@ -194,12 +195,12 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
 
     size_t stacksize = opts.stacksize;
 
-    lfiptr_t stack = lfi_as_mapat(as, info.maxaddr - stacksize, stacksize, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
+    lfiptr_t stack = lfi_as_mapat(as, lfi_as_toptr(as, (char*) info.maxaddr - stacksize), stacksize, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
     if (stack == (lfiptr_t) -1)
         goto err;
 
-    lfiptr_t base = info.minaddr;
-    lfiptr_t pfirst, plast, pentry, ifirst, ilast, ientry;
+    uintptr_t base = info.minaddr;
+    uintptr_t pfirst, plast, pentry, ifirst, ilast, ientry;
     bool hasinterp = interp.data != NULL;
     if (!load(as, prog, base, &pfirst, &plast, &pentry, opts.pagesize))
         goto err;
@@ -231,11 +232,11 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
     *o_info = (struct LFILoadInfo) {
         .stack = stack,
         .stacksize = stacksize,
-        .lastva = hasinterp ? ilast : plast,
-        .elfentry = pentry,
-        .ldentry = hasinterp ? ientry : 0,
-        .elfbase = pfirst,
-        .ldbase = hasinterp ? ifirst : pfirst,
+        .lastva = hasinterp ? p2l(as, ilast) : p2l(as, plast),
+        .elfentry = p2l(as, pentry),
+        .ldentry = hasinterp ? p2l(as, ientry) : 0,
+        .elfbase = p2l(as, pfirst),
+        .ldbase = hasinterp ? p2l(as, ifirst) : p2l(as, pfirst),
         .elfphoff = ehdr.phoff,
         .elfphnum = ehdr.phnum,
         .elfphentsize = ehdr.phentsize,

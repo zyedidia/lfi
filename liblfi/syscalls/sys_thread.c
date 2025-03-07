@@ -132,7 +132,7 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
     *regs_return(regs) = 0;
     *regs_sp(regs) = stack;
 
-    if (p->proc->tux->opts.soboxinit) {
+    if (p->proc->tux->opts.libinit) {
         // A new thread is being created during sobox initialization. Instead
         // of creating a new kernel thread, we just save the stack and tls that
         // was created so it can be reused when we need to spawn threads in the

@@ -8,14 +8,8 @@
 #define asm __asm__
 
 EXPORT struct LFIPlatform*
-lfi_new_plat(size_t pagesize)
+lfi_new_plat(struct LFIPlatOptions opts)
 {
-    struct PlatOptions opts = (struct PlatOptions) {
-        .pagesize = pagesize,
-        .vmsize = gb(4),
-        .verifier = NULL,
-    };
-
     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
     if (!plat)
         return NULL;
@@ -23,7 +17,7 @@ lfi_new_plat(size_t pagesize)
     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
         .minalign = gb(4),
         .maxalign = gb(4),
-        .guardsize = 0,
+        .guardsize = kb(80),
     });
     if (!bm)
         goto err1;
@@ -33,6 +27,7 @@ lfi_new_plat(size_t pagesize)
     *plat = (struct LFIPlatform) {
         .bm = bm,
         .opts = opts,
+        .verifier = NULL,
     };
     return plat;
 

@@ -66,7 +66,10 @@ main(int argc, char** argv)
     }
 
     size_t pagesize = getpagesize();
-    struct LFIPlatform* plat = lfi_new_plat(pagesize);
+    struct LFIPlatform* plat = lfi_new_plat((struct LFIPlatOptions) {
+        .pagesize = pagesize,
+        .vmsize = 4UL * 1024 * 1024 * 1024,
+    });
     struct Tux* tux = lfi_tux_new(plat, (struct TuxOptions) {
         .pagesize = pagesize,
         .stacksize = 2 * 1024 * 1024,

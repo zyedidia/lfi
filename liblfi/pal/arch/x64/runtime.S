@@ -20,6 +20,14 @@
 .endm
 
 .p2align 4
+.global lfi_ctx_internal
+// This function assumes the return address is in r11
+lfi_ctx_internal:
+    mov lfi_myctx@gottpoff(%rip), %rax
+    movq %fs:(%rax), %rax
+    jmpq *%r11
+
+.p2align 4
 .global lfi_ctx_entry
 lfi_ctx_entry:
     // save callee-saved registers to stack

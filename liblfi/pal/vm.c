@@ -69,7 +69,7 @@ mapmem(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
 }
 
 static int
-protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
+protectverify(uintptr_t base, size_t size, int prot, LFIVerifier* verifier)
 {
     if (!verifier || ((prot & LFI_PROT_EXEC) == 0)) {
         return host_mprotect((void*) base, size, prot);
@@ -91,7 +91,7 @@ static int
 mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
         int flags, struct HostFile* hf, off_t off)
 {
-    if (!as->plat->opts.verifier || ((prot & LFI_PROT_EXEC) == 0))
+    if (!as->plat->verifier || ((prot & LFI_PROT_EXEC) == 0))
         return mapmem(as, start, size, prot, flags, hf, off);
     else if ((prot & LFI_PROT_WRITE) != 0)
         return -1;
@@ -99,7 +99,7 @@ mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
     if ((r = mapmem(as, start, size, LFI_PROT_READ, flags, hf, off)) < 0)
         return r;
     assert(as->plat);
-    if (protectverify(start, size, prot, as->plat->opts.verifier) < 0) {
+    if (protectverify(start, size, prot, as->plat->verifier) < 0) {
         host_munmap((void*) start, size);
         return -1;
     }
@@ -110,7 +110,7 @@ EXPORT lfiptr_t
 lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
         struct HostFile* hf, off_t off)
 {
-    lfiptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
+    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
     if (addr == (lfiptr_t) -1)
         return 0;
     int r = mapverify(as, addr, size, prot, flags, hf, off);
@@ -118,7 +118,7 @@ lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
         mm_unmap(&as->mm, addr, size);
         return (lfiptr_t) -1;
     }
-    return addr;
+    return p2l(as, addr);
 }
 
 static void
@@ -134,34 +134,34 @@ EXPORT lfiptr_t
 lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot,
         int flags, struct HostFile* hf, off_t off)
 {
-    assert(addr >= as->minaddr && addr + size <= as->maxaddr);
+    assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
 
-    addr = (lfiptr_t) mm_mapat_cb(&as->mm, addr, size, prot, flags, hf, off, cbunmap, NULL);
-    if (addr == (lfiptr_t) -1)
+    uintptr_t m_addr = mm_mapat_cb(&as->mm, l2p(as, addr), size, prot, flags, hf, off, cbunmap, NULL);
+    if (m_addr == (uintptr_t) -1)
         return (lfiptr_t) -1; 
-    int r = mapverify(as, addr, size, prot, flags, hf, off);
+    int r = mapverify(as, m_addr, size, prot, flags, hf, off);
     if (r < 0) {
-        mm_unmap(&as->mm, addr, size);
+        mm_unmap(&as->mm, m_addr, size);
         return (lfiptr_t) -1;
     }
-    return addr;
+    return p2l(as, m_addr);
 }
 
 EXPORT int
 lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
 {
-    assert(addr >= as->minaddr && addr + size <= as->maxaddr);
+    assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
 
     // TODO: mark the mapping with libmmap?
     assert(as->plat);
-    return protectverify(addr, size, prot, as->plat->opts.verifier);
+    return protectverify(l2p(as, addr), size, prot, as->plat->verifier);
 }
 
 EXPORT int
 lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size)
 {
-    if (addr >= as->minaddr && addr + size < as->maxaddr)
-        return mm_unmap_cb(&as->mm, addr, size, cbunmap, NULL);
+    if (l2p(as, addr) >= as->minaddr && l2p(as, addr) + size < as->maxaddr)
+        return mm_unmap_cb(&as->mm, l2p(as, addr), size, cbunmap, NULL);
     return -1;
 }
 
@@ -174,21 +174,22 @@ lfi_as_free(struct LFIAddrSpace* as)
 EXPORT lfiptr_t
 lfi_as_toptr(struct LFIAddrSpace* as, void* p)
 {
-    lfiptr_t userp = (lfiptr_t) p;
-    assert(userp >= as->minaddr && userp < as->maxaddr);
-    return userp;
+    uintptr_t up = (uintptr_t) p;
+    assert(up >= as->minaddr && up < as->maxaddr);
+    return p2l(as, up);
 }
 
 EXPORT void*
 lfi_as_fmptr(struct LFIAddrSpace* as, lfiptr_t userp)
 {
-    if (userp >= as->minaddr && userp < as->maxaddr)
-        return (void*) userp;
+    uintptr_t p = l2p(as, userp);
+    if (p >= as->minaddr && p < as->maxaddr)
+        return (void*) p;
     return NULL;
 }
 
 EXPORT bool
 lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t ptr)
 {
-    return ptr >= as->minaddr && ptr < as->maxaddr;
+    return l2p(as, ptr) >= as->minaddr && l2p(as, ptr) < as->maxaddr;
 }

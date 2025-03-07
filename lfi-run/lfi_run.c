@@ -24,6 +24,7 @@ enum {
     ARG_strace   = 0x80,
     ARG_pagesize = 0x81,
     ARG_gdb      = 0x82,
+    ARG_poc      = 0x83,
 };
 
 struct Args {
@@ -31,6 +32,7 @@ struct Args {
     size_t ninputs;
     struct TuxOptions opts;
     bool gdb;
+    bool poc;
 };
 
 static char doc[] = "lfi-run: LFI Linux emulator";
@@ -44,6 +46,7 @@ static struct argp_option options[] = {
     { "gdb",        	ARG_gdb,       	   0,      0, "enable gdb support", -1 },
     { "strace",         ARG_strace,        0,      0, "show system call trace", -1 },
     { "pagesize",       ARG_pagesize,      "SIZE", 0, "system page size", -1 },
+    { "poc",            ARG_poc,           0,      0, "enable position-oblivious code", -1 },
     { 0 },
 };
 
@@ -71,6 +74,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_gdb:
         args->gdb = true;
         break;
+    case ARG_poc:
+        args->poc = true;
+        break;
     case ARGP_KEY_ARG:
         if (args->ninputs < INPUTMAX)
             args->inputs[args->ninputs++] = arg;
@@ -85,6 +91,12 @@ parse_opt(int key, char* arg, struct argp_state* state)
 static struct argp argp = { .options = options, .parser = parse_opt, .args_doc = args_doc, .doc = doc };
 
 struct Args args;
+
+static size_t
+gb(size_t x)
+{
+    return x * 1024 * 1024 * 1024;
+}
 
 static size_t
 mb(size_t x)
@@ -110,7 +122,11 @@ main(int argc, char** argv)
         return 1;
     }
 
-    struct LFIPlatform* plat = lfi_new_plat(args.opts.pagesize);
+    struct LFIPlatform* plat = lfi_new_plat((struct LFIPlatOptions) {
+        .pagesize = pagesize,
+        .vmsize = gb(4),
+        .poc = args.poc,
+    });
 
     args.opts.stacksize = mb(2);
 

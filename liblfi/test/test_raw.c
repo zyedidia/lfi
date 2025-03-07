@@ -76,8 +76,13 @@ main(int argc, char** argv)
     }
 
     size_t pagesize = getpagesize();
-    struct LFIPlatform* plat = lfi_new_plat(pagesize);
+    struct LFIPlatform* plat = lfi_new_plat((struct LFIPlatOptions) {
+        .pagesize = pagesize,
+        .vmsize = 4UL * 1024 * 1024 * 1024,
+    });
+    assert(plat);
     struct Proc* p = mkproc(plat);
+    assert(p);
 
     struct Buf prog = readfile(argv[1]);
 

@@ -7,7 +7,10 @@ int
 main()
 {
     size_t pagesize = getpagesize();
-    struct LFIPlatform* plat = lfi_new_plat(pagesize);
+    struct LFIPlatform* plat = lfi_new_plat((struct LFIPlatOptions) {
+        .pagesize = pagesize,
+        .vmsize = 4UL * 1024 * 1024 * 1024,
+    });
     assert(plat);
     struct LFIAddrSpace* as = lfi_as_new(plat);
     assert(as);

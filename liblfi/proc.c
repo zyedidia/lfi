@@ -11,6 +11,7 @@
 #include "buf.h"
 #include "proc.h"
 #include "elfload.h"
+#include "pal/platform.h"
 
 #include "syscalls/syscalls.h"
 
@@ -137,7 +138,7 @@ static bool
 stacksetup(struct TuxProc* p, int argc, char** argv, struct LFILoadInfo* info, lfiptr_t* newsp)
 {
     char* argv_ptrs[ARGC_MAX];
-    char* stack_top = (char*) info->stack + info->stacksize;
+    char* stack_top = (char*) lfi_as_fmptr(p->p_as, info->stack) + info->stacksize;
     char* p_argv = (char*) stack_top - ARG_BLOCK;
 
     // Write argv string values to the stack.
@@ -155,18 +156,18 @@ stacksetup(struct TuxProc* p, int argc, char** argv, struct LFILoadInfo* info, l
     }
 
     // Write argc and argv pointers to the stack.
-    long* p_argc = (long*) (stack_top - 2 * ARG_BLOCK);
-    *newsp = (lfiptr_t) p_argc;
+    lfiptr_t* p_argc = (lfiptr_t*) (stack_top - 2 * ARG_BLOCK);
+    *newsp = lfi_as_toptr(p->p_as, p_argc);
     *p_argc++ = argc;
-    char** p_argvp = (char**) p_argc;
-    char** p_argvp_start = p_argvp;
+    lfiptr_t* p_argvp = p_argc;
+    lfiptr_t* p_argvp_start = p_argvp;
     for (int i = 0; i < argc; i++) {
         if ((uintptr_t) p_argvp >= (uintptr_t) stack_top - ARG_BLOCK) {
             return false;
         }
-        p_argvp[i] = (char*) lfi_as_toptr(p->p_as, argv_ptrs[i]);
+        p_argvp[i] = lfi_as_toptr(p->p_as, argv_ptrs[i]);
     }
-    p_argvp[argc] = NULL;
+    p_argvp[argc] = 0;
     // Empty envp.
     char** p_envp = (char**) &p_argvp[argc + 1];
     *p_envp++ = NULL;
@@ -178,11 +179,11 @@ stacksetup(struct TuxProc* p, int argc, char** argv, struct LFILoadInfo* info, l
     *av++ = (struct Auxv) { AT_PHNUM, info->elfphnum };
     *av++ = (struct Auxv) { AT_PHENT, info->elfphentsize };
     *av++ = (struct Auxv) { AT_ENTRY, info->elfentry };
-    *av++ = (struct Auxv) { AT_EXECFN, lfi_as_toptr(p->p_as, p_argvp_start[0]) };
+    *av++ = (struct Auxv) { AT_EXECFN, p_argvp_start[0] };
     *av++ = (struct Auxv) { AT_PAGESZ, p->tux->opts.pagesize };
     *av++ = (struct Auxv) { AT_HWCAP, 0 };
     *av++ = (struct Auxv) { AT_HWCAP2, 0 };
-    *av++ = (struct Auxv) { AT_RANDOM, lfi_as_toptr(p->p_as, p_argvp_start[0]) }; // TODO: AT_RANDOM
+    *av++ = (struct Auxv) { AT_RANDOM, p_argvp_start[0] }; // TODO: AT_RANDOM
     *av++ = (struct Auxv) { AT_FLAGS, 0 };
     *av++ = (struct Auxv) { AT_UID, 1000 };
     *av++ = (struct Auxv) { AT_EUID, 1000 };
@@ -212,7 +213,7 @@ procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, si
         entry = info.ldentry;
 
     struct TuxRegs* regs = lfi_ctx_regs(p->p_ctx);
-    regs_init(regs, entry, sp);
+    regs_init(regs, l2p(p->proc->p_as, entry), l2p(p->proc->p_as, sp));
 
     p->proc->brkbase = info.lastva;
     p->proc->brksize = 0;
@@ -296,8 +297,7 @@ lfi_tux_proc_new(struct Tux* tux, uint8_t* prog, size_t progsz, int argc, char**
 EXPORT bool
 lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info)
 {
-    (void) as;
-    regs_init(lfi_ctx_regs(ctx), info.ldentry ? info.ldentry : info.elfentry, info.stack + info.stacksize - 16);
+    regs_init(lfi_ctx_regs(ctx), info.ldentry ? l2p(as, info.ldentry) : l2p(as, info.elfentry), l2p(as, info.stack + info.stacksize - 16));
     return true;
 }
 

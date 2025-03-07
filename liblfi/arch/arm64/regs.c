@@ -3,7 +3,7 @@
 #include "arch_regs.h"
 
 void
-regs_init(struct TuxRegs* regs, lfiptr_t entry, lfiptr_t sp)
+regs_init(struct TuxRegs* regs, uintptr_t entry, uintptr_t sp)
 {
     regs->sp = sp;
     regs->x30 = entry;

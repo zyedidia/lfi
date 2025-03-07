@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assert.h>
+
 #include "lfiv.h"
 #include "lfi.h"
 #include "lfi_arch.h"
@@ -7,16 +9,10 @@
 #include "boxmap.h"
 #include "types.h"
 
-struct PlatOptions {
-    size_t pagesize;
-    size_t vmsize;
-    bool sysexternal;
-    LFIVerifier* verifier;
-};
-
 struct LFIPlatform {
     struct BoxMap* bm;
-    struct PlatOptions opts;
+    struct LFIPlatOptions opts;
+    LFIVerifier* verifier;
     SysHandlerFn syshandler;
 };
 
@@ -52,6 +48,12 @@ gb(size_t x)
     return x * 1024 * 1024 * 1024;
 }
 
+static inline size_t
+kb(size_t x)
+{
+    return x * 1024;
+}
+
 _Thread_local extern struct LFIContext* lfi_myctx;
 
 _Thread_local extern struct LFIContext* lfi_newctx;
@@ -59,3 +61,23 @@ _Thread_local extern struct LFIContext* lfi_newctx;
 extern struct LFIContext* lfi_clonectx;
 
 void pal_register_clonectx(struct LFIContext* ctx);
+
+static inline uintptr_t
+l2p(struct LFIAddrSpace* as, lfiptr_t l)
+{
+    if (as->plat->opts.poc) {
+        assert(as->plat->opts.vmsize == gb(4));
+        return as->base | (uintptr_t) l;
+    }
+    return (uintptr_t) l;
+}
+
+static inline lfiptr_t
+p2l(struct LFIAddrSpace* as, uintptr_t p)
+{
+    if (as->plat->opts.poc) {
+        assert(as->plat->opts.vmsize == gb(4));
+        return (lfiptr_t) ((uint32_t) p);
+    }
+    return (lfiptr_t) p;
+}
