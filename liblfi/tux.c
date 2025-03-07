@@ -74,7 +74,8 @@ lfi_tux_libinit(struct Tux* tux, bool val)
     tux->opts.libinit = val;
 }
 
-extern void lfi_ctx_internal(void);
+extern void lfi_ctx_internal(void)
+    asm ("lfi_ctx_internal");
 
 static struct LFILibCalls calls = {
     .lfi_ctx_fn        = &lfi_ctx_internal,

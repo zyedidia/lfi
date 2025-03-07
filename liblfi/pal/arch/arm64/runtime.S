@@ -40,10 +40,15 @@
 .global lfi_ctx_internal
 // This function places its return value in x8
 lfi_ctx_internal:
+#ifdef __APPLE__
+	// TODO: support on Apple systems
+	brk #0
+#else
 	mrs	x8, tpidr_el0
 	add	x8, x8, #:tprel_hi12:lfi_myctx, lsl #12
 	add	x8, x8, #:tprel_lo12_nc:lfi_myctx
 	ldr	x8, [x8]
+#endif
 	ret
 
 // lfi_ctx_entry(LFIContext* ctx, void** kstackp)
