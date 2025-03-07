@@ -19,8 +19,8 @@ func fatal(err ...interface{}) {
 }
 
 var compilers = map[string]string{
-	"arm64": "aarch64-linux-gnu-gcc -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
-	"amd64": "x86_64-linux-gnu-gcc -nostdlib -z separate-code %s -o %s",
+	"arm64": "clang -fuse-ld=lld -target aarch64-linux -march=armv8.1-a+sve -nostdlib -z separate-code %s -o %s",
+	"amd64": "clang -fuse-ld=lld -target x86_64-linux -nostdlib -z separate-code %s -o %s",
 }
 
 func run(command string, flags ...string) (string, error) {

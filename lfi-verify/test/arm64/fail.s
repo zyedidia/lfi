@@ -28,7 +28,8 @@ add x30, x21, x30
 ---
 ldr x0, [x21], #16
 ---
-ldr x0, [x0], #16
+// ldr x0, [x0], #16
+.long 0xf8410400
 ---
 wfi
 ---
@@ -67,12 +68,15 @@ msr tpidr_el0, x0
 ---
 ldr x30, [x21, 24]
 ---
-ldp x0, x0, [x18]
+// ldp x0, x0, [x18]
+.long 0xa9400240
 ---
 ldp x0, x18, [x18]
 ---
 add w18, w21, w7, uxtw #0
 ---
-ldp w11, w18, [x18], #-0x28
+// ldp w11, w18, [x18], #-0x28
+.long 0x28fb4a4b
 ---
-stp w11, w18, [x18], #-0x28
+// stp w11, w18, [x18], #-0x28
+.long 0x28bb4a4b
