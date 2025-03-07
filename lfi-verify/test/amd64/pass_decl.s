@@ -54,9 +54,12 @@ nop
 je .bar
 .p2align 5
 .bar:
---
+---
 // flags: --poc
 leal 1023f(%rip), %r11
 movq %gs:(%eax), %r11
---
+---
+// flags: --poc
+movq %r11d, %gs:(%eax)
+---
 

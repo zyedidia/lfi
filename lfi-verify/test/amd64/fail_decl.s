@@ -29,3 +29,7 @@ imul %rdi, %rax
 jo x
 .p2align 4
 bar:
+---
+// flags: --poc
+movq %r11, %gs:(%eax)
+---

@@ -55,7 +55,7 @@ static int nmod(FdInstr* instr) {
 // than considering it read from.
 static uint8_t readmod_mask(FdInstr* instr) {
     switch(FD_TYPE(instr)) {
-        case FD_LEA:
+        case FDI_LEA:
             return 0b01;
     default:
         return 0;
@@ -71,7 +71,8 @@ static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
 
     if (v->opts->poc && reg == FD_REG_R11) {
         uint8_t read_mask = readmod_mask(instr);
-        bool is_read_op = ((read_mask >> op_index)) & 1 == 1;
+        
+        bool is_read_op = ((read_mask >> op_index) & 1) == 1;
 
         // write ops to r11 are allowed, but reads are only allowed to r11d
         if (!is_read_op) {
@@ -248,7 +249,6 @@ static void chkmod(Verifier* v, FdInstr* instr) {
     int n = nmod(instr);
     assert(n <= 4);
     for (size_t i = 0; i < n; i++) {
-        bool is_read_op = ((read_mask >> i) & 1) == 1;
         if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
             verr(v, instr, "modification of reserved register");
     }
