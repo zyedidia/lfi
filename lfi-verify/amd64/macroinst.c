@@ -11,7 +11,7 @@ static bool assert_reg(FdInstr* instr, uint8_t op_index, FdReg reg, uint8_t op_s
 
 
 // movs and stos instructions, needed for poc
-static struct MacroInst macroinst_stos(Verifier*v, uint8_t* buf, size_t size) {
+static struct MacroInst macroinst_stos(Verifier* v, uint8_t* buf, size_t size) {
     // stos becomes:
     //
     // movl %edi, %edi
@@ -334,6 +334,7 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
 
     return (struct MacroInst){i_mov.size + i_or.size, 2};
 }
+
 
 typedef struct MacroInst (*MacroFn)(Verifier*, uint8_t*, size_t);
 
