@@ -77,6 +77,12 @@ static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
 
         return true;
     }
+
+    // r13 is reserved under poc for the runtime call page
+    if (v->opts->poc && reg == FD_REG_R13) {
+        return true;
+    }
+
     return false;
 }
 
