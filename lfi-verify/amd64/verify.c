@@ -78,9 +78,16 @@ static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
         return true;
     }
 
-    // r13 is reserved under poc for the runtime call page
-    if (v->opts->poc && reg == FD_REG_R13) {
-        return true;
+    // r13 is reserved under poc and decl for the runtime call page
+    // cannot be written to under decl and cannot also be read from under poc
+    if (reg == FD_REG_R13) {
+        if (v->opts->poc) {
+            return true;
+        }
+        if (v->opts->decl) {
+            return !is_read_op;
+        }
+        return false;
     }
 
     return false;
