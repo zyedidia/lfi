@@ -157,7 +157,7 @@ static struct MacroInst macroinst_movs(Verifier*v, uint8_t* buf, size_t size) {
         return (struct MacroInst){-1, 0};
     }
 
-    return (struct MacroInst){offset, 4};
+    return (struct MacroInst){offset, 7};
 }
 
 static struct MacroInst macroinst_jmp(Verifier* v, uint8_t* buf, size_t size) {
