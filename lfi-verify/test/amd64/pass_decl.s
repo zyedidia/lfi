@@ -56,10 +56,13 @@ je .bar
 .bar:
 ---
 // flags: --poc
-leal 1023f(%rip), %r11
-movq %gs:(%eax), %r11
+leaq 1023f(%rip), %r11
+1023:
 ---
 // flags: --poc
-movq %r11d, %gs:(%eax)
+movl %r11d, %gs:(%eax)
 ---
+// flags: --poc
+movq %gs:(%eax), %r11
+
 

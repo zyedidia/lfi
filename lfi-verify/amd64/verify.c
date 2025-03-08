@@ -47,43 +47,35 @@ static int nmod(FdInstr* instr) {
     }
 }
 
-// returns a bitmask of the operands that are read from.
-// This is designed to be conservative, and not an exhaustive list
-// of all instructions.  We merely want to allow some instructions to read
-// from certain registers in specific cases (e.g. r11d under poc),
-// but considering a register written to is strictly more restrictive
-// than considering it read from.
-static uint8_t readmod_mask(FdInstr* instr) {
-    switch(FD_TYPE(instr)) {
-        case FDI_LEA:
-            return 0b01;
-    default:
-        return 0;
-    }
-}
-
+// Check whether a particular register is reserved under the current
+// verification configuration.
+// Accounts for reads vs writes.
 static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
     FdReg reg = FD_OP_REG(instr, op_index);
+    bool is_read_op = nmod(instr) <= op_index;
 
-    if (reg == FD_REG_R14 || reg == FD_REG_SP)
-        return true;
+    if (reg == FD_REG_R14 || reg == FD_REG_SP) {
 
+        if (v->opts->poc) {
+            // cannot read from or write to R14 under poc
+            return true;
+        }
+        // without poc, we can read R14 but not write to it.
+        return !is_read_op;
+    }
 
     if (v->opts->poc && reg == FD_REG_R11) {
-        uint8_t read_mask = readmod_mask(instr);
-        
-        bool is_read_op = ((read_mask >> op_index) & 1) == 1;
 
         // write ops to r11 are allowed, but reads are only allowed to r11d
         if (!is_read_op) {
-            return true;
+            return false;
         }
         // reads from r11d are allowed
-        if (FD_OP_SIZE(instr, op_index) != 4) {
-            return true;
+        if (FD_OP_SIZE(instr, op_index) == 4) {
+            return false;
         }
 
-        return false;
+        return true;
     }
     return false;
 }
@@ -246,9 +238,7 @@ static void chkmod(Verifier* v, FdInstr* instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;
 
-    int n = nmod(instr);
-    assert(n <= 4);
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < 4; i++) {
         if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
             verr(v, instr, "modification of reserved register");
     }
