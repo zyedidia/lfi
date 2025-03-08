@@ -35,3 +35,9 @@ movq %r11, %rax
 ---
 // flags: --poc
 movq %r11, %gs:(%eax) // this is probably technically allowed, since only the lowbits are read, but it's fine to reject
+---
+// flags: --poc
+stosq
+---
+// flags: --poc
+movsq

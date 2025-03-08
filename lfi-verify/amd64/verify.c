@@ -160,7 +160,7 @@ static bool okpocinstr(Verifier* v, FdInstr* instr) {
     assert(v->opts->poc);
 
     // We could make this its own table.  For now, this appears simpler.
-    if (FD_TYPE(instr) == FDI_CALL) {
+    if (FD_TYPE(instr) == FDI_CALL || FD_TYPE(instr) == FDI_MOVS || FD_TYPE(instr) == FDI_STOS) {
         return false;
     }
 
