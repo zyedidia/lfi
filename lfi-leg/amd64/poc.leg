@@ -16,10 +16,12 @@ char* funcret = "1023";
 
 Top = CallInd | LeaRip | LeaImmRspRegDisp | LeaRspRegDisp | LeaImmRspReg | LeaRspReg | LeaRsp | MovRsp | AddRsp | MovGot
 
-CallInd = 'call' 'q'? SEP '*' r:XREG {
+CallInd = 'call' 'q'? SEP '*' r:REMAINDER {
     if (args.nopie) {
         mkinsn("push $%sf", funcret);
         mkinsn("jmpq *%s", r.val);
+        mkdirective(bundle_align());
+        mkfuncret();
     } else {
         // need %rax as a temporary since %r11 is already in use
         mkinsn("pushq %%rax");
@@ -27,6 +29,8 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         // restore %rax and push the return address at the same time
         mkinsn("xchg %%rax, (%%rsp)");
         mkinsn("jmpq *%s", r.val);
+        mkdirective(bundle_align());
+        mkfuncret();
     }
     rfree(r);
 }
