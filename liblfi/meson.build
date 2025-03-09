@@ -27,17 +27,11 @@ if get_option('liblfi-gdb')
   breakpoint = subproject('libbreakpoint').get_variable('libbreakpoint_dep')
 endif
 
-libelf = []
-if get_option('liblfi-perf')
-  libelf = subproject('libelf').get_variable('libelf_dep')
-endif
-
 config_h = configure_file(
   output: 'config.h',
   configuration: {
     'CONFIG_MAX_FUTEX': get_option('liblfi-max_futex'),
     'CONFIG_THREADS':   get_option('liblfi-threads'),
-    'CONFIG_PERF':      get_option('liblfi-perf'),
     'CONFIG_GDB':       get_option('liblfi-gdb'),
   }
 )
@@ -52,7 +46,6 @@ liblfi = static_library(
     mmap.get_variable('mmap').as_link_whole(),
     boxmap.get_variable('boxmap').as_link_whole(),
     get_option('liblfi-gdb') ? breakpoint.as_link_whole() : [],
-    get_option('liblfi-perf') ? libelf.as_link_whole() : [],
     liblfiv_dep.as_link_whole(),
   ],
   install: true,

@@ -1,11 +1,7 @@
-#include "config.h"
-
-#ifdef CONFIG_PERF
-
 #include <stdio.h>
 #include <unistd.h>
-#include <libelf.h>
-#include <gelf.h>
+#include <elf.h>
+#include <string.h>
 #include <stdbool.h>
 #include <dirent.h>
 
@@ -21,14 +17,8 @@ direxists(const char* dirname)
 }
 
 int
-perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset)
+perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
 {
-    Elf *e = elf_memory((char *) buffer, file_size);
-    if (!e) {
-        fprintf(stderr, "elf_memory failed: %s\n", elf_errmsg(-1));
-        return 1;
-    }
-
     char* tmpdir = "/data/local/tmp";
     if (!direxists(tmpdir))
         tmpdir = "/tmp";
@@ -43,83 +33,74 @@ perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offs
         goto err;
     }
 
-    if (elf_version(EV_CURRENT) == EV_NONE) {
-        fprintf(stderr, "ELF library initialization failed: %s\n", elf_errmsg(-1));
+    // Ensure the buffer is large enough for an ELF header
+    if (size < sizeof(Elf64_Ehdr)) {
+        fprintf(stderr, "Buffer too small for ELF header.\n");
         goto err;
     }
 
-    size_t shstrndx;
-    if (elf_getshdrstrndx(e, &shstrndx) != 0) {
-        fprintf(stderr, "elf_getshdrstrndx failed: %s\n", elf_errmsg(-1));
+    // Read ELF header
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elf_data;
+
+    // Verify ELF magic number
+    if (memcmp(ehdr->e_ident, ELFMAG, SELFMAG) != 0) {
+        fprintf(stderr, "Not an ELF file.\n");
         goto err;
     }
 
-    Elf_Scn *scn = NULL;
-    while ((scn = elf_nextscn(e, scn)) != NULL) {
-        GElf_Shdr shdr;
-        if (!gelf_getshdr(scn, &shdr)) {
-            fprintf(stderr, "gelf_getshdr failed: %s\n", elf_errmsg(-1));
-            goto err;
-        }
+    // Ensure section headers fit within the buffer
+    if (ehdr->e_shoff + (ehdr->e_shnum * sizeof(Elf64_Shdr)) > size) {
+        fprintf(stderr, "Invalid ELF section headers.\n");
+        goto err;
+    }
 
-        // Look for symbol table sections
-        if (shdr.sh_type == SHT_SYMTAB) {
-            Elf_Data *data = elf_getdata(scn, NULL);
-            if (!data) {
-                fprintf(stderr, "elf_getdata failed: %s\n", elf_errmsg(-1));
-                goto err;
-            }
+    // Read section headers
+    Elf64_Shdr *shdr = (Elf64_Shdr *)(elf_data + ehdr->e_shoff);
 
-            size_t num_symbols = shdr.sh_size / shdr.sh_entsize;
-            for (size_t i = 0; i < num_symbols; ++i) {
-                GElf_Sym sym;
-                if (!gelf_getsym(data, i, &sym)) {
-                    fprintf(stderr, "gelf_getsym failed: %s\n", elf_errmsg(-1));
-                    continue;
-                }
-
-                // Skip 0-size entries
-                if (sym.st_size == 0)
-                    continue;
-
-                // Get symbol name
-                const char *name = elf_strptr(e, shdr.sh_link, sym.st_name);
-                if (!name) {
-                    name = "<no name>";
-                }
-
-                // Write to perf map file
-                fprintf(out, "0x%016lx 0x%08lx %s\n",
-                        (unsigned long)sym.st_value + offset,
-                        (unsigned long)sym.st_size,
-                        name);
-            }
+    // Find symbol table and string table
+    Elf64_Shdr *symtab = NULL, *strtab = NULL;
+    for (int i = 0; i < ehdr->e_shnum; i++) {
+        if (shdr[i].sh_type == SHT_SYMTAB) {
+            symtab = &shdr[i];
+            strtab = &shdr[shdr[i].sh_link]; // Linked string table
+            break;
         }
     }
 
-    elf_end(e);
+    if (!symtab || !strtab) {
+        fprintf(stderr, "No symbol table found.\n");
+        goto err;
+    }
+
+    // Ensure symbol and string tables fit within the buffer
+    if (symtab->sh_offset + symtab->sh_size > size || strtab->sh_offset + strtab->sh_size > size) {
+        fprintf(stderr, "Invalid symbol or string table offsets.\n");
+        goto err;
+    }
+
+    // Read symbol table and string table
+    Elf64_Sym *symbols = (Elf64_Sym *)(elf_data + symtab->sh_offset);
+    char *strtab_data = (char *)(elf_data + strtab->sh_offset);
+
+    // Calculate number of symbols
+    int num_symbols = symtab->sh_size / sizeof(Elf64_Sym);
+
+    // Print symbols
+    for (int i = 0; i < num_symbols; i++) {
+        if (symbols[i].st_size == 0)
+            continue;
+        if (symbols[i].st_name != 0) {
+            fprintf(out, "0x%016lx 0x%08lx %s\n",
+                    (unsigned long)symbols[i].st_value + offset,
+                    (unsigned long)symbols[i].st_size,
+                    &strtab_data[symbols[i].st_name]);
+        }
+    }
+
     fclose(out);
     printf("Perf map written to: %s\n", output_file);
     return 0;
 err:
-    if (e) elf_end(e);
     if (out) fclose(out);
     return 1;
 }
-
-#else
-
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include "print.h"
-
-int
-perf_output_jit_interface_file(uint8_t *buffer, size_t file_size, uintptr_t offset)
-{
-    (void) buffer, (void) file_size, (void) offset;
-    fprintf(stderr, "perf support is disabled because liblfi was built without libelf\n");
-    return 0;
-}
-
-#endif

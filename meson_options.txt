@@ -19,11 +19,6 @@ option('liblfi-max_futex',
   value: 512,
   description: 'liblfi: maximum number of futexes per process')
 
-option('liblfi-perf',
-  type: 'boolean',
-  value: true,
-  description: 'liblfi: enable perf support')
-
 option('liblfi-host',
   type: 'string',
   value: 'linux',
