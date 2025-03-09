@@ -1,8 +1,11 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "elf.h"
 #include "postlink.h"
+
+#include "disarm64.h"
 
 #include <capstone/capstone.h>
 
@@ -55,6 +58,18 @@ isnop(uint32_t insn)
     return insn == NOP;
 }
 
+static bool is_reg_op(struct Da64Op* op) {
+    return op->type == DA_OP_REGGP ||
+        op->type != DA_OP_REGGPINC ||
+        op->type != DA_OP_REGGPEXT ||
+        op->type != DA_OP_REGSP;
+}
+
+static void
+assert_reg_op(struct Da64Op* op) {
+    assert(is_reg_op(op));
+}
+
 static void
 meteropt(uint8_t* buf, size_t sz, size_t addr)
 {
@@ -74,6 +89,9 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
 
     // calculate basic blocks
     for (size_t i = 0; i < n; i++) {
+        struct Da64Inst dinst;
+        da64_decode(insns[i], &dinst);
+
         cs_insn* csi;
         size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), i* 4, 1, &csi);
         if (count != 1)
@@ -81,33 +99,41 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
 
         int64_t target = 0;
         bool branch = false;
-        switch (csi->id) {
-        case ARM64_INS_B:
-        case ARM64_INS_BL:
-            target = csi->detail->arm64.operands[0].imm;
+        switch(dinst.mnem) {
+        case DA64I_B:
+        case DA64I_BL:
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
-        case ARM64_INS_CBZ:
-        case ARM64_INS_CBNZ:
-            target = csi->detail->arm64.operands[1].imm;
+        case DA64I_CBZ:
+        case DA64I_CBNZ:
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[1].imm);
             branch = true;
             break;
-        case ARM64_INS_TBZ:
-        case ARM64_INS_TBNZ:
-            if (csi->detail->arm64.operands[0].reg == ARM64_REG_X23) {
+        case DA64I_TBZ:
+        case DA64I_TBNZ:
+            assert_reg_op(&dinst.ops[0]);
+
+            if (dinst.ops[0].reg == 23) {
+                assert (csi->detail->arm64.operands[0].reg == ARM64_REG_X23);
                 cs_free(csi, 1);
                 continue;
             }
-            target = csi->detail->arm64.operands[2].imm;
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[2].imm);
             branch = true;
             break;
-        case ARM64_INS_BLR:
-        case ARM64_INS_BR:
-        case ARM64_INS_RET:
-            if (csi->id == ARM64_INS_BLR && (csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30)) {
+        case DA64I_BLR:
+            if (is_reg_op(&dinst.ops[0]) && (dinst.ops[0].reg == 25 || dinst.ops[0].reg == 30)) {
+                assert(csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30);
                 cs_free(csi, 1);
                 continue;
             }
+            break;
+        case DA64I_BR:
+        case DA64I_RET:
             break;
         default:
             cs_free(csi, 1);
@@ -129,6 +155,10 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
     size_t cur_leader = 0;
     for (size_t i = 0; i < n; i++) {
         // disasm instruction
+
+        struct Da64Inst dinst;
+        da64_decode(insns[i], &dinst);
+
         cs_insn* csi;
         size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), addr + i * 4, 1, &csi);
         if (count != 1)
@@ -141,43 +171,50 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         int64_t target = 0;
         bool branch = false;
         bool indbranch = false;
-        switch (csi->id) {
-        case ARM64_INS_B:
-            target = csi->detail->arm64.operands[0].imm;
+        switch (dinst.mnem) {
+        case DA64I_B:
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
-        case ARM64_INS_BL:
-            target = csi->detail->arm64.operands[0].imm;
+        case DA64I_BL:
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
-        case ARM64_INS_CBZ:
-        case ARM64_INS_CBNZ:
-            target = csi->detail->arm64.operands[1].imm;
+        case DA64I_CBZ:
+        case DA64I_CBNZ:
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[1].imm);
             branch = true;
             break;
-        case ARM64_INS_TBZ:
-        case ARM64_INS_TBNZ:
-            if (csi->detail->arm64.operands[0].reg == ARM64_REG_X23) {
+        case DA64I_TBZ:
+        case DA64I_TBNZ:
+            if (is_reg_op(&dinst.ops[0]) && dinst.ops[0].reg == 23) {
+                assert(csi->detail->arm64.operands[0].reg == ARM64_REG_X23);
                 cs_free(csi, 1);
                 continue;
             }
-            target = csi->detail->arm64.operands[2].imm;
+            target = dinst.imm64;
+            assert(target == csi->detail->arm64.operands[2].imm);
             branch = true;
             break;
-        default:
-            switch (csi->id) {
-                case ARM64_INS_BR:
-                case ARM64_INS_BLR:
-                case ARM64_INS_RET:
-                    if (csi->id == ARM64_INS_BLR && (csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30)) {
-                        cs_free(csi, 1);
-                        continue;
-                    }
-                    indbranch = true;
-                    branch = true;
-                    break;
+        case DA64I_BR:
+        case DA64I_RET:
+            indbranch = true;
+            branch = true;
+            break;
+        case DA64I_BLR:
+            if (is_reg_op(&dinst.ops[0]) && (dinst.ops[0].reg == 25 || dinst.ops[0].reg == 30))
+            {
+                assert (csi->id == ARM64_INS_BLR && (csi->detail->arm64.operands[0].reg == ARM64_REG_X25 || csi->detail->arm64.operands[0].reg == ARM64_REG_X30));
+                cs_free(csi, 1);
+                continue;     
             }
-        }
+            indbranch = true;
+            branch = true;
+            break;
+        } 
 
         if (!branch) {
             cs_free(csi, 1);
@@ -240,27 +277,6 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
     cs_close(&handle);
 }
 
-static void
-removeinvalid(uint8_t* buf, size_t sz)
-{
-    assert((uintptr_t) buf % 4 == 0 && sz % 4 == 0);
-    uint32_t* insns = (uint32_t*) buf;
-    for (size_t i = 0; i < sz / 4; i++) {
-        uint32_t insn = insns[i];
-        switch (insn) {
-        case CNTD_X0:
-        case BTI_C:
-        case AUTIB1716:
-        case AUTIA1716:
-        case XPACLRI:
-            insns[i] = NOP;
-            break;
-        default:
-            break;
-        }
-    }
-}
-
 void
 arm64_postlink(uint8_t* buf, size_t sz)
 {
@@ -276,7 +292,6 @@ arm64_postlink(uint8_t* buf, size_t sz)
             continue;
         }
 
-        /* removeinvalid(&buf[p->offset], p->filesz); */
         if (args.meter != METER_NONE)
             meteropt(&buf[p->offset], p->filesz, p->vaddr);
     }
