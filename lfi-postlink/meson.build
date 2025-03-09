@@ -5,6 +5,6 @@ fadec = subproject('fadec').get_variable('fadec')
 lfi_postlink = executable(
   'lfi-postlink',
   files('amd64.c', 'arm64.c', 'main.c'),
-  dependencies: [capstone, zydis, argp, fadec],
+  dependencies: [disarm, capstone, zydis, argp, fadec],
   install: true,
 )
