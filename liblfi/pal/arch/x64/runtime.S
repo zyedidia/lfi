@@ -157,3 +157,5 @@ lfi_restore_partial_regs:
     // TODO: restore SIMD regs
     jmpq *%r11
     int3
+
+.section .note.GNU-stack,"",@progbits

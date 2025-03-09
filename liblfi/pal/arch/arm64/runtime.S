@@ -229,3 +229,5 @@ lfi_restore_partial_regs:
 	ldp x0, x1,   [x0, PROC_REGS+16*0]
 	add x30, REG_BASE, w30, uxtw
 	ret
+
+.section .note.GNU-stack,"",@progbits
