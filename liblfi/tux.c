@@ -88,6 +88,9 @@ static struct LFILibCalls calls = {
     .lfi_tux_proc_run  = &lfi_tux_proc_run,
     .lfi_thread_init   = &lfi_thread_init,
     .lfi_host_fdopen   = &lfi_host_fdopen,
+    .lfi_as_mapany     = &lfi_as_mapany,
+    .lfi_as_mprotect   = &lfi_as_mprotect,
+    .lfi_ctx_as        = &lfi_ctx_as,
 };
 
 EXPORT void*
