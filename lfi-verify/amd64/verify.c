@@ -8,6 +8,8 @@
 #include "verifier.h"
 #include "flags.h"
 
+extern int lfi_x86_bdd(uint8_t*);
+
 enum {
     ERRMAX = 128,
 };
@@ -260,6 +262,22 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
         return false;
     }
 
+    size_t bdd_count = 0;
+    size_t bdd_ninstr = 0;
+
+    while (bdd_count < size) {
+        int n = lfi_x86_bdd(&insns[bdd_count]);
+        if (n == 0) {
+            verrmin(&v, "%lx: unknown instruction", v.addr);
+            return false;
+        }
+        v.addr += n;
+        bdd_count += n;
+        bdd_ninstr++;
+    }
+
+    v.addr = addr;
+
     size_t count = 0;
     size_t ninstr = 0;
     while (count < size) {
@@ -269,6 +287,10 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
         // Exit early if there is no error reporter.
         if ((v.failed && v.err == NULL) || v.abort)
             return false;
+    }
+
+    if (!v.failed) {
+        assert(bdd_ninstr == ninstr);
     }
 
     if (v.opts->decl) {
