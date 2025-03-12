@@ -112,7 +112,7 @@ lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
 {
     uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
     if (addr == (lfiptr_t) -1)
-        return 0;
+        return (lfiptr_t) -1;
     int r = mapverify(as, addr, size, prot, flags, hf, off);
     if (r < 0) {
         mm_unmap(&as->mm, addr, size);
