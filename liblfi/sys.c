@@ -53,6 +53,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(readlinkat,        sys_readlinkat(proc, a0, a1, a2, a3))
     SYS(ioctl,             sys_ioctl(proc, a0, a1, a2, a3, a4, a5))
     SYS(fcntl,             sys_fcntl(proc, a0, a1, a2, a3, a4, a5))
+    SYS(nanosleep,         sys_nanosleep(proc, a0, a1))
 #ifdef CONFIG_THREADS
     SYS(gettid,            sys_gettid(p))
     SYS(futex,             sys_futex(p, a0, a1, a2, a3, a4, a5))

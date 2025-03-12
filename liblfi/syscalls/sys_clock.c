@@ -37,3 +37,29 @@ sys_time(struct TuxProc* p, uintptr_t tlocp)
         return -TUX_EINVAL;
     return host_time();
 }
+
+int
+sys_nanosleep(struct TuxProc* p, uintptr_t reqp, uintptr_t remp)
+{
+    uint8_t* requ = procbufalign(p, reqp, sizeof(struct TimeSpec), alignof(struct TimeSpec));
+    if (!requ)
+        return -TUX_EFAULT;
+    struct TimeSpec* tux_req = (struct TimeSpec*) requ;
+    struct timespec req, rem;
+    req.tv_sec = tux_req->sec;
+    req.tv_nsec = tux_req->nsec;
+    int r = nanosleep(&req, &rem);
+    if (r < 0)
+        return -errno;
+
+    if (remp) {
+        uint8_t* remu = procbufalign(p, remp, sizeof(struct TimeSpec), alignof(struct TimeSpec));
+        if (!remu)
+            return -TUX_EFAULT;
+        struct TimeSpec* tux_rem = (struct TimeSpec*) remu;
+        tux_rem->sec = rem.tv_sec;
+        tux_rem->nsec = rem.tv_nsec;
+    }
+
+    return r;
+}

@@ -28,6 +28,7 @@ enum {
     TUX_SYS_sched_yield        = 24,
     TUX_SYS_mremap             = 25,
     TUX_SYS_madvise            = 28,
+    TUX_SYS_nanosleep          = 35,
     TUX_SYS_getpid             = 39,
     TUX_SYS_socket             = 41,
     TUX_SYS_clone              = 56,

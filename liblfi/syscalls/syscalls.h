@@ -194,3 +194,5 @@ int sys_prctl(struct TuxProc* p, int op, uint64_t arg2, uint64_t arg3, uint64_t 
 uintptr_t sys_ignore(struct TuxProc* p, const char* name);
 
 uintptr_t sys_nosys(struct TuxProc* p, const char* name);
+
+int sys_nanosleep(struct TuxProc* p, uintptr_t req, uintptr_t rem);
