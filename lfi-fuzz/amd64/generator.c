@@ -38,8 +38,9 @@ static LFIvOpts vopts = (LFIvOpts) {
     .nobranches = true,
     .noundefined = true,
     .nomemops = true,
-    .decl = true,
+    .decl = false,
     .poc = false,
+    .bundle = LFI_BUNDLE32,
 };
 
 static size_t
