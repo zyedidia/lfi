@@ -22,7 +22,7 @@ mask(const char* reg)
 }
 %}
 
-Top = (Stos | Movs | Lea | Triple2 | StoreH | Store | Access) !.
+Top = (Stos | Movs | Cmp | Xchg | Lea | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
     mkdirective(".bundle_lock");
@@ -62,6 +62,28 @@ Lea = l:LEA a:Addr COMMA r:REG {
 }
 
 LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Cmp = m:CMP r:ITEM COMMA a:Addr {
+    if (args.boxtype < BOX_FULL) {
+        mkinsn("%s %s, %s", m.val, r.val, a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("%s %s, %s", m.val, r.val, a.val);
+        mkpost(a);
+    }
+    rfree(m); rfree(a); rfree(r);
+}
+
+CMP = < ('cmp' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Xchg = m:XCHG a:Addr COMMA r:ITEM {
+    mkguards(a);
+    mkinsn("%s %s, %s", m.val, a.val, r.val);
+    mkpost(a);
+    rfree(m); rfree(a); rfree(r);
+}
+
+XCHG = < ('xchg' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Access = m:NAME a:Addr {
     mkguards(a);
