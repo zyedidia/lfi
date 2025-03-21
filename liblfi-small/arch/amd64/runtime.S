@@ -188,3 +188,5 @@ lfi_restore_regs:
     mov PROC_REGS+8*15(%rdi), %r15
     mov PROC_REGS+8*7(%rdi), %rdi
     ret
+
+.section .note.GNU-stack,"",@progbits
