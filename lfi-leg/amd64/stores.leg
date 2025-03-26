@@ -63,7 +63,7 @@ Lea = l:LEA a:Addr COMMA r:REG {
 
 LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-Cmp = m:CMP r:ITEM COMMA a:Addr {
+Cmp = m:CMPTEST r:ITEM COMMA a:Addr {
     if (args.boxtype < BOX_FULL) {
         mkinsn("%s %s, %s", m.val, r.val, a.unmod);
     } else {
@@ -74,7 +74,7 @@ Cmp = m:CMP r:ITEM COMMA a:Addr {
     rfree(m); rfree(a); rfree(r);
 }
 
-CMP = < ('cmp' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+CMPTEST = < (('cmp' | 'test') [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
     mkguards(a);

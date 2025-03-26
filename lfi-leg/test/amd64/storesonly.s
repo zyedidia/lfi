@@ -55,3 +55,8 @@ cmpb (%rax), $0x0
 >>>
 .bundle_align_mode 5
 cmpb (%rax), $0x0
+------
+testb $0x0, (%rax)
+>>>
+.bundle_align_mode 5
+testb $0x0, (%rax)
