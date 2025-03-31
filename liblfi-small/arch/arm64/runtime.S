@@ -272,4 +272,6 @@ lfi_restore_regs:
 	add x30, x21, w30, uxtw
 	ret
 
+#ifndef __APPLE__
 .section .note.GNU-stack,"",@progbits
+#endif

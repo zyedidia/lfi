@@ -230,4 +230,6 @@ lfi_restore_partial_regs:
 	add x30, REG_BASE, w30, uxtw
 	ret
 
+#ifndef __APPLE__
 .section .note.GNU-stack,"",@progbits
+#endif

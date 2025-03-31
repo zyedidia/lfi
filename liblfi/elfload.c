@@ -176,7 +176,7 @@ err1:
     return false;
 }
 
-int perf_output_jit_interface_file(uint8_t*, size_t, uintptr_t);
+bool perf_output_jit_interface_file(uint8_t*, size_t, uintptr_t);
 
 EXPORT bool
 lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts)
@@ -209,7 +209,7 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
             goto err;
 
     if (opts.perf) {
-        if (perf_output_jit_interface_file(progdat, progsz, pfirst))
+        if (!perf_output_jit_interface_file(progdat, progsz, pfirst))
             goto err;
     }
 
