@@ -42,7 +42,8 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 Movs = m:MOVS rest:REMAINDER {
     mkdirective(".bundle_lock");
     mask("%rdi");
-    mask("%rsi");
+    if (args.boxtype >= BOX_FULL)
+        mask("%rsi");
     mkinsn("%s%s", m.val, rest.val);
     if (args.poc) {
         mkinsn("movl %%edi, %%edi");
