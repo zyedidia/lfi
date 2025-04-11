@@ -13,6 +13,8 @@
 
 #include "lfiv.h"
 
+static LFIvOpts opts;
+
 // The name of the output file subBDD prefix
 #define SUBFILE "lfi"
 // Instruction range to be checked
@@ -93,7 +95,7 @@ main(int argc, char* argv[])
 #pragma omp parallel
 #pragma omp for
     for (uint64_t insn = 0; insn < n_verify; insn++) {
-        if (lfiv_verify_insn_arm64((uint32_t) insn)) {
+        if (lfiv_verify_insn_arm64((uint32_t) insn, &opts)) {
             valid[insn] = true;
         }
     }
