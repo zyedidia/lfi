@@ -91,6 +91,7 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
     for (size_t i = 0; i < n; i++) {
         struct Da64Inst dinst;
         da64_decode(insns[i], &dinst);
+        size_t i_addr = i * 4;
 
         cs_insn* csi;
         size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), i* 4, 1, &csi);
@@ -102,13 +103,13 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         switch(dinst.mnem) {
         case DA64I_B:
         case DA64I_BL:
-            target = dinst.imm64;
+            target = i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
         case DA64I_CBZ:
         case DA64I_CBNZ:
-            target = dinst.imm64;
+            target = i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[1].imm);
             branch = true;
             break;
@@ -117,11 +118,11 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
             assert_reg_op(&dinst.ops[0]);
 
             if (dinst.ops[0].reg == 23) {
-                assert (csi->detail->arm64.operands[0].reg == ARM64_REG_X23);
+                assert(csi->detail->arm64.operands[0].reg == ARM64_REG_X23);
                 cs_free(csi, 1);
                 continue;
             }
-            target = dinst.imm64;
+            target = i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[2].imm);
             branch = true;
             break;
@@ -158,6 +159,7 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
 
         struct Da64Inst dinst;
         da64_decode(insns[i], &dinst);
+        size_t i_addr = i * 4;
 
         cs_insn* csi;
         size_t count = cs_disasm(handle, (const uint8_t*) &insns[i], sizeof(uint32_t), addr + i * 4, 1, &csi);
@@ -173,18 +175,18 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
         bool indbranch = false;
         switch (dinst.mnem) {
         case DA64I_B:
-            target = dinst.imm64;
+            target = addr + i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
         case DA64I_BL:
-            target = dinst.imm64;
+            target = addr + i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[0].imm);
             branch = true;
             break;
         case DA64I_CBZ:
         case DA64I_CBNZ:
-            target = dinst.imm64;
+            target = addr + i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[1].imm);
             branch = true;
             break;
@@ -195,7 +197,7 @@ meteropt(uint8_t* buf, size_t sz, size_t addr)
                 cs_free(csi, 1);
                 continue;
             }
-            target = dinst.imm64;
+            target = addr + i_addr + dinst.imm64;
             assert(target == csi->detail->arm64.operands[2].imm);
             branch = true;
             break;
