@@ -17,7 +17,7 @@ Top = Syscall | Retcall
 Syscall = 'syscall' - {
     mkdirective(".bundle_lock");
     mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq *(%s)", args.sysexternal ? "%r13" : "%r14");
+    mkinsn("jmpq %s", rtcall(0));
     mklabel("1024");
     mkdirective(".bundle_unlock");
 }
@@ -25,7 +25,7 @@ Syscall = 'syscall' - {
 Retcall = 'libret' - {
     mkdirective(".bundle_lock");
     mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq *24(%s)", args.sysexternal ? "%r13" : "%r14");
+    mkinsn("jmpq %s", rtcall(24));
     mklabel("1024");
     mkdirective(".bundle_unlock");
 }

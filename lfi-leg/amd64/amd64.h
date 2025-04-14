@@ -6,6 +6,7 @@
 #include "args.h"
 #include "result.h"
 #include "op.h"
+#include "util.h"
 
 static const char*
 lo(const char* reg)
@@ -43,6 +44,18 @@ lo(const char* reg)
     if (strcmp(reg, "%r15") == 0)
         return "%r15d";
     return reg;
+}
+
+static char*
+rtcall(unsigned offset)
+{
+    if (args.sysexternal) {
+        return xasprintf("*%d(%%r13)", offset);
+    } else if (args.zerobase) {
+        return xasprintf("*%%gs:%d", offset);
+    } else {
+        return xasprintf("*%d(%%r14)", offset);
+    }
 }
 
 static char

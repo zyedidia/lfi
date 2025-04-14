@@ -54,6 +54,7 @@ struct arguments {
     bool nopie;
     bool syscall;
     bool largeguard;
+    bool zerobase;
 };
 
 extern struct arguments args;
