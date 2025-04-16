@@ -4,9 +4,9 @@ return b{
     $ lfi.bdd: lfi.bdd.txt
         go run bdd.go $input > $output
     $ genbddsingle: genbddsingle.o
-        c++ $input -o $output -lbdd -llfiverify-arm64 -L/usr/local/lib/x86_64-linux-gnu
+        c++ $input -o $output -lbdd -llfiv -L/usr/local/lib/x86_64-linux-gnu
     $ genbdd: genbdd.o
-        c++ $input -o $output -lbdd -fopenmp -llfiverify-arm64 -L/usr/local/lib/x86_64-linux-gnu
+        c++ $input -o $output -lbdd -fopenmp -llfiv -L/usr/local/lib/x86_64-linux-gnu
     $ %.o: %.cc
         c++ -c -O2 $input -o $output -I../../liblfi -fopenmp
     $ %.o: %.c
