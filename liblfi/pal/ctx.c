@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
+#include "config.h"
 #include "host.h"
 #include "thread.h"
 #include "pal/platform.h"
@@ -50,7 +51,7 @@ extern void lfi_ret(void)
     asm ("lfi_ret");
 
 static void
-syssetup(struct LFIPlatform* plat, struct Sys* sys, struct LFIContext* ctx, uintptr_t base)
+syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
 {
     sys->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
     sys->rtcalls[1] = (uintptr_t) &lfi_get_tp;
@@ -59,7 +60,7 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, struct LFIContext* ctx, uint
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
     if (plat->opts.sysexternal)
-        sys->ctx = (uintptr_t) ctx;
+        sys->ctx = (uintptr_t) &lfi_myctx;
     int err = host_mprotect((void*) base, plat->opts.pagesize, LFI_PROT_READ);
     assert(err == 0);
 }
@@ -67,6 +68,10 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, struct LFIContext* ctx, uint
 EXPORT struct LFIContext*
 lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
 {
+#if defined(__APPLE__) || defined(SYS_EXTERNAL)
+    as->plat->opts.sysexternal = true;
+#endif
+
     struct LFIContext* ctx = malloc(sizeof(struct LFIContext));
     if (!ctx)
         return NULL;
@@ -76,7 +81,7 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
         sys = sysalloc(as->plat, as->base);
         if (!sys)
             goto err;
-        syssetup(as->plat, sys, ctx, as->base);
+        syssetup(as->plat, sys, as->base);
     } else {
         sys = (struct Sys*) as->base;
     }

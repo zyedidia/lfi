@@ -33,6 +33,7 @@ config_h = configure_file(
     'CONFIG_MAX_FUTEX': get_option('liblfi-max_futex'),
     'CONFIG_THREADS':   get_option('liblfi-threads'),
     'CONFIG_GDB':       get_option('liblfi-gdb'),
+    'SYS_EXTERNAL':     get_option('liblfi-dlopen'),
   }
 )
 
