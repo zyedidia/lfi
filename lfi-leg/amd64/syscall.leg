@@ -22,7 +22,7 @@ Syscall = 'syscall' - {
     mkdirective(".bundle_unlock");
 }
 
-Retcall = 'libret' - {
+Retcall = ('//lfi:' | '#lfi:') 'rtcall_return' - {
     mkdirective(".bundle_lock");
     mkinsn("leaq 1024f(%%rip), %%r11");
     mkinsn("jmpq %s", rtcall(24));

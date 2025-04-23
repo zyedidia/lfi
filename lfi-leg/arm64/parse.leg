@@ -19,6 +19,7 @@ Insn = - Label? (
     | BundleDirective Comment?
     | TrustedDirective | Enable
     | UntrustedDirective | Disable
+    | LFIDirective
     | Directive Comment?
     | Comment
     | Any
@@ -65,6 +66,11 @@ Enable = ('//' | '#') 'lfi:enable' (!EOL .)* {
 Disable = ('//' | '#') 'lfi:disable' (!EOL .)* {
     struct op* op = mkcomment("//lfi:disable");
     op->truststart = true;
+}
+
+LFIDirective = ('//' | '#') 'lfi:' rest:REMAINDER {
+    mkinsn("//lfi:%s", rest.val);
+    rfree(rest);
 }
 
 Directive = < '.' (!EOL .)* > - {
