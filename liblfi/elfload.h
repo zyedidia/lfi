@@ -151,3 +151,7 @@ elfinterp(uint8_t* progdat, size_t progsz)
 }
 
 bool elfload(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info);
+
+bool lfi_proc_loadsyms(struct LFIContext* ctx, uint8_t* elfdat, size_t elfsize);
+
+uint64_t lfi_proc_sym(struct LFIContext* ctx, char* sym);

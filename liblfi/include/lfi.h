@@ -102,6 +102,8 @@ struct LFILoadOpts {
 
 bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
 bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);
+bool                    lfi_proc_loadsyms(struct LFIContext* ctx, uint8_t* elfdat, size_t elfsize);
+uint64_t                lfi_proc_sym(struct LFIContext* ctx, char* sym);
 
 void lfi_thread_init(void (*thread_create)(void*), void* pausefn);
 
