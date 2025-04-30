@@ -6,6 +6,10 @@
 
 #include "lfi.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct TuxBinding {
     char* hostpath;
     char* tuxpath;
@@ -70,3 +74,7 @@ struct LFILibCalls {
 };
 
 void* lfi_libcalls(void);
+
+#ifdef __cplusplus
+}
+#endif

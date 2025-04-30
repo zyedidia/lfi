@@ -2,6 +2,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(__aarch64__) || defined(_M_ARM64)
 
 typedef struct TuxRegs {
@@ -67,4 +71,8 @@ typedef struct TuxRegs {
     uint64_t xmm[32];
 } LFIRegs;
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

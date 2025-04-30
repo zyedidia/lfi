@@ -8,6 +8,10 @@
 #include "lfi_arch.h"
 #include "lfi_host.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     LFI_MAP_SHARED    = 1,
     LFI_MAP_PRIVATE   = 2,
@@ -108,3 +112,7 @@ uint64_t                lfi_proc_sym(struct LFIContext* ctx, char* sym);
 void lfi_thread_init(void (*thread_create)(void*), void* pausefn);
 
 char* lfi_strerror(void);
+
+#ifdef __cplusplus
+}
+#endif
