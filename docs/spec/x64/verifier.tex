@@ -120,7 +120,7 @@ No instruction except the following may use \code{jmpq *}
         \code{leaq 1f(\%rip), \%r11} \\
         \code{jmpq *N(\rbase)} \\
         \code{1:} \\ \\
-        Where \code{N \% 8 == 0} and \code{N <= 256}.
+        Where \code{N \% 8 == 0} and \code{N < 256}.
 \end{enumerate}
 
 \specitem
