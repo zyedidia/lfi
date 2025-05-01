@@ -8,6 +8,8 @@ project(
 
 add_project_arguments('-D_LARGEFILE64_SOURCE', '-D_FILE_OFFSET_BITS=64', '-Werror=implicit-function-declaration', language : 'c')
 
+compiler = meson.get_compiler('c')
+
 # Enable various hardening flags (used by liblfi and liblfix).
 c_args_hardened = [
   '-fno-strict-aliasing',
@@ -23,11 +25,11 @@ c_args_warnings = [
   '-Wno-gnu-zero-variadic-macro-arguments',
 ]
 
-has_auto_var_init = meson.get_compiler('c').has_argument('-ftrivial-auto-var-init=zero')
+has_auto_var_init = compiler.has_argument('-ftrivial-auto-var-init=zero')
 if has_auto_var_init
   c_args_hardened += '-ftrivial-auto-var-init=zero'
 endif
-has_fuzzer = meson.get_compiler('c').has_argument('-fsanitize=fuzzer')
+has_fuzzer = compiler.has_argument('-fsanitize=fuzzer')
 
 argp = subproject('argp').get_variable('argp_dep')
 
@@ -45,6 +47,25 @@ xarchmap = {
 if not archmap.has_key(cpu)
   warning('unsupported architecture: ' + cpu)
   subdir_done()
+endif
+
+defines = []
+if compiler.has_function('getdents64', prefix : '''#define _GNU_SOURCE
+#include <dirent.h>''')
+  defines += '-DHAVE_GETDENTS64'
+endif
+if compiler.has_function('memfd_create', prefix : '''#define _GNU_SOURCE
+#include <sys/mman.h>''')
+  defines += '-DHAVE_MEMFD_CREATE'
+endif
+if compiler.has_function('getentropy', prefix : '#include <unistd.h>')
+  defines += '-DHAVE_GETENTROPY'
+endif
+if compiler.has_function('getrandom', prefix : '#include <sys/random.h>')
+  defines += '-DHAVE_GETRANDOM'
+endif
+if compiler.has_function('arc4random_buf', prefix : '#include <stdlib.h>')
+  defines += '-DHAVE_ARC4RANDOM_BUF'
 endif
 
 cpuarch = archmap[cpu]

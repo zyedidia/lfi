@@ -41,7 +41,7 @@ config_h = configure_file(
 liblfi = static_library(
   'lfi',
   sources: srcs + [config_h],
-  c_args: c_args_hardened + c_args_warnings,
+  c_args: c_args_hardened + c_args_warnings + defines + ['-fvisibility=hidden'],
   include_directories: include_directories('include', 'arch/' + xcpuarch, 'arch/'),
   dependencies: [
     cwalk.get_variable('cwalk_dep').as_link_whole(),

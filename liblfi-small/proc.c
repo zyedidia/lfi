@@ -24,6 +24,15 @@
 #include "arch/amd64/amd64.h"
 #endif
 
+#ifndef HAVE_MEMFD_CREATE
+#include <sys/syscall.h>
+static int
+memfd_create(const char *name, unsigned flags)
+{
+    return syscall(SYS_memfd_create, name, flags);
+}
+#endif
+
 extern uint64_t lfi_proc_entry(LFIProc* proc, void** kstackp) asm ("lfi_proc_entry");
 extern uint64_t lfi_asm_invoke(LFIProc* proc, void* fn, void** kstackp) asm ("lfi_asm_invoke");
 extern void lfi_asm_proc_exit(void* kstackp, uint64_t code) asm ("lfi_asm_proc_exit");
