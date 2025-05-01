@@ -284,8 +284,10 @@ procunmap(struct TuxProc* p, lfiptr_t start, size_t size)
 static void
 procfree(struct TuxThread* p)
 {
-    (void) p;
-    // TODO: free p
+    lfi_ctx_free(p->p_ctx);
+    lfi_as_free(p->proc->p_as);
+    free(p->proc);
+    free(p);
 }
 
 EXPORT struct TuxThread*
@@ -305,4 +307,10 @@ EXPORT struct LFIContext*
 lfi_tux_ctx(struct TuxThread* p)
 {
     return p->p_ctx;
+}
+
+EXPORT void
+lfi_tux_proc_free(struct TuxThread* p)
+{
+    procfree(p);
 }
