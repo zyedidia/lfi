@@ -30,7 +30,7 @@ struct LFIAddrSpace {
 struct Sys {
     uintptr_t rtcalls[256];
     uintptr_t base;
-    uintptr_t ctx;
+    uintptr_t ctxp;
 };
 
 struct ElfTable {

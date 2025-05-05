@@ -12,6 +12,7 @@
 #include "proc.h"
 #include "elfload.h"
 #include "pal/platform.h"
+#include "pal/regs.h"
 
 #include "syscalls/syscalls.h"
 
@@ -59,6 +60,7 @@ procnewthread(struct TuxThread* p)
     newp->proc = p->proc;
     newp->tid = nexttid();
     *lfi_ctx_regs(newp->p_ctx) = *lfi_ctx_regs(p->p_ctx);
+    lfi_ctx_init_sys(newp->p_ctx);
 
     return newp;
 

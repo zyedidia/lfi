@@ -60,7 +60,7 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
     if (plat->opts.sysexternal)
-        sys->ctx = (uintptr_t) &lfi_myctx;
+        sys->ctxp = (uintptr_t) &lfi_myctx;
     int err = host_mprotect((void*) base, plat->opts.pagesize, LFI_PROT_READ);
     assert(err == 0);
 }
@@ -168,6 +168,7 @@ lfi_thread_init(void (*thread_create)(void*), void* pausefn)
     // invoke sbx_thread_create(&_lfi_pause) with the clone context
     LOCK_WITH_DEFER(&lfi_clonectx_lk, lk);
     assert(lfi_myctx == NULL);
+    lfi_clonectx->sys->ctxp = (uintptr_t) &lfi_myctx;
     lfi_myctx = lfi_clonectx;
     thread_create(pausefn);
     lfi_myctx = lfi_newctx;

@@ -5,6 +5,7 @@
 #include "sys.h"
 #include "syscalls/strace.h"
 #include "syscalls/syscalls.h"
+#include "pal/platform.h"
 
 #include "arch_sys.h"
 
