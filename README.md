@@ -204,7 +204,7 @@ Some notes:
 
 By default, the LFI compiler produces executables that you can run in a
 sandboxed environment. To adapt this model to library sandboxing, a tool called
-[Sobox](https://github.com/zyedidia/sobox) can be used to generate bindings for
+[lfi-bind](https://github.com/zyedidia/lfi-bind) can be used to generate bindings for
 a library compiled with LFI so that functions within the sandbox can be invoked
 by a host. Since the LFI sandbox runs within a single process, invoking a
 sandboxed function is very cheap -- roughly 20-40 cycles.
