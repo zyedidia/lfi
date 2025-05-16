@@ -126,6 +126,8 @@ elfinterp(uint8_t* progdat, size_t progsz)
 
     if (ehdr.phnum >= PHNUM_MAX)
         return NULL;
+    if (ehdr.phoff >= progsz)
+        return NULL;
 
     struct ProgHeader phdr[ehdr.phnum];
     n = bufread(prog, phdr, sizeof(struct ProgHeader) * ehdr.phnum, ehdr.phoff);

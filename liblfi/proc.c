@@ -94,9 +94,7 @@ procnewfile(struct Tux* tux, uint8_t* prog, size_t size, int argc, char** argv)
 
     return p;
 err3:
-    lfi_ctx_free(ctx);
 err2:
-    lfi_as_free(as);
 err1:
     procfree(p);
     return NULL;
