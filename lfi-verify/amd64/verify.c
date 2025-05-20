@@ -37,8 +37,62 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-static bool reserved(FdReg reg) {
-    return reg == FD_REG_R14 || reg == FD_REG_SP;
+// return the number of modified operands
+static int nmod(FdInstr* instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_CMP:
+        return 0;
+    case FDI_XCHG:
+        return 2;
+    default:
+        return 1;
+    }
+}
+
+// Check whether a particular register is reserved under the current
+// verification configuration.
+// Accounts for reads vs writes.
+static bool reserved(Verifier* v, FdInstr* instr, int op_index) {
+    FdReg reg = FD_OP_REG(instr, op_index);
+    bool is_read_op = nmod(instr) <= op_index;
+
+    if (reg == FD_REG_R14 || reg == FD_REG_SP) {
+
+        if (v->opts->poc) {
+            // cannot read from or write to R14 under poc
+            return true;
+        }
+        // without poc, we can read R14 but not write to it.
+        return !is_read_op;
+    }
+
+    if (v->opts->poc && reg == FD_REG_R11) {
+
+        // write ops to r11 are allowed, but reads are only allowed to r11d
+        if (!is_read_op) {
+            return false;
+        }
+        // reads from r11d are allowed
+        if (FD_OP_SIZE(instr, op_index) == 4) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // r13 is reserved under poc and decl for the runtime call page
+    // cannot be written to under decl and cannot also be read from under poc
+    if (reg == FD_REG_R13) {
+        if (v->opts->poc) {
+            return true;
+        }
+        if (v->opts->decl) {
+            return !is_read_op;
+        }
+        return false;
+    }
+
+    return false;
 }
 
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
@@ -85,6 +139,41 @@ static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indir
     return branch;
 }
 
+static bool okdeclinstr(Verifier* v, FdInstr* instr) {
+    assert(v->opts->decl);
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
+static bool oklfiinstr(Verifier* v, FdInstr* instr) {
+    // TODO: what instructions are allowed in the LFI configuration (decl=false)
+    // that are not allowed in the decl configuration?
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
+static bool okpocinstr(Verifier* v, FdInstr* instr) {
+    assert(v->opts->poc);
+
+    // We could make this its own table.  For now, this appears simpler.
+    if (FD_TYPE(instr) == FDI_CALL || FD_TYPE(instr) == FDI_MOVS || FD_TYPE(instr) == FDI_STOS) {
+        return false;
+    }
+
+    // TODO: Perhaps redundant.  In what cases do we have opts->poc but not opts->decl?
+    switch (FD_TYPE(instr)) {
+#include "decl.instrs"
+    default:
+        return false;
+    }
+}
+
 static bool okmnem(Verifier* v, FdInstr* instr) {
     if (v->opts->nobranches) {
         bool indirect, cond;
@@ -122,18 +211,16 @@ static bool okmnem(Verifier* v, FdInstr* instr) {
         }
     }
 
+    if (!oklfiinstr(v, instr))
+        return false;
 
-    if (v->opts->decl) {
-        switch (FD_TYPE(instr)) {
-#include "decl.instrs"
-        default:
-            break;
-        }
-    } else {
-        // TODO:
-        return true;
-    }
-    return false;
+    if (v->opts->decl && !okdeclinstr(v, instr))
+        return false;
+
+    if (v->opts->poc && !okpocinstr(v, instr))
+        return false;
+
+    return true;
 }
 
 static void chkmem(Verifier* v, FdInstr* instr) {
@@ -178,10 +265,8 @@ static void chkmod(Verifier* v, FdInstr* instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;
 
-    int n = nmod(instr);
-    assert(n <= 4);
-    for (size_t i = 0; i < n; i++) {
-        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(FD_OP_REG(instr, i)))
+    for (size_t i = 0; i < 4; i++) {
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(v, instr, i))
             verr(v, instr, "modification of reserved register");
     }
 }
@@ -252,14 +337,15 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
 
     size_t bundlesize;
     switch (opts->bundle) {
-    case LFI_BUNDLE16:
-        bundlesize = 16;
-        break;
+    // we may choose to enable BUNDLE16 in the future, for some configurations.
+    // case LFI_BUNDLE16:
+    //     bundlesize = 16;
+    //     break;
     case LFI_BUNDLE32:
         bundlesize = 32;
         break;
     default:
-        verrmin(&v, "bundle size must be 16 or 32");
+        verrmin(&v, "bundle size must be 32");
         return false;
     }
 

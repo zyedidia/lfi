@@ -54,3 +54,28 @@ nop
 je .bar
 .p2align 5
 .bar:
+---
+// flags: --poc
+leaq 1023f(%rip), %r11
+1023:
+---
+// flags: --poc
+movl %r11d, %gs:(%eax)
+---
+// flags: --poc
+movq %gs:(%eax), %r11
+---
+// flags: --poc
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+rep stosq
+movl %edi, %edi
+---
+// flags: --poc
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+movl %esi, %esi
+leaq (%r14, %rsi), %rsi
+rep movsq
+movl %edi, %edi
+movl %esi, %esi
