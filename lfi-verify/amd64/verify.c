@@ -37,10 +37,10 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
-// return the number of modified operands
 static int nmod(FdInstr* instr) {
     switch (FD_TYPE(instr)) {
     case FDI_CMP:
+    case FDI_TEST:
         return 0;
     case FDI_XCHG:
         return 2;
@@ -246,18 +246,6 @@ static void chkmem(Verifier* v, FdInstr* instr) {
             if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
                 verr(v, instr, "invalid index register for memory access");
         }
-    }
-}
-
-static int nmod(FdInstr* instr) {
-    switch (FD_TYPE(instr)) {
-    case FDI_CMP:
-    case FDI_TEST:
-        return 0;
-    case FDI_XCHG:
-        return 2;
-    default:
-        return 1;
     }
 }
 
