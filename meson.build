@@ -80,7 +80,6 @@ subdir('lfi-verify')
 if not get_option('liblfi-only')
   subdir('lfi-leg')
   subdir('lfi-postlink')
-  subdir('lfi-compile')
   if get_option('fuzzer')
     subdir('lfi-fuzz')
   endif
