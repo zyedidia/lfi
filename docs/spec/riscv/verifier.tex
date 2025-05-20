@@ -113,7 +113,7 @@ No instruction except the following may use \code{jalr}
         \term{macroinstruction}: \\
         \code{ld ra, N(x21)} \\
         \code{jalr ra} \\ \\
-        Where \code{N \% 8 == 0} and \code{N <= 256}.
+        Where \code{N \% 8 == 0} and \code{N < 256}.
 \end{enumerate}
 
 \specsection{Memory Accesses}

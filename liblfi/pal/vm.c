@@ -168,7 +168,9 @@ lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size)
 EXPORT void
 lfi_as_free(struct LFIAddrSpace* as)
 {
-    assert(!"unimplemented");
+    host_mmap((void*) as->base, as->size, LFI_PROT_NONE, LFI_MAP_ANONYMOUS | LFI_MAP_PRIVATE | LFI_MAP_FIXED, NULL, 0);
+    boxmap_rmspace(as->plat->bm, as->base, as->size);
+    free(as);
 }
 
 EXPORT lfiptr_t

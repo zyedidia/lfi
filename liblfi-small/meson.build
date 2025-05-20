@@ -13,7 +13,7 @@ subdir('arch/' + cpuarch)
 liblfi_small = static_library(
   'lfi',
   srcs,
-  c_args: c_args_hardened + ['-fvisibility=hidden'],
+  c_args: c_args_hardened + ['-fvisibility=hidden'] + defines,
   install: true,
   dependencies: [liblfiv_dep, mmap.as_link_whole()],
 )

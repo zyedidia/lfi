@@ -12,6 +12,13 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext* 
     regs->REG_SYS = (uintptr_t) ctx->sys;
 }
 
+EXPORT void
+lfi_ctx_init_sys(struct LFIContext* ctx)
+{
+    if (ctx->as->plat->opts.sysexternal)
+        ctx->regs.REG_SYS = (uintptr_t) ctx->sys;
+}
+
 uintptr_t*
 lfi_regs_entry(struct TuxRegs* regs)
 {

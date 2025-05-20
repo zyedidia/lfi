@@ -90,3 +90,7 @@ mov %fs:0, %rax
 mov %fs:(%rsp), %rax
 ---
 mov %fs:(%rip), %rax
+---
+mov %gs, %rax
+---
+mov %rax, %gs

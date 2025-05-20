@@ -30,7 +30,12 @@ struct LFIAddrSpace {
 struct Sys {
     uintptr_t rtcalls[256];
     uintptr_t base;
-    uintptr_t ctx;
+    uintptr_t ctxp;
+};
+
+struct ElfTable {
+    char* tab;
+    size_t size;
 };
 
 struct LFIContext {
@@ -40,6 +45,10 @@ struct LFIContext {
     void* ctxp;
     struct Sys* sys;
     struct LFIAddrSpace* as;
+
+    uintptr_t elfbase;
+    struct ElfTable symtab;
+    struct ElfTable strtab;
 };
 
 static inline size_t

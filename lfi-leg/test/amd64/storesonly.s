@@ -55,3 +55,17 @@ cmpb (%rax), $0x0
 >>>
 .bundle_align_mode 5
 cmpb (%rax), $0x0
+------
+testb $0x0, (%rax)
+>>>
+.bundle_align_mode 5
+testb $0x0, (%rax)
+------
+movsq
+>>>
+.bundle_align_mode 5
+.bundle_lock
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+movsq
+.bundle_unlock

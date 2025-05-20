@@ -1,8 +1,22 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifndef __linux__
+
+bool
+perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
+{
+    (void) elf_data, (void) size, (void) offset;
+    fprintf(stderr, "perf is not supported on non-linux platforms\n");
+    return false;
+}
+
+#else
+
 #include <unistd.h>
 #include <elf.h>
 #include <string.h>
-#include <stdbool.h>
 #include <dirent.h>
 
 static bool
@@ -16,7 +30,7 @@ direxists(const char* dirname)
     return false;
 }
 
-int
+bool
 perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
 {
     char* tmpdir = "/data/local/tmp";
@@ -99,8 +113,10 @@ perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
 
     fclose(out);
     printf("Perf map written to: %s\n", output_file);
-    return 0;
+    return true;
 err:
     if (out) fclose(out);
-    return 1;
+    return false;
 }
+
+#endif

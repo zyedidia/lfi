@@ -25,7 +25,7 @@ bufwrite(buf_t* buf, uint8_t* data, size_t size)
 }
 
 static inline size_t
-bufread(buf_t buf, void* to, size_t count, off_t offset)
+bufread(buf_t buf, void* to, size_t count, size_t offset)
 {
     if (offset + count > buf.size)
         count = buf.size - offset;

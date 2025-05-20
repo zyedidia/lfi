@@ -18,6 +18,7 @@ Insn = - Label? (
       BundleDirective
     | TrustedDirective | Enable
     | UntrustedDirective | Disable
+    | LFIDirective
     | Directive Comment?
     | Comment
     | AnyPrefix
@@ -67,6 +68,11 @@ Enable = ('//' | '#') 'lfi:enable' (!EOL .)* {
 Disable = ('//' | '#') 'lfi:disable' (!EOL .)* {
     struct op* op = mkcomment("//lfi:disable");
     op->truststart = true;
+}
+
+LFIDirective = ('//' | '#') 'lfi:' rest:REMAINDER {
+    mkinsn("//lfi:%s", rest.val);
+    rfree(rest);
 }
 
 PREFIX = < ('lock' | 'rep' | 'rex64' | 'rex') > [ \t\r\n;]+ {

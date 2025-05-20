@@ -5,6 +5,7 @@ srcs = files(
   'buf.c',
   'proc.c',
   'elfload.c',
+  'elfsym.c',
   'sys.c',
   'file.c',
   'fd.c',
@@ -33,13 +34,14 @@ config_h = configure_file(
     'CONFIG_MAX_FUTEX': get_option('liblfi-max_futex'),
     'CONFIG_THREADS':   get_option('liblfi-threads'),
     'CONFIG_GDB':       get_option('liblfi-gdb'),
+    'SYS_EXTERNAL':     get_option('liblfi-dlopen'),
   }
 )
 
 liblfi = static_library(
   'lfi',
   sources: srcs + [config_h],
-  c_args: c_args_hardened + c_args_warnings,
+  c_args: c_args_hardened + c_args_warnings + defines + ['-fvisibility=hidden'],
   include_directories: include_directories('include', 'arch/' + xcpuarch, 'arch/'),
   dependencies: [
     cwalk.get_variable('cwalk_dep').as_link_whole(),

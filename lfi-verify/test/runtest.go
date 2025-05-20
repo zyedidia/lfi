@@ -114,8 +114,10 @@ func main() {
 			fmt.Printf("ok %d\n", ntest+1)
 			passed++
 		}
-		os.Remove(tmp.Name())
-		os.Remove(bin)
+		if !*verbose {
+			os.Remove(tmp.Name())
+			os.Remove(bin)
+		}
 		ntest++
 	}
 }

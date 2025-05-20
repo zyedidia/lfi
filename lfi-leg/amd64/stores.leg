@@ -42,7 +42,8 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 Movs = m:MOVS rest:REMAINDER {
     mkdirective(".bundle_lock");
     mask("%rdi");
-    mask("%rsi");
+    if (args.boxtype >= BOX_FULL)
+        mask("%rsi");
     mkinsn("%s%s", m.val, rest.val);
     if (args.poc) {
         mkinsn("movl %%edi, %%edi");
@@ -63,7 +64,7 @@ Lea = l:LEA a:Addr COMMA r:REG {
 
 LEA = < ('lea' [wlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
-Cmp = m:CMP r:ITEM COMMA a:Addr {
+Cmp = m:CMPTEST r:ITEM COMMA a:Addr {
     if (args.boxtype < BOX_FULL) {
         mkinsn("%s %s, %s", m.val, r.val, a.unmod);
     } else {
@@ -74,7 +75,7 @@ Cmp = m:CMP r:ITEM COMMA a:Addr {
     rfree(m); rfree(a); rfree(r);
 }
 
-CMP = < ('cmp' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+CMPTEST = < (('cmp' | 'test') [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
     mkguards(a);

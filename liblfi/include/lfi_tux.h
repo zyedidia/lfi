@@ -6,6 +6,10 @@
 
 #include "lfi.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct TuxBinding {
     char* hostpath;
     char* tuxpath;
@@ -43,6 +47,8 @@ struct Tux* lfi_tux_new(struct LFIPlatform* plat, struct TuxOptions opts);
 
 struct TuxThread* lfi_tux_proc_new(struct Tux* tux, uint8_t* prog, size_t progsize, int argc, char** argv);
 
+void lfi_tux_proc_free(struct TuxThread* p);
+
 uint64_t lfi_tux_proc_run(struct TuxThread* p);
 
 void lfi_tux_syscall(struct LFIContext* ctx);
@@ -70,3 +76,7 @@ struct LFILibCalls {
 };
 
 void* lfi_libcalls(void);
+
+#ifdef __cplusplus
+}
+#endif

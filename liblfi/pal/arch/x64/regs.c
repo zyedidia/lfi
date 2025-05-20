@@ -11,6 +11,12 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext* 
     regs->r13 = (uintptr_t) ctx->sys;
 }
 
+EXPORT void
+lfi_ctx_init_sys(struct LFIContext* ctx)
+{
+    // sys-external not yet supported on x64
+}
+
 uintptr_t*
 lfi_regs_entry(struct TuxRegs* regs)
 {

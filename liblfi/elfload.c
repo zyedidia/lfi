@@ -176,7 +176,7 @@ err1:
     return false;
 }
 
-int perf_output_jit_interface_file(uint8_t*, size_t, uintptr_t);
+bool perf_output_jit_interface_file(uint8_t*, size_t, uintptr_t);
 
 EXPORT bool
 lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts)
@@ -209,7 +209,7 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
             goto err;
 
     if (opts.perf) {
-        if (perf_output_jit_interface_file(progdat, progsz, pfirst))
+        if (!perf_output_jit_interface_file(progdat, progsz, pfirst))
             goto err;
     }
 
@@ -248,15 +248,20 @@ err:
     return false;
 }
 
-#define STACKSIZE (2 * 1024 * 1024)
-
 bool
 elfload(struct TuxThread* p, uint8_t* progdat, size_t progsz, uint8_t* interpdat, size_t interpsz, struct LFILoadInfo* o_info)
 {
-    return lfi_proc_loadelf(p->proc->p_as, progdat, progsz, interpdat, interpsz, o_info, (struct LFILoadOpts) {
+    bool ok = lfi_proc_loadelf(p->proc->p_as, progdat, progsz, interpdat, interpsz, o_info, (struct LFILoadOpts) {
         .stacksize = STACKSIZE,
         .pagesize = p->proc->tux->opts.pagesize,
         .perf = p->proc->tux->opts.perf,
         .gdbfile = p->proc->tux->opts.gdbfile,
     });
+    if (!ok)
+        return false;
+    ok = lfi_proc_loadsyms(p->p_ctx, progdat, progsz);
+    if (!ok)
+        return false;
+    p->p_ctx->elfbase = o_info->elfbase;
+    return true;
 }

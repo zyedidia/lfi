@@ -249,6 +249,18 @@ static void chkmem(Verifier* v, FdInstr* instr) {
     }
 }
 
+static int nmod(FdInstr* instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_CMP:
+    case FDI_TEST:
+        return 0;
+    case FDI_XCHG:
+        return 2;
+    default:
+        return 1;
+    }
+}
+
 static void chkmod(Verifier* v, FdInstr* instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;

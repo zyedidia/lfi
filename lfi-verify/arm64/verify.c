@@ -34,7 +34,7 @@ static void verrmin(Verifier* v, const char* fmt, ...) {
 static void verr(Verifier* v, struct Da64Inst* inst, const char* msg) {
     char fmtbuf[128];
     da64_format(inst, fmtbuf);
-    verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
+    verrmin(v, "%lx: %s: %s", v->addr, fmtbuf, msg);
 }
 
 static size_t bundlesize(Verifier* v) {
@@ -443,8 +443,10 @@ static void vchk(Verifier* v, uint32_t insn) {
     if (insn == INSN_NOP)
         return;
 
-    if (!okmnem(v, &dinst))
+    if (!okmnem(v, &dinst)) {
         verr(v, &dinst, "illegal instruction");
+        return;
+    }
 
     chkbranch(v, &dinst);
     chksys(v, &dinst);

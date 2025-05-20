@@ -1,3 +1,4 @@
+#include "config.h"
 #include "pal/arch/arm64/regs.h"
 
 #define N_RTCALLS 256
@@ -8,8 +9,9 @@
 // On Apple Silicon we do not use thread-locals to keep track of the current
 // process because the macOS TLS implementation has a terrible calling
 // convention. Instead we require sysexternal on Apple, and use REG_SYS.
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(SYS_EXTERNAL)
 	ldr REG_BASE, [REG_SYS, 8*N_RTCALLS+8]
+	ldr REG_BASE, [REG_BASE]
 #else
 	mrs	REG_BASE, tpidr_el0
 	add	REG_BASE, REG_BASE, #:tprel_hi12:lfi_myctx, lsl #12
@@ -40,8 +42,7 @@
 .global lfi_ctx_internal
 // This function places its return value in x8
 lfi_ctx_internal:
-#ifdef __APPLE__
-	// TODO: support on Apple systems
+#if defined(__APPLE__) || defined(SYS_EXTERNAL)
 	brk #0
 #else
 	mrs	x8, tpidr_el0
@@ -169,8 +170,9 @@ lfi_ret:
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(SYS_EXTERNAL)
 	ldr x0, [REG_SYS, 8*N_RTCALLS+8]
+	ldr x0, [x0]
 #else
 	mrs	x0, tpidr_el0
 	add	x0, x0, #:tprel_hi12:lfi_myctx, lsl #12
@@ -185,8 +187,9 @@ lfi_get_tp:
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(SYS_EXTERNAL)
 	ldr REG_BASE, [REG_SYS, N_RTCALLS*8+8]
+	ldr REG_BASE, [REG_BASE]
 #else
 	mrs	REG_BASE, tpidr_el0
 	add	REG_BASE, REG_BASE, #:tprel_hi12:lfi_myctx, lsl #12
@@ -230,4 +233,6 @@ lfi_restore_partial_regs:
 	add x30, REG_BASE, w30, uxtw
 	ret
 
+#ifndef __APPLE__
 .section .note.GNU-stack,"",@progbits
+#endif

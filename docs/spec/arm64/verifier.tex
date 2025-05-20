@@ -100,6 +100,8 @@ No instruction except the following may write to register \xret.
 
 \begin{itemize}
     \item \code{add \xret, \xbase, wN, uxtw}
+
+    \item \code{ldr \xret, [\xbase, \#i]}, where \code{i \% 8 == 0} and \code{i < 256}.
 \end{itemize}
 
 \specitem
@@ -132,7 +134,7 @@ A memory operand must be one of the following forms:
     \item \code{[\xsp, \#i]!}
     \item \code{[\xsp], \#i}
     \item \code{[\xbase, wN, uxtw]}
-    \item \code{[\xbase, \#i]}, where \code{i \% 8 == 0} and \code{i <= 256}.
+    \item \code{[\xbase, \#i]}, where \code{i \% 8 == 0} and \code{i < 256}.
 \end{enumerate}
 
 \specsection{System Register Accesses}
