@@ -63,3 +63,9 @@ stp xzr, xzr, [sp, #-0x10]!
 swpal w0, w0, [x18]
 ---
 ldadd w0, w0, [x18]
+---
+// flags: --sandbox=stores
+ldr x0, [x1]
+---
+// flags: --sandbox=stores
+ldr x0, [x1], #16

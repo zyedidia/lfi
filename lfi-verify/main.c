@@ -29,6 +29,7 @@ static struct argp_option options[] = {
     { "help",           'h',               0,      0, "show this message", -1 },
     { "arch",           'a',               "ARCH", 0, "run on architecture (amd64,arm64)" },
     { "n",              'n',               "NUM",  0, "run the verifier n times (for benchmarking)" },
+    { "sandbox",        's',               "TYPE", 0, "Select sandbox type (full,stores)" },
     { "poc",            ARG_poc,           0,      0, "require position-oblivious code" },
     { "decl",           ARG_decl,          0,      0, "require deterministic instructions" },
     { "meter",          ARG_meter,         "TYPE", 0, "require metering instructions" },
@@ -54,6 +55,16 @@ parse_opt(int key, char* arg, struct argp_state* state)
             return ARGP_ERR_UNKNOWN;
         }
         args->arch = arg;
+        break;
+    case 's':
+        if (strcmp(arg, "full") == 0)
+            opts.box = LFI_BOX_FULL;
+        else if (strcmp(arg, "stores") == 0)
+            opts.box = LFI_BOX_STORES;
+        else {
+            fprintf(stderr, "unsupported sandbox type: %s\n", arg);
+            return ARGP_ERR_UNKNOWN;
+        }
         break;
     case ARG_poc:
         opts.poc = true;

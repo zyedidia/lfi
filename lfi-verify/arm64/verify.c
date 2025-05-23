@@ -312,6 +312,13 @@ static void chksys(Verifier* v, struct Da64Inst* dinst) {
     }
 }
 
+static bool isload(Verifier* v, struct Da64Inst* dinst) {
+    switch (dinst->mnem) {
+#include "loads.instrs"
+    }
+    return false;
+}
+
 static bool okmnem(Verifier* v, struct Da64Inst* dinst) {
     if (v->opts->noundefined && dinst->mnem == DA64I_UDF)
         return false;
@@ -329,24 +336,33 @@ static bool okmnem(Verifier* v, struct Da64Inst* dinst) {
     return false;
 }
 
-static bool okmemop(Verifier* v, struct Da64Op* op) {
+static bool okmemop(Verifier* v, struct Da64Op* op, bool load) {
+    bool storesonly = v->opts->box == LFI_BOX_STORES;
     switch (op->type) {
     case DA_OP_MEMUOFF:
     case DA_OP_MEMSOFF:
+        if (load && storesonly)
+            return true;
         // runtime call
         if (rtsysreg(v, op->reg) && (op->simm16 == 0 || op->simm16 == 0x8 || op->simm16 == 0x10))
             return true;
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMSOFFPRE:
     case DA_OP_MEMSOFFPOST:
+        if (load && storesonly)
+            return !fixedreg(v, op->reg);
         return ldstreg(v, op->reg, true);
     case DA_OP_MEMREG:
-        return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW &&
-            op->memreg.sc == 0;
-        break;
+        if (load && storesonly)
+            return true;
+        return basereg(op->reg) && op->memreg.ext == DA_EXT_UXTW && op->memreg.sc == 0;
     case DA_OP_MEMREGPOST:
+        if (load && storesonly)
+            return !fixedreg(v, op->reg);
         return false;
     case DA_OP_MEMINC:
+        if (load && storesonly)
+            return !fixedreg(v, op->reg);
         return false;
     default:
         return true;
@@ -354,8 +370,9 @@ static bool okmemop(Verifier* v, struct Da64Op* op) {
 }
 
 static void chkmemops(Verifier* v, struct Da64Inst* dinst) {
+    bool load = isload(v, dinst);
     for (size_t i = 0; i < sizeof(dinst->ops) / sizeof(struct Da64Op); i++) {
-        if (!okmemop(v, &dinst->ops[i]))
+        if (!okmemop(v, &dinst->ops[i], load))
             verr(v, dinst, "illegal memory operand");
     }
 }
