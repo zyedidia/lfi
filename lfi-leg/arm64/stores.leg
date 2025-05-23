@@ -9,7 +9,7 @@
 
 Top = StOpt | StNoOpt | StMulti | Atomic1 | Atomic2
 
-StOpt = l:ST rt:REG COMMA addr:AddrOpt {
+StOpt = l:ST (!'zt' rt:REG) COMMA addr:AddrOpt {
     ldst(l, rt, addr);
 }
 
@@ -37,6 +37,7 @@ ST = < (
 # Stores that only have basic addressing modes available.
 ST_BASIC = < (
       'stur' [bh]?
+    | 'str' [bh]?
     | 'stlr' [bh]?
     | 'sttr' [bh]?
     | 'st' [1234]

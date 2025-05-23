@@ -168,3 +168,13 @@ ld1sb   {z4.h}, p0/z, [x6]
 >>>
 add x18, x21, w6, uxtw
 ld1sb {z4.h}, p0/z, [x18]
+------
+ldr zt0, [x16]
+>>>
+add x18, x21, w16, uxtw
+ldr zt0, [x18]
+------
+str zt0, [x16]
+>>>
+add x18, x21, w16, uxtw
+str zt0, [x18]

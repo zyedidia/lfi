@@ -9,7 +9,7 @@
 
 Top = LdOpt | LdNoOpt | LdMulti
 
-LdOpt = l:LD rt:REG COMMA addr:AddrOpt {
+LdOpt = l:LD (!'zt' rt:REG) COMMA addr:AddrOpt {
     ldst(l, rt, addr);
 }
 
@@ -31,6 +31,8 @@ LD = < (
 # Loads that only have basic addressing modes available.
 LD_BASIC = < (
       'ldurs' [bhw]
+    | 'ldrs' [bhw]
+    | 'ldr' [bh]?
     | 'ldur' [bh]?
     | 'ldxr' [bh]?
     | 'ldar' [bh]?
