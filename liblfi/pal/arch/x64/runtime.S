@@ -81,22 +81,11 @@ lfi_asm_ctx_exit:
 .p2align 4
 .global lfi_ret
 lfi_ret:
-	movq lfi_myctx@gottpoff(%rip), %r11
-	movq %fs:(%r11), %r11
-	movq 0(%r11), %rsp // kstackp
-    // restore user sp to its initial value
-    popq %rbp
-    movq %rbp, PROC_REGS(%r11)
-    popq %rbp // pop dummy value
-	// return value should already be in %rax
-	popq %rbp
-	popq %rbx
-	popq %r12
-	popq %r13
-	popq %r14
-	popq %r15
-	ret
-	int3
+    movq lfi_myctx@gottpoff(%rip), %r11
+    movq %fs:(%r11), %r11
+    // restore host stack
+    movq 0(%r11), %rsp
+    ret
 
 // Loads the sandbox's thread pointer into %rax. Does not clobber flags.
 .p2align 4
