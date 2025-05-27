@@ -164,6 +164,7 @@ lfi_ret:
 	ldp d12, d13, [sp], 16
 	ldp d10, d11, [sp], 16
 	ldp d8, d9,   [sp], 16
+	// faster to use br instead of ret due to return misprediction
 	br x30
 
 // Puts the sandbox's thread pointer in x0.
