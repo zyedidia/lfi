@@ -150,20 +150,7 @@ lfi_ret:
 	// restore kernel stack
 	ldr x22, [REG_BASE]
 	mov sp, x22
-	// restore the user sp to its initial value
-	ldp x22, xzr, [sp], 16
-	str x22, [REG_BASE, PROC_REGS+16*15+8]
-	// restore callee-saved registers
-	ldp x29, x30, [sp], 16
-	ldp x27, x28, [sp], 16
-	ldp x25, x26, [sp], 16
-	ldp x23, x24, [sp], 16
-	ldp x21, x22, [sp], 16
-	ldp x19, x20, [sp], 16
-	ldp d14, d15, [sp], 16
-	ldp d12, d13, [sp], 16
-	ldp d10, d11, [sp], 16
-	ldp d8, d9,   [sp], 16
+	ldp xzr, x30, [sp], 16
 	// faster to use br instead of ret due to return misprediction
 	br x30
 
