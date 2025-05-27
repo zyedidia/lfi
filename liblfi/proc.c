@@ -314,3 +314,9 @@ lfi_tux_proc_free(struct TuxThread* p)
 {
     procfree(p);
 }
+
+EXPORT uintptr_t
+lfi_tux_proc_stack(struct TuxThread* p)
+{
+    return p->stack;
+}

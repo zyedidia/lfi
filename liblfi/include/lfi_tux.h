@@ -47,6 +47,8 @@ struct Tux* lfi_tux_new(struct LFIPlatform* plat, struct TuxOptions opts);
 
 struct TuxThread* lfi_tux_proc_new(struct Tux* tux, uint8_t* prog, size_t progsize, int argc, char** argv);
 
+uintptr_t lfi_tux_proc_stack(struct TuxThread* p);
+
 void lfi_tux_proc_free(struct TuxThread* p);
 
 uint64_t lfi_tux_proc_run(struct TuxThread* p);
