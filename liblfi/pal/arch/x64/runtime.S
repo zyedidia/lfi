@@ -1,5 +1,5 @@
 #define N_RTCALLS 256
-#define PROC_REGS 16
+#define PROC_REGS 32
 
 .macro SAVE_PARTIAL_REGS
     mov lfi_myctx@gottpoff(%rip), %rcx

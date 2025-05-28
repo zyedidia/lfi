@@ -68,7 +68,7 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
 EXPORT struct LFIContext*
 lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
 {
-#if defined(__APPLE__) || defined(SYS_EXTERNAL)
+#if defined(SYS_EXTERNAL)
     as->plat->opts.sysexternal = true;
 #endif
 
