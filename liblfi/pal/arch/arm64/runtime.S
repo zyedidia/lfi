@@ -33,6 +33,12 @@
 	// TODO: save SIMD registers
 .endm
 
+.p2align 4
+.global lfi_ctx_internal
+// This function places its return value in x8
+lfi_ctx_internal:
+	brk #0
+
 // lfi_ctx_entry(LFIContext* ctx, void** kstackp)
 .p2align 4
 .global lfi_ctx_entry
