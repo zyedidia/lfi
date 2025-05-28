@@ -21,7 +21,7 @@ lfi_new_plat(struct LFIPlatOptions opts)
     });
     if (!bm)
         goto err1;
-    if (!boxmap_reserve(bm, gb(256)))
+    if (!boxmap_reserve(bm, gb(32)))
         goto err2;
 
     *plat = (struct LFIPlatform) {
