@@ -168,7 +168,9 @@ lfi_thread_init(void (*thread_create)(void*), void* pausefn)
     // invoke sbx_thread_create(&_lfi_pause) with the clone context
     LOCK_WITH_DEFER(&lfi_clonectx_lk, lk);
     assert(lfi_myctx == NULL);
+#ifdef SYS_EXTERNAL
     lfi_clonectx->sys->ctxp = (uintptr_t) &lfi_myctx;
+#endif
     lfi_myctx = lfi_clonectx;
     thread_create(pausefn);
     lfi_myctx = lfi_newctx;

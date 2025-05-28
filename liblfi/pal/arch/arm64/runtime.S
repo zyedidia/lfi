@@ -65,7 +65,7 @@ lfi_restore_regs:
 	// Save and replace target of tpidr_el0 with proc pointer.
 	mrs x2, tpidr_el0
 	ldr x3, [x2]
-	str x3, [x0, #24]
+	str x3, [x0, #16]
 	str x0, [x2]
 	ldp x2, x3,   [x0, PROC_REGS+16*1]
 	ldp x4, x5,   [x0, PROC_REGS+16*2]
@@ -141,7 +141,7 @@ lfi_ret:
 	GET_PROC
 	// restore kernel TLS
 	mrs x1, tpidr_el0
-	ldr x2, [REG_BASE, #24]
+	ldr x2, [REG_BASE, #16]
 	str x2, [x1]
 	// restore kernel stack
 	ldr x22, [REG_BASE]
@@ -201,7 +201,7 @@ lfi_syscall_entry:
 	// REG_BASE now contains LFIContext*
 	// Save and replace target of tpidr_el0 with original value.
 	mrs x1, tpidr_el0
-	ldr x2, [REG_BASE, #24]
+	ldr x2, [REG_BASE, #16]
 	str x2, [x1]
 	ldr x1, [REG_BASE] // load stack
 	mov sp, x1
@@ -215,7 +215,7 @@ lfi_restore_partial_regs:
 	// Save and replace target of tpidr_el0 with proc pointer.
 	mrs x2, tpidr_el0
 	ldr x3, [x2]
-	str x3, [x0, #24]
+	str x3, [x0, #16]
 	str x0, [x2]
 	ldp x2, x3,   [x0, PROC_REGS+16*1]
 	ldp x4, x5,   [x0, PROC_REGS+16*2]
