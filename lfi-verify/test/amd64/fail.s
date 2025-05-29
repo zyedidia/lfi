@@ -94,3 +94,7 @@ mov %fs:(%rip), %rax
 mov %gs, %rax
 ---
 mov %rax, %gs
+---
+std
+---
+cld
