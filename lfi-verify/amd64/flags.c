@@ -1,5 +1,7 @@
 // See Intel manual Table A-2
 
+#include "ht.h"
+
 // Flags read by instructions. This table must be complete.
 static flagset_t flagread[FDI_XTEST + 1] = {
     [FDI_AAA] = F_AF,
@@ -207,14 +209,12 @@ static flagset_t analyzeblock(Verifier* v, flagset_t in, FdInstr* instrs, size_t
     return in;
 }
 
-static ssize_t findinstr(FdInstr* instrs, size_t n, size_t addr) {
-    size_t count = 0;
-    for (size_t i = 0; i < n; i++) {
-        if (count == addr)
-            return i;
-        count += instrs[i].size;
-    }
-    return -1;
+static ssize_t findinstr(ht_t* tbl, size_t addr) {
+    bool found;
+    size_t i = ht_get(tbl, addr, &found);
+    if (!found)
+        return -1;
+    return i;
 }
 
 struct BasicBlock {
@@ -244,6 +244,12 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
     leaders[0] = true;
 
     v->addr = addr;
+    ht_t tbl;
+    ht_alloc(&tbl, n);
+    for (size_t i = 0; i < n; i++) {
+        ht_put(&tbl, v->addr, i);
+    }
+    v->addr = addr;
     for (size_t i = 0; i < n; i++) {
         FdInstr* instr = &instrs[i];
         int64_t target;
@@ -258,7 +264,7 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
         }
         // Target is a leader.
         if (branch) {
-            ssize_t i = findinstr(instrs, n, target - addr);
+            ssize_t i = findinstr(&tbl, target - addr);
             if (i >= 0) {
                 leaders[i] = true;
             }
@@ -288,7 +294,7 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
                     .size = i,
                 };
                 if (branch) {
-                    ssize_t targidx = findinstr(instrs, n, target - addr);
+                    ssize_t targidx = findinstr(&tbl, target - addr);
                     if (targidx >= 0) {
                         blocks[leader].target = &blocks[targidx];
                     }
@@ -299,31 +305,30 @@ static void analyzecfg(Verifier* v, FdInstr* instrs, size_t n, size_t addr) {
             v->addr += instrs[leader + i].size;
         }
     }
+
     for (size_t i = 0; i < n; i++) {
         if (blocks[i].size > 0) {
-            blocks[i].in = undef;
+            v->addr = blocks[i].startaddr;
+            flagset_t in = undef;
+            blocks[i].in = 0;
+            flagset_t out = analyzeblock(v, in, &instrs[i], blocks[i].size, false);
+            if (blocks[i].fallthrough)
+                blocks[i].fallthrough->in |= out;
+            if (blocks[i].target)
+                blocks[i].target->in |= out;
         }
     }
 
     for (size_t i = 0; i < n; i++) {
         if (blocks[i].size > 0) {
             v->addr = blocks[i].startaddr;
-            flagset_t out = analyzeblock(v, blocks[i].in, &instrs[i], blocks[i].size, false);
+            flagset_t in = blocks[i].in;
+            blocks[i].in = 0;
+            flagset_t out = analyzeblock(v, in, &instrs[i], blocks[i].size, true);
             if (blocks[i].fallthrough)
-                blocks[i].fallthrough->in &= out;
+                blocks[i].fallthrough->in |= out;
             if (blocks[i].target)
-                blocks[i].target->in &= out;
-        }
-    }
-
-    for (size_t i = 0; i < n; i++) {
-        if (blocks[i].size > 0) {
-            v->addr = blocks[i].startaddr;
-            flagset_t out = analyzeblock(v, blocks[i].in, &instrs[i], blocks[i].size, true);
-            if (blocks[i].fallthrough)
-                blocks[i].fallthrough->in &= out;
-            if (blocks[i].target)
-                blocks[i].target->in &= out;
+                blocks[i].target->in |= out;
         }
     }
 

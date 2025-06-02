@@ -7,6 +7,12 @@ nop
 ---
 // flags: --decl
 .bundle_align_mode 4
+start:
+jmp s1
+nop
+s1:
+jmp foo
+nop
 foo:
 jz bar
 .p2align 4
@@ -17,6 +23,12 @@ jo foo
 bar:
 ---
 .bundle_align_mode 4
+start:
+jmp s1
+nop
+s1:
+jmp foo
+nop
 cmp %eax, %eax
 foo:
 jz bar
