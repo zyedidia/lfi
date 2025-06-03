@@ -106,7 +106,7 @@ int ht_put(ht_t* tbl, ht_key_t key, ht_val_t val) {
     return 0;
 }
 
-static void remove(ht_t* tbl, size_t idx) {
+static void remove_entry(ht_t* tbl, size_t idx) {
     tbl->entries[idx].filled = false;
     tbl->len--;
 }
@@ -123,14 +123,14 @@ int ht_remove(ht_t* tbl, ht_key_t key) {
         return 0;
     }
 
-    remove(tbl, idx);
+    remove_entry(tbl, idx);
 
     idx = (idx + 1) & (tbl->cap - 1);
 
     while (tbl->entries[idx].filled) {
         ht_key_t krehash = tbl->entries[idx].key;
         ht_val_t vrehash = tbl->entries[idx].val;
-        remove(tbl, idx);
+        remove_entry(tbl, idx);
         ht_put(tbl, krehash, vrehash);
         idx = (idx + 1) & (tbl->cap - 1);
     }
