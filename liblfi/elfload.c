@@ -260,8 +260,9 @@ elfload(struct TuxThread* p, uint8_t* progdat, size_t progsz, uint8_t* interpdat
     if (!ok)
         return false;
     ok = lfi_proc_loadsyms(p->p_ctx, progdat, progsz);
-    if (!ok)
-        return false;
+    if (!ok) {
+        VERBOSE(p->proc->tux, "symbols not found");
+    }
     p->p_ctx->elfbase = o_info->elfbase;
     p->stack = o_info->stack;
     return true;
