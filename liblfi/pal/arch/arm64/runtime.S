@@ -2,21 +2,16 @@
 #include "pal/arch/arm64/regs.h"
 
 #define N_RTCALLS 256
-#define PROC_REGS 16
+#define PROC_REGS 32
 
 // Puts Proc* in REG_BASE.
 .macro GET_PROC
-// On Apple Silicon we do not use thread-locals to keep track of the current
-// process because the macOS TLS implementation has a terrible calling
-// convention. Instead we require sysexternal on Apple, and use REG_SYS.
-#if defined(__APPLE__) || defined(SYS_EXTERNAL)
+#if defined(SYS_EXTERNAL)
 	ldr REG_BASE, [REG_SYS, 8*N_RTCALLS+8]
 	ldr REG_BASE, [REG_BASE]
 #else
 	mrs	REG_BASE, tpidr_el0
-	add	REG_BASE, REG_BASE, #:tprel_hi12:lfi_myctx, lsl #12
-	add	REG_BASE, REG_BASE, #:tprel_lo12_nc:lfi_myctx
-	ldr	REG_BASE, [REG_BASE]
+	ldr REG_BASE, [REG_BASE]
 #endif
 .endm
 
@@ -42,15 +37,7 @@
 .global lfi_ctx_internal
 // This function places its return value in x8
 lfi_ctx_internal:
-#if defined(__APPLE__) || defined(SYS_EXTERNAL)
 	brk #0
-#else
-	mrs	x8, tpidr_el0
-	add	x8, x8, #:tprel_hi12:lfi_myctx, lsl #12
-	add	x8, x8, #:tprel_lo12_nc:lfi_myctx
-	ldr	x8, [x8]
-#endif
-	ret
 
 // lfi_ctx_entry(LFIContext* ctx, void** kstackp)
 .p2align 4
@@ -75,6 +62,11 @@ lfi_ctx_entry:
 
 .p2align 4
 lfi_restore_regs:
+	// Save and replace target of tpidr_el0 with proc pointer.
+	mrs x2, tpidr_el0
+	ldr x3, [x2]
+	str x3, [x0, #16]
+	str x0, [x2]
 	ldp x2, x3,   [x0, PROC_REGS+16*1]
 	ldp x4, x5,   [x0, PROC_REGS+16*2]
 	ldp x6, x7,   [x0, PROC_REGS+16*3]
@@ -147,6 +139,10 @@ lfi_asm_ctx_exit:
 .globl lfi_ret
 lfi_ret:
 	GET_PROC
+	// restore kernel TLS
+	mrs x1, tpidr_el0
+	ldr x2, [REG_BASE, #16]
+	str x2, [x1]
 	// restore kernel stack
 	ldr x22, [REG_BASE]
 	mov sp, x22
@@ -170,14 +166,12 @@ lfi_ret:
 .p2align 4
 .global lfi_get_tp
 lfi_get_tp:
-#if defined(__APPLE__) || defined(SYS_EXTERNAL)
+#if defined(SYS_EXTERNAL)
 	ldr x0, [REG_SYS, 8*N_RTCALLS+8]
 	ldr x0, [x0]
 #else
 	mrs	x0, tpidr_el0
-	add	x0, x0, #:tprel_hi12:lfi_myctx, lsl #12
-	add	x0, x0, #:tprel_lo12_nc:lfi_myctx
-	ldr	x0, [x0]
+	ldr x0, [x0]
 #endif
 	ldr x0, [x0, #8]
 	add x30, REG_BASE, w30, uxtw
@@ -187,14 +181,12 @@ lfi_get_tp:
 .p2align 4
 .global lfi_set_tp
 lfi_set_tp:
-#if defined(__APPLE__) || defined(SYS_EXTERNAL)
+#if defined(SYS_EXTERNAL)
 	ldr REG_BASE, [REG_SYS, N_RTCALLS*8+8]
 	ldr REG_BASE, [REG_BASE]
 #else
 	mrs	REG_BASE, tpidr_el0
-	add	REG_BASE, REG_BASE, #:tprel_hi12:lfi_myctx, lsl #12
-	add	REG_BASE, REG_BASE, #:tprel_lo12_nc:lfi_myctx
-	ldr	REG_BASE, [REG_BASE]
+	ldr REG_BASE, [REG_BASE]
 #endif
 	str x0, [REG_BASE, #8]
 	// reload REG_BASE
@@ -207,6 +199,10 @@ lfi_set_tp:
 lfi_syscall_entry:
 	SAVE_PARTIAL_REGS
 	// REG_BASE now contains LFIContext*
+	// Save and replace target of tpidr_el0 with original value.
+	mrs x1, tpidr_el0
+	ldr x2, [REG_BASE, #16]
+	str x2, [x1]
 	ldr x1, [REG_BASE] // load stack
 	mov sp, x1
 	str REG_BASE, [sp, #-16]!
@@ -216,6 +212,11 @@ lfi_syscall_entry:
 // Restore only caller-saved registers.
 .globl lfi_restore_partial_regs
 lfi_restore_partial_regs:
+	// Save and replace target of tpidr_el0 with proc pointer.
+	mrs x2, tpidr_el0
+	ldr x3, [x2]
+	str x3, [x0, #16]
+	str x0, [x2]
 	ldp x2, x3,   [x0, PROC_REGS+16*1]
 	ldp x4, x5,   [x0, PROC_REGS+16*2]
 	ldp x6, x7,   [x0, PROC_REGS+16*3]

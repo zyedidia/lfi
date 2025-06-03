@@ -41,6 +41,8 @@ struct ElfTable {
 struct LFIContext {
     void* kstackp;
     uintptr_t tp;
+    uintptr_t ktpderef;
+    uintptr_t _pad;
     struct TuxRegs regs;
     void* ctxp;
     struct Sys* sys;
