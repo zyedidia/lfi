@@ -160,7 +160,7 @@ lfi_ret:
 	ldp d12, d13, [sp], 16
 	ldp d10, d11, [sp], 16
 	ldp d8, d9,   [sp], 16
-	br x30
+	ret
 
 // Puts the sandbox's thread pointer in x0.
 .p2align 4
