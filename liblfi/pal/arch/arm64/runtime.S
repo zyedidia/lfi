@@ -151,8 +151,7 @@ lfi_ret:
 	ldr x22, [REG_BASE]
 	mov sp, x22
 	ldp xzr, x30, [sp], 16
-	// faster to use br instead of ret due to return misprediction
-	br x30
+	ret
 
 // Puts the sandbox's thread pointer in x0.
 .p2align 4
