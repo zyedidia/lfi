@@ -182,3 +182,9 @@ lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t ptr)
 {
     return ptr >= ctx->as->minaddr && ptr < ctx->as->maxaddr;
 }
+
+EXPORT struct LFIContext*
+lfi_get_myctx(void)
+{
+    return lfi_myctx;
+}
