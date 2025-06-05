@@ -48,6 +48,7 @@ lfi_ctx_entry:
 	stp d10, d11, [sp, #-16]!
 	stp d12, d13, [sp, #-16]!
 	stp d14, d15, [sp, #-16]!
+    stp xzr, x18, [sp, #-16]!
 	stp x19, x20, [sp, #-16]!
 	stp x21, x22, [sp, #-16]!
 	stp x23, x24, [sp, #-16]!
@@ -128,6 +129,7 @@ lfi_asm_ctx_exit:
 	ldp x23, x24, [sp], 16
 	ldp x21, x22, [sp], 16
 	ldp x19, x20, [sp], 16
+    ldp xzr, x18, [sp], 16
 	ldp d14, d15, [sp], 16
 	ldp d12, d13, [sp], 16
 	ldp d10, d11, [sp], 16
@@ -156,6 +158,7 @@ lfi_ret:
 	ldp x23, x24, [sp], 16
 	ldp x21, x22, [sp], 16
 	ldp x19, x20, [sp], 16
+    ldp xzr, x18, [sp], 16
 	ldp d14, d15, [sp], 16
 	ldp d12, d13, [sp], 16
 	ldp d10, d11, [sp], 16
