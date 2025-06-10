@@ -104,6 +104,10 @@ ssize_t sys_readlink(struct TuxProc* p, lfiptr_t pathp, lfiptr_t bufp, size_t si
 
 int sys_close(struct TuxProc* p, int fd);
 
+int sys_dup(struct TuxProc* p, int oldfd);
+
+int sys_dup3(struct TuxProc* p, int oldfd, int newfd, int flags);
+
 ssize_t sys_read(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size);
 
 ssize_t sys_readv(struct TuxProc* p, int fd, lfiptr_t iovp, size_t iovcnt);

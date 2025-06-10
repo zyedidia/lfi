@@ -49,6 +49,7 @@ testdata = [
   {'bin': test_tux, 'file': 'tux/file.c', 'inputs': ['tux/inputs/file.txt'], 'cflags': []},
   {'bin': test_tux, 'file': 'tux/chdir.c', 'inputs': ['tux/inputs', 'file.txt'], 'cflags': []},
   {'bin': test_tux, 'file': 'tux/thread.c', 'inputs': [], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/dup.c', 'inputs': [], 'cflags': []},
   {'bin': test_fs, 'file': 'tux/fs.c', 'inputs': '/proc/self/test.txt', 'cflags': []}
 ]
 

@@ -142,6 +142,42 @@ sys_close(struct TuxProc* p, int fd)
     return 0;
 }
 
+int
+sys_dup(struct TuxProc* p, int oldfd)
+{
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, oldfd);
+    if (!f)
+        return -TUX_EBADF;
+
+    int newfd = fdalloc(&p->fdtable);
+    if (newfd < 0)
+        return -TUX_EMFILE;
+
+    fdassign(&p->fdtable, newfd, f);
+    return newfd;
+}
+
+int
+sys_dup3(struct TuxProc* p, int oldfd, int newfd, int flags)
+{
+    if (oldfd == newfd)
+        return -TUX_EINVAL;
+
+    struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, oldfd);
+    if (!f)
+        return -TUX_EBADF;
+
+    if (newfd < 0 || newfd >= TUX_NOFILE)
+        return -TUX_EBADF;
+
+    if (flags != 0 && flags != TUX_O_CLOEXEC)
+        return -TUX_EINVAL;
+
+    fdremove(&p->fdtable, newfd);
+    fdassign(&p->fdtable, newfd, f);
+    return newfd;
+}
+
 ssize_t
 sys_readlinkat(struct TuxProc* p, int dirfd, lfiptr_t pathp, lfiptr_t bufp, size_t size)
 {

@@ -27,6 +27,8 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(brk,               sys_brk(proc, a0))
     SYS(openat,            sys_openat(proc, a0, a1, a2, a3))
     SYS(close,             sys_close(proc, a0))
+    SYS(dup,               sys_dup(proc, a0))
+    SYS(dup3,              sys_dup3(proc, a0, a1, a2))
     SYS(writev,            sys_writev(proc, a0, a1, a2))
     SYS(readv,             sys_readv(proc, a0, a1, a2))
     SYS(pread64,           sys_pread64(proc, a0, a1, a2, a3))
