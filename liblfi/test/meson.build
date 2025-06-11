@@ -11,7 +11,12 @@ test('test_init', executable(
   dependencies: [liblfi_dep]
 ), suite: ['liblfi'])
 
-lficc = find_program(cpu + '-lfi-linux-musl-clang', required: false)
+lficc = find_program([
+  cpu + '-lfi-linux-musl-clang',
+  '/opt/aarch64-lfi-clang-new/lfi-clang/' + cpu + '-lfi-linux-musl-clang',
+  '/opt/aarch64-lfi-clang/lfi-clang/' + cpu + '-lfi-linux-musl-clang',
+  '/opt/lfi/bin/' + cpu + '-lfi-linux-musl-clang'
+], required: false)
 if not lficc.found()
   warning('lficc not found: cannot test liblfi')
   subdir_done()
@@ -50,6 +55,7 @@ testdata = [
   {'bin': test_tux, 'file': 'tux/chdir.c', 'inputs': ['tux/inputs', 'file.txt'], 'cflags': []},
   {'bin': test_tux, 'file': 'tux/thread.c', 'inputs': [], 'cflags': []},
   {'bin': test_tux, 'file': 'tux/dup.c', 'inputs': [], 'cflags': []},
+  {'bin': test_tux, 'file': 'tux/fcntl.c', 'inputs': [], 'cflags': []},
   {'bin': test_fs, 'file': 'tux/fs.c', 'inputs': '/proc/self/test.txt', 'cflags': []}
 ]
 
