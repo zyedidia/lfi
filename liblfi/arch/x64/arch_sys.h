@@ -85,6 +85,7 @@ enum {
     TUX_SYS_unlinkat           = 263,
     TUX_SYS_renameat           = 264,
     TUX_SYS_readlinkat         = 267,
+    TUX_SYS_fchmodat           = 268,
     TUX_SYS_faccessat          = 269,
     TUX_SYS_set_robust_list    = 273,
     TUX_SYS_utimensat          = 280,

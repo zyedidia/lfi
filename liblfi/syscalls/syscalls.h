@@ -126,6 +126,8 @@ int sys_fchmod(struct TuxProc* p, int fd, tux_mode_t mode);
 
 int sys_chmod(struct TuxProc* p, uintptr_t pathp, tux_mode_t mode);
 
+int sys_fchmodat(struct TuxProc* p, int dirfd, lfiptr_t pathp, tux_mode_t mode, int flags);
+
 int sys_fchown(struct TuxProc* p, int fd, tux_uid_t owner, tux_gid_t group);
 
 int sys_chown(struct TuxProc* p, uintptr_t pathp, tux_uid_t owner, tux_gid_t group);

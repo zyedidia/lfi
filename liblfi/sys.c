@@ -39,6 +39,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(newfstatat,        sys_newfstatat(proc, a0, a1, a2, a3))
     SYS(fstat,             sys_newfstatat(proc, a0, 0, a1, TUX_AT_EMPTY_PATH))
     SYS(fchmod,            sys_fchmod(proc, a0, a1))
+    SYS(fchmodat,          sys_fchmodat(proc, a0, a1, a2, a3))
     SYS(truncate,          sys_truncate(proc, a0, a1))
     SYS(ftruncate,         sys_ftruncate(proc, a0, a1))
     SYS(fchown,            sys_fchown(proc, a0, a1, a2))

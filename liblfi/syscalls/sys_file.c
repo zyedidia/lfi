@@ -359,6 +359,18 @@ sys_fchmod(struct TuxProc* p, int fd, tux_mode_t mode)
 }
 
 int
+sys_fchmodat(struct TuxProc* p, int dirfd, lfiptr_t pathp, tux_mode_t mode, int flags)
+{
+    struct HostFile* dir = getfdir(p, dirfd);
+    if (dirfd != TUX_AT_FDCWD && !dir)
+        return -TUX_EBADF;
+    const char* path = procpath(p, pathp);
+    if (!path)
+        return -TUX_EFAULT;
+    return host_fchmodat(dir, path, mode, flags);
+}
+
+int
 sys_fsync(struct TuxProc* p, int fd)
 {
     struct FDFile* FD_DEFER(f) = fdget(&p->fdtable, fd);
