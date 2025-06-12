@@ -1,0 +1,6 @@
+fcntl F_DUPFD: original fd=3, dup fd=5
+fcntl F_GETFL: fd=3 has flags=0x20001
+fcntl F_GETFD: fd=3 has fd_flags=0x0
+fcntl F_SETFD: fd=3 now has fd_flags=0x1
+fcntl F_DUPFD_CLOEXEC correctly returned error (not supported)
+fcntl test passed
