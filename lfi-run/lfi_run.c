@@ -47,6 +47,7 @@ static struct argp_option options[] = {
     { "strace",         ARG_strace,        0,      0, "show system call trace", -1 },
     { "pagesize",       ARG_pagesize,      "SIZE", 0, "system page size", -1 },
     { "poc",            ARG_poc,           0,      0, "enable position-oblivious code", -1 },
+    { "unrestricted",  'u',           0,      0, "unrestricted mode (unimplemented)", -1 },
     { 0 },
 };
 
@@ -64,6 +65,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case 'p':
         args->opts.perf = true;
+        break;
+    case 'u':
         break;
     case ARG_strace:
         args->opts.strace = true;
