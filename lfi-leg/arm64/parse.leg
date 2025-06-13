@@ -23,7 +23,7 @@ Insn = - Label? (
     | Directive Comment?
     | Comment
     | Any
-) (EOL | ';')+
+) Comment? (EOL | ';')+
 
 Comment = '//' (!EOL .)*
 
@@ -77,10 +77,13 @@ Directive = < '.' (!EOL .)* > - {
     mkdirective(strndup(yytext, yyleng));
 }
 
-Any = < (!(EOL | ';') .)* > {
-    if (yyleng > 0)
-        mkinsn("%s", yytext);
+Any = rest:RemainderOrComment {
+    if (strlen(rest.val) > 0)
+        mkinsn("%s", rest.val);
+    rfree(rest);
 }
+
+RemainderOrComment = < (!(EOL | ';' | '/*' | '//') .)* > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 %%
 

@@ -27,3 +27,8 @@ add sp, x21, w0, uxtw
 add x25, x1, w25, sxtw
 >>>
 add x25, x1, w25, sxtw
+------
+sub sp, sp, #8 // Storing d9 using { sub sp,sp,#8; str d9,[sp] } is giving bus error.
+>>>
+sub x22, sp, #8 
+add sp, x21, w22, uxtw
