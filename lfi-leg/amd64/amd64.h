@@ -98,6 +98,32 @@ bundle_align_mode()
 }
 
 static char*
+bundle_lock()
+{
+    switch (args.cfi) {
+    case CFI_BUNDLE16:
+    case CFI_BUNDLE32:
+        return ".bundle_lock";
+    case CFI_HW:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
+bundle_unlock()
+{
+    switch (args.cfi) {
+    case CFI_BUNDLE16:
+    case CFI_BUNDLE32:
+        return ".bundle_unlock";
+    case CFI_HW:
+        return "";
+    }
+    assert(0);
+}
+
+static char*
 bundle_align()
 {
     switch (args.cfi) {
