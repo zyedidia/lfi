@@ -226,7 +226,12 @@ static struct MacroInst macroinst_rtcall(Verifier* v, uint8_t* buf, size_t size)
             !okdisp(FD_OP_DISP(&i_jmp, 0)))
         return (struct MacroInst){-1, 0};
 
-    if (FD_OP_DISP(&i_lea, 1) != i_jmp.size)
+    // Return target can either be the next instruction or can be some
+    // bundle-aligned location.
+    uintptr_t ret = v->addr + i_lea.size + FD_OP_DISP(&i_lea, 1);
+    // Assumes bundle size is 32.
+    bool ok = FD_OP_DISP(&i_lea, 1) == i_jmp.size || ret % 32 == 0;
+    if (!ok)
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){i_lea.size + i_jmp.size, 2};
@@ -302,7 +307,7 @@ static struct MacroInst macroinst_call(Verifier* v, uint8_t* buf, size_t size) {
 }
 
 static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) {
-    // movl/addl/subl/andl ..., %esp
+    // movl/addl/subl/andl/leal ..., %esp
     // orq %r14, %rsp
 
     FdInstr i_mov, i_or;
@@ -311,11 +316,12 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
     if (fd_decode(&buf[i_mov.size], size - i_mov.size, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
 
-    // allow addl, subl, or movl
+    // allow addl, subl, lea, or movl
     if (FD_TYPE(&i_mov) != FDI_MOV &&
             FD_TYPE(&i_mov) != FDI_ADD &&
             FD_TYPE(&i_mov) != FDI_AND &&
-            FD_TYPE(&i_mov) != FDI_SUB)
+            FD_TYPE(&i_mov) != FDI_SUB &&
+            FD_TYPE(&i_mov) != FDI_LEA)
         return (struct MacroInst){-1, 0};
 
     if (FD_OP_TYPE(&i_mov, 0) != FD_OT_REG ||
@@ -323,13 +329,24 @@ static struct MacroInst macroinst_modsp(Verifier* v, uint8_t* buf, size_t size) 
             FD_OP_REG(&i_mov, 0) != FD_REG_SP)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_or) != FDI_OR ||
+    // Allow 'orq %r14, %rsp' or 'lea (%rsp, %r14, 1), %rsp'
+    bool fail_or = (FD_TYPE(&i_or) != FDI_OR ||
             FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
             FD_OP_SIZE(&i_or, 0) != 8 ||
             FD_OP_SIZE(&i_or, 1) != 8 ||
             FD_OP_REG(&i_or, 0) != FD_REG_SP ||
-            FD_OP_REG(&i_or, 1) != FD_REG_R14)
+            FD_OP_REG(&i_or, 1) != FD_REG_R14);
+    bool fail_lea = (FD_TYPE(&i_or) != FDI_LEA ||
+            FD_OP_TYPE(&i_or, 1) != FD_OT_MEM ||
+            FD_OP_BASE(&i_or, 1) != FD_REG_SP ||
+            FD_OP_INDEX(&i_or, 1) != FD_REG_R14 ||
+            FD_OP_DISP(&i_or, 1) != 0 ||
+            FD_OP_SCALE(&i_or, 1) != 0 ||
+            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
+            FD_OP_SIZE(&i_or, 0) != 8 ||
+            FD_OP_REG(&i_or, 0) != FD_REG_SP);
+    if (fail_lea && fail_or)
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){i_mov.size + i_or.size, 2};

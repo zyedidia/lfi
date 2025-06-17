@@ -340,8 +340,16 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
     size_t bdd_count = 0;
     size_t bdd_ninstr = 0;
 
+    uint8_t insn_buf[15] = {0};
+
     while (bdd_count < size) {
-        int n = lfi_x86_bdd(&insns[bdd_count]);
+        uint8_t *insn = &insns[bdd_count];
+        if (size - bdd_count < sizeof(insn_buf)) {
+            memcpy(insn_buf, &insns[bdd_count], size - bdd_count);
+            insn = &insn_buf[0];
+        }
+
+        int n = lfi_x86_bdd(insn);
         if (n == 0) {
             verrmin(&v, "%lx: unknown instruction", v.addr);
             return false;
