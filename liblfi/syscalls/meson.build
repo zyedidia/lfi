@@ -11,6 +11,7 @@ srcs += files(
   'sys_cwd.c',
   'sys_prctl.c',
   'sys_none.c',
+  'sys_passthrough.c',
   'strace.c',
 )
 

@@ -48,39 +48,6 @@ arch_syshandle(struct LFIContext* ctx)
     case TUX_SYS_arch_prctl:
         regs->rax = sys_arch_prctl(p, regs->rdi, regs->rsi);
         break;
-    case TUX_SYS_readlink:
-        regs->rax = sys_readlink(proc, regs->rdi, regs->rsi, regs->rdx);
-        break;
-    case TUX_SYS_access:
-        regs->rax = sys_access(proc, regs->rdi, regs->rsi);
-        break;
-    case TUX_SYS_unlink:
-        regs->rax = sys_unlink(proc, regs->rdi);
-        break;
-    case TUX_SYS_time:
-        regs->rax = sys_time(proc, regs->rdi);
-        break;
-    case TUX_SYS_chown:
-        regs->rax = sys_chown(proc, regs->rdi, regs->rsi, regs->rdx);
-        break;
-    case TUX_SYS_chmod:
-        regs->rax = sys_chmod(proc, regs->rdi, regs->rsi);
-        break;
-    case TUX_SYS_rename:
-        regs->rax = sys_rename(proc, regs->rdi, regs->rsi);
-        break;
-    case TUX_SYS_mkdir:
-        regs->rax = sys_mkdir(proc, regs->rdi, regs->rsi);
-        break;
-    case TUX_SYS_open:
-        regs->rax = sys_open(proc, regs->rdi, regs->rsi, regs->rdx);
-        break;
-    case TUX_SYS_stat:
-        regs->rax = sys_stat(proc, regs->rdi, regs->rsi);
-        break;
-    case TUX_SYS_lstat:
-        regs->rax = sys_lstat(proc, regs->rdi, regs->rsi);
-        break;
     default:
         // Generic syscalls.
         regs->rax = syshandle(p, regs->rax, regs->rdi, regs->rsi, regs->rdx,
