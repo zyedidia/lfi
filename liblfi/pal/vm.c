@@ -176,22 +176,17 @@ lfi_as_free(struct LFIAddrSpace* as)
 EXPORT lfiptr_t
 lfi_as_toptr(struct LFIAddrSpace* as, void* p)
 {
-    uintptr_t up = (uintptr_t) p;
-    assert(up >= as->minaddr && up < as->maxaddr);
-    return p2l(as, up);
+    return (lfiptr_t) p;
 }
 
 EXPORT void*
 lfi_as_fmptr(struct LFIAddrSpace* as, lfiptr_t userp)
 {
-    uintptr_t p = l2p(as, userp);
-    if (p >= as->minaddr && p < as->maxaddr)
-        return (void*) p;
-    return NULL;
+    return (void*) userp;
 }
 
 EXPORT bool
 lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t ptr)
 {
-    return l2p(as, ptr) >= as->minaddr && l2p(as, ptr) < as->maxaddr;
+    return true;
 }
