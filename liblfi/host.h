@@ -96,7 +96,7 @@ long host_futexwait(struct TuxThread* p, uint32_t* uaddr, int op, uint32_t val, 
 
 long host_futexwake(struct TuxThread* p, uint32_t* uaddr, int op, uint32_t val);
 
-long host_futexrequeue(struct TuxThread* p, uint32_t* uaddr, int op, uint32_t val);
+long host_futexrequeue(struct TuxThread* p, uint32_t* uaddr, int op, uint32_t val, uint32_t val2, uint32_t* uaddr2);
 
 unsigned host_cpucount(void);
 
