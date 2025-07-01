@@ -8,7 +8,7 @@
 #include "verifier.h"
 #include "flags.h"
 
-extern int lfi_x86_bdd(uint8_t*);
+extern uint8_t lfi_x86_bdd(uint8_t*);
 
 enum {
     ERRMAX = 128,
@@ -349,7 +349,7 @@ bool lfiv_verify_amd64(void* code, size_t size, uintptr_t addr, LFIvOpts* opts) 
             insn = &insn_buf[0];
         }
 
-        int n = lfi_x86_bdd(insn);
+        uint8_t n = lfi_x86_bdd(insn);
         if (n == 0) {
             verrmin(&v, "%lx: unknown instruction", v.addr);
             return false;
