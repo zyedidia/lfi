@@ -1,4 +1,3 @@
-
 <h1>LFI <img src="assets/lfi-logo.svg" alt="logo" width="30px"/></h1>
 
 ![Test Workflow](https://github.com/zyedidia/lfi/actions/workflows/test.yaml/badge.svg)
@@ -15,11 +14,9 @@ sandboxing reads and writes, and 1.5% overhead when only sandboxing writes
 address space, context switches do not require changing the CPU's privilege
 level (i.e., transitioning to kernel mode).
 
-LFI's support for x86-64 is in-progress and does not yet include a complete
-static verifier. The scalability limit of 3K sandboxes on x86-64 will also be
-configurable, allowing up to 32K sandboxes at the cost of some additional
-overhead. At the moment, we have measured overheads of ~9-10% on x86-64 for
-full sandboxing.
+The code for LFI is currently being reorganized as part of a transition to a
+production-ready project. Please see https://github.com/lfi-project and stay
+tuned for more details.
 
 # Tools
 
