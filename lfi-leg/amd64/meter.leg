@@ -68,22 +68,23 @@ DIRBRANCH = < (JCC | JMP) > {
 
 JMP = 'jmp' | ('call' 'q'?)
 
-JCC = 'jo'
+JCC = 'jnle' | 'jnbe' | 'jnge'
     | 'jno'
-    | 'jc' | 'jb'
     | 'jae' | 'jnb'
-    | 'je' | 'jz'
     | 'jne' | 'jnz'
     | 'jna' | 'jbe'
-    | 'ja' | 'jnbe'
-    | 'js'
     | 'jns'
-    | 'jp' | 'jpe'
-    | 'jnp' | 'jpo'
-    | 'jl' | 'jnge'
     | 'jge' | 'jnl'
+    | 'jnp' | 'jpo'
     | 'jle' | 'jng'
-    | 'jg' | 'jnle'
+    | 'ja'
+    | 'jl'
+    | 'jc' | 'jb'
+    | 'je' | 'jz'
+    | 'js'
+    | 'jp' | 'jpe'
+    | 'jo'
+    | 'jg'
 
 %%
 
