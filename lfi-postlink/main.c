@@ -17,7 +17,7 @@ static char args_doc[] = "INPUT";
 enum {
     ARG_bundle    = 0x80,
     ARG_meter     = 0x81,
-    ARG_noprefix  = 0x82,
+    ARG_prefix    = 0x82,
     ARG_precise   = 0x83,
 };
 
@@ -27,7 +27,7 @@ static struct argp_option options[] = {
     { "bundle",         ARG_bundle,        "SIZE", 0, "set the bundle size" },
     { "meter",          ARG_meter,         "TYPE", 0, "set the metering type (branch,fp,timer)" },
     { "precise",        ARG_precise,       0,      0, "enable precise metering" },
-    { "no-prefix-pad",  ARG_noprefix,      0,      0, "disable prefix padding" },
+    { "prefix-pad",     ARG_prefix,      0,      0, "enable prefix padding" },
     { 0 },
 };
 
@@ -63,8 +63,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_precise:
         args->precise = true;
         break;
-    case ARG_noprefix:
-        args->noprefix = true;
+    case ARG_prefix:
+        args->prefix = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;
@@ -103,6 +103,10 @@ main(int argc, char** argv)
 {
     args.input = "";
     argp_parse(&argp, argc, argv, ARGP_NO_HELP, 0, &args);
+
+    const char* prefix = getenv("LFI_PREFIX_PAD");
+    if (prefix && strcmp(prefix, "1") == 0)
+        args.prefix = true;
 
     if (strcmp(args.input, "") == 0) {
         fprintf(stderr, "error: no input file\n");

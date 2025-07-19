@@ -16,7 +16,7 @@ struct arguments {
     char* arch;
     int bundle;
     enum meter meter;
-    bool noprefix;
+    bool prefix;
     bool precise;
 };
 
