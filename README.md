@@ -29,7 +29,7 @@ they run with roughly 7% (Arm64)/8% (x86-64) overhead compared to native code
 when sandboxing reads and writes, and 1.5% (Arm64)/6% (x86-64) overhead when
 only sandboxing writes, measured on SPEC 2017. Since all sandboxes exist in the
 same address space, context switches do not require changing the CPU's
-privilege level (i.e., transitioning to kernel mode).
+privilege level (i.e., transitioning to kernel mode) and take only 10s of cycles.
 
 # Getting Started
 
