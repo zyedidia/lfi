@@ -36,7 +36,10 @@ privilege level (i.e., transitioning to kernel mode).
 To get started with LFI, you'll need an LFI compiler. You can get one from
 https://github.com/lfi-project/lfi-llvm-toolchain. Prebuilt compilers aarch64
 and x86-64 compilers are hosted in the releases:
-https://github.com/lfi-project/lfi-llvm-toolchain/releases/tag/v0.9.
+https://github.com/lfi-project/lfi-llvm-toolchain/releases/tag/v0.9. Download
+the `aarch64-lfi-clang.tar.gz` or `x86_64-lfi-clang.tar.gz` bundle, depending
+on your architecture (or `aarch64-lfi-clang-host-x86_64.tar.gz` if you want to
+cross compile to aarch64 from x86-64).
 
 After opening the archive, you should see a directory structure like this:
 
