@@ -1,4 +1,4 @@
-# Lightweight Fault Isolation
+# Lightweight Fault Isolation (LFI)
 
 Welcome to the home of the Lightweight Fault Isolation (LFI) project. The
 project is hosted on GitHub in the https://github.com/lfi-project organization.
@@ -14,7 +14,7 @@ The GitHub organization has several repositories for the different components of
 * [`llvm-project`](https://github.com/lfi-project/llvm-project): our development fork of the LLVM project.
 * [`lfi-specification`](https://github.com/lfi-project/lfi-specification): the LaTeX sources for the LFI specification document.
 
-As a research project, LFI implementation initially existed in the
+As a research project, the LFI implementation initially existed in the
 https://github.com/zyedidia/lfi repository. See the `lfi-research` branch of
 this repository for that version.
 
@@ -36,7 +36,7 @@ privilege level (i.e., transitioning to kernel mode).
 To get started with LFI, you'll need an LFI compiler. You can get one from
 https://github.com/lfi-project/lfi-llvm-toolchain. Prebuilt compilers aarch64
 and x86-64 compilers are hosted in the releases:
-https://github.com/lfi-project/lfi-llvm-toolchain/releases/tag/v0.9. Download
+https://github.com/lfi-project/lfi-llvm-toolchain/releases/latest. Download
 the `aarch64-lfi-clang.tar.gz` or `x86_64-lfi-clang.tar.gz` bundle, depending
 on your architecture (or `aarch64-lfi-clang-host-x86_64.tar.gz` if you want to
 cross compile to aarch64 from x86-64).
@@ -107,6 +107,6 @@ information.
 After building and running your first LFI program, you may want to pursue
 several further directions. See the following guides for some suggestions:
 
-* Setting up benchmarking with `lfi-bench` and SPEC 2017: [guide](docs/BENCHMARKING.md).
+* Setting up benchmarking with SPEC 2017 and `lfi-bench`: [guide](docs/BENCHMARKING.md).
 * Using LFI to sandbox libraries: [guide](docs/LIBRARIES.md).
 * Learning more about how LFI works: [guide](docs/DETAILS.md).
