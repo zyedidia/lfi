@@ -1,4 +1,0 @@
-[wrap-git]
-url = https://github.com/zyedidia/libmmap.git
-revision = tux
-directory = libmmap
