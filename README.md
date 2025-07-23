@@ -67,7 +67,8 @@ You'll want to add the `lfi-bin` directory to your `PATH`. If you already have
 the LFI tools installed via a separate installation, consider only adding
 `lfi-clang` to your `PATH` instead.
 
-Once you have a compiler, you should be able to build a simple C or C++ program:
+Once you have a compiler, you should be able to build a simple C or C++ program
+(see [examples/hello](examples/hello) for the following example):
 
 ```c
 #include <stdio.h>
