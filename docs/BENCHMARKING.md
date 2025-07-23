@@ -50,6 +50,15 @@ We also have scripts in `specinvoke/bench` for running all the benchmarks, and
 for CPU shielding (pinning benchmarks to a core and moving all other processes
 off of that core).
 
+For example, to run all the benchmarks I do:
+
+```
+$ cd $CPU2017
+$ ./shield-aarch64.sh # Enter shielded subshell
+$ ./bench.sh
+All benchmarks run, putting results in result/
+```
+
 ## `lfi-bench`
 
 See https://github.com/lfi-project/lfi-bench. More information coming soon!
