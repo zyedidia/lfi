@@ -25,6 +25,10 @@ Linux libraries.
 The full API for the Core library is provided by `lfi_core.h` and `lfi_arch.h`.
 The Linux library can be used via `lfi_linux.h`.
 
+The runtime targets Linux on Arm64 and x86-64 (and in-progress support for
+RISC-V). The runtime can also be used experimentally on macOS, but not all
+features are supported (futexes in the Linux emulator).
+
 ## The Core library
 
 The first part of the tutorial will explain how to use the more bare-bones Core
@@ -313,4 +317,151 @@ will see that `ctx` is null and invoke `clone_cb` to initialize it.
 
 ## The Linux library
 
-Coming soon!
+The Linux liblfi library is built on top of the Core library and abstracts away
+a lot of the details to make it easy to load and run ELF binaries built for
+Linux with LFI.
+
+### Running a Linux-LFI program
+
+After initializing the Core LFI engine, we need to initialize a Linux engine,
+with type `struct LFILinuxEngine`.
+
+```c
+size_t pagesize = getpagesize();
+// LFI Core engine.
+struct LFIEngine *engine = lfi_new(
+    (struct LFIOptions) {
+        .boxsize = 4UL * 1024 * 1024 * 1024, // 4GiB
+        .pagesize = pagesize,
+    },
+    1);
+assert(engine);
+
+// LFI Linux engine.
+struct LFILinuxEngine *linux_ = lfi_linux_new(engine,
+    (struct LFILinuxOptions) {
+        .stacksize = 2 * 1024  * 1024, // 2MiB
+    });
+assert(linux_);
+```
+
+Like the Core engine, the Linux engine also has a set of options you can
+configure. Some useful ones are:
+
+* `verbose`: enable verbose debug logging. Also enabled by the environment
+  variable `LFI_VERBOSE=1`.
+* `dir_maps`: a list of host to sandbox directory mappings, making parts of the
+  host filesystem available to the sandbox. Each entry is expressed as
+  `<host-path>=<sandbox-path>`. May be left `NULL` if no host directories are
+  exposed to the sandbox.
+* `wd`: working directory that the sandbox program starts in. May be left
+  `NULL` if no directories are exposed to the sandbox.
+* `perf`: enable `perf` support for benchmarking. This will emit a Perf symbol
+  map file.
+* `debug`: enable LLDB support by hooking into the dynamic linker's `_r_debug`
+  structure. This will cause LLDB to see dynamically loaded LFI programs as
+  shared libraries.
+* `sys_passthrough`: pass most system calls directly through to the host
+  (unsafe). This is useful for testing/benchmarking if the program you are
+  running uses syscalls that are not supported by liblfi (only works on Linux).
+* `exit_unknown_syscalls`: exit the program if an unknown syscall is attempted,
+  instead of just returning `ENOSYS`. This is useful for debugging when running
+  a new program in the LFI runtime, in case it uses a system call that is not
+  supported by liblfi.
+
+See `lfi_linux.h` for the complete API.
+
+If you want the program to have unrestricted access to the fileystem, you can
+configure the engine like so:
+
+```c
+const char *maps[] = {
+    "/=/",
+    NULL,
+};
+
+struct LFILinuxEngine *linux_ = lfi_linux_new(engine,
+    (struct LFILinuxOptions) {
+        .stacksize = mb(2),
+        .wd = "/",
+        .dir_maps = maps,
+    });
+assert(linux_);
+```
+
+Or you can use a more fine-grained `dir_maps`/`wd` configuration to allow only
+some host directories.
+
+Next, you'll want to read your target ELF program into memory. For this example,
+I'll assume you have a function that does that for you:
+
+```c
+size_t prog_size;
+uint8_t *prog = readfile("/path/to/file", &prog_size);
+assert(prog);
+```
+
+Next, create a process object of type `struct LFILinuxProc`. This is the Linux
+library's equivalent of the Core's `struct LFIBox` object.
+
+```c
+struct LFILinuxProc *proc = lfi_proc_new(linux_);
+assert(proc);
+```
+
+Next, we can ask liblfi to load the ELF program into the proc's memory space:
+
+```
+// File path is only necessary for debugging and can be NULL if not important.
+bool ok = lfi_proc_load(proc, prog, prog_size, "/path/to/file");
+assert(ok);
+```
+
+Now, we'll create the sandbox thread (`struct LFILinuxThread`), which is the
+Linux library's equivalent of the Core's `struct LFIContext`. When we create a
+thread, liblfi will initialize a stack and prepopulate it with the provided
+`argc`, `argv`, and `envp` (and an internally generated `auxv` auxiliary
+vector). In this case, we'll leave `envp` empty, but you can use it to set
+environment variables that are available to the sandbox.
+
+```c
+const char *box_argv[] = {
+    "/path/to/file",
+};
+const char *box_envp[] = {
+    NULL,
+}
+struct LFILinuxThread *t = lfi_thread_new(proc, 1, &box_argv[0], &box_envp[0]);
+assert(t);
+```
+
+Finally, we can run the thread:
+
+```c
+int code = lfi_thread_run(t);
+assert(code == 0);
+```
+
+The Linux library will automatically handle system calls, and will return from
+`lfi_thread_run` when the `exit` system call is executed.
+
+### Using Linux-LFI programs as libraries
+
+Similar to with the Core library we can use a different API if we want to use
+the Linux-LFI program as a library. We'll need to do a bit more initialization:
+
+```c
+// After creating the LFILinuxProc.
+lfi_box_init_ret(lfi_proc_box(proc));
+```
+
+```c
+// After creating the LFILinuxThread (for multithreading support).
+lfi_linux_init_clone(t);
+```
+
+Once loaded, you can use `lfi_proc_sym(proc, "symbol")` to look up the address
+of a symbol in the sandbox. You can still use `LFI_INVOKE` to directly invoke
+functions, or use [lfi-bind](https://github.com/lfi-project/lfi-bind) to
+generate wrappers. See the [library guide](LIBRARIES.md) for more information
+about sandboxing libraries.
