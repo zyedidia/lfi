@@ -1,0 +1,21 @@
+[submodule "lfi-runtime"]
+	path = lfi-runtime
+	url = https://github.com/lfi-project/lfi-runtime
+[submodule "lfi-verifier"]
+	path = lfi-verifier
+	url = https://github.com/lfi-project/lfi-verifier
+[submodule "lfi-llvm-toolchain"]
+	path = lfi-llvm-toolchain
+	url = https://github.com/lfi-project/lfi-llvm-toolchain
+[submodule "lfi-bind"]
+	path = lfi-bind
+	url = https://github.com/lfi-project/lfi-bind
+[submodule "lfi-rewriter"]
+	path = lfi-rewriter
+	url = https://github.com/lfi-project/lfi-rewriter
+[submodule "lfi-specification"]
+	path = lfi-specification
+	url = https://github.com/lfi-project/lfi-specification
+[submodule "lfi-bench"]
+	path = lfi-bench
+	url = https://github.com/lfi-project/lfi-bench
