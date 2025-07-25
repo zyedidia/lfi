@@ -1,6 +1,7 @@
 # Lightweight Fault Isolation (LFI)
 
-Welcome to the home of the Lightweight Fault Isolation (LFI) project. 
+Welcome to the top-level repository for the Lightweight Fault Isolation (LFI)
+project. 
 
 # What is LFI?
 
