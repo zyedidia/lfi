@@ -352,7 +352,7 @@ configure. Some useful ones are:
   variable `LFI_VERBOSE=1`.
 * `dir_maps`: a list of host to sandbox directory mappings, making parts of the
   host filesystem available to the sandbox. Each entry is expressed as
-  `<host-path>=<sandbox-path>`. May be left `NULL` if no host directories are
+  `<sandbox-path>=<host-path>`. May be left `NULL` if no host directories are
   exposed to the sandbox.
 * `wd`: working directory that the sandbox program starts in. May be left
   `NULL` if no directories are exposed to the sandbox.
