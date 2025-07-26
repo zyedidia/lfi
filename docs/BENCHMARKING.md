@@ -7,7 +7,7 @@ installation. We will assume you have installed it to `$CPU2017`.
 
 First, you need to install our wrapper `specinvoke` tool. This tool allows
 us to override the SPEC runner to use `lfi-run` to run compiled binaries.
-The tool can be found in this repository (https://github.com/lfi-project/lfi)
+The tool can be found in this repository (https://github.com/zyedidia/lfi)
 in `specinvoke/`.
 
 Rename the original `specinvoke` tool to `specinvoke.orig` (this will be used
