@@ -50,9 +50,9 @@ and LFI can support thousands of sandboxes in a single address space: ~64K
 # Getting Started
 
 To get started with LFI, you'll need an LFI compiler. You can get one from
-https://github.com/lfi-project/lfi-llvm-toolchain. Prebuilt compilers aarch64
+https://github.com/lfi-project/lfi-llvm-toolchain. Prebuilt aarch64
 and x86-64 compilers are hosted in the releases:
-https://github.com/lfi-project/lfi-llvm-toolchain/releases/latest. Download
+https://github.com/lfi-project/lfi/releases/latest. Download
 the `aarch64-lfi-clang.tar.gz` or `x86_64-lfi-clang.tar.gz` bundle, depending
 on your architecture (or `aarch64-lfi-clang-host-x86_64.tar.gz` if you want to
 cross compile to aarch64 from x86-64).
