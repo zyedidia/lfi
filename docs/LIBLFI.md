@@ -219,18 +219,11 @@ non-C/C++ language).
 
 ### Callbacks
 
-You might want to pass a host function into the sandbox that it can call. First,
-you need to initialize callback support in the sandbox:
-
-```c
-bool ok = lfi_box_cbinit(box);
-assert(ok);
-```
-
-Next, you can register your host function as a sandbox callback. This will
-return a function pointer to a function inside the sandbox that will transfer
-control to the host function. Since it is inside the sandbox, it may be called
-by sandbox code.
+You might want to pass a host function into the sandbox that it can call. You
+can register your host function as a sandbox callback. This will return a
+function pointer to a function inside the sandbox that will transfer control to
+the host function. Since it is inside the sandbox, it may be called by sandbox
+code.
 
 ```c
 static int
